@@ -31,7 +31,7 @@ const VideosSections = () => {
   ];
 
   return (
-    <div className="bg-black py-10 px-6 md:px-12">
+    <div className="bg-transparent py-10  h-fit w-full lg:px-40">
       <div className="text-center mb-10">
         <p className="text-white text-sm uppercase tracking-wider">
           LEARN MORE ABOUT

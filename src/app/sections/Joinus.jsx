@@ -16,8 +16,8 @@ const Joinus = () => {
         <h1 className="text-red-500 text-4xl md:text-5xl font-bold mb-8">
           Premium Fighter Profile
         </h1>
-        <button className="bg-red-600 hover:bg-red-700 text-white py-3 px-8 text-xl font-medium transition-colors duration-200">
-          Promote Yourself
+        <button className="rounded bg-red-600 hover:bg-red-700 text-white py-3 px-8 text-xl font-medium transition-colors duration-200">
+          Prepare Yourself
         </button>
       </div>
     </div>

@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply bg-black;
+  @apply bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a] to-[#000000];
 }

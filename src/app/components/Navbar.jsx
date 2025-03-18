@@ -1,22 +1,23 @@
 "use client";
+import Link from "next/link";
 import React, { useState } from "react";
 
 const Navbar = () => {
   return (
-    <nav className="bg-black flex items-center justify-between px-5 h-16 w-full">
+    <nav className="flex items-center justify-between px-5 h-fit w-full lg:px-40 py-4">
       <div>
         <a href="#" className="flex items-center">
-          <img src="/api/placeholder/120/50" alt="Logo" className="h-12" />
+          <img src="/logo.png" alt="Logo" className="h-[111px] w-[132px]" />
         </a>
       </div>
       <ul className="flex items-center space-x-6">
         <li>
-          <a
-            href="#"
+          <Link
+            href={"/"}
             className="text-white font-bold uppercase text-sm tracking-wide"
           >
             Home
-          </a>
+          </Link>
         </li>
         <li>
           <a
@@ -49,9 +50,12 @@ const Navbar = () => {
         </li>
       </ul>
       <div>
-        <button className="bg-red-600 text-white font-bold px-4 py-2 uppercase text-sm">
+        <Link
+          href={"/login"}
+          className="bg-red-600 text-white font-bold px-2 py-4 uppercase text-sm"
+        >
           Login / Sign Up
-        </button>
+        </Link>
       </div>
     </nav>
   );

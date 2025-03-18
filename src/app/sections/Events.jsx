@@ -33,8 +33,11 @@ const Events = () => {
   ];
 
   return (
-    <div className="bg-black w-full py-8 px-8">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-4">
+    <div
+      className="bg-transparent w-full px-5 h-fit lg:px-40 py-20"
+      id="events"
+    >
+      <div className="flex flex-col md:flex-row justify-between items-start mb-4 px-8">
         <div>
           <p className="text-white text-sm uppercase tracking-wide">
             LEARN MORE ABOUT
@@ -49,13 +52,13 @@ const Events = () => {
         </div>
 
         <div className="mt-4 md:mt-0">
-          <button className="bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded">
+          <button className="bg-red-600 text-white font-bold px-6 py-4 text-lg cursor-pointer rounded">
             View Full Calendar
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mt-8 px-8">
         {events.map((event) => (
           <div key={event.id} className="flex">
             <div className="flex flex-col items-center mr-4">

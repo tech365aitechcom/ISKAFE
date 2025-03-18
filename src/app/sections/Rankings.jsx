@@ -3,27 +3,25 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 
 const Rankings = () => {
   return (
-    <div className="bg-black text-white p-8">
+    <div className="bg-transparent text-white px-8 py-16">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:justify-between items-start mb-8">
           <h2 className="text-3xl font-bold mb-4 md:mb-0">Rankings</h2>
-          <button className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
+          <button className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4">
             Check Ranking For Other Classification
           </button>
         </div>
-
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Rankings Display */}
-          <div className="bg-gray-900 border border-gray-800 rounded p-6 flex-1">
+          <div className="bg-transparent border border-[#BEBEBE] p-6 flex-1  w-full md:w-[60%]">
             <div className="text-center mb-6">
-              <h3 className="text-amber-400 font-bold uppercase">
+              <h3 className="bg-gradient-to-b from-[#D99B2A] to-[#FFD995] bg-clip-text text-transparent font-bold uppercase">
                 PROFESSIONAL&gt; KICKBOXING&gt; JUNIOR LIGHT HEAVYWEIGHT
               </h3>
-              <p className="text-amber-400 text-sm">(FEMALE) (173-175)</p>
+              <p className="bg-gradient-to-b from-[#D99B2A] to-[#FFD995] bg-clip-text text-transparent text-sm">
+                (FEMALE) (173-175)
+              </p>
             </div>
-
             <div className="flex flex-col md:flex-row justify-center items-center gap-8 mt-10">
-              {/* Fighter - Ricardo Cuenca */}
               <div className="flex flex-col items-center mt-8">
                 <div className="relative mb-4">
                   <div className="bg-gray-700 rounded-full w-24 h-24 flex items-center justify-center overflow-hidden">
@@ -40,11 +38,8 @@ const Rankings = () => {
                 <h4 className="font-medium text-sm">Ricardo Cuenca</h4>
                 <p className="text-xs mt-1">0-0-1</p>
               </div>
-
-              {/* Fighter - Joe Sanchez (Champion) */}
               <div className="flex flex-col items-center z-10">
                 <div className="relative mb-4">
-                  {/* Crown */}
                   <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
                     <svg
                       width="48"
@@ -66,7 +61,6 @@ const Rankings = () => {
                       </defs>
                     </svg>
                   </div>
-
                   <div className="bg-gray-700 rounded-full w-24 h-24 flex items-center justify-center overflow-hidden">
                     <img
                       src="https://images.unsplash.com/photo-1732485139029-bd4613394575?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -81,8 +75,6 @@ const Rankings = () => {
                 <h4 className="font-medium text-sm">Joe Sanchez (16)</h4>
                 <p className="text-xs mt-1">1-0-1</p>
               </div>
-
-              {/* Fighter - Sean Sampson */}
               <div className="flex flex-col items-center mt-8">
                 <div className="relative mb-4">
                   <div className="bg-gray-700 rounded-full w-24 h-24 flex items-center justify-center overflow-hidden">
@@ -101,26 +93,23 @@ const Rankings = () => {
               </div>
             </div>
           </div>
-
-          {/* Feedback Section */}
-          <div className="bg-gray-900 border border-gray-800 rounded p-6 w-full md:w-80">
+          <div className="bg-[#1A1A1A] border border-gray-800 rounded p-6 w-full md:w-[40%]">
             <div className="text-center">
               <h3 className="uppercase text-sm mb-2">LET US KNOW</h3>
               <p className="text-xl font-medium mb-6">
                 if you agree or not with this ranking
               </p>
-
-              <div className="flex justify-center gap-8">
+              <div className="flex justify-center gap-16">
                 <div className="flex flex-col items-center">
                   <button className="bg-transparent hover:bg-gray-800 p-2 rounded-full mb-2">
-                    <ThumbsUp size={40} className="text-yellow-400" />
+                    <img src="/thumbsup.png" alt="" />
                   </button>
                   <span className="text-sm">Agree</span>
                 </div>
 
                 <div className="flex flex-col items-center">
                   <button className="bg-transparent hover:bg-gray-800 p-2 rounded-full mb-2">
-                    <ThumbsDown size={40} className="text-yellow-400" />
+                    <img src="/thumbsdown.png" alt="" />
                   </button>
                   <span className="text-sm">Disagree</span>
                 </div>
