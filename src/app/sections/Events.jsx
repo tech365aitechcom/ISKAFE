@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React from "react";
 
 const Events = () => {
@@ -52,9 +53,12 @@ const Events = () => {
         </div>
 
         <div className="mt-4 md:mt-0">
-          <button className="bg-red-600 text-white font-bold px-6 py-4 text-lg cursor-pointer rounded">
+          <Link
+            href={"/all-events"}
+            className="bg-red-600 text-white font-bold px-6 py-4 text-lg cursor-pointer rounded"
+          >
             View Full Calendar
-          </button>
+          </Link>
         </div>
       </div>
 
