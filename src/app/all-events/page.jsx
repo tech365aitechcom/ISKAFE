@@ -121,7 +121,6 @@ const EventsSearch = () => {
           day="21"
           title="Taylor Swift - The Eras Tour"
           description="Experience the music journey through all of Taylor's eras."
-          onClick={() => console.log("Card clicked!")}
         />
         <EventCard
           imageUrl="https://images.unsplash.com/photo-1714583173985-fa58ef40c8d4?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -131,7 +130,6 @@ const EventsSearch = () => {
           day="21"
           title="Taylor Swift - The Eras Tour"
           description="Experience the music journey through all of Taylor's eras."
-          onClick={() => console.log("Card clicked!")}
         />
         <EventCard
           imageUrl="https://images.unsplash.com/photo-1714583173985-fa58ef40c8d4?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -141,7 +139,6 @@ const EventsSearch = () => {
           day="21"
           title="Taylor Swift - The Eras Tour"
           description="Experience the music journey through all of Taylor's eras."
-          onClick={() => console.log("Card clicked!")}
         />
       </div>
     </div>
