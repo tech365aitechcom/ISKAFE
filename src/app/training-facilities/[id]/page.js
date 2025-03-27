@@ -3,7 +3,7 @@ import React from 'react'
 
 const TrainingFacilitiesDetailsPage = () => {
   return (
-    <div className='text-white container w-full mx-auto my-14 mb-24 md:mb-56 px-4'>
+    <div className='text-white container w-full mx-auto my-14 mb-24 md:mb-56 lg:px-8 px-4'>
       <div className='flex items-center gap-6'>
         <Image
           src='/sportskungfu.png'
