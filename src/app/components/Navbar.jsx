@@ -2,10 +2,12 @@
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { Menu, X } from 'lucide-react'
 
 const Navbar = () => {
   const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
   const isLoggedIn = false
 
@@ -40,20 +42,33 @@ const Navbar = () => {
     }
   }, [])
 
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen)
+  }
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false)
+  }
+
+  const mainMenuItems = [
+    { name: 'Home', path: '/' },
+    { name: 'Events', path: '/all-events' },
+    { name: 'Fighters', path: '/fighters' },
+    { name: 'Rankings', path: '/ranking' },
+  ]
+
   return (
     <nav className='flex items-center justify-between px-5 h-fit w-full lg:px-40 py-4 relative'>
+      {/* Logo */}
       <div>
         <a href='#' className='flex items-center'>
           <img src='/logo.png' alt='Logo' className='h-[111px] w-[132px]' />
         </a>
       </div>
-      <ul className='flex items-center space-x-6'>
-        {[
-          { name: 'Home', path: '/' },
-          { name: 'Events', path: '/all-events' },
-          { name: 'Fighters', path: '/fighters' },
-          { name: 'Rankings', path: '/ranking' },
-        ].map((item) => (
+
+      {/* Desktop Navigation */}
+      <ul className='hidden lg:flex items-center space-x-6'>
+        {mainMenuItems.map((item) => (
           <li key={item.path}>
             <Link
               href={item.path}
@@ -97,7 +112,9 @@ const Navbar = () => {
           )}
         </li>
       </ul>
-      <div>
+
+      {/* Desktop Login/Signup */}
+      <div className='hidden lg:block'>
         <Link
           href={'/login'}
           className='bg-red-600 text-white font-bold px-2 py-4 uppercase text-2xl'
@@ -105,6 +122,65 @@ const Navbar = () => {
           Login / Sign Up
         </Link>
       </div>
+
+      {/* Mobile Menu Toggle */}
+      <div className='lg:hidden'>
+        <button
+          onClick={toggleMobileMenu}
+          className='text-white focus:outline-none'
+        >
+          {mobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className='fixed inset-0 bg-black z-50 lg:hidden'>
+          <div className='flex flex-col h-full'>
+            {/* Mobile Menu Header */}
+            <div className='flex justify-end items-center px-5 py-4'>
+              <button
+                onClick={closeMobileMenu}
+                className='text-white focus:outline-none'
+              >
+                <X size={32} />
+              </button>
+            </div>
+
+            {/* Mobile Menu Items */}
+            <div className='overflow-y-auto'>
+              <ul className='py-4'>
+                {[...mainMenuItems, ...moreMenuItems].map((item) => (
+                  <li key={item.path}>
+                    <Link
+                      href={item.path}
+                      onClick={closeMobileMenu}
+                      className={`block px-2 py-3 text-xl border-b border-[#6C6C6C] mx-2 ${
+                        pathname === item.path
+                          ? 'text-yellow-500'
+                          : 'text-white'
+                      } uppercase font-semibold`}
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Mobile Login/Signup */}
+            <div className='px-3 py-4'>
+              <Link
+                href={'/login'}
+                onClick={closeMobileMenu}
+                className=' bg-red-600 text-white font-bold text-center px-4 py-3 uppercase text-xl'
+              >
+                Login / Sign Up
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
