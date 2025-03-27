@@ -1,5 +1,6 @@
 'use client'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 
 const news = [
@@ -207,7 +208,8 @@ const NewsPage = () => {
       <section className='container mx-auto py-12 px-4'>
         <div className='flex flex-wrap gap-4'>
           {currentNews.map((item, index) => (
-            <div
+            <Link
+              href={`/news/${index}`}
               key={index}
               className='w-100 mx-auto border border-gray-500 rounded'
             >
@@ -223,7 +225,7 @@ const NewsPage = () => {
                 </h3>
                 <h3 className='text-[#BDBDBD] font-medium'>{item.time}</h3>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
         {/* Pagination Controls */}
