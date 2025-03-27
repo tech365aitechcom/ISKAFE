@@ -11,6 +11,13 @@ const Navbar = () => {
   const dropdownRef = useRef(null)
   const isLoggedIn = false
 
+  const mainMenuItems = [
+    { name: 'Home', path: '/' },
+    { name: 'Events', path: '/all-events' },
+    { name: 'Fighters', path: '/fighters' },
+    { name: 'Rankings', path: '/ranking' },
+  ]
+
   let moreMenuItems = [
     { name: 'Training Facilities', path: '/training-facilities' },
     { name: 'News', path: '/news' },
@@ -50,18 +57,11 @@ const Navbar = () => {
     setMobileMenuOpen(false)
   }
 
-  const mainMenuItems = [
-    { name: 'Home', path: '/' },
-    { name: 'Events', path: '/all-events' },
-    { name: 'Fighters', path: '/fighters' },
-    { name: 'Rankings', path: '/ranking' },
-  ]
-
   return (
-    <nav className='flex items-center justify-between px-5 h-fit w-full lg:px-40 py-4 relative'>
+    <nav className='flex items-center justify-between px-2 container mx-auto h-fit w-full py-4 relative'>
       {/* Logo */}
       <div>
-        <a href='#' className='flex items-center'>
+        <a href='/' className='flex items-center'>
           <img src='/logo.png' alt='Logo' className='h-[111px] w-[132px]' />
         </a>
       </div>

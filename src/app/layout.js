@@ -19,7 +19,7 @@ export default function RootLayout({ children }) {
     <html lang='en' suppressHydrationWarning>
       <body className={`${saira.variable} antialiased`}>
         <Navbar />
-        {children}
+        <div className='lg:px-4'>{children}</div>
         <Footer />
       </body>
     </html>
