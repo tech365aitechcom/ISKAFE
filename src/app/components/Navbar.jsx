@@ -34,7 +34,15 @@ const Navbar = () => {
     ]
   }
 
-  const isMoreMenuActive = moreMenuItems.some((item) => pathname === item.path)
+  const isMoreMenuActive = moreMenuItems.some((item) =>
+    pathname.startsWith(item.path)
+  )
+
+  const getMenuItemClass = (path) => {
+    return pathname === path || pathname.startsWith(`${path}/`)
+      ? 'text-yellow-500'
+      : 'text-white'
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -96,9 +104,9 @@ const Navbar = () => {
                   <Link
                     href={item.path}
                     onClick={() => setDropdownOpen(false)}
-                    className={`block py-2 ${
-                      pathname === item.path ? 'text-yellow-500' : 'text-white'
-                    } hover:bg-gray-900 uppercase text-left font-semibold ${
+                    className={`block py-2 ${getMenuItemClass(
+                      item.path
+                    )} hover:bg-gray-900 uppercase text-left font-semibold ${
                       index !== array.length - 1
                         ? 'border-b border-[#6C6C6C] mx-2'
                         : 'mx-2'
@@ -150,21 +158,21 @@ const Navbar = () => {
             {/* Mobile Menu Items */}
             <div className='overflow-y-auto'>
               <ul className='py-4'>
-                {[...mainMenuItems, ...moreMenuItems].map((item) => (
-                  <li key={item.path}>
-                    <Link
-                      href={item.path}
-                      onClick={closeMobileMenu}
-                      className={`block px-2 py-3 text-xl border-b border-[#6C6C6C] mx-2 ${
-                        pathname === item.path
-                          ? 'text-yellow-500'
-                          : 'text-white'
-                      } uppercase font-semibold`}
-                    >
-                      {item.name}
-                    </Link>
-                  </li>
-                ))}
+                <ul className='py-4'>
+                  {[...mainMenuItems, ...moreMenuItems].map((item) => (
+                    <li key={item.path}>
+                      <Link
+                        href={item.path}
+                        onClick={closeMobileMenu}
+                        className={`block px-2 py-3 text-xl border-b border-[#6C6C6C] mx-2 ${getMenuItemClass(
+                          item.path
+                        )} uppercase font-semibold`}
+                      >
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </ul>
             </div>
 
