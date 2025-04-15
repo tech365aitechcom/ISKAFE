@@ -1,7 +1,5 @@
 import { Saira_Condensed } from 'next/font/google'
 import './globals.css'
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
 
 const saira = Saira_Condensed({
   variable: '--font-saira-condensed',
@@ -17,11 +15,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang='en' suppressHydrationWarning>
-      <body className={`${saira.variable} antialiased`}>
-        <Navbar />
-        {children}
-        <Footer />
-      </body>
+      <body className={`${saira.variable} antialiased`}>{children}</body>
     </html>
   )
 }
