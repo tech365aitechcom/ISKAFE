@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Star,
   Dumbbell,
+  PartyPopper,
+  Newspaper,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -102,13 +104,13 @@ export function Sidebar() {
         />
         <NavItem
           href='/promoters'
-          icon={<Users size={18} />}
+          icon={<PartyPopper size={18} />}
           title='Promoters'
           isActive={pathname === '/promoters'}
         />
         <NavItem
           href='/news'
-          icon={<FileText size={18} />}
+          icon={<Newspaper size={18} />}
           title='News'
           isActive={pathname === '/news'}
         />
