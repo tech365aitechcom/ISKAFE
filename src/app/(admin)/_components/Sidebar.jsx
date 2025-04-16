@@ -109,10 +109,10 @@ export function Sidebar() {
           isActive={pathname === '/promoters'}
         />
         <NavItem
-          href='/news'
+          href='/admin-news'
           icon={<Newspaper size={18} />}
           title='News'
-          isActive={pathname === '/news'}
+          isActive={pathname === '/admin-news'}
         />
         <NavItem
           href='/people'
@@ -120,25 +120,28 @@ export function Sidebar() {
           title='People'
           isActive={pathname === '/people'}
         />
-      </nav>
+        {/* User Profile Section */}
 
-      {/* User Profile Section */}
-      <div className='p-4 border-t border-gray-700'>
-        <Link href='/account-settings' className='flex items-center'>
-          <div className='relative w-8 h-8 mr-3'>
-            <Image
-              src='/avatar.jpg'
-              alt='Profile'
-              layout='fill'
-              className='rounded-full'
-            />
+        <div className='flex items-center p-4'>
+          <div className='flex items-center'>
+            <div className='relative w-10 h-10 mr-3'>
+              <Image
+                src='/john.png'
+                alt='Profile'
+                layout='fill'
+                className='rounded-full bg-violet-700'
+              />
+            </div>
+            <div>
+              <p className='text-sm font-medium'>John Carter</p>
+              <p className='text-xs text-gray-400'>Account settings</p>
+            </div>
           </div>
-          <div>
-            <p className='text-sm font-medium'>John Carter</p>
-            <p className='text-xs text-gray-400'>Account settings</p>
-          </div>
-        </Link>
-      </div>
+          <span className='ml-auto'>
+            <ChevronRight size={14} />
+          </span>
+        </div>
+      </nav>
     </div>
   )
 }
