@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronsUpDown } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 
 export function EventTable({ events }) {
@@ -73,12 +74,14 @@ export function EventTable({ events }) {
             {sortedEvents.map((event, index) => (
               <tr
                 key={index}
-                className={`${
+                className={`cursor-pointer ${
                   index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                 }`}
               >
                 <td className='p-4'>{event.id}</td>
-                <td className='p-4'>{event.name}</td>
+                <td className='p-4'>
+                  <Link href={`/events/${event.id}`}>{event.name}</Link>
+                </td>
                 <td className='p-4'>{event.date}</td>
                 <td className='p-4'>{event.address}</td>
                 <td className='p-4'>{event.promoter}</td>

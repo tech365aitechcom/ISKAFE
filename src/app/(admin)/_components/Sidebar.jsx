@@ -3,13 +3,11 @@ import Link from 'next/link'
 import {
   Search,
   Home,
-  Calendar,
   User,
   List,
   DollarSign,
   MapPin,
   Users,
-  FileText,
   ChevronRight,
   Star,
   Dumbbell,
