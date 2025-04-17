@@ -1,4 +1,4 @@
-import { events } from '@/constants'
+import { events } from '../../../constants/index'
 import { EventTable } from './_components/EventTable'
 
 export default function EventsPage() {

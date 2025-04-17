@@ -64,7 +64,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
                 name='venueName'
                 value={formData.venueName}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded p-3 text-white'
+                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
                 required
               />
             </div>
@@ -77,7 +77,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
                 name='name2'
                 value={formData.name2}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded p-3 text-white'
+                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
               />
             </div>
           </div>
@@ -92,7 +92,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
               name='shortDescription'
               value={formData.shortDescription}
               onChange={handleChange}
-              className='w-full bg-[#00000061] rounded p-3 text-white'
+              className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
             />
           </div>
 
@@ -106,7 +106,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
               value={formData.fullDescription}
               onChange={handleChange}
               rows='1'
-              className='w-full bg-[#00000061] rounded p-3 text-white resize-none'
+              className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white resize-none'
             />
           </div>
 
@@ -119,7 +119,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
                 name='url'
                 value={formData.url}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded p-3 text-white'
+                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
               />
             </div>
           </div>
