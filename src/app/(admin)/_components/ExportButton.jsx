@@ -5,9 +5,21 @@ import React from 'react'
 export function ExportButton() {
   const pathname = usePathname()
 
+  const isShowButton = () => {
+    return (
+      pathname === '/cash-payments-codes' ||
+      pathname === '/spectator-ticket-redemption' ||
+      pathname === '/event-bout-list' ||
+      pathname === '/promoters' ||
+      pathname === '/admin-news' ||
+      pathname === '/people' ||
+      pathname === '/fighter-trainer-checkin'
+    )
+  }
+
   return (
     <>
-      {pathname === '/cash-payments-codes' && (
+      {isShowButton() && (
         <button className='text-white px-8 py-2 rounded-md bg-[#0A1330] cursor-pointer flex items-center gap-2'>
           Export data
           <svg
