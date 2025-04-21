@@ -12,7 +12,7 @@ export default function CashPaymentAndCodesPage() {
   }
 
   return (
-    <div className=' text-white p-8 flex justify-center relative overflow-hidden'>
+    <div className='text-white p-8 flex justify-center relative overflow-hidden'>
       <div
         className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
         style={{

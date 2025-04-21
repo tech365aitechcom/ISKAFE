@@ -55,14 +55,14 @@ export default function EventDetailsPage() {
   }, [params])
 
   return (
-    <div className='text-white p-8 relative overflow-hidden'>
-      {/* <div
+    <div className='text-white p-8 flex justify-center relative overflow-hidden'>
+      <div
         className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
         style={{
           background:
             'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
         }}
-      ></div> */}
+      ></div>
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex justify-between mb-6'>
           {/* Header with back button */}
@@ -129,7 +129,7 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Bracket Count</span>
-              <button>
+              <button className='cursor-pointer'>
                 <Pencil size={16} />
               </button>
             </div>
@@ -149,9 +149,11 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Bout Count</span>
-              <button>
-                <Pencil size={16} />
-              </button>
+              <Link href={`/events/${eventId}/tournament-brackets`}>
+                <button className='cursor-pointer'>
+                  <Pencil size={16} />
+                </button>
+              </Link>
             </div>
             <div className='mt-2'>
               <h2 className='text-2xl font-bold'>
@@ -169,7 +171,7 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Registration Fee</span>
-              <button>
+              <button className='cursor-pointer'>
                 <Pencil size={16} />
               </button>
             </div>
@@ -194,6 +196,9 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Participants</span>
+              <button className='cursor-pointer'>
+                <Pencil size={16} />
+              </button>
             </div>
             <div className='mt-2'>
               <h2 className='text-2xl font-bold'>
