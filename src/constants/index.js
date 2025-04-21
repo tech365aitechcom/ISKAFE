@@ -143,3 +143,143 @@ export const venues = [
     url: '',
   },
 ]
+
+export const brackets = [
+  {
+    id: 1,
+    title: "Men's Novice 100.1LBS - 110.0LBS",
+    subtitle: 'Point Sparring - International Rules',
+    status: 'Open',
+    startDayNumber: '1',
+    group: '',
+    ringNumber: '',
+    bracketSequence: '',
+    boutRound: '1',
+    maxCompetitors: '1',
+    images: [
+      {
+        src: '/fighter.png',
+        alt: 'fighter',
+        name: 'Eric Franks',
+        age: '36yrs',
+      },
+      {
+        src: '/anthony.png',
+        alt: 'fighter',
+        name: 'Anthony Bui',
+        age: '36yrs',
+      },
+      {
+        src: '/davison.png',
+        alt: 'fighter',
+        name: 'Chainsaw Davison',
+        age: '36yrs',
+      },
+      {
+        src: '/fighter.png',
+        alt: 'fighter',
+        name: 'Eric Franks',
+        age: '36yrs',
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: "Boys' Novice 70.1LBS - 80.0LBS",
+    subtitle: 'Continuous Sparring - Regional Rules',
+    status: 'Started',
+    startDayNumber: '2',
+    group: '',
+    ringNumber: '',
+    bracketSequence: '',
+    boutRound: '2',
+    maxCompetitors: '3',
+    images: [
+      {
+        src: '/fighter.png',
+        alt: 'fighter',
+        name: 'Eric Franks',
+        age: '36yrs',
+      },
+      {
+        src: '/anthony.png',
+        alt: 'fighter',
+        name: 'Anthony Bui',
+        age: '36yrs',
+      },
+      {
+        src: '/davison.png',
+        alt: 'fighter',
+        name: 'Chainsaw Davison',
+        age: '36yrs',
+      },
+      {
+        src: '/fighter.png',
+        alt: 'fighter',
+        name: 'Eric Franks',
+        age: '36yrs',
+      },
+    ],
+  },
+  {
+    id: 3,
+    title: "Boys' Novice 120.1LBS - 130.0LBS",
+    subtitle: 'Point Sparring - International Rules',
+    status: 'Open',
+    startDayNumber: '1',
+    group: '',
+    ringNumber: '',
+    bracketSequence: '',
+    boutRound: '4',
+    maxCompetitors: '3',
+    images: [
+      {
+        src: '/fighter.png',
+        alt: 'fighter',
+        name: 'Eric Franks',
+        age: '36yrs',
+      },
+      {
+        src: '/anthony.png',
+        alt: 'fighter',
+        name: 'Anthony Bui',
+        age: '36yrs',
+      },
+      {
+        src: '/davison.png',
+        alt: 'fighter',
+        name: 'Chainsaw Davison',
+        age: '36yrs',
+      },
+      {
+        src: '/fighter.png',
+        alt: 'fighter',
+        name: 'Eric Franks',
+        age: '36yrs',
+      },
+    ],
+  },
+]
+
+export const boutsAndResults = [
+  {
+    id: 1,
+    fighters1: { src: '/fighter.png', name: 'Eric Franks', age: 36 },
+    fighter2: {
+      src: '/davison.png',
+      name: 'Chainsaw Davison',
+      age: 36,
+    },
+    roundNumber: 1,
+  },
+  {
+    id: 2,
+    fighters1: { src: '/anthony.png', name: 'Anthony Bui', age: 36 },
+    fighter2: {
+      src: '/fighter.png',
+      name: 'Eric Franks',
+      age: 36,
+    },
+    roundNumber: 2,
+  },
+]
