@@ -1,8 +1,23 @@
+'use client'
+
 import { ArrowLeft, ArrowUpDown, Trash } from 'lucide-react'
 import BracketList from './_components/BracketList'
 import { brackets } from '../../../../../constants/index'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 
 export default function TournamentBrackets() {
+  const params = useParams()
+  const [eventId, setEventId] = useState(null)
+
+  useEffect(() => {
+    if (params?.id) {
+      setEventId(params.id)
+      console.log('Event ID:', params.id)
+    }
+  }, [params])
+
   return (
     <div className='text-white p-8 relative flex justify-center overflow-hidden'>
       <div
@@ -13,28 +28,40 @@ export default function TournamentBrackets() {
         }}
       ></div>
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
-        <div className=''>
-          {/* Header */}
-          <div className='flex items-center mb-6'>
-            <button className='text-white mr-3'>
-              <ArrowLeft size={20} />
+        {/* Header */}
+        <div className='flex items-center gap-4 mb-6'>
+          <Link href={`/events`}>
+            <button className='mr-2 cursor-pointer'>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-6 w-6'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M10 19l-7-7m0 0l7-7m-7 7h18'
+                />
+              </svg>
             </button>
-            <h1 className='text-2xl font-medium'>Tournament Brackets</h1>
-            <div className='ml-auto flex space-x-2'>
-              <button className='border border-white px-3 py-1 text-sm rounded flex items-center gap-1 cursor-pointer'>
-                <ArrowUpDown size={14} />
-                <span className='mr-1'>Reorder</span>
-              </button>
-              <button className='bg-[#F35050] px-3 py-1 text-sm rounded flex items-center gap-1 cursor-pointer'>
-                <Trash size={14} color='#fff' />
-                <span className='mr-1'>Delete</span>
-              </button>
-            </div>
+          </Link>
+          <h1 className='text-2xl font-bold'>Tournament Brackets</h1>
+          <div className='ml-auto flex space-x-2'>
+            <button className='border border-white px-3 py-1 text-sm rounded flex items-center gap-1 cursor-pointer'>
+              <ArrowUpDown size={14} />
+              <span className='mr-1'>Reorder</span>
+            </button>
+            <button className='bg-[#F35050] px-3 py-1 text-sm rounded flex items-center gap-1 cursor-pointer'>
+              <Trash size={14} color='#fff' />
+              <span className='mr-1'>Delete</span>
+            </button>
           </div>
-
-          {/* Brackets List */}
-          <BracketList brackets={brackets} />
         </div>
+        {/* Brackets List */}
+        <BracketList brackets={brackets} />
       </div>
     </div>
   )
