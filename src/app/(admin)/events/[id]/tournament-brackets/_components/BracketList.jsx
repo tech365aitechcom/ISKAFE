@@ -39,7 +39,10 @@ export default function BracketList({ brackets }) {
           <div className='px-8 py-5'>
             <button
               className='text-lg flex items-center cursor-pointer'
-              onClick={() => setExpandedBracket(bracket)}
+              onClick={() => {
+                setExpandedBracket(bracket)
+                setActiveTab('props')
+              }}
             >
               <span>Check Details</span>
               {expandedBracket.id === bracket.id ? (

@@ -272,6 +272,16 @@ export const boutsAndResults = [
     },
     roundNumber: 1,
   },
+  // {
+  //   id: 2,
+  //   fighters1: { src: '/anthony.png', name: 'Anthony Bui', age: 36 },
+  //   fighter2: {
+  //     src: '/fighter.png',
+  //     name: 'Eric Franks',
+  //     age: 36,
+  //   },
+  //   roundNumber: 1,
+  // },
   {
     id: 2,
     fighters1: { src: '/anthony.png', name: 'Anthony Bui', age: 36 },
