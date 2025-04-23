@@ -25,7 +25,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
   }
 
   return (
-    <div className='min-h-screen text-white p-6'>
+    <div className='min-h-screen text-white'>
       <div className='w-full'>
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
@@ -55,7 +55,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
         <form onSubmit={handleSubmit}>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
             {/* Venue Name Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Venue Name<span className='text-red-500'>*</span>
               </label>
@@ -64,26 +64,25 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
                 name='venueName'
                 value={formData.venueName}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 required
               />
             </div>
-
             {/* Name 2 Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>Name 2</label>
               <input
                 type='text'
                 name='name2'
                 value={formData.name2}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
               />
             </div>
           </div>
 
           {/* Short Description */}
-          <div className='mb-6'>
+          <div className='bg-[#00000061] p-2 rounded mb-6'>
             <label className='block text-sm font-medium mb-1'>
               Short Description
             </label>
@@ -92,12 +91,12 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
               name='shortDescription'
               value={formData.shortDescription}
               onChange={handleChange}
-              className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+              className='w-full outline-none'
             />
           </div>
 
           {/* Full Description */}
-          <div className='mb-6'>
+          <div className='bg-[#00000061] p-2 rounded mb-6'>
             <label className='block text-sm font-medium mb-1'>
               Full Description
             </label>
@@ -106,20 +105,20 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
               value={formData.fullDescription}
               onChange={handleChange}
               rows='1'
-              className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white resize-none'
+              className='w-full outline-none resize-none'
             />
           </div>
 
           {/* URL */}
           <div className='mb-8 grid grid-cols-1 md:grid-cols-2'>
-            <div>
+            <div className='bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>URL</label>
               <input
                 type='url'
                 name='url'
                 value={formData.url}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
               />
             </div>
           </div>

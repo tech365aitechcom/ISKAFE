@@ -51,7 +51,7 @@ export const AddPeopleForm = () => {
   }
 
   return (
-    <div className='min-h-screen text-white p-6 bg-dark-blue-900'>
+    <div className='min-h-screen text-white bg-dark-blue-900'>
       <div className='w-full'>
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
@@ -139,7 +139,7 @@ export const AddPeopleForm = () => {
 
           <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
             {/* First Name Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 First Name<span className='text-red-500'>*</span>
               </label>
@@ -148,27 +148,27 @@ export const AddPeopleForm = () => {
                 name='firstName'
                 value={formData.firstName}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 required
                 placeholder='Eric'
               />
             </div>
 
             {/* Middle Name Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>Middle</label>
               <input
                 type='text'
                 name='middleName'
                 value={formData.middleName}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 placeholder='M'
               />
             </div>
 
             {/* Last Name Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Last Name<span className='text-red-500'>*</span>
               </label>
@@ -177,21 +177,21 @@ export const AddPeopleForm = () => {
                 name='lastName'
                 value={formData.lastName}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 required
                 placeholder='Franks'
               />
             </div>
 
             {/* Suffix Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>Suffix</label>
               <input
                 type='text'
                 name='suffix'
                 value={formData.suffix}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 placeholder='Mr'
               />
             </div>
@@ -199,20 +199,20 @@ export const AddPeopleForm = () => {
 
           <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
             {/* Nickname Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>Nickname</label>
               <input
                 type='text'
                 name='nickname'
                 value={formData.nickname}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 placeholder='Eric'
               />
             </div>
 
             {/* Email Address Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Email Address<span className='text-red-500'>*</span>
               </label>
@@ -221,14 +221,14 @@ export const AddPeopleForm = () => {
                 name='email'
                 value={formData.email}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 required
                 placeholder='eric@gmail.com'
               />
             </div>
 
             {/* Gender Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Gender<span className='text-red-500'>*</span>
               </label>
@@ -237,13 +237,13 @@ export const AddPeopleForm = () => {
                 name='gender'
                 value={formData.gender}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 placeholder='Male'
               />
             </div>
 
             {/* Date of Birth Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Date of Birth
               </label>
@@ -252,7 +252,7 @@ export const AddPeopleForm = () => {
                 name='dateOfBirth'
                 value={formData.dateOfBirth}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 placeholder='01/10/1997'
               />
             </div>
@@ -260,7 +260,7 @@ export const AddPeopleForm = () => {
 
           <div className='grid grid-cols-1 md:grid-cols-1 gap-4 mb-6'>
             {/* Role Name Field */}
-            <div className='md:w-1/4'>
+            <div className='md:w-1/4 bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Role Name
               </label>
@@ -269,21 +269,21 @@ export const AddPeopleForm = () => {
                 name='roleName'
                 value={formData.roleName}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 placeholder='40 Months'
               />
             </div>
           </div>
 
           {/* About Field */}
-          <div className='mb-4'>
+          <div className='mb-4 bg-[#00000061] p-2 h-16 rounded'>
             <label className='block text-sm font-medium mb-1'>About</label>
             <textarea
               name='about'
               value={formData.about}
               onChange={handleChange}
               rows='2'
-              className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white resize-none'
+              className='w-full outline-none resize-none'
               placeholder='Message'
             />
           </div>
@@ -304,7 +304,7 @@ export const AddPeopleForm = () => {
           </div>
 
           {/* Admin Notes Field */}
-          <div className='mb-8'>
+          <div className='mb-8 bg-[#00000061] p-2 h-16 rounded'>
             <label className='block text-sm font-medium mb-1'>
               Admin Notes
             </label>
@@ -313,7 +313,7 @@ export const AddPeopleForm = () => {
               value={formData.adminNotes}
               onChange={handleChange}
               rows='2'
-              className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white resize-none'
+              className='w-full outline-none resize-none'
               placeholder='Message'
             />
           </div>
@@ -323,7 +323,7 @@ export const AddPeopleForm = () => {
 
           <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
             {/* Phone Number Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Phone Number
               </label>
@@ -332,12 +332,12 @@ export const AddPeopleForm = () => {
                 name='phoneNumber'
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
               />
             </div>
 
             {/* Country Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Country<span className='text-red-500'>*</span>
               </label>
@@ -346,12 +346,18 @@ export const AddPeopleForm = () => {
                   name='country'
                   value={formData.country}
                   onChange={handleChange}
-                  className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white appearance-none'
+                  className='w-full outline-none appearance-none'
                   required
                 >
-                  <option value='United States'>United States</option>
-                  <option value='Canada'>Canada</option>
-                  <option value='UK'>UK</option>
+                  <option value='United States' className='text-black'>
+                    United States
+                  </option>
+                  <option value='Canada' className='text-black'>
+                    Canada
+                  </option>
+                  <option value='UK' className='text-black'>
+                    UK
+                  </option>
                 </select>
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white'>
                   <svg
@@ -366,7 +372,7 @@ export const AddPeopleForm = () => {
             </div>
 
             {/* State/Province Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 State/Province<span className='text-red-500'>*</span>
               </label>
@@ -375,10 +381,14 @@ export const AddPeopleForm = () => {
                   name='stateProvince'
                   value={formData.stateProvince}
                   onChange={handleChange}
-                  className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white appearance-none'
+                  className='w-full outline-none appearance-none'
                 >
-                  <option value='United States'>United States</option>
-                  <option value='Other'>Other</option>
+                  <option value='United States' className='text-black'>
+                    United States
+                  </option>
+                  <option value='Other' className='text-black'>
+                    Other
+                  </option>
                 </select>
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white'>
                   <svg
@@ -393,7 +403,7 @@ export const AddPeopleForm = () => {
             </div>
 
             {/* City Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 City<span className='text-red-500'>*</span>
               </label>
@@ -402,7 +412,7 @@ export const AddPeopleForm = () => {
                 name='city'
                 value={formData.city}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
                 placeholder='Eric'
               />
             </div>
@@ -410,26 +420,26 @@ export const AddPeopleForm = () => {
 
           <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-8'>
             {/* Street 1 Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>Street 1</label>
               <input
                 type='text'
                 name='street1'
                 value={formData.street1}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
               />
             </div>
 
             {/* Street 2 Field */}
-            <div>
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>Street 2</label>
               <input
                 type='text'
                 name='street2'
                 value={formData.street2}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white'
+                className='w-full outline-none'
               />
             </div>
           </div>

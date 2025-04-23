@@ -35,7 +35,7 @@ export const AddNewsForm = () => {
   }
 
   return (
-    <div className='min-h-screen text-white p-6 bg-dark-blue-900'>
+    <div className='min-h-screen text-white bg-dark-blue-900'>
       <div className='w-full'>
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
@@ -55,7 +55,7 @@ export const AddNewsForm = () => {
               />
             </svg>
           </button>
-          <h1 className='text-2xl font-bold'>Add New News</h1>
+          <h1 className='text-2xl font-bold'>News Post Editor</h1>
         </div>
 
         {/* Form */}
@@ -122,41 +122,48 @@ export const AddNewsForm = () => {
 
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             {/* Title Field */}
-            <div className='col-span-2'>
-              <label className='block text-sm font-medium mb-1'>Title:</label>
+            <div className='col-span-2 bg-[#00000061] p-2 rounded'>
+              <label className='block text-sm font-medium mb-1'>
+                Title<span className='text-red-500'>*</span>
+              </label>
               <input
                 type='text'
                 name='title'
                 value={formData.title}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white resize-none'
+                className='w-full outline-none'
                 placeholder='Eric'
+                required
               />
             </div>
 
             {/* Date Field */}
-            <div>
-              <label className='block text-sm font-medium mb-1'>Date:</label>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block text-sm font-medium mb-1'>
+                Date<span className='text-red-500'>*</span>
+              </label>
               <input
                 type='text'
                 name='date'
                 value={formData.date}
                 onChange={handleChange}
-                className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white resize-none'
+                className='w-full outline-none'
                 placeholder='Date'
               />
             </div>
           </div>
 
           {/* Body/Message Field */}
-          <div className='mb-6'>
-            <label className='block text-sm font-medium mb-1'>Body:</label>
+          <div className='mb-6 bg-[#00000061] p-2 rounded'>
+            <label className='block text-sm font-medium mb-1'>
+              Body<span className='text-red-500'>*</span>
+            </label>
             <textarea
               name='message'
               value={formData.message}
               onChange={handleChange}
               rows='6'
-              className='w-full bg-[#00000061] rounded-lg p-3 py-4 text-white resize-none resize-none'
+              className='w-full outline-none resize-none'
               placeholder='Message'
             />
           </div>
