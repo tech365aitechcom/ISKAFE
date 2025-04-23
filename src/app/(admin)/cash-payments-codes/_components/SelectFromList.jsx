@@ -1,25 +1,14 @@
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
+import { CodesTable } from './CodesTable'
+import { cashPaymentAndCodesEvents } from '../../../../constants/index'
 
-export default function SelectFromList() {
+export default function SelectFromList({
+  selectedEvent,
+  setSelectedEvent,
+  handleFighterClick,
+}) {
   const [searchQuery, setSearchQuery] = useState('')
-
-  const events = [
-    'IKF Point Muay Thai and PBSC Point Boxing Sparring Seminar by Anthony Bui- Mexico (03/22/2025)',
-    'ISCF Semi-Contact MMA Technical Bouts (03/29/2025)',
-    'PBSC Point Boxing Sparring Circuit - Bishop, CA (03/29/2025)',
-    'PBSC Point Boxing Sparring Circuit - Newport Beach 2025 (04/05/2025)',
-    'Orlando IKF ALL DIVISIONS PKB/PMT (03/30/2025)',
-    'IKF PKB and PBSC Point Boxing Sparring,Charlotte, NC (03/29/2025)',
-    'PBSC Point Boxing Sparring Circuit - EVO Sport Expo 2025 (04/12/2025)',
-    'PBSC Point Boxing Sparring Circuit - EVO Sport Expo 2025 (04/12/2025)',
-    'PBSC Point Boxing Sparring Circuit - EVO Sport Expo 2025 (04/12/2025)',
-    'IKF Semi-Contact Kickboxing & Muay Thai (04/13/2025)',
-    'Fusion IKF Point Sparring Tournament (04/26/2025)',
-    'IKF Point Muay Thai / Kickboxing And PBSC Point Boxing Sparring -Moncks, Corner- Sunday! (04/13/2025)',
-    'IKF PKB and PBSC Point Boxing Sparring,Charlotte, NC (03/29/2025)',
-    'PBSC Point Boxing Sparring Circuit - EVO Sport Expo 2025 (04/12/2025)',
-  ]
 
   return (
     <div className='text-white mt-5 w-full'>
@@ -40,18 +29,37 @@ export default function SelectFromList() {
           />
         </div>
       </div>
-
-      <div className='flex flex-wrap gap-4'>
-        {events.map((event, index) => (
-          <button
-            key={index}
-            className='bg-[#AEBFFF33] text-left p-2 rounded text-sm transition-colors duration-200 flex-grow min-w-min cursor-pointer'
-            style={{ maxWidth: 'fit-content' }}
-          >
-            {event}
-          </button>
-        ))}
-      </div>
+      {selectedEvent ? (
+        <div>
+          <div className='bg-[#AEBFFF33] flex items-center gap-12 px-3 w-fit '>
+            <button className=' text-left p-2 rounded text-sm transition-colors duration-200 min-w-min cursor-pointer'>
+              {selectedEvent.name}
+            </button>
+            <X
+              size={18}
+              onClick={() => setSelectedEvent(null)}
+              className='cursor-pointer'
+            />
+          </div>
+          <CodesTable
+            users={selectedEvent.users}
+            handleFighterClick={handleFighterClick}
+          />
+        </div>
+      ) : (
+        <div className='flex flex-wrap gap-4'>
+          {cashPaymentAndCodesEvents.map((event, index) => (
+            <button
+              key={index}
+              className='bg-[#AEBFFF33] text-left p-2 rounded text-sm transition-colors duration-200 flex-grow min-w-min cursor-pointer'
+              style={{ maxWidth: 'fit-content' }}
+              onClick={() => setSelectedEvent(event)}
+            >
+              {event.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
