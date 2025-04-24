@@ -9,7 +9,7 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
-  const isLoggedIn = false
+  const isLoggedIn = true
 
   const mainMenuItems = [
     { name: 'Home', path: '/' },

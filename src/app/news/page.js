@@ -1,5 +1,5 @@
 'use client'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 
@@ -10,45 +10,51 @@ const news = [
       'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
     img: '/news.png',
     time: '8 hours ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title: 'Professional Photography at the IKF Spring Classic!',
     description:
       'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=h5V1e8vDGULWVHPPDZY8gwsUgxFil8fGqRSix1bVmENOvTnc-QXjNsxUdDJlfd3Q3zq-FHkIaOJDr5xl2UaxwBSsxObTLtjpJfslZIUGQXvOr2dVlOSwJ3H-d9WdhjJ2qlgC42x~RgUggW--9rAO2yckoi~A39bTBcK4gnEeC2A4YrJJeG8FXhMTMiul5O2OeFK-a7ErxMgGBc3GMBXnIQ~~StTO9vLUh2bLeMB~xN5EMsb1lKsZrqDe0mCkd4Hmksuxa5Em3jihgzkSXkr31tR~KlzhOxluRnuR5fyQ0P8piNh-ucwsIzHR~~cNnl4pHMU8oLAVTmZMpGFzPF6dQQ__',
+    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?...',
     time: '8 hours ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title:
       'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
     description:
       'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=aOMyPdjguFIMxX-AM7EUpsQ9Wk0RguAkFqasHU4FoVPNJ9U31stTTOdGmXdVsnccx5-WtnxmuVq--oSoAZZUEDsc8a76JYhcJpiH4PEVoPd7v9Chl~YeCdF~K8D2ibFy-ZpDz-v0k~C18MsN5bApF5FMtTuPMavq-WJXlL7hix-9rjMbhVOO3UmKQvdK~I7YwDI9FQZ3~NFCw--p9Fq5kaCK6vpmVPYTMU482AYgrpSKJ9ul45DZuBjEsRxrTE3hFUa87GHFcwF7HhmI7VIHdkxeZ2xxt1OhbEQQkktKspp6koVAf~7zkj4-QnYjwl4-Y4S--FwEES~Ze11b1bPKPQ__',
+    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?...',
     time: '1 day ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title:
       'Great Semi Contact also at the IKF Spring Classic! Tickets on Sale Now!',
     description:
       'PSR Point Kickboxing & Muay Thai Sparring will be part of the IKF Spr...',
-    img: 'https://s3-alpha-sig.figma.com/img/28ca/dbe4/dcf28a3b76bdea8db3030c422b77e63a?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=uHuqqKlvVDzHcTgvYhsCei~-ddzn4za3EdWlNoUysFi00emSTaXPyrLy-wmm9OEGXbfWhU7AXCsOXltRGa9yLVyB9loTq~ZdhsXBUvHsJ9VB1IOYzmuR-7fUdvS7b008QeDzl6Vuk-n6nl~GB6UBN~-oJIh0kPuJRv5cFfUy67s7wakpfuGzX4pDiu4S0gsdM9glC4WACBVvzDyj~8L15aSgWsBEXi5-2MyUhSeXtwGpmtW-ikUK5AKSaV-g4G2g~3GTHcoJA3Yb-H9IngsV4FEp57MKc1pU1ZinCR6SQGq2595Mof4Fq1uHQhB0AUc86WD2AniDgPMJwFya1XMAOw__',
+    img: 'https://s3-alpha-sig.figma.com/img/28ca/dbe4/dcf28a3b76bdea8db3030c422b77e63a?...',
     time: '2 days ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title:
       "Introducing 'Shooter Gloves': Perfect for MMA and IKF Freestyle Kickboxing",
     description:
       "Introducing 'Shooter Gloves': Perfect for MMA and IKF Freestyle Kickboxing by Blackout Gear Company...",
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=aOMyPdjguFIMxX-AM7EUpsQ9Wk0RguAkFqasHU4FoVPNJ9U31stTTOdGmXdVsnccx5-WtnxmuVq--oSoAZZUEDsc8a76JYhcJpiH4PEVoPd7v9Chl~YeCdF~K8D2ibFy-ZpDz-v0k~C18MsN5bApF5FMtTuPMavq-WJXlL7hix-9rjMbhVOO3UmKQvdK~I7YwDI9FQZ3~NFCw--p9Fq5kaCK6vpmVPYTMU482AYgrpSKJ9ul45DZuBjEsRxrTE3hFUa87GHFcwF7HhmI7VIHdkxeZ2xxt1OhbEQQkktKspp6koVAf~7zkj4-QnYjwl4-Y4S--FwEES~Ze11b1bPKPQ__',
+    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?...',
     time: '3 days ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title:
       'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
     description:
       'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/01d8/826f/5c52a35ac978105397cdbf2534a77596?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=R5ZI1VBGxEJPURHgbmZcBlcN27ANNhvkFgtI9gaVThXZziwtLsOKTlWQCnR6oTBQHh50XLo4nR05sKazGe2Pa~KUxiC76yWzrPVbwiLQodQnHvlRFlhM97K5h1IQ3dM4HT9oHYfUrScyJ0cFCbQ4m7tDMhLvXkZfDplW6~iDED0KQJ7xYWlwIqbOmQM-olXd-Z82-ok6OCRH9JbY~QMk2BXvY~Rv0GKn97e1nq9C7fDqeFnWxv5wI1V-8fYQe~KlzF8RLRnZAGlZmJPB8BXTuyoirhUqW28KN8QL1dh7CMQlv6RnUV~5qF3iILzpNWBlRvzuLHqNAe4ZjoCZRVJNUw__',
+    img: 'https://s3-alpha-sig.figma.com/img/01d8/826f/5c52a35ac978105397cdbf2534a77596?...',
     time: '5 days ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title: 'Professional Photography at the IKF Spring Classic!',
@@ -56,117 +62,32 @@ const news = [
       'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
     img: '/news.png',
     time: '8 hours ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title: 'Professional Photography at the IKF Spring Classic!',
     description:
       'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=h5V1e8vDGULWVHPPDZY8gwsUgxFil8fGqRSix1bVmENOvTnc-QXjNsxUdDJlfd3Q3zq-FHkIaOJDr5xl2UaxwBSsxObTLtjpJfslZIUGQXvOr2dVlOSwJ3H-d9WdhjJ2qlgC42x~RgUggW--9rAO2yckoi~A39bTBcK4gnEeC2A4YrJJeG8FXhMTMiul5O2OeFK-a7ErxMgGBc3GMBXnIQ~~StTO9vLUh2bLeMB~xN5EMsb1lKsZrqDe0mCkd4Hmksuxa5Em3jihgzkSXkr31tR~KlzhOxluRnuR5fyQ0P8piNh-ucwsIzHR~~cNnl4pHMU8oLAVTmZMpGFzPF6dQQ__',
+    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?...',
     time: '8 hours ago',
+    date: '2025-04-24T12:00:00Z',
   },
   {
     title:
       'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
     description:
       'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=aOMyPdjguFIMxX-AM7EUpsQ9Wk0RguAkFqasHU4FoVPNJ9U31stTTOdGmXdVsnccx5-WtnxmuVq--oSoAZZUEDsc8a76JYhcJpiH4PEVoPd7v9Chl~YeCdF~K8D2ibFy-ZpDz-v0k~C18MsN5bApF5FMtTuPMavq-WJXlL7hix-9rjMbhVOO3UmKQvdK~I7YwDI9FQZ3~NFCw--p9Fq5kaCK6vpmVPYTMU482AYgrpSKJ9ul45DZuBjEsRxrTE3hFUa87GHFcwF7HhmI7VIHdkxeZ2xxt1OhbEQQkktKspp6koVAf~7zkj4-QnYjwl4-Y4S--FwEES~Ze11b1bPKPQ__',
+    img: 'https://s3-alpha-sig.figma.com/img...',
     time: '1 day ago',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: '/news.png',
-    time: '8 hours ago',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=h5V1e8vDGULWVHPPDZY8gwsUgxFil8fGqRSix1bVmENOvTnc-QXjNsxUdDJlfd3Q3zq-FHkIaOJDr5xl2UaxwBSsxObTLtjpJfslZIUGQXvOr2dVlOSwJ3H-d9WdhjJ2qlgC42x~RgUggW--9rAO2yckoi~A39bTBcK4gnEeC2A4YrJJeG8FXhMTMiul5O2OeFK-a7ErxMgGBc3GMBXnIQ~~StTO9vLUh2bLeMB~xN5EMsb1lKsZrqDe0mCkd4Hmksuxa5Em3jihgzkSXkr31tR~KlzhOxluRnuR5fyQ0P8piNh-ucwsIzHR~~cNnl4pHMU8oLAVTmZMpGFzPF6dQQ__',
-    time: '8 hours ago',
-  },
-  {
-    title:
-      'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
-    description:
-      'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=aOMyPdjguFIMxX-AM7EUpsQ9Wk0RguAkFqasHU4FoVPNJ9U31stTTOdGmXdVsnccx5-WtnxmuVq--oSoAZZUEDsc8a76JYhcJpiH4PEVoPd7v9Chl~YeCdF~K8D2ibFy-ZpDz-v0k~C18MsN5bApF5FMtTuPMavq-WJXlL7hix-9rjMbhVOO3UmKQvdK~I7YwDI9FQZ3~NFCw--p9Fq5kaCK6vpmVPYTMU482AYgrpSKJ9ul45DZuBjEsRxrTE3hFUa87GHFcwF7HhmI7VIHdkxeZ2xxt1OhbEQQkktKspp6koVAf~7zkj4-QnYjwl4-Y4S--FwEES~Ze11b1bPKPQ__',
-    time: '1 day ago',
-  },
-  {
-    title:
-      'Great Semi Contact also at the IKF Spring Classic! Tickets on Sale Now!',
-    description:
-      'PSR Point Kickboxing & Muay Thai Sparring will be part of the IKF Spr...',
-    img: 'https://s3-alpha-sig.figma.com/img/28ca/dbe4/dcf28a3b76bdea8db3030c422b77e63a?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=uHuqqKlvVDzHcTgvYhsCei~-ddzn4za3EdWlNoUysFi00emSTaXPyrLy-wmm9OEGXbfWhU7AXCsOXltRGa9yLVyB9loTq~ZdhsXBUvHsJ9VB1IOYzmuR-7fUdvS7b008QeDzl6Vuk-n6nl~GB6UBN~-oJIh0kPuJRv5cFfUy67s7wakpfuGzX4pDiu4S0gsdM9glC4WACBVvzDyj~8L15aSgWsBEXi5-2MyUhSeXtwGpmtW-ikUK5AKSaV-g4G2g~3GTHcoJA3Yb-H9IngsV4FEp57MKc1pU1ZinCR6SQGq2595Mof4Fq1uHQhB0AUc86WD2AniDgPMJwFya1XMAOw__',
-    time: '2 days ago',
-  },
-  {
-    title:
-      "Introducing 'Shooter Gloves': Perfect for MMA and IKF Freestyle Kickboxing",
-    description:
-      "Introducing 'Shooter Gloves': Perfect for MMA and IKF Freestyle Kickboxing by Blackout Gear Company...",
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=aOMyPdjguFIMxX-AM7EUpsQ9Wk0RguAkFqasHU4FoVPNJ9U31stTTOdGmXdVsnccx5-WtnxmuVq--oSoAZZUEDsc8a76JYhcJpiH4PEVoPd7v9Chl~YeCdF~K8D2ibFy-ZpDz-v0k~C18MsN5bApF5FMtTuPMavq-WJXlL7hix-9rjMbhVOO3UmKQvdK~I7YwDI9FQZ3~NFCw--p9Fq5kaCK6vpmVPYTMU482AYgrpSKJ9ul45DZuBjEsRxrTE3hFUa87GHFcwF7HhmI7VIHdkxeZ2xxt1OhbEQQkktKspp6koVAf~7zkj4-QnYjwl4-Y4S--FwEES~Ze11b1bPKPQ__',
-    time: '3 days ago',
-  },
-  {
-    title:
-      'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
-    description:
-      'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/01d8/826f/5c52a35ac978105397cdbf2534a77596?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=R5ZI1VBGxEJPURHgbmZcBlcN27ANNhvkFgtI9gaVThXZziwtLsOKTlWQCnR6oTBQHh50XLo4nR05sKazGe2Pa~KUxiC76yWzrPVbwiLQodQnHvlRFlhM97K5h1IQ3dM4HT9oHYfUrScyJ0cFCbQ4m7tDMhLvXkZfDplW6~iDED0KQJ7xYWlwIqbOmQM-olXd-Z82-ok6OCRH9JbY~QMk2BXvY~Rv0GKn97e1nq9C7fDqeFnWxv5wI1V-8fYQe~KlzF8RLRnZAGlZmJPB8BXTuyoirhUqW28KN8QL1dh7CMQlv6RnUV~5qF3iILzpNWBlRvzuLHqNAe4ZjoCZRVJNUw__',
-    time: '5 days ago',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: '/news.png',
-    time: '8 hours ago',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=h5V1e8vDGULWVHPPDZY8gwsUgxFil8fGqRSix1bVmENOvTnc-QXjNsxUdDJlfd3Q3zq-FHkIaOJDr5xl2UaxwBSsxObTLtjpJfslZIUGQXvOr2dVlOSwJ3H-d9WdhjJ2qlgC42x~RgUggW--9rAO2yckoi~A39bTBcK4gnEeC2A4YrJJeG8FXhMTMiul5O2OeFK-a7ErxMgGBc3GMBXnIQ~~StTO9vLUh2bLeMB~xN5EMsb1lKsZrqDe0mCkd4Hmksuxa5Em3jihgzkSXkr31tR~KlzhOxluRnuR5fyQ0P8piNh-ucwsIzHR~~cNnl4pHMU8oLAVTmZMpGFzPF6dQQ__',
-    time: '8 hours ago',
-  },
-  {
-    title:
-      'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
-    description:
-      'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=aOMyPdjguFIMxX-AM7EUpsQ9Wk0RguAkFqasHU4FoVPNJ9U31stTTOdGmXdVsnccx5-WtnxmuVq--oSoAZZUEDsc8a76JYhcJpiH4PEVoPd7v9Chl~YeCdF~K8D2ibFy-ZpDz-v0k~C18MsN5bApF5FMtTuPMavq-WJXlL7hix-9rjMbhVOO3UmKQvdK~I7YwDI9FQZ3~NFCw--p9Fq5kaCK6vpmVPYTMU482AYgrpSKJ9ul45DZuBjEsRxrTE3hFUa87GHFcwF7HhmI7VIHdkxeZ2xxt1OhbEQQkktKspp6koVAf~7zkj4-QnYjwl4-Y4S--FwEES~Ze11b1bPKPQ__',
-    time: '1 day ago',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: '/news.png',
-    time: '8 hours ago',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=h5V1e8vDGULWVHPPDZY8gwsUgxFil8fGqRSix1bVmENOvTnc-QXjNsxUdDJlfd3Q3zq-FHkIaOJDr5xl2UaxwBSsxObTLtjpJfslZIUGQXvOr2dVlOSwJ3H-d9WdhjJ2qlgC42x~RgUggW--9rAO2yckoi~A39bTBcK4gnEeC2A4YrJJeG8FXhMTMiul5O2OeFK-a7ErxMgGBc3GMBXnIQ~~StTO9vLUh2bLeMB~xN5EMsb1lKsZrqDe0mCkd4Hmksuxa5Em3jihgzkSXkr31tR~KlzhOxluRnuR5fyQ0P8piNh-ucwsIzHR~~cNnl4pHMU8oLAVTmZMpGFzPF6dQQ__',
-    time: '8 hours ago',
-  },
-  {
-    title:
-      'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
-    description:
-      'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?Expires=1743984000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=aOMyPdjguFIMxX-AM7EUpsQ9Wk0RguAkFqasHU4FoVPNJ9U31stTTOdGmXdVsnccx5-WtnxmuVq--oSoAZZUEDsc8a76JYhcJpiH4PEVoPd7v9Chl~YeCdF~K8D2ibFy-ZpDz-v0k~C18MsN5bApF5FMtTuPMavq-WJXlL7hix-9rjMbhVOO3UmKQvdK~I7YwDI9FQZ3~NFCw--p9Fq5kaCK6vpmVPYTMU482AYgrpSKJ9ul45DZuBjEsRxrTE3hFUa87GHFcwF7HhmI7VIHdkxeZ2xxt1OhbEQQkktKspp6koVAf~7zkj4-QnYjwl4-Y4S--FwEES~Ze11b1bPKPQ__',
-    time: '1 day ago',
+    date: '2025-04-24T12:00:00Z',
   },
 ]
 
 const NewsPage = () => {
   const [bgImage, setBgImage] = useState('/Cover.png')
   const [currentPage, setCurrentPage] = useState(1)
+  const [category, setCategory] = useState('All')
+  const [searchTerm, setSearchTerm] = useState('')
   const newsPerPage = 9
   useEffect(() => {
     const updateBackground = () => {
@@ -185,6 +106,11 @@ const NewsPage = () => {
   const indexOfLastNews = currentPage * newsPerPage
   const indexOfFirstNews = indexOfLastNews - newsPerPage
   const currentNews = news.slice(indexOfFirstNews, indexOfLastNews)
+
+  const handleSearch = () => {
+    console.log('Searching for:', { category, searchTerm })
+    // Implement actual search functionality here
+  }
 
   return (
     <main className='md:pb-44'>
@@ -206,26 +132,83 @@ const NewsPage = () => {
         </div>
       </section>
       <section className='container mx-auto py-12 px-4'>
+        <div className='bg-[#28133A] rounded-xl p-8 shadow-xl mb-8'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-8 '>
+            {/* Category Dropdown */}
+            <div className='flex flex-col items-start mb-6'>
+              <label className='text-white text-sm mb-2'>Category</label>
+              <div className='relative w-full'>
+                <select
+                  className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value='' className='bg-purple-900'>
+                    Select
+                  </option>
+                  <option value='events' className='bg-purple-900'>
+                    Events
+                  </option>
+                  <option value='rankings' className='bg-purple-900'>
+                    Rankings
+                  </option>
+                  <option value='announcements' className='bg-purple-900'>
+                    Announcements
+                  </option>
+                </select>
+                <div className='absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none'>
+                  <ChevronDown className='h-5 w-5 text-white' />
+                </div>
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div className='flex flex-col items-start mb-6'>
+              <label className='text-white text-sm mb-2'>Search</label>
+              <input
+                type='text'
+                placeholder='Search by keywords...'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className='w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500 placeholder-gray-400'
+              />
+            </div>
+          </div>
+
+          <div className='mt-4 flex justify-center'>
+            <button
+              onClick={handleSearch}
+              className='bg-red-500 text-white px-12 py-3 rounded font-medium hover:bg-red-600 transition-colors'
+            >
+              Search
+            </button>
+          </div>
+        </div>
+
         <div className='flex flex-wrap gap-4'>
           {currentNews.map((item, index) => (
-            <Link
-              href={`/news/${index}`}
+            <div
               key={index}
-              className='w-100 mx-auto border border-gray-500 rounded'
+              className='w-100 mx-auto border border-gray-500 rounded block hover:shadow-lg transition-shadow duration-300'
             >
               <img
                 src={item.img}
                 alt=''
-                className='w-100 h-60 object-cover rounded'
+                className='w-100 h-60 object-cover rounded-t'
               />
               <div className='p-4 text-white'>
                 <h3 className='text-white text-xl font-bold'>{item.title}</h3>
                 <h3 className='text-[#BDBDBD] text-lg font-medium my-2 leading-6'>
                   {item.description}
                 </h3>
-                <h3 className='text-[#BDBDBD] font-medium'>{item.time}</h3>
+                <h3 className='text-[#BDBDBD] font-medium mb-4'>{item.date}</h3>
+                <Link href={`/news/${index}`}>
+                  <button className='bg-[#0A1330] text-white px-4 py-2 rounded transition duration-200 cursor-pointer'>
+                    Read More
+                  </button>
+                </Link>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
         {/* Pagination Controls */}
