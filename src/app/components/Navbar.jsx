@@ -9,7 +9,7 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
-  const isLoggedIn = false
+  const isLoggedIn = true
 
   const mainMenuItems = [
     { name: 'Home', path: '/' },
@@ -30,6 +30,7 @@ const Navbar = () => {
       ...moreMenuItems,
       { name: 'My Purchases', path: '/my-purchases' },
       { name: 'My Fight Family', path: '/my-fight-family' },
+      { name: 'My Profile', path: '/my-profile' },
       { name: 'Logout', path: '#' },
     ]
   }

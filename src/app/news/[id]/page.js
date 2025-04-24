@@ -1,4 +1,12 @@
+import {
+  ChevronLeft,
+  Facebook,
+  Twitter,
+  Instagram,
+  Link as LinkIcon,
+} from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import React from 'react'
 
 const NewsDetailsPage = () => {
@@ -11,12 +19,13 @@ const NewsDetailsPage = () => {
     author: 'Johnny Davis',
     createdAt: 'Mar 3,2025',
   }
+
   return (
     <div className='bg-[#28133A80] p-4 max-w-7xl mx-auto flex flex-col md:flex-row gap-4 my-6'>
       <div className='w-full md:w-[50%] h-fit'>
         <Image
           src={news.img}
-          alt=''
+          alt='News Image'
           width={100}
           height={100}
           className='w-full h-full object-cover'
@@ -32,11 +41,25 @@ const NewsDetailsPage = () => {
           </h3>
         </div>
       </div>
+
       <div className='text-white w-full'>
+        <Link href={'/news'} className='flex items-center mb-4'>
+          <ChevronLeft size={24} className='cursor-pointer' />
+          Back
+        </Link>
         <h1 className='text-2xl md:text-5xl font-bold uppercase'>
           {news.title}
         </h1>
-        <p className='leading-6 mt-5'>
+
+        {/* Share Icons */}
+        <div className='flex gap-4 mt-4 mb-6'>
+          <Facebook className='cursor-pointer hover:text-blue-500 transition-colors' />
+          <Twitter className='cursor-pointer hover:text-sky-400 transition-colors' />
+          <Instagram className='cursor-pointer hover:text-pink-500 transition-colors' />
+          <LinkIcon className='cursor-pointer hover:text-gray-300 transition-colors' />
+        </div>
+
+        <p className='leading-6 mt-2'>
           We are pleased to welcome Zaneta Hesch as our official photographer
           for the 2025 IKF Spring Muay Thai and Kickboxing Classic taking place
           this Saturday in Myrtle Beach, SC.
