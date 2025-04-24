@@ -1,6 +1,7 @@
-import { EventContainer } from './_components/EventContainer'
+import React from 'react'
+import { FighterAndRankingContainer } from './_components/FighterAndRankingContainer'
 
-export default function EventsPage() {
+export default function FighterAndRankings() {
   return (
     <div className=' text-white p-8 flex justify-center relative overflow-hidden'>
       <div
@@ -10,7 +11,7 @@ export default function EventsPage() {
             'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
         }}
       ></div>
-      <EventContainer />
+      <FighterAndRankingContainer />
     </div>
   )
 }

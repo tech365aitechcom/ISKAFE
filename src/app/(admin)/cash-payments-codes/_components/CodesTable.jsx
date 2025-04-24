@@ -63,12 +63,14 @@ export function CodesTable({ users, handleFighterClick }) {
         <table className='w-full text-sm text-left'>
           <thead>
             <tr className='text-gray-400 text-sm'>
-              {renderHeader('Player Name & Email', 'name')}
-              {renderHeader('Date', 'date')}
-              {renderHeader('Code', 'code')}
-              {renderHeader('Amount', 'amount')}
+              {renderHeader('Payment Date', 'date')}
+              {renderHeader('Player Name', 'name')}
+              {renderHeader('Player Email', 'email')}
+              {renderHeader('Ticket Code', 'code')}
+              {renderHeader('Amount Paid', 'amount')}
               {renderHeader('Notes', 'notes')}
               {renderHeader('Redeemed', 'redeemed')}
+              {renderHeader('Actions', 'actions')}
             </tr>
           </thead>
           <tbody>
@@ -79,30 +81,36 @@ export function CodesTable({ users, handleFighterClick }) {
                   index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                 }`}
               >
-                <td className='p-4'>
-                  <div
-                    className='flex items-center cursor-pointer hover:text-blue-300'
-                    onClick={() => handleFighterClick(user)}
-                  >
-                    <div className='relative w-10 h-10 mr-3'>
-                      <Image
-                        src={user.profilePic}
-                        alt='Profile'
-                        layout='fill'
-                        className='rounded-full bg-violet-700'
-                      />
-                    </div>
-                    <div className='flex flex-col'>
-                      <p>{user.name}</p>
-                      <p>{user.email}</p>
-                    </div>
-                  </div>
-                </td>
                 <td className='p-4'>{user.date}</td>
+                <td className='p-4' onClick={() => handleFighterClick(user)}>
+                  {user.name}
+                </td>
+                <td className='p-4'>{user.email}</td>
                 <td className='p-4'>{user.code}</td>
                 <td className='p-4'>{user.amount}</td>
                 <td className='p-4'>{user.notes}</td>
-                <td className='p-4'>{user.redeemed}</td>
+                <td className='p-4'>
+                  <button
+                    className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out cursor-pointer ${
+                      user.redeemed ? 'bg-violet-500' : 'bg-gray-300'
+                    }`}
+                    disabled
+                  >
+                    <div
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
+                        user.redeemed ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </td>
+                <td className='p-4 flex space-x-4 items-center'>
+                  <button
+                    className='bg-violet-500 block cursor-pointer p-2 rounded text-sm transition-colors duration-200 min-w-min disabled:opacity-50'
+                    disabled={user.redeemed}
+                  >
+                    Redeemed Code
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

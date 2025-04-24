@@ -83,6 +83,12 @@ export function Sidebar() {
           isActive={pathname === '/fighter-trainer-checkin'}
         />
         <NavItem
+          href='/fighter-and-rankings'
+          icon={<Dumbbell size={18} />}
+          title='Fighter & Rankings'
+          isActive={pathname === '/fighter-and-rankings'}
+        />
+        <NavItem
           href='/event-bout-list'
           icon={<List size={18} />}
           title='Event Bout List'
@@ -119,26 +125,27 @@ export function Sidebar() {
           isActive={pathname === '/people'}
         />
         {/* User Profile Section */}
-
-        <div className='flex items-center p-4'>
-          <div className='flex items-center'>
-            <div className='relative w-10 h-10 mr-3'>
-              <Image
-                src='/john.png'
-                alt='Profile'
-                layout='fill'
-                className='rounded-full bg-violet-700'
-              />
+        <Link href={`/profile`}>
+          <div className='flex items-center p-4'>
+            <div className='flex items-center'>
+              <div className='relative w-10 h-10 mr-3'>
+                <Image
+                  src='/john.png'
+                  alt='Profile'
+                  layout='fill'
+                  className='rounded-full bg-violet-700'
+                />
+              </div>
+              <div>
+                <p className='text-sm font-medium'>John Carter</p>
+                <p className='text-xs text-gray-400'>Account settings</p>
+              </div>
             </div>
-            <div>
-              <p className='text-sm font-medium'>John Carter</p>
-              <p className='text-xs text-gray-400'>Account settings</p>
-            </div>
+            <span className='ml-auto'>
+              <ChevronRight size={14} />
+            </span>
           </div>
-          <span className='ml-auto'>
-            <ChevronRight size={14} />
-          </span>
-        </div>
+        </Link>
       </nav>
     </div>
   )
