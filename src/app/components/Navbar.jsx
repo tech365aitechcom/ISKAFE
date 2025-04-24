@@ -30,6 +30,7 @@ const Navbar = () => {
       ...moreMenuItems,
       { name: 'My Purchases', path: '/my-purchases' },
       { name: 'My Fight Family', path: '/my-fight-family' },
+      { name: 'My Profile', path: '/my-profile' },
       { name: 'Logout', path: '#' },
     ]
   }
