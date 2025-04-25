@@ -193,7 +193,7 @@ export default function TournamentSystem() {
         return (
           <div>
             <div className="grid grid-cols-12 gap-4 mb-2">
-              <div className="col-span-8 font-bold uppercase text-sm">
+              <div className="col-span-6 font-bold uppercase text-sm">
                 Event Name
               </div>
               <div className="col-span-2 font-bold uppercase text-sm text-center">
@@ -202,36 +202,38 @@ export default function TournamentSystem() {
               <div className="col-span-2 font-bold uppercase text-sm text-center">
                 Brackets
               </div>
+              <div className="col-span-2 font-bold uppercase text-sm text-center"></div>
             </div>
+
             <div className="grid grid-cols-12 gap-4 items-center mb-4">
-              <div className="col-span-8">
+              <div className="col-span-6">
                 <button className="bg-[#AEBFFF33] text-white text-left px-4 py-2 rounded w-full">
                   {selectedEvent.name}
                 </button>
               </div>
-              <div className="col-span-2">
-                <div className="flex justify-center">
-                  <div className="border border-gray-700 text-white px-4 py-1 rounded w-16 text-center relative">
-                    {selectedEvent.days}
-                    <span className="absolute inset-y-0 right-2 flex items-center">
-                      <svg
-                        className="h-4 w-4 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </span>
-                  </div>
+
+              <div className="col-span-2 flex justify-center">
+                <div className="border border-gray-700 text-white px-4 py-1 rounded w-16 text-center relative">
+                  {selectedEvent.days}
+                  <span className="absolute inset-y-0 right-2 flex items-center">
+                    <svg
+                      className="h-4 w-4 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </span>
                 </div>
               </div>
-              <div className="col-span-2 flex items-center justify-center gap-2">
+
+              <div className="col-span-2 flex justify-center">
                 <div className="border border-gray-700 text-white px-4 py-1 rounded w-16 text-center relative">
                   {selectedEvent.brackets}
                   <span className="absolute inset-y-0 right-2 flex items-center">
@@ -250,14 +252,22 @@ export default function TournamentSystem() {
                     </svg>
                   </span>
                 </div>
+              </div>
+
+              <div className="col-span-2 flex justify-center">
                 <button
-                  className="bg-pink-600 hover:bg-pink-700 text-white text-xs px-3 py-1 rounded"
+                  style={{
+                    background:
+                      "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
+                  }}
+                  className="text-white py-1 px-3 rounded flex items-center hover:opacity-90"
                   onClick={handleLoadData}
                 >
                   Load Data
                 </button>
               </div>
             </div>
+
             <button
               className="text-blue-400 hover:text-blue-300 mt-4"
               onClick={handleBackToEvents}

@@ -250,7 +250,13 @@ export default function FighterTrainerCheckin() {
                 <h2 className="text-base font-medium text-gray-100">
                   PARTICIPANTS
                 </h2>
-                <button className="bg-purple-600 text-white text-sm px-3 py-1 rounded-md">
+                <button
+                  style={{
+                    background:
+                      "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
+                  }}
+                  className="text-white py-1 px-3 rounded flex items-center hover:opacity-90"
+                >
                   Add New
                 </button>
               </div>
