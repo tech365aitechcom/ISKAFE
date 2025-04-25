@@ -3,7 +3,6 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { Calendar, ChevronDown } from "lucide-react";
 
 export default function ReportsOverview() {
-  // Sample data for revenue by customer type
   const [revenueData] = useState([
     { month: "Jan", users: 15000, fighters: 7000, newCustomers: 6000 },
     { month: "Feb", users: 28000, fighters: 12000, newCustomers: 8000 },
@@ -30,21 +29,15 @@ export default function ReportsOverview() {
           <ChevronDown size={14} className="ml-2" />
         </button>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Website Visitors Gauge Chart */}
         <div className="bg-slate-900 p-6 rounded-xl">
           <h2 className="text-lg font-medium mb-6">Website Visitors</h2>
-
           <div
             className="flex justify-center items-center relative"
             style={{ height: "240px" }}
           >
-            {/* Semi-circular gauge visualization */}
             <div className="relative w-56 h-56">
-              {/* Create the gauge chart with proper colors and positioning */}
               <svg className="w-full h-full" viewBox="0 0 200 200">
-                {/* Background track for full circle */}
                 <path
                   d="M40,100 A60,60 0 1,1 160,100"
                   fill="none"
@@ -52,8 +45,6 @@ export default function ReportsOverview() {
                   strokeWidth="16"
                   strokeLinecap="round"
                 />
-
-                {/* Cyan track (non-subscribed - 50%) */}
                 <path
                   d="M40,100 A60,60 0 0,1 160,100"
                   fill="none"
@@ -61,8 +52,6 @@ export default function ReportsOverview() {
                   strokeWidth="16"
                   strokeLinecap="round"
                 />
-
-                {/* Purple track (subscribed - 30% + 50% = 80% of full circle, starting from 6 o'clock) */}
                 <path
                   d="M100,160 A60,60 0 0,1 40,100"
                   fill="none"
@@ -70,8 +59,6 @@ export default function ReportsOverview() {
                   strokeWidth="16"
                   strokeLinecap="round"
                 />
-
-                {/* Extra purple segment to complete the circle - matching the image */}
                 <path
                   d="M160,100 A60,60 0 0,1 124,142"
                   fill="none"
@@ -80,14 +67,11 @@ export default function ReportsOverview() {
                   strokeLinecap="round"
                 />
               </svg>
-
-              {/* Center text */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-4xl font-bold">150k</span>
               </div>
             </div>
           </div>
-
           <div className="space-y-3 mt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -96,7 +80,6 @@ export default function ReportsOverview() {
               </div>
               <span className="font-medium">30%</span>
             </div>
-
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-cyan-400 mr-2"></div>
@@ -106,47 +89,39 @@ export default function ReportsOverview() {
             </div>
           </div>
         </div>
-
-        {/* Revenue by customer type - 2/3 width */}
         <div className="bg-slate-900 p-6 rounded-xl lg:col-span-2">
           <div className="flex flex-col">
             <h2 className="text-lg mb-2">Revenue by customer type</h2>
-
             <div className="flex items-center gap-2 mb-4">
               <h2 className="text-3xl font-bold">$240.8K</h2>
               <span className="text-xs bg-emerald-500/20 text-emerald-500 px-2 py-1 rounded-md">
                 14.8%
               </span>
-            </div>
-
-            <div className="flex flex-wrap gap-6 mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                <span className="text-sm text-slate-300">Users</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <span className="text-sm text-slate-300">
-                  Fighters & Trainers
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
-                <span className="text-sm text-slate-300">New customers</span>
-              </div>
-
-              <div className="ml-auto">
-                <button className="flex items-center text-sm text-slate-400 border border-slate-700 rounded-md px-3 py-1.5">
-                  <Calendar size={14} className="mr-2" />
-                  <span>Jan 2024 - Dec 2024</span>
-                  <ChevronDown size={14} className="ml-2" />
-                </button>
+              <div className="flex flex-wrap gap-6 mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                  <span className="text-sm text-slate-300">Users</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span className="text-sm text-slate-300">
+                    Fighters & Trainers
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
+                  <span className="text-sm text-slate-300">New customers</span>
+                </div>
+                <div className="ml-auto">
+                  <button className="flex items-center text-sm text-slate-400 bg-[#0A1330] rounded-md px-3 py-1.5">
+                    <Calendar size={14} className="mr-2" />
+                    <span>Jan 2024 - Dec 2024</span>
+                    <ChevronDown size={14} className="ml-2" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
           <div className="mt-2" style={{ height: "260px" }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart

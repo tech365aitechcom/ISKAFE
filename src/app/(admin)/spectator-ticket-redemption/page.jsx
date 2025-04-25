@@ -50,7 +50,13 @@ export default function SpectatorTicketRedemption() {
             You can (a) scan the customer's QR code or (b) select the event to
             manually enter the 4-digit code or search for the customer's ticket.
           </p>
-          <button className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded flex items-center">
+          <button
+            style={{
+              background:
+                "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
+            }}
+            className="text-white py-2 px-4 rounded flex items-center hover:opacity-90"
+          >
             <Camera size={18} className="mr-2" />
             Scan with Device Camera
           </button>
@@ -100,7 +106,27 @@ export default function SpectatorTicketRedemption() {
               </div>
 
               <div className="flex space-x-2 w-fit p-[4px] rounded-lg mb-6 border border-[#797979]">
-                <button className="bg-indigo-700 hover:bg-indigo-600 text-white py-2 px-5 rounded-lg">
+                <button
+                  style={{
+                    position: "relative",
+                    border: "0.95px solid transparent",
+                    backgroundClip: "padding-box",
+                  }}
+                  className="bg-indigo-700 hover:bg-indigo-600 text-white py-2 px-5 rounded-lg flex items-center relative"
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      borderRadius: "0.5rem",
+                      padding: "0.95px",
+                      background:
+                        "radial-gradient(42.4% 100% at 50% 101.79%, #2DCAFF 34.47%, rgba(255, 255, 255, 0) 100%)",
+                      mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      maskComposite: "exclude",
+                      pointerEvents: "none",
+                    }}
+                  ></span>
                   Redeem
                 </button>
                 <button className="bg-transparent hover:bg-gray-600 text-white py-2 px-5 rounded-lg">
@@ -126,7 +152,13 @@ export default function SpectatorTicketRedemption() {
                   </div>
                 </div>
 
-                <button className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded w-full md:w-auto">
+                <button
+                  style={{
+                    background:
+                      "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
+                  }}
+                  className="text-white py-2 px-4 rounded w-full md:w-auto"
+                >
                   Redeem Code
                 </button>
               </div>

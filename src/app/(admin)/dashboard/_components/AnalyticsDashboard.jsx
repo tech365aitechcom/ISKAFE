@@ -13,7 +13,6 @@ import {
 import { CalendarRange, TrendingUp, Circle, ArrowUpRight } from "lucide-react";
 
 export default function AnalyticsDashboard() {
-  // Sample data for the revenue line chart
   const [revenueData] = useState([
     { month: "Jan", value: 25000 },
     { month: "Feb", value: 15000 },
@@ -29,7 +28,6 @@ export default function AnalyticsDashboard() {
     { month: "Dec", value: 90000 },
   ]);
 
-  // Sample data for the profit bar chart
   const [profitData] = useState(
     Array.from({ length: 24 }, (_, i) => ({
       hour: i % 12 === 0 ? 12 : i % 12,
@@ -39,20 +37,18 @@ export default function AnalyticsDashboard() {
     }))
   );
 
-  // Sample data for the events line chart
   const [eventsData] = useState(
     Array.from({ length: 24 }, (_, i) => ({
       hour: i % 12 === 0 ? 12 : i % 12,
       ampm: i < 12 ? "AM" : "PM",
-      value: Math.floor(Math.random() * 300) + (i === 16 ? 400 : 50), // Spike at 4PM
+      value: Math.floor(Math.random() * 300) + (i === 16 ? 400 : 50),
     }))
   );
 
   return (
-    <div className="bg-slate-950 text-white p-4 rounded-xl">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Revenue Chart - Left Section (2/3 width) */}
-        <div className="col-span-1 lg:col-span-2 bg-slate-900 p-6 rounded-xl">
+    <div className="bg-slate-950 text-white p-4 rounded-xl w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3">
+        <div className="col-span-1 lg:col-span-2 bg-slate-900 p-6 rounded-l-xl border-r border-slate-800">
           <div className="flex justify-between items-center mb-4">
             <div>
               <h3 className="text-slate-400 text-sm">Total revenue</h3>
@@ -64,14 +60,12 @@ export default function AnalyticsDashboard() {
                 </span>
               </div>
             </div>
-
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Circle size={8} className="fill-cyan-500 text-cyan-500" />
                 <span className="text-sm text-slate-400">Revenue</span>
               </div>
-
-              <button className="flex items-center gap-2 text-sm text-slate-400 border border-slate-700 rounded-md px-3 py-1.5">
+              <button className="flex items-center gap-2 text-sm text-slate-400 bg-[#0A1330] rounded-md px-3 py-1.5">
                 <CalendarRange size={14} />
                 <span>Jan 2024 - Dec 2024</span>
                 <svg
@@ -90,8 +84,7 @@ export default function AnalyticsDashboard() {
               </button>
             </div>
           </div>
-
-          <div className="h-80 relative">
+          <div className="h-96 relative">
             <div className="absolute top-0 left-0 bottom-0 flex flex-col justify-between text-xs text-slate-400">
               <span>250K</span>
               <span>200K</span>
@@ -100,7 +93,6 @@ export default function AnalyticsDashboard() {
               <span>50K</span>
               <span>0K</span>
             </div>
-
             <div className="pl-10 h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={revenueData}>
@@ -154,8 +146,6 @@ export default function AnalyticsDashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-
-            {/* Highlighted data point */}
             <div className="absolute left-1/3 top-1/2 text-left">
               <div className="bg-slate-800 rounded-md p-2 text-sm border border-slate-700">
                 <div className="text-cyan-500 font-semibold">$125.2k</div>
@@ -168,18 +158,14 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Right section with profit and events (1/3 width) */}
-        <div className="col-span-1 flex flex-col gap-4">
-          {/* Total Profit Section */}
-          <div className="bg-slate-900 p-6 rounded-xl">
+        <div className="col-span-1 flex flex-col">
+          <div className="bg-slate-900 p-6 rounded-r-xl border-b border-slate-800">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-slate-400">
                 <TrendingUp size={14} />
                 <span className="text-sm">Total Profit</span>
               </div>
             </div>
-
             <div className="flex items-center gap-2 mb-6">
               <h2 className="text-3xl font-bold">$144.6K</h2>
               <span className="text-xs bg-emerald-500/20 text-emerald-500 px-2 py-1 rounded-md flex items-center">
@@ -187,7 +173,6 @@ export default function AnalyticsDashboard() {
                 28.5%
               </span>
             </div>
-
             <div className="h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={profitData}>
@@ -211,7 +196,6 @@ export default function AnalyticsDashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-
             <div className="flex justify-between items-center mt-2">
               <span className="text-sm text-slate-400">Last 12 months</span>
               <a href="#" className="text-sm text-purple-500">
@@ -219,16 +203,13 @@ export default function AnalyticsDashboard() {
               </a>
             </div>
           </div>
-
-          {/* Total Events Section */}
-          <div className="bg-slate-900 p-6 rounded-xl">
+          <div className="bg-slate-900 p-6 rounded-r-xl">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 text-slate-400">
                 <Circle size={14} className="fill-slate-400 text-slate-400" />
                 <span className="text-sm">Total Events</span>
               </div>
             </div>
-
             <div className="flex items-center gap-2 mb-4">
               <h2 className="text-3xl font-bold">400</h2>
               <span className="text-xs bg-emerald-500/20 text-emerald-500 px-2 py-1 rounded-md flex items-center">
@@ -236,14 +217,12 @@ export default function AnalyticsDashboard() {
                 16.8%
               </span>
             </div>
-
             <div className="flex text-xs text-slate-400 justify-between px-2">
               <span>500</span>
               <span>250</span>
               <span>10</span>
               <span>0</span>
             </div>
-
             <div className="h-24">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={eventsData}>
@@ -268,11 +247,10 @@ export default function AnalyticsDashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-
             <div className="flex justify-between items-center mt-8">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ">
                 <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span className="text-xs text-slate-400">Live</span>
+                <span className="text-xs text-slate-400 ">Live</span>
                 <span className="text-xs font-medium">10k visitors</span>
               </div>
               <a href="#" className="text-sm text-purple-500">
