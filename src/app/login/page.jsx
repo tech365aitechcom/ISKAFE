@@ -1,22 +1,28 @@
 'use client'
 import React, { useState } from 'react'
 import Link from 'next/link'
+import axios from 'axios'
+import { Eye, EyeOff } from 'lucide-react'
+import { API_BASE_URL } from '@/constants'
+import { enqueueSnackbar } from 'notistack'
+import useUserStore from '../../stores/userStore'
 
 const LoginPage = () => {
+  const { setUser } = useUserStore()
   const [formData, setFormData] = useState({
-    userName: '',
+    email: '',
     password: '',
-    rememberMe: true,
   })
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     })
   }
 
@@ -24,11 +30,18 @@ const LoginPage = () => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
       console.log('Login data ready to be sent:', formData)
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, formData)
+      console.log('Login response:', res.data)
+      if (res.status === 200) {
+        setUser(res.data.user)
+        localStorage.setItem('token', res.data.token)
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during login')
+      setError(err?.response?.data?.message || 'An error occurred during login')
       console.error('Login error:', err)
     } finally {
       setIsLoading(false)
@@ -47,37 +60,43 @@ const LoginPage = () => {
             />
           </div>
         </div>
-        <div className='w-full md:w-1/2 flex items-center justify-center p-8'>
+        <div className='w-full md:w-1/2 flex md:items-center justify-center p-8'>
           <div className='w-full max-w-md'>
             <h1 className='text-3xl font-bold text-white mb-8'>Login</h1>
 
             {error && (
-              <div className='bg-red-500 bg-opacity-20 border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
+              <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
                 {error}
               </div>
             )}
             <form className='space-y-4' onSubmit={handleSubmit}>
               <div>
                 <input
-                  type='text'
-                  name='name'
-                  placeholder='Name'
+                  type='email'
+                  name='email'
+                  placeholder='Email'
                   value={formData.userName}
                   onChange={handleChange}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
                 />
               </div>
-              <div>
+              <div className='relative'>
                 <input
-                  type='password'
+                  type={showPassword ? 'text' : 'password'}
                   name='password'
-                  placeholder='Password'
+                  placeholder='Password*'
                   value={formData.password}
                   onChange={handleChange}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
+                  className='w-full px-4 py-3 pr-10 rounded border border-gray-700 bg-transparent text-white'
                   required
                 />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-white'
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </span>
               </div>
               <div className='flex justify-end items-center'>
                 {/* <div className='flex items-center'>
@@ -102,7 +121,7 @@ const LoginPage = () => {
               </div>
               <button
                 type='submit'
-                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center'
+                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center cursor-pointer'
                 disabled={isLoading}
               >
                 {isLoading ? 'Logging in...' : 'Login'}

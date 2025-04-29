@@ -3,13 +3,18 @@ import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
+import useUserStore from '../../stores/userStore'
 
 const Navbar = () => {
+  const user = useUserStore((state) => state.user)
   const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
-  const isLoggedIn = true
+  const isLoggedIn = user ? true : false
+
+  console.log('User in Navbar:', user)
+  console.log('Is user logged in:', isLoggedIn)
 
   const mainMenuItems = [
     { name: 'Home', path: '/' },
@@ -31,7 +36,7 @@ const Navbar = () => {
       { name: 'My Purchases', path: '/my-purchases' },
       { name: 'My Fight Family', path: '/my-fight-family' },
       { name: 'My Profile', path: '/my-profile' },
-      { name: 'Logout', path: '#' },
+      { name: 'Logout', action: 'logout' },
     ]
   }
 
@@ -102,19 +107,36 @@ const Navbar = () => {
             <ul className='absolute left-0 mt-2 bg-black shadow-lg rounded-md w-44 py-2 z-50'>
               {moreMenuItems.map((item, index, array) => (
                 <li key={index}>
-                  <Link
-                    href={item.path}
-                    onClick={() => setDropdownOpen(false)}
-                    className={`block py-2 ${getMenuItemClass(
-                      item.path
-                    )} hover:bg-gray-900 uppercase text-left font-semibold ${
-                      index !== array.length - 1
-                        ? 'border-b border-[#6C6C6C] mx-2'
-                        : 'mx-2'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
+                  {item.action === 'logout' ? (
+                    <button
+                      onClick={() => {
+                        useUserStore.getState().clearUser()
+                        setDropdownOpen(false)
+                        window.location.href = '/'
+                      }}
+                      className={`block w-full text-left py-2 text-white uppercase font-semibold cursor-pointer mx-2 ${
+                        index !== array.length - 1
+                          ? 'border-b border-[#6C6C6C]'
+                          : ''
+                      }`}
+                    >
+                      Logout
+                    </button>
+                  ) : (
+                    <Link
+                      href={item.path}
+                      onClick={() => setDropdownOpen(false)}
+                      className={`block py-2 ${getMenuItemClass(
+                        item.path
+                      )} hover:bg-gray-900 uppercase text-left font-semibold ${
+                        index !== array.length - 1
+                          ? 'border-b border-[#6C6C6C] mx-2'
+                          : 'mx-2'
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -123,14 +145,18 @@ const Navbar = () => {
       </ul>
 
       {/* Desktop Login/Signup */}
-      <div className='hidden lg:block'>
-        <Link
-          href={'/login'}
-          className='bg-red-600 text-white font-bold px-2 py-4 uppercase text-2xl'
-        >
-          Login / Sign Up
-        </Link>
-      </div>
+      {!isLoggedIn ? (
+        <div className='hidden lg:block'>
+          <Link
+            href={'/login'}
+            className='bg-red-600 text-white font-bold px-2 py-4 uppercase text-2xl'
+          >
+            Login / Sign Up
+          </Link>
+        </div>
+      ) : (
+        <div></div>
+      )}
 
       {/* Mobile Menu Toggle */}
       <div className='lg:hidden'>
@@ -178,15 +204,19 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Login/Signup */}
-            <div className='px-3 py-4'>
-              <Link
-                href={'/login'}
-                onClick={closeMobileMenu}
-                className=' bg-red-600 text-white font-bold text-center px-4 py-3 uppercase text-xl'
-              >
-                Login / Sign Up
-              </Link>
-            </div>
+            {!isLoggedIn ? (
+              <div className='px-3 py-4'>
+                <Link
+                  href={'/login'}
+                  onClick={closeMobileMenu}
+                  className=' bg-red-600 text-white font-bold text-center px-4 py-3 uppercase text-xl'
+                >
+                  Login / Sign Up
+                </Link>
+              </div>
+            ) : (
+              <div></div>
+            )}
           </div>
         </div>
       )}

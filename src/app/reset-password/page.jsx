@@ -5,25 +5,22 @@ import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { API_BASE_URL } from '@/constants'
 import { enqueueSnackbar } from 'notistack'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-const SignUpPage = () => {
+const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
     password: '',
     confirmPassword: '',
-    country: '',
-    termsAgreed: false,
-    role: 'USER',
   })
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
   const router = useRouter()
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData({
@@ -38,16 +35,24 @@ const SignUpPage = () => {
     setError('')
 
     try {
+      if (!token) {
+        enqueueSnackbar('Token is not valid. Please try again.', {
+          variant: 'warning',
+        })
+        return
+      }
       if (formData.password !== formData.confirmPassword) {
         enqueueSnackbar('Passwords do not match. Please try again.', {
           variant: 'warning',
         })
         return
       }
-
-      console.log('Registration data ready to be sent:', formData)
-      const res = await axios.post(`${API_BASE_URL}/auth/signup`, formData)
-      console.log('Registration response:', res.data)
+      console.log('Reset Password data ready to be sent:', formData)
+      const res = await axios.post(
+        `${API_BASE_URL}/auth/reset-password?token=${token}`,
+        formData
+      )
+      console.log('Reset Password response:', res.data)
       if (res.status === 200) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
         router.push('/login')
@@ -56,7 +61,7 @@ const SignUpPage = () => {
       setError(
         err?.response?.data?.message || 'An error occurred during registration'
       )
-      console.error('Registration error:', err)
+      console.error('Reset Password error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -77,7 +82,7 @@ const SignUpPage = () => {
         <div className='w-full md:w-1/2 flex md:items-center justify-center p-0 md:p-8'>
           <div className='w-full max-w-md'>
             <div className='flex justify-between items-center mb-6'>
-              <h1 className='text-3xl font-bold text-white'>Sign Up</h1>
+              <h1 className='text-3xl font-bold text-white'>Reset Password</h1>
               <span className='text-xs text-red-500'>
                 *Indicates Mandatory Fields
               </span>
@@ -88,28 +93,6 @@ const SignUpPage = () => {
               </div>
             )}
             <form className='space-y-4' onSubmit={handleSubmit}>
-              <div>
-                <input
-                  type='text'
-                  name='fullName'
-                  placeholder='Name*'
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
-                  required
-                />
-              </div>
-              <div>
-                <input
-                  type='email'
-                  name='email'
-                  placeholder='Email*'
-                  value={formData.email}
-                  onChange={handleChange}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
-                  required
-                />
-              </div>
               <div className='relative'>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -148,36 +131,13 @@ const SignUpPage = () => {
                   )}
                 </span>
               </div>
-              <div>
-                <input
-                  type='text'
-                  name='country'
-                  placeholder='Country*'
-                  value={formData.country}
-                  onChange={handleChange}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
-                  required
-                />
-              </div>
-              <div className='flex items-center'>
-                <input
-                  type='checkbox'
-                  id='termsAgreed'
-                  name='termsAgreed'
-                  checked={formData.termsAgreed}
-                  onChange={handleChange}
-                  className='w-4 h-4 mr-2 accent-yellow-500'
-                />
-                <label htmlFor='termsAgreed' className='text-white'>
-                  Terms Agreement
-                </label>
-              </div>
+
               <button
                 type='submit'
                 className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center mt-4 cursor-pointer disabled:cursor-not-allowed disabled:bg-red-400'
-                disabled={isLoading || !formData.termsAgreed}
+                disabled={isLoading}
               >
-                {isLoading ? 'Signing Up...' : 'Sign Up'}
+                {isLoading ? 'Resetting...' : 'Reset'}
               </button>
               <div className='text-center text-white mt-4'>
                 Already have an account?{' '}
@@ -193,4 +153,4 @@ const SignUpPage = () => {
   )
 }
 
-export default SignUpPage
+export default ResetPasswordPage
