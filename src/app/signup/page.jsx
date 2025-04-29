@@ -15,7 +15,7 @@ const SignUpPage = () => {
     confirmPassword: '',
     country: '',
     termsAgreed: false,
-    role: 'USER',
+    role: 'ADMIN',
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -24,6 +24,7 @@ const SignUpPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const router = useRouter()
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData({
@@ -47,16 +48,20 @@ const SignUpPage = () => {
 
       console.log('Registration data ready to be sent:', formData)
       const res = await axios.post(`${API_BASE_URL}/auth/signup`, formData)
-      console.log('Registration response:', res.data)
-      if (res.status === 200) {
+      console.log('Registration response:', res)
+      if (res.status === 201) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
         router.push('/login')
       }
     } catch (err) {
+      console.error('Registration error:', err)
       setError(
         err?.response?.data?.message || 'An error occurred during registration'
       )
-      console.error('Registration error:', err)
+      enqueueSnackbar(
+        err?.response?.data?.message || 'An error occurred during registration',
+        { variant: 'error' }
+      )
     } finally {
       setIsLoading(false)
     }

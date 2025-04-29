@@ -6,6 +6,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { API_BASE_URL } from '@/constants'
 import { enqueueSnackbar } from 'notistack'
 import useUserStore from '../../stores/userStore'
+import { useRouter } from 'next/navigation'
 
 const LoginPage = () => {
   const { setUser } = useUserStore()
@@ -17,6 +18,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const router = useRouter()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -39,9 +41,18 @@ const LoginPage = () => {
         setUser(res.data.user)
         localStorage.setItem('token', res.data.token)
         enqueueSnackbar(res.data.message, { variant: 'success' })
+        if (res.data.user.role === 'ADMIN') {
+          router.push('/dashboard')
+        } else {
+          router.push('/')
+        }
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'An error occurred during login')
+      enqueueSnackbar(
+        err?.response?.data?.message || 'An error occurred during login',
+        { variant: 'error' }
+      )
       console.error('Login error:', err)
     } finally {
       setIsLoading(false)
