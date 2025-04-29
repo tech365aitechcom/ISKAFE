@@ -125,7 +125,10 @@ export function Sidebar() {
           isActive={pathname === '/people'}
         />
         {/* User Profile Section */}
-        <Link href={`/profile`}>
+        <Link
+          href={`/profile`}
+          className={`${pathname === '/profile' && 'text-[#FFCA28]'}`}
+        >
           <div className='flex items-center p-4'>
             <div className='flex items-center'>
               <div className='relative w-10 h-10 mr-3'>
@@ -138,7 +141,13 @@ export function Sidebar() {
               </div>
               <div>
                 <p className='text-sm font-medium'>John Carter</p>
-                <p className='text-xs text-gray-400'>Account settings</p>
+                <p
+                  className={`text-sm ${
+                    pathname === '/profile' ? 'text-[#FFCA28]' : 'text-gray-400'
+                  }`}
+                >
+                  Account settings
+                </p>
               </div>
             </div>
             <span className='ml-auto'>

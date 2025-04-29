@@ -46,7 +46,7 @@ export default function FighterAndRankingTable({ rankings }) {
               >
                 Select Classification
               </label>
-              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg bg-[#081028]'>
+              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
                 <select
                   id='pro-classification'
                   value={classification}
@@ -78,7 +78,7 @@ export default function FighterAndRankingTable({ rankings }) {
               >
                 Select Sport
               </label>
-              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg bg-[#081028]'>
+              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
                 <select
                   id='sport'
                   value={sport}
@@ -110,7 +110,7 @@ export default function FighterAndRankingTable({ rankings }) {
               >
                 Select Weight Class
               </label>
-              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg bg-[#081028]'>
+              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
                 <select
                   id='weightClass'
                   value={weightClass}

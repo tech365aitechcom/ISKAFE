@@ -124,7 +124,7 @@ export function EventTable({ events }) {
             >
               Select Status
             </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg bg-[#081028]'>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
               <select
                 id='pro-classification'
                 value={selectedStatus}
@@ -156,7 +156,7 @@ export function EventTable({ events }) {
             >
               Select <span>Type</span>
             </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg bg-[#081028]'>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
               <select
                 id='pro-classification'
                 value={selectedType}
