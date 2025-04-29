@@ -1,5 +1,5 @@
 'use client'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Trash } from 'lucide-react'
 import React, { useState } from 'react'
 
 export const ProfileForm = ({ isEditable }) => {
@@ -9,8 +9,8 @@ export const ProfileForm = ({ isEditable }) => {
     mobile: '9876543210',
     dateOfBirth: '1990-05-15',
     gender: 'male',
-    role: 'Fighter', // or 'Trainer'
-    profilePic: 'https://example.com/profile.jpg',
+    role: 'Fighter',
+    profilePic: '/fighter.png',
     country: 'USA',
     city: 'New York',
     governmentID: 'https://example.com/gov-id.jpg',
@@ -28,6 +28,17 @@ export const ProfileForm = ({ isEditable }) => {
     }))
   }
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const previewURL = URL.createObjectURL(file)
+      setFormData((prevState) => ({
+        ...prevState,
+        profilePic: previewURL,
+      }))
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     // Handle form submission logic here
@@ -42,15 +53,75 @@ export const ProfileForm = ({ isEditable }) => {
       <div className='w-full'>
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div className='mb-8'>
-            <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
-              <img
-                src={formData.profilePic}
-                alt='Profile photo'
-                className='w-full h-full object-cover'
-              />
+          {/* Profile Picture */}
+          {isEditable ? (
+            <div className='mb-8'>
+              {formData.profilePic ? (
+                <div className='relative w-72 h-64 rounded-lg overflow-hidden border border-[#D9E2F930]'>
+                  <img
+                    src={formData.profilePic}
+                    alt='Selected image'
+                    className='w-full h-full object-cover'
+                  />
+                  <button
+                    type='button'
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, profilePic: null }))
+                    }
+                    className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20 cursor-pointer'
+                  >
+                    <Trash className='w-4 h-4' />
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor='profile-pic-upload'
+                  className='cursor-pointer border-2 border-dashed border-gray-500 rounded-lg flex flex-col items-center justify-center w-72 h-52 relative overflow-hidden'
+                >
+                  <input
+                    id='profile-pic-upload'
+                    type='file'
+                    accept='image/*'
+                    onChange={handleFileChange}
+                    className='absolute inset-0 opacity-0 cursor-pointer z-50'
+                  />
+
+                  <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
+                    <svg
+                      xmlns='http://www.w3.org/2000/svg'
+                      className='h-6 w-6'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      stroke='currentColor'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+                      />
+                    </svg>
+                  </div>
+                  <p className='text-sm text-center text-[#AEB9E1] z-10'>
+                    <span className='text-[#FEF200] mr-1'>Click to upload</span>
+                    or drag and drop profile pic
+                    <br />
+                    SVG, PNG, JPG or GIF (max. 800 x 400px)
+                  </p>
+                </label>
+              )}
             </div>
-          </div>
+          ) : (
+            <div className='mb-8'>
+              <div className='relative w-72 h-64 rounded-lg overflow-hidden border border-[#D9E2F930]'>
+                <img
+                  src={formData.profilePic}
+                  alt='Profile photo'
+                  className='w-full h-full object-cover'
+                />
+              </div>
+            </div>
+          )}
 
           {/* PERSONAL DETAILS */}
           <h2 className='font-bold mb-4 uppercase text-sm'>Personal Details</h2>

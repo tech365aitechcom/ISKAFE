@@ -1,12 +1,11 @@
 'use client'
 import { KeySquare, ShieldUser, UserPen } from 'lucide-react'
-import Link from 'next/link'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ProfileForm } from './_components/ProfileForm'
 import ChangePassword from './_components/ChangePassword'
 
 export default function MyProfile() {
-  const [type, setType] = useState('profile')
+  const [type, setType] = useState('View Profile')
 
   return (
     <div className=' text-white p-8 flex justify-center relative overflow-hidden'>

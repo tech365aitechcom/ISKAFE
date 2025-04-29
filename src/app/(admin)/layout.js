@@ -2,6 +2,12 @@ import React from 'react'
 import { Sidebar } from './_components/Sidebar'
 import { ExportButton } from './_components/ExportButton'
 
+export const metadata = {
+  title: 'IKF - International Kickboxing Federation Admin',
+  description:
+    'The IKF is the world’s largest amateur and professional kickboxing organization.',
+}
+
 const AdminLayout = ({ children }) => {
   return (
     <div className='flex h-screen w-full inset-0 bg-[#07091D]'>
