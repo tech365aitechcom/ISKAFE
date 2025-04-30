@@ -138,9 +138,10 @@ export const AddNewsForm = () => {
                 />
                 <button
                   type='button'
-                  onClick={() =>
+                  onClick={() => {
+                    setImagePreview(null)
                     setFormData((prev) => ({ ...prev, image: null }))
-                  }
+                  }}
                   className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
                 >
                   <Trash className='w-4 h-4' />
