@@ -2,6 +2,8 @@
 import React, { useState } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
+import { API_BASE_URL } from '@/constants'
+import { enqueueSnackbar } from 'notistack'
 
 const ForgotPasswordPage = () => {
   const [formData, setFormData] = useState({
@@ -12,10 +14,10 @@ const ForgotPasswordPage = () => {
   const [error, setError] = useState('')
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     })
   }
 
@@ -24,11 +26,20 @@ const ForgotPasswordPage = () => {
     setIsLoading(true)
     setError('')
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      console.log('Login data ready to be sent:', formData)
+      console.log('Forgot Password data ready to be sent:', formData)
+      const res = await axios.post(
+        `${API_BASE_URL}/auth/forgot-password`,
+        formData
+      )
+      console.log('Forgot Password response:', res.data)
+      if (res.status === 200) {
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during login')
-      console.error('Login error:', err)
+      setError(
+        err.response?.data?.message || 'An error occurred during reset password'
+      )
+      console.error('Reset Password error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -53,7 +64,7 @@ const ForgotPasswordPage = () => {
             </h1>
 
             {error && (
-              <div className='bg-red-500 bg-opacity-20 border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
+              <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
                 {error}
               </div>
             )}
@@ -71,7 +82,7 @@ const ForgotPasswordPage = () => {
               </div>
               <button
                 type='submit'
-                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center'
+                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center cursor-pointer'
                 disabled={isLoading}
               >
                 Submit

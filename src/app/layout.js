@@ -2,6 +2,7 @@ import { Saira_Condensed } from 'next/font/google'
 import './globals.css'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import SnackbarProviderClient from './components/SnackbarProviderClient'
 
 const saira = Saira_Condensed({
   variable: '--font-saira-condensed',
@@ -18,9 +19,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang='en' suppressHydrationWarning>
       <body className={`${saira.variable} antialiased`}>
-        <Navbar />
-        {children}
-        <Footer />
+        <SnackbarProviderClient>
+          <Navbar />
+          {children}
+          <Footer />
+        </SnackbarProviderClient>
       </body>
     </html>
   )
