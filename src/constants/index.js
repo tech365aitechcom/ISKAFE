@@ -4,3 +4,8 @@ export const roles = {
   ADMIN: 'ADMIN',
   USER: 'USER',
 }
+
+export const apiConstants = {
+  create: 201,
+  success: 200,
+}
