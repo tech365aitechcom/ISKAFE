@@ -1,5 +1,6 @@
 import { Saira_Condensed } from 'next/font/google'
 import './globals.css'
+import SnackbarProviderClient from './(admin)/_components/SnackbarProviderClient'
 
 const saira = Saira_Condensed({
   variable: '--font-saira-condensed',
@@ -16,7 +17,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang='en' suppressHydrationWarning>
-      <body className={`${saira.variable} antialiased`}>{children}</body>
+      <body className={`${saira.variable} antialiased`}>
+        <SnackbarProviderClient>{children}</SnackbarProviderClient>
+      </body>
     </html>
   )
 }

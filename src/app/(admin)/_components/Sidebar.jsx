@@ -16,9 +16,11 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import useUserStore from '../../../stores/userStore'
 
 export function Sidebar() {
   const pathname = usePathname()
+  const user = useUserStore((state) => state.user)
 
   return (
     <div className='flex flex-col w-72 h-full bg-[#081028] text-white font-lato'>
@@ -140,7 +142,7 @@ export function Sidebar() {
                 />
               </div>
               <div>
-                <p className='text-sm font-medium'>John Carter</p>
+                <p className='text-sm font-medium'>{user?.fullName}</p>
                 <p
                   className={`text-sm ${
                     pathname === '/profile' ? 'text-[#FFCA28]' : 'text-gray-400'

@@ -1,10 +1,14 @@
 'use client'
 
+import { API_BASE_URL, apiConstants } from '../../../../constants/index'
+import axios from 'axios'
 import { ChevronDown, ChevronsUpDown, Search, Trash } from 'lucide-react'
+import moment from 'moment'
 import Link from 'next/link'
-import { useState } from 'react'
+import { enqueueSnackbar } from 'notistack'
+import { useEffect, useState } from 'react'
 
-export function EventTable({ events }) {
+export function EventTable({ events, onSuccess }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
@@ -13,11 +17,13 @@ export function EventTable({ events }) {
     key: null,
     direction: 'asc',
   })
+  const [isDelete, setIsDelete] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState(null)
 
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
+  const filteredEvents = events?.filter((event) => {
+    const matchesSearch = event?.title
+      ?.toLowerCase()
+      .includes(searchQuery?.toLowerCase())
     const matchesType = selectedType ? event.city === selectedType : true
     const matchesStatus = selectedStatus
       ? event.status === selectedStatus
@@ -25,7 +31,7 @@ export function EventTable({ events }) {
     return matchesSearch && matchesType && matchesStatus
   })
 
-  const sortedEvents = [...filteredEvents].sort((a, b) => {
+  const sortedEvents = [...(filteredEvents || [])].sort((a, b) => {
     if (!sortConfig.key) return 0
 
     const aValue = a[sortConfig.key]
@@ -45,6 +51,14 @@ export function EventTable({ events }) {
         : -1
     }
   })
+
+  useEffect(() => {
+    const initialStatus = {}
+    sortedEvents.forEach((event) => {
+      initialStatus[event._id] = event.isPublished
+    })
+    setPublicStatus(initialStatus)
+  }, [events])
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -72,8 +86,24 @@ export function EventTable({ events }) {
     console.log('Managing participants for:', event)
   }
 
-  const handleDelete = (id) => {
+  const handleDeleteEvent = async (id) => {
     console.log('Deleting event with ID:', id)
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/events/delete/${id}`)
+      console.log(res, 'Response from delete event')
+
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar('Event deleted successfully', {
+          variant: 'success',
+        })
+        setIsDelete(false)
+        onSuccess()
+      }
+    } catch (error) {
+      enqueueSnackbar('Failed to delete event,try again', {
+        variant: 'error',
+      })
+    }
   }
 
   const handleResetFilter = () => {
@@ -82,11 +112,48 @@ export function EventTable({ events }) {
     setSearchQuery('')
   }
 
-  const togglePublicStatus = (eventId) => {
+  const togglePublicStatus = async (eventId) => {
+    const newStatus = !publicStatus[eventId]
+
     setPublicStatus((prev) => ({
       ...prev,
-      [eventId]: !prev[eventId],
+      [eventId]: newStatus,
     }))
+
+    try {
+      const res = await axios.put(`${API_BASE_URL}/events/update/${eventId}`, {
+        isPublished: newStatus,
+      })
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(
+          `Event ${newStatus ? 'published' : 'unpublished'} successfully`,
+          {
+            variant: 'success',
+          }
+        )
+      }
+    } catch (error) {
+      console.error('Failed to update publish status:', error)
+
+      setPublicStatus((prev) => ({
+        ...prev,
+        [eventId]: !newStatus,
+      }))
+    }
+  }
+
+  function getEventStatus(start, end) {
+    const now = new Date()
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+
+    if (now < startDate) {
+      return 'Upcoming'
+    } else if (now >= startDate && now <= endDate) {
+      return 'Live'
+    } else {
+      return 'Closed'
+    }
   }
 
   const renderHeader = (label, key) => (
@@ -196,7 +263,7 @@ export function EventTable({ events }) {
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
         <div className='mb-4 pb-4 p-4 flex justify-between items-center border-b border-[#343B4F]'>
           <p className='text-sm'>Next 10 Events</p>
-          <p className='text-sm'>1 - 10 of {events.length}</p>
+          <p className='text-sm'>1 - 10 of {events?.length}</p>
         </div>
         <div className='overflow-x-auto'>
           <table className='w-full text-sm text-left'>
@@ -212,7 +279,7 @@ export function EventTable({ events }) {
             </thead>
             <tbody>
               {sortedEvents.map((event, index) => {
-                const isPublic = publicStatus[event.id] || false
+                const isPublic = publicStatus[event._id] || false
 
                 return (
                   <tr
@@ -222,12 +289,18 @@ export function EventTable({ events }) {
                     }`}
                   >
                     <td className='p-4'>
-                      <Link href={`/events/${event.id}`}>{event.name}</Link>
+                      <Link href={`/events/${event._id}`}>{event.title}</Link>
                     </td>
-                    <td className='p-4'>{event.date}</td>
-                    <td className='p-4'>{event.address}</td>
-                    <td className='p-4'>{event.participants}</td>
-                    <td className='p-4'>{event.status}</td>
+                    <td className='p-4'>
+                      {moment(event.startDate).format('YYYY/MM/DD')}
+                    </td>
+                    <td className='p-4'>
+                      {event.venueName},{event.location}
+                    </td>
+                    <td className='p-4'>{event.registeredParticipants}</td>
+                    <td className='p-4'>
+                      {getEventStatus(event.startDate, event.endDate)}
+                    </td>
                     <td className='p-4 flex space-x-4 items-center'>
                       {/* View/Edit */}
                       <button
@@ -249,7 +322,7 @@ export function EventTable({ events }) {
                       <div className='flex items-center gap-2'>
                         <span>Public</span>
                         <button
-                          onClick={() => togglePublicStatus(event.id)}
+                          onClick={() => togglePublicStatus(event._id)}
                           className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out cursor-pointer ${
                             isPublic ? 'bg-violet-500' : 'bg-gray-300'
                           }`}
@@ -265,15 +338,10 @@ export function EventTable({ events }) {
                       {/* Delete */}
                       <button
                         onClick={() => {
-                          if (
-                            confirm(
-                              'Are you sure you want to delete this event?'
-                            )
-                          ) {
-                            handleDelete(event.id)
-                          }
+                          setIsDelete(true)
+                          setSelectedEvent(event._id)
                         }}
-                        className='text-red-600'
+                        className='text-red-600 cursor-pointer'
                       >
                         <Trash size={20} />
                       </button>
@@ -284,6 +352,28 @@ export function EventTable({ events }) {
             </tbody>
           </table>
         </div>
+        {isDelete && (
+          <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-gray-800/30'>
+            <div className='bg-[#0B1739] bg-opacity-80 p-8 rounded-lg text-white w-full max-w-md'>
+              <h2 className='text-lg font-semibold mb-4'>Delete Event</h2>
+              <p>Are you sure you want to delete this event?</p>
+              <div className='flex justify-end mt-6 space-x-4'>
+                <button
+                  onClick={() => setIsDelete(false)}
+                  className='px-5 py-2 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 font-medium transition cursor-pointer'
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeleteEvent(selectedEvent)}
+                  className='px-5 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium transition cursor-pointer'
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
