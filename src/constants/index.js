@@ -2068,3 +2068,15 @@ export const rankings = [
     mapLocation: 'https://maps.google.com/?q=Casablanca',
   },
 ]
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+
+export const roles = {
+  admin: 'ADMIN',
+  user: 'USER',
+}
+
+export const apiConstants = {
+  create: 201,
+  success: 200,
+}
