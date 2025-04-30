@@ -1,7 +1,13 @@
 'use client'
+import { enqueueSnackbar } from 'notistack'
+import { API_BASE_URL, apiConstants } from '../../../../constants/index'
+import useUserStore from '../../../../stores/userStore'
+import axios from 'axios'
 import React, { useState } from 'react'
 
 export const AddEventForm = ({ setShowAddEvent }) => {
+  const user = useUserStore((state) => state.user)
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -12,8 +18,8 @@ export const AddEventForm = ({ setShowAddEvent }) => {
     location: '',
     registrationOpen: '',
     registrationClose: '',
+    isPublished: false,
   })
-  const [isPublic, setIsPublic] = useState(false)
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -23,10 +29,42 @@ export const AddEventForm = ({ setShowAddEvent }) => {
     }))
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Handle form submission logic here
-    console.log('Form submitted:', { ...formData, enabled })
+  const handleSubmit = async (e) => {
+    try {
+      e.preventDefault()
+      const payload = {
+        ...formData,
+        createdBy: user?.id,
+      }
+
+      console.log('Form submitted:', payload)
+      const response = await axios.post(`${API_BASE_URL}/events/add`, payload)
+      console.log('Response:', response)
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message, {
+          variant: 'success',
+        })
+        setFormData({
+          title: '',
+          description: '',
+          sportType: '',
+          startDate: '',
+          endDate: '',
+          venueName: '',
+          location: '',
+          registrationOpen: '',
+          registrationClose: '',
+          isPublished: false,
+        })
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        {
+          variant: 'error',
+        }
+      )
+    }
   }
 
   return (
@@ -90,6 +128,9 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                   className='w-full outline-none appearance-none'
                   required
                 >
+                  <option value='' className='text-black'>
+                    Select Sport Type
+                  </option>
                   <option value='Kick boxing' className='text-black'>
                     Kick boxing
                   </option>
@@ -116,8 +157,8 @@ export const AddEventForm = ({ setShowAddEvent }) => {
               Description<span className='text-red-500'>*</span>
             </label>
             <textarea
-              name='title'
-              value={formData.title}
+              name='description' // Corrected this field name
+              value={formData.description}
               onChange={handleChange}
               rows='4'
               className='w-full outline-none resize-none'
@@ -166,7 +207,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                 value={formData.venueName}
                 onChange={handleChange}
                 className='w-full outline-none'
-                placeholder=''
+                placeholder='Venue Name'
               />
             </div>
             <div className='bg-[#00000061] p-2 h-16 rounded'>
@@ -177,7 +218,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                 value={formData.location}
                 onChange={handleChange}
                 className='w-full outline-none'
-                placeholder=''
+                placeholder='Location'
               />
             </div>
           </div>
@@ -219,14 +260,20 @@ export const AddEventForm = ({ setShowAddEvent }) => {
           <div className='flex items-center gap-4'>
             <span className=''>Publish Event</span>
             <button
-              onClick={() => setIsPublic(!isPublic)}
+              type='button'
+              onClick={() =>
+                setFormData((prevState) => ({
+                  ...prevState,
+                  isPublished: !prevState.isPublished,
+                }))
+              }
               className={`w-12 h-6 flex items-center rounded-full p-1 duration-300 ease-in-out cursor-pointer ${
-                isPublic ? 'bg-violet-500' : 'bg-gray-300'
+                formData.isPublished ? 'bg-violet-500' : 'bg-gray-300'
               }`}
             >
               <div
                 className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
-                  isPublic ? 'translate-x-6' : 'translate-x-0'
+                  formData.isPublished ? 'translate-x-6' : 'translate-x-0'
                 }`}
               />
             </button>

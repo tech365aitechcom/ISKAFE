@@ -1,10 +1,13 @@
 'use client'
 
 import { ChevronDown, ChevronsUpDown, Search, Trash } from 'lucide-react'
+import moment from 'moment'
 import Link from 'next/link'
 import { useState } from 'react'
 
 export function EventTable({ events }) {
+  console.log(events, 'events')
+
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
@@ -14,10 +17,10 @@ export function EventTable({ events }) {
     direction: 'asc',
   })
 
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
+  const filteredEvents = events?.filter((event) => {
+    const matchesSearch = event?.title
+      ?.toLowerCase()
+      .includes(searchQuery?.toLowerCase())
     const matchesType = selectedType ? event.city === selectedType : true
     const matchesStatus = selectedStatus
       ? event.status === selectedStatus
@@ -25,7 +28,7 @@ export function EventTable({ events }) {
     return matchesSearch && matchesType && matchesStatus
   })
 
-  const sortedEvents = [...filteredEvents].sort((a, b) => {
+  const sortedEvents = [...(filteredEvents || [])].sort((a, b) => {
     if (!sortConfig.key) return 0
 
     const aValue = a[sortConfig.key]
@@ -196,7 +199,7 @@ export function EventTable({ events }) {
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
         <div className='mb-4 pb-4 p-4 flex justify-between items-center border-b border-[#343B4F]'>
           <p className='text-sm'>Next 10 Events</p>
-          <p className='text-sm'>1 - 10 of {events.length}</p>
+          <p className='text-sm'>1 - 10 of {events?.length}</p>
         </div>
         <div className='overflow-x-auto'>
           <table className='w-full text-sm text-left'>
@@ -222,10 +225,14 @@ export function EventTable({ events }) {
                     }`}
                   >
                     <td className='p-4'>
-                      <Link href={`/events/${event.id}`}>{event.name}</Link>
+                      <Link href={`/events/${event._id}`}>{event.title}</Link>
                     </td>
-                    <td className='p-4'>{event.date}</td>
-                    <td className='p-4'>{event.address}</td>
+                    <td className='p-4'>
+                      {moment(event.startDate).format('YYYY/MM/DD')}
+                    </td>
+                    <td className='p-4'>
+                      {event.venueName},{event.location}
+                    </td>
                     <td className='p-4'>{event.participants}</td>
                     <td className='p-4'>{event.status}</td>
                     <td className='p-4 flex space-x-4 items-center'>
