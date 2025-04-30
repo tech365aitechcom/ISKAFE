@@ -4,26 +4,29 @@ import { EventTable } from './EventTable'
 import { API_BASE_URL } from '../../../../constants/index'
 import { AddEventForm } from './AddEventForm'
 import axios from 'axios'
+import Loader from '../../_components/Loader'
 
 export const EventContainer = () => {
   const [showAddEventForm, setShowAddEvent] = useState(false)
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
-  useEffect(() => {
-    const getEvents = async () => {
-      try {
-        const response = await axios(
-          `${API_BASE_URL}/events/find-all?page=1&limit=10`
-        )
-        console.log('Response:', response.data)
 
-        setEvents(response.data.data.events)
-      } catch (error) {
-        console.error('Error fetching events:', error)
-      } finally {
-        setLoading(false)
-      }
+  const getEvents = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/events/find-all?page=1&limit=10`
+      )
+      console.log('Response:', response.data)
+
+      setEvents(response.data.data.events)
+    } catch (error) {
+      console.log('Error fetching events:', error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     getEvents()
   }, [showAddEventForm])
 
@@ -46,7 +49,12 @@ export const EventContainer = () => {
               Create New
             </button>
           </div>
-          <EventTable events={events} />
+
+          {loading ? (
+            <Loader />
+          ) : (
+            <EventTable events={events} onSuccess={getEvents} />
+          )}
         </>
       )}
     </div>
