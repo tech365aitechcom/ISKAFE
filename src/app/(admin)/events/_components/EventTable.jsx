@@ -1,13 +1,14 @@
 'use client'
 
+import { API_BASE_URL, apiConstants } from '../../../../constants/index'
+import axios from 'axios'
 import { ChevronDown, ChevronsUpDown, Search, Trash } from 'lucide-react'
 import moment from 'moment'
 import Link from 'next/link'
-import { useState } from 'react'
+import { enqueueSnackbar } from 'notistack'
+import { useEffect, useState } from 'react'
 
 export function EventTable({ events }) {
-  console.log(events, 'events')
-
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
@@ -49,6 +50,14 @@ export function EventTable({ events }) {
     }
   })
 
+  useEffect(() => {
+    const initialStatus = {}
+    sortedEvents.forEach((event) => {
+      initialStatus[event._id] = event.isPublished
+    })
+    setPublicStatus(initialStatus)
+  }, [events])
+
   const handleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
@@ -85,11 +94,48 @@ export function EventTable({ events }) {
     setSearchQuery('')
   }
 
-  const togglePublicStatus = (eventId) => {
+  const togglePublicStatus = async (eventId) => {
+    const newStatus = !publicStatus[eventId]
+
     setPublicStatus((prev) => ({
       ...prev,
-      [eventId]: !prev[eventId],
+      [eventId]: newStatus,
     }))
+
+    try {
+      const res = await axios.put(`${API_BASE_URL}/events/update/${eventId}`, {
+        isPublished: newStatus,
+      })
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(
+          `Event ${newStatus ? 'published' : 'unpublished'} successfully`,
+          {
+            variant: 'success',
+          }
+        )
+      }
+    } catch (error) {
+      console.error('Failed to update publish status:', error)
+
+      setPublicStatus((prev) => ({
+        ...prev,
+        [eventId]: !newStatus,
+      }))
+    }
+  }
+
+  function getEventStatus(start, end) {
+    const now = new Date()
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+
+    if (now < startDate) {
+      return 'Upcoming'
+    } else if (now >= startDate && now <= endDate) {
+      return 'Live'
+    } else {
+      return 'Closed'
+    }
   }
 
   const renderHeader = (label, key) => (
@@ -215,7 +261,7 @@ export function EventTable({ events }) {
             </thead>
             <tbody>
               {sortedEvents.map((event, index) => {
-                const isPublic = publicStatus[event.id] || false
+                const isPublic = publicStatus[event._id] || false
 
                 return (
                   <tr
@@ -233,8 +279,10 @@ export function EventTable({ events }) {
                     <td className='p-4'>
                       {event.venueName},{event.location}
                     </td>
-                    <td className='p-4'>{event.participants}</td>
-                    <td className='p-4'>{event.status}</td>
+                    <td className='p-4'>{event.registeredParticipants}</td>
+                    <td className='p-4'>
+                      {getEventStatus(event.startDate, event.endDate)}
+                    </td>
                     <td className='p-4 flex space-x-4 items-center'>
                       {/* View/Edit */}
                       <button
@@ -256,7 +304,7 @@ export function EventTable({ events }) {
                       <div className='flex items-center gap-2'>
                         <span>Public</span>
                         <button
-                          onClick={() => togglePublicStatus(event.id)}
+                          onClick={() => togglePublicStatus(event._id)}
                           className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out cursor-pointer ${
                             isPublic ? 'bg-violet-500' : 'bg-gray-300'
                           }`}
