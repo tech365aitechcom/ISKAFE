@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
-import { API_BASE_URL } from '@/constants'
+import { API_BASE_URL } from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
 
 const ForgotPasswordPage = () => {
