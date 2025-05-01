@@ -1,6 +1,6 @@
 import React from 'react'
 import BracketCard from './BracketCard'
-import { boutsAndResults } from '../../../../../../constants/index'
+import { boutsAndResults } from '../../../../../../../constants'
 
 export default function BoutsAndResults() {
   return (

@@ -1,7 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import FighterAndRankingTable from './FighterAndRankingTable'
-import { rankings } from '../../../../constants/index'
+import { rankings } from '../../../../../constants'
 
 export const FighterAndRankingContainer = () => {
   const [showAddVenuesForm, setShowAddVenues] = useState(false)

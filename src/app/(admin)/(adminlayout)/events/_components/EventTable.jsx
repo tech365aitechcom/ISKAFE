@@ -1,12 +1,12 @@
 'use client'
 
-import { API_BASE_URL, apiConstants } from '../../../../constants/index'
 import axios from 'axios'
 import { ChevronDown, ChevronsUpDown, Search, Trash } from 'lucide-react'
 import moment from 'moment'
 import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
 import { useEffect, useState } from 'react'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
 
 export function EventTable({ events, onSuccess }) {
   const [searchQuery, setSearchQuery] = useState('')

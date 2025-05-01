@@ -2,10 +2,10 @@
 
 import { ArrowUpDown, Trash } from 'lucide-react'
 import BracketList from './_components/BracketList'
-import { brackets } from '../../../../../constants/index'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { brackets } from '../../../../../../constants'
 
 export default function TournamentBrackets() {
   const params = useParams()

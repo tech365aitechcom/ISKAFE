@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { CodesTable } from './CodesTable'
-import { cashPaymentAndCodesEvents } from '../../../../constants/index'
+import { cashPaymentAndCodesEvents } from '../../../../../constants/index'
 
 export default function SelectFromList({
   selectedEvent,

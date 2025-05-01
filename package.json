@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:main": "vercel build --config vercel.main.json",
+    "build:admin": "vercel build --config vercel.admin.json",
+    "deploy:main": "vercel deploy --prod --prebuilt --confirm --token=$VERCEL_TOKEN --scope=Balpreet --project=ikffe",
+    "deploy:admin": "vercel deploy --prod --prebuilt --confirm --token=$VERCEL_TOKEN --scope=Balpreet --project=admin-ikffe"
   },
   "dependencies": {
     "axios": "^1.8.3",

@@ -1,6 +1,6 @@
 'use client'
 
-import useUserStore from '../../../stores/userStore'
+import useUserStore from '../../../../stores/userStore'
 import React from 'react'
 import { ExportButton } from './ExportButton'
 
