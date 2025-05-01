@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import { Eye, EyeOff } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { API_BASE_URL, apiConstants, roles } from '../../../constants/index'
 
 const LoginPage = () => {
-  const { setUser } = useUserStore()
+  const { user, setUser } = useUserStore()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -41,11 +41,14 @@ const LoginPage = () => {
           enqueueSnackbar(res.data.message, { variant: 'success' })
           localStorage.setItem('token', res.data.token)
           setUser(res.data.user)
-          router.push('/dashboard')
+          router.push('/admin/dashboard')
         } else {
-          enqueueSnackbar('Please login with admin credentials', {
-            variant: 'warning',
-          })
+          enqueueSnackbar(
+            'You are not an Admin. Please login with admin credentials',
+            {
+              variant: 'warning',
+            }
+          )
         }
       }
     } catch (err) {
@@ -57,6 +60,12 @@ const LoginPage = () => {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (user && user.role == 'ADMIN') {
+      router.push('/admin/dashboard')
+    }
+  }, [user, router])
 
   return (
     <div className='flex h-screen w-full bg-transparent px-28 py-6'>
