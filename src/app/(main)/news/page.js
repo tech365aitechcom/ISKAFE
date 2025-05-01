@@ -1,7 +1,11 @@
 'use client'
+import axios from 'axios'
 import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
+import { API_BASE_URL } from '../../../constants'
+import Loader from '../../_components/Loader'
+import moment from 'moment'
 
 const news = [
   {
@@ -84,11 +88,15 @@ const news = [
 ]
 
 const NewsPage = () => {
+  const [news, setNews] = useState([])
+  const [loading, setLoading] = useState(false)
   const [bgImage, setBgImage] = useState('/Cover.png')
   const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [category, setCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
   const newsPerPage = 9
+
   useEffect(() => {
     const updateBackground = () => {
       setBgImage(
@@ -102,10 +110,24 @@ const NewsPage = () => {
     return () => window.removeEventListener('resize', updateBackground)
   }, [])
 
-  const totalPages = Math.ceil(news.length / newsPerPage)
-  const indexOfLastNews = currentPage * newsPerPage
-  const indexOfFirstNews = indexOfLastNews - newsPerPage
-  const currentNews = news.slice(indexOfFirstNews, indexOfLastNews)
+  useEffect(() => {
+    const fetchNews = async () => {
+      setLoading(true)
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/news?page=${currentPage}&limit=${newsPerPage}`
+        )
+        console.log('Response:', response.data)
+        setNews(response.data.data.items)
+        setTotalPages(response.data.data.pagination.totalPages)
+      } catch (error) {
+        console.error('Error fetching news:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchNews()
+  }, [currentPage])
 
   const handleSearch = () => {
     console.log('Searching for:', { category, searchTerm })
@@ -185,32 +207,39 @@ const NewsPage = () => {
           </div>
         </div>
 
-        <div className='flex flex-wrap gap-4'>
-          {currentNews.map((item, index) => (
-            <div
-              key={index}
-              className='w-100 mx-auto border border-gray-500 rounded block hover:shadow-lg transition-shadow duration-300'
-            >
-              <img
-                src={item.img}
-                alt=''
-                className='w-100 h-60 object-cover rounded-t'
-              />
-              <div className='p-4 text-white'>
-                <h3 className='text-white text-xl font-bold'>{item.title}</h3>
-                <h3 className='text-[#BDBDBD] text-lg font-medium my-2 leading-6'>
-                  {item.description}
-                </h3>
-                <h3 className='text-[#BDBDBD] font-medium mb-4'>{item.date}</h3>
-                <Link href={`/news/${index}`}>
-                  <button className='bg-[#0A1330] text-white px-4 py-2 rounded transition duration-200 cursor-pointer'>
-                    Read More
-                  </button>
-                </Link>
+        {loading ? (
+          <Loader />
+        ) : (
+          <div className='flex flex-wrap gap-4'>
+            {news.map((item, index) => (
+              <div
+                key={index}
+                className='w-100 mx-auto border border-gray-500 rounded block hover:shadow-lg transition-shadow duration-300'
+              >
+                <img
+                  src={process.env.NEXT_PUBLIC_BASE_URL + item.imageUrl}
+                  alt={item.title}
+                  className='w-100 h-60 object-cover rounded-t'
+                />
+                <div className='p-4 text-white'>
+                  <h3 className='text-white text-xl font-bold'>{item.title}</h3>
+                  <h3 className='text-[#BDBDBD] text-lg font-medium my-2 leading-6'>
+                    {item.content}
+                  </h3>
+                  <h3 className='text-[#BDBDBD] font-medium mb-4'>
+                    {moment.utc(item.updatedAt).toISOString()}
+                  </h3>
+                  <Link href={`/news/${item._id}`}>
+                    <button className='bg-[#0A1330] text-white px-4 py-2 rounded transition duration-200 cursor-pointer'>
+                      Read More
+                    </button>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
         {/* Pagination Controls */}
         <div className='flex justify-center mt-8 space-x-2'>
           {currentPage > 1 && (

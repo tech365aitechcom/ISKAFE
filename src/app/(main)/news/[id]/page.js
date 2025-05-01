@@ -1,3 +1,6 @@
+'use client'
+
+import axios from 'axios'
 import {
   ChevronLeft,
   Facebook,
@@ -7,37 +10,66 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import React from 'react'
+import React, { use, useEffect, useState } from 'react'
+import { API_BASE_URL } from '../../../../constants/index'
+import Loader from '../../../_components/Loader'
 
-const NewsDetailsPage = () => {
-  const news = {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: '/news.png',
-    time: '8 hours ago',
-    author: 'Johnny Davis',
-    createdAt: 'Mar 3,2025',
+const NewsDetailsPage = ({ params }) => {
+  const { id } = use(params)
+  const [loading, setLoading] = useState(true)
+  const [newsDetails, setNewsDetails] = useState(null)
+
+  useEffect(() => {
+    const fetchNewsDetails = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/news/${id}`)
+        console.log('News Details:', response.data.data)
+
+        setNewsDetails(response.data.data)
+      } catch (error) {
+        console.error('Error fetching news details:', error)
+        console.log('Error fetching news details:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNewsDetails()
+  }, [id])
+
+  const imageSrc =
+    newsDetails?.imageUrl && process.env.NEXT_PUBLIC_BASE_URL
+      ? new URL(
+          newsDetails.imageUrl,
+          process.env.NEXT_PUBLIC_BASE_URL
+        ).toString()
+      : null
+
+  if (loading) {
+    return <Loader />
   }
 
   return (
     <div className='bg-[#28133A80] p-4 max-w-7xl mx-auto flex flex-col md:flex-row gap-4 my-6'>
       <div className='w-full md:w-[50%] h-fit'>
-        <Image
-          src={news.img}
-          alt='News Image'
-          width={100}
-          height={100}
-          className='w-full h-full object-cover'
-        />
+        <div className='relative w-full h-[500px]'>
+          <Image
+            src={imageSrc}
+            alt='News Image'
+            fill
+            sizes='(max-width: 768px) 100vw, 50vw'
+            className='object-cover rounded'
+          />
+        </div>
+
         <div className='bg-[#050310B2] opacity-75 p-4'>
           <h3 className='text-white text-xl font-bold'>
             <span className='text-[#BDBDBD]'>Written By: </span>
-            {news.author}
+            {newsDetails.createdBy?.fullName}
           </h3>
           <h3 className='text-white text-xl font-bold'>
             <span className='text-[#BDBDBD]'>Posted On: </span>
-            {news.createdAt}
+            {newsDetails.publishDate}
           </h3>
         </div>
       </div>
@@ -48,7 +80,7 @@ const NewsDetailsPage = () => {
           Back
         </Link>
         <h1 className='text-2xl md:text-5xl font-bold uppercase'>
-          {news.title}
+          {newsDetails.title}
         </h1>
 
         {/* Share Icons */}
@@ -59,40 +91,7 @@ const NewsDetailsPage = () => {
           <LinkIcon className='cursor-pointer hover:text-gray-300 transition-colors' />
         </div>
 
-        <p className='leading-6 mt-2'>
-          We are pleased to welcome Zaneta Hesch as our official photographer
-          for the 2025 IKF Spring Muay Thai and Kickboxing Classic taking place
-          this Saturday in Myrtle Beach, SC.
-          <br />
-          <br />
-          Zaneta, who hails from New Bern, North Carolina and trains out of Nine
-          Limbs Strikers with Kru Pol and has over a decade of photography
-          experience and four years of training in Muay Thai.
-          <br />
-          <br />
-          This opportunity to work with IKF allows her to combine her two
-          passions: capturing fighters in the ring and telling their stories of
-          discipline and the warrior mindset.
-          <br />
-          <br />
-          The event will be held at the Landmark Resort, with Full Contact
-          Action kicking off on Saturday at 1: PM and continuing until around 11
-          PM.
-          <br />
-          <br />
-          Additionally, there will be plenty of semi-contact action, including
-          IKF Point Muay Thai and Kickboxing Sparring, as well as PBSC Point
-          Boxing Sparring and BJJ competitions starting on Saturday evening.
-          <br />
-          <br />
-          Zaneta will be on-site capturing action shots and sharing fascinating
-          stories through her photography. Expect to see a wealth of photos
-          following the event!
-          <br />
-          <br />
-          Get your tickets and more information at www.IKFFightplatform.com. If
-          you have any questions, please call (843)773-1005.
-        </p>
+        <p className='leading-6 mt-2'>{newsDetails.content}</p>
       </div>
     </div>
   )

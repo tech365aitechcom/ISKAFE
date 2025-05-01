@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import axios from 'axios'
 import { Eye, EyeOff } from 'lucide-react'
-import { API_BASE_URL } from '../../../constants/index'
+import { API_BASE_URL, roles } from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
 import useUserStore from '../../../stores/userStore'
 import { useRouter } from 'next/navigation'
@@ -41,8 +41,8 @@ const LoginPage = () => {
         setUser(res.data.user)
         localStorage.setItem('token', res.data.token)
         enqueueSnackbar(res.data.message, { variant: 'success' })
-        if (res.data.user.role === 'ADMIN') {
-          router.push('/dashboard')
+        if (res.data.user.role === roles.admin) {
+          router.push('/admin/dashboard')
         } else {
           router.push('/')
         }
