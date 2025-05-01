@@ -1,9 +1,9 @@
 'use client'
 import { enqueueSnackbar } from 'notistack'
-import { API_BASE_URL, apiConstants } from '../../../../constants/index'
-import useUserStore from '../../../../stores/userStore'
 import axios from 'axios'
 import React, { useState } from 'react'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import useUserStore from '../../../../../stores/userStore'
 
 export const AddEventForm = ({ setShowAddEvent }) => {
   const user = useUserStore((state) => state.user)

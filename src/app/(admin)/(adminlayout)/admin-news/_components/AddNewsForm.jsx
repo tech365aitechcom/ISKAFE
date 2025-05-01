@@ -1,9 +1,9 @@
 'use client'
 import axios from 'axios'
-import { API_BASE_URL, apiConstants } from '../../../../constants/index'
+import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
 import { Trash } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../stores/userStore'
+import useUserStore from '../../../../../stores/userStore'
 import { enqueueSnackbar } from 'notistack'
 
 export const AddNewsForm = () => {

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import useUserStore from '../../../stores/userStore'
+import useUserStore from '../../../../stores/userStore'
 
 export function Sidebar() {
   const pathname = usePathname()

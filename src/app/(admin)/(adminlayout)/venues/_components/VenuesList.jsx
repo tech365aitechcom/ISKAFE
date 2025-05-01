@@ -1,6 +1,6 @@
 import React from 'react'
 import { VenuesTable } from './VenuesTable'
-import { venues } from '../../../../constants/index'
+import { venues } from '../../../../../constants'
 
 export const VenuesList = ({ setShowAddVenues }) => {
   return (
