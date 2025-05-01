@@ -1,12 +1,11 @@
 'use client'
 import React, { useState } from 'react'
-import Link from 'next/link'
 import axios from 'axios'
 import { Eye, EyeOff } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
-import useUserStore from '../../stores/userStore'
+import useUserStore from '../../../stores/userStore'
 import { useRouter } from 'next/navigation'
-import { API_BASE_URL, apiConstants, roles } from '../../constants/index'
+import { API_BASE_URL, apiConstants, roles } from '../../../constants/index'
 
 const LoginPage = () => {
   const { setUser } = useUserStore()
