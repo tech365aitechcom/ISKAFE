@@ -13,6 +13,8 @@ import {
   Dumbbell,
   PartyPopper,
   Newspaper,
+  Info,
+  SquareUser,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -102,6 +104,7 @@ export function Sidebar() {
           title='Cash Payments & Codes'
           isActive={pathname === '/admin/cash-payments-codes'}
         />
+
         <NavItem
           href='/admin/venues'
           icon={<MapPin size={18} />}
@@ -125,6 +128,18 @@ export function Sidebar() {
           icon={<Users size={18} />}
           title='People'
           isActive={pathname === '/admin/people'}
+        />
+        <NavItem
+          href='/admin/about'
+          icon={<Info size={18} />}
+          title='About'
+          isActive={pathname === '/admin/about'}
+        />
+        <NavItem
+          href='/admin/contact-settings'
+          icon={<SquareUser size={18} />}
+          title='Contact Settings'
+          isActive={pathname === '/admin/contact-settings'}
         />
         {/* User Profile Section */}
         <Link

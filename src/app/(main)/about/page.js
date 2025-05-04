@@ -1,6 +1,11 @@
-import { Check } from 'lucide-react'
+'use client'
+import { Check, Facebook, Instagram, Youtube } from 'lucide-react'
 import Image from 'next/image'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { API_BASE_URL } from '../../../constants'
+import axios from 'axios'
+import Link from 'next/link'
+import Loader from '../../_components/Loader'
 
 const points = [
   'Event scheduling',
@@ -14,6 +19,30 @@ const points = [
 ]
 
 const AboutPage = () => {
+  const [about, setAbout] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const getAboutDetails = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/about-us`)
+      console.log('Response:', response.data)
+
+      setAbout(response.data.data)
+    } catch (error) {
+      console.log('Error fetching about details:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    getAboutDetails()
+  }, [])
+
+  if (loading) {
+    return <Loader />
+  }
+
   return (
     <div className='bg-[#28133A] md:bg-[#28133A80] container mx-auto md:p-10 md:px-14 mb-44 p-4 pb-12 rounded-lg flex flex-col items-center justify-center'>
       <div>
@@ -34,21 +63,11 @@ const AboutPage = () => {
       </div>
       <div className='text-white flex flex-col md:flex-row justify-between items-center mt-6 w-full'>
         <div>
-          <h1 className='text-3xl md:text-5xl font-bold'>
-            THE IKF FIGHT PLATFORM
-          </h1>
-          <p className='text-xl font-medium mt-4'>
-            The IKF Fight Platform is the technology engine that powers
-            International Fight Sports.
-            <br /> It is the official technology platform for International
-            Fight Sports and AK Promotions.
-          </p>
-          <div className='md:hidden mt-8'>
-            <p className='text-xl font-medium'>
-              The IKF Fight Platform has a robust set of capabilities for
-              combat-sports events, including:
-            </p>
-            <ul className='list-none flex flex-col gap-2 mt-4'>
+          <h1 className='text-3xl md:text-5xl font-bold'>{about?.pageTitle}</h1>
+          <p className='text-xl font-medium mt-4'>{about?.missionStatement}</p>
+          <div className='mt-8'>
+            <p className='text-xl font-medium'>{about?.organizationHistory}</p>
+            {/* <ul className='list-none flex flex-col gap-2 mt-4'>
               {points.map((point, index) => (
                 <li key={index} className='text-lg font-medium flex gap-2'>
                   <Check
@@ -60,50 +79,54 @@ const AboutPage = () => {
                   {point}
                 </li>
               ))}
-            </ul>
+            </ul> */}
           </div>
-          <div className='pt-8 md:pt-24'>
+          <div className='my-8'>
+            <h2 className='text-3xl font-bold text-white mb-2'>
+              Leadership Team
+            </h2>
+            <p className='text-lg text-white opacity-80'>
+              Meet the officials who guide our federation
+            </p>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-6'>
+            {about?.leadershipTeam.map((member, index) => (
+              <div
+                key={index}
+                className=' bg-opacity-10 rounded-lg p-6 flex flex-col items-center'
+              >
+                <div className='w-24 h-24 rounded-full overflow-hidden mb-4'>
+                  <img
+                    src={member.photoUrl}
+                    alt={member.name}
+                    className='w-full h-full object-cover bg-white'
+                  />
+                </div>
+                <h3 className='text-xl font-bold text-white'>{member.name}</h3>
+                <p className='text-white opacity-80'>{member.title}</p>
+              </div>
+            ))}
+          </div>
+          <Link href={about?.contactLink || ''}>
+            <button className='border border-white rounded-lg px-4 py-2 mt-8 cursor-pointer'>
+              Contact Us
+            </button>
+          </Link>
+          <div className='pt-8'>
             <h2 className='font-bold text-2xl'>Social</h2>
             <div className='flex gap-4 mt-2'>
-              <Image src='/insta.png' alt='' width={30} height={30} />
-              <Image src='/x.png' alt='' width={25} height={25} />
+              <Link href={about?.socialLinks?.facebook || ''} target='_blank'>
+                <Facebook />
+              </Link>
+              <Link href={about?.socialLinks?.instagram || ''} target='_blank'>
+                <Instagram />
+              </Link>
+              <Link href={about?.socialLinks?.youtube || ''} target='_blank'>
+                <Youtube />
+              </Link>
             </div>
           </div>
-          <div className='pt-8 md:pt-12'>
-            <h2 className='font-bold text-2xl'>Platforms</h2>
-            <p className='font-medium text-xl mt-2'>
-              IKF Fight Platform Partners
-            </p>
-          </div>
-          <div className='pt-8 md:pt-12'>
-            <h2 className='font-bold text-2xl'>
-              Usage Outside International Fight Sports
-            </h2>
-            <p className='font-medium text-xl mt-2'>
-              The IKF Fight Platform is also available for unaffiliated
-              promoters, gyms, fight camps, trainers, <br /> coaches, and
-              officials. Contact the team (email) for details.
-            </p>
-          </div>
-        </div>
-        <div className='hidden md:block'>
-          <p className='text-xl font-medium'>
-            The IKF Fight Platform has a robust set of capabilities for
-            combat-sports events, including:
-          </p>
-          <ul className='list-none flex flex-col gap-2 mt-4'>
-            {points.map((point, index) => (
-              <li key={index} className='text-lg font-medium flex gap-2'>
-                <Check
-                  size={20}
-                  color='#4E2D92'
-                  fontWeight={700}
-                  className='mt-1'
-                />
-                {point}
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
     </div>

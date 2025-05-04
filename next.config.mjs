@@ -6,6 +6,7 @@ const nextConfig = {
       's3-alpha-sig.figma.com',
       'ikf.onrender.com',
       'localhost',
+      'example.com',
     ],
   },
 }

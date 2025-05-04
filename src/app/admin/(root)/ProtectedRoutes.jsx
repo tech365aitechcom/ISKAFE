@@ -5,16 +5,21 @@ import { useRouter } from 'next/navigation'
 import { Sidebar } from './_components/Sidebar'
 import Header from './_components/Header'
 import useUserStore from '../../../stores/userStore'
+import Loader from '../../_components/Loader'
 
 const ProtectedRoutes = ({ children }) => {
   const router = useRouter()
-  const { user } = useUserStore()
+  const { user, _hasHydrated } = useUserStore()
 
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (_hasHydrated && (!user || user.role !== 'ADMIN')) {
       router.push('/admin/login')
     }
-  }, [user, router])
+  }, [_hasHydrated, user, router])
+
+  if (!_hasHydrated) {
+    return <Loader />
+  }
 
   if (!user || user.role !== 'ADMIN') {
     return null
