@@ -2072,8 +2072,9 @@ export const rankings = [
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export const roles = {
-  admin: 'ADMIN',
-  user: 'USER',
+  admin: 'Admin',
+  user: 'User',
+  fighter: 'Fighter',
 }
 
 export const apiConstants = {

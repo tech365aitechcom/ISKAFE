@@ -31,7 +31,7 @@ export default function TournamentBrackets() {
         {/* Header */}
         <div className='flex items-center gap-4 mb-6'>
           <Link href={`/admin/events/${eventId}`}>
-            <button className='mr-2 cursor-pointer'>
+            <button className='mr-2'>
               <svg
                 xmlns='http://www.w3.org/2000/svg'
                 className='h-6 w-6'
@@ -50,11 +50,11 @@ export default function TournamentBrackets() {
           </Link>
           <h1 className='text-2xl font-bold'>Tournament Brackets</h1>
           <div className='ml-auto flex space-x-2'>
-            <button className='border border-white px-3 py-1 text-sm rounded flex items-center gap-1 cursor-pointer'>
+            <button className='border border-white px-3 py-1 text-sm rounded flex items-center gap-1'>
               <ArrowUpDown size={14} />
               <span className='mr-1'>Reorder</span>
             </button>
-            <button className='bg-[#F35050] px-3 py-1 text-sm rounded flex items-center gap-1 cursor-pointer'>
+            <button className='bg-[#F35050] px-3 py-1 text-sm rounded flex items-center gap-1'>
               <Trash size={14} color='#fff' />
               <span className='mr-1'>Delete</span>
             </button>

@@ -32,7 +32,7 @@ export default function SelectFromList({
       {selectedEvent ? (
         <div>
           <div className='bg-[#AEBFFF33] flex items-center gap-12 px-3 w-fit '>
-            <button className=' text-left p-2 rounded text-sm transition-colors duration-200 min-w-min cursor-pointer'>
+            <button className=' text-left p-2 rounded text-sm transition-colors duration-200 min-w-min'>
               {selectedEvent.name}
             </button>
             <X
@@ -51,7 +51,7 @@ export default function SelectFromList({
           {cashPaymentAndCodesEvents.map((event, index) => (
             <button
               key={index}
-              className='bg-[#AEBFFF33] text-left p-2 rounded text-sm transition-colors duration-200 flex-grow min-w-min cursor-pointer'
+              className='bg-[#AEBFFF33] text-left p-2 rounded text-sm transition-colors duration-200 flex-grow min-w-min'
               style={{ maxWidth: 'fit-content' }}
               onClick={() => setSelectedEvent(event)}
             >

@@ -1,107 +1,56 @@
 'use client'
 
 import axios from 'axios'
-import { ChevronDown, ChevronsUpDown, Search, Trash } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronsUpDown,
+  Search,
+  SquarePen,
+  Trash,
+} from 'lucide-react'
 import moment from 'moment'
-import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import { getEventStatus } from '../../../../../utils/eventUtils'
 
-export function EventTable({ events, onSuccess }) {
+export function TournamentTable({ tournaments, onSuccess }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
-  const [publicStatus, setPublicStatus] = useState({})
-  const [sortConfig, setSortConfig] = useState({
-    key: null,
-    direction: 'asc',
-  })
   const [isDelete, setIsDelete] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [selectedTournament, setSelectedTournament] = useState(null)
 
-  const filteredEvents = events?.filter((event) => {
-    const matchesSearch = event?.title
+  const filteredTournaments = tournaments?.filter((tournament) => {
+    const matchesSearch = tournament?.name
       ?.toLowerCase()
       .includes(searchQuery?.toLowerCase())
-    const matchesType = selectedType ? event.city === selectedType : true
+    const matchesType = selectedType ? tournament.city === selectedType : true
     const matchesStatus = selectedStatus
-      ? event.status === selectedStatus
+      ? tournament.status === selectedStatus
       : true
     return matchesSearch && matchesType && matchesStatus
   })
 
-  const sortedEvents = [...(filteredEvents || [])].sort((a, b) => {
-    if (!sortConfig.key) return 0
-
-    const aValue = a[sortConfig.key]
-    const bValue = b[sortConfig.key]
-
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortConfig.direction === 'asc'
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue)
-    } else {
-      return sortConfig.direction === 'asc'
-        ? aValue > bValue
-          ? 1
-          : -1
-        : aValue < bValue
-        ? 1
-        : -1
-    }
-  })
-
-  useEffect(() => {
-    const initialStatus = {}
-    sortedEvents.forEach((event) => {
-      initialStatus[event._id] = event.isPublished
-    })
-    setPublicStatus(initialStatus)
-  }, [events])
-
-  const handleSort = (key) => {
-    setSortConfig((prev) => {
-      if (prev.key === key) {
-        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-      } else {
-        return { key, direction: 'asc' }
-      }
-    })
+  const handleViewEdit = (tournament) => {
+    console.log('Viewing/Editing tournament:', tournament)
   }
 
-  const handleToggleStatus = (event) => {
-    // Toggle between 'Live' and 'Draft' (or any other logic you need)
-    const newStatus = event.status === 'Live' ? 'Draft' : 'Live'
-    console.log(`Toggled event ${event.name} to status:`, newStatus)
-    // Update the event status in your backend/state here
-  }
-
-  const handleViewEdit = (event) => {
-    // Navigate or open modal
-    console.log('Viewing/Editing event:', event)
-  }
-
-  const handleManageRegistrations = (event) => {
-    console.log('Managing participants for:', event)
-  }
-
-  const handleDeleteEvent = async (id) => {
-    console.log('Deleting event with ID:', id)
+  const handleDeleteTournament = async (id) => {
+    console.log('Deleting tournament with ID:', id)
     try {
-      const res = await axios.delete(`${API_BASE_URL}/events/delete/${id}`)
-      console.log(res, 'Response from delete event')
+      const res = await axios.delete(`${API_BASE_URL}/tournaments/delete/${id}`)
+      console.log(res, 'Response from delete tournament')
 
       if (res.status == apiConstants.success) {
-        enqueueSnackbar('Event deleted successfully', {
+        enqueueSnackbar('Tournament deleted successfully', {
           variant: 'success',
         })
         setIsDelete(false)
         onSuccess()
       }
     } catch (error) {
-      enqueueSnackbar('Failed to delete event,try again', {
+      enqueueSnackbar('Failed to delete tournament,try again', {
         variant: 'error',
       })
     }
@@ -113,52 +62,16 @@ export function EventTable({ events, onSuccess }) {
     setSearchQuery('')
   }
 
-  const togglePublicStatus = async (eventId) => {
-    const newStatus = !publicStatus[eventId]
-
-    setPublicStatus((prev) => ({
-      ...prev,
-      [eventId]: newStatus,
-    }))
-
-    try {
-      const res = await axios.put(`${API_BASE_URL}/events/update/${eventId}`, {
-        isPublished: newStatus,
-      })
-      if (res.status == apiConstants.success) {
-        enqueueSnackbar(
-          `Event ${newStatus ? 'published' : 'unpublished'} successfully`,
-          {
-            variant: 'success',
-          }
-        )
-      }
-    } catch (error) {
-      console.error('Failed to update publish status:', error)
-
-      setPublicStatus((prev) => ({
-        ...prev,
-        [eventId]: !newStatus,
-      }))
-    }
-  }
-
   const renderHeader = (label, key) => (
-    <th
-      className='px-4 pb-3 whitespace-nowrap cursor-pointer'
-      onClick={() => handleSort(key)}
-    >
-      <div className='flex items-center gap-1'>
-        {label}
-        <ChevronsUpDown className='w-4 h-4 text-gray-400' />
-      </div>
+    <th className='px-4 pb-3 whitespace-nowrap cursor-pointer'>
+      <div className='flex items-center gap-1'>{label}</div>
     </th>
   )
 
   return (
     <>
       <div className='relative mb-6'>
-        <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
+        <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-tournaments-none'>
           <Search size={18} className='text-gray-400' />
         </div>
         <input
@@ -197,12 +110,12 @@ export function EventTable({ events, onSuccess }) {
               </select>
               <ChevronDown
                 size={16}
-                className='absolute right-4 pointer-events-none'
+                className='absolute right-4 pointer-tournaments-none'
               />
             </div>
           </div>
         </div>
-        <div className='relative w-64 mb-4'>
+        {/* <div className='relative w-64 mb-4'>
           <div className='w-64 mb-4'>
             <label
               htmlFor='pro-classification'
@@ -232,15 +145,14 @@ export function EventTable({ events, onSuccess }) {
               </select>
               <ChevronDown
                 size={16}
-                className='absolute right-4 pointer-events-none'
+                className='absolute right-4 pointer-tournaments-none'
               />
             </div>
           </div>
-        </div>
-
-        {(selectedType || selectedStatus) && (
+        </div> */}
+        {(selectedType || selectedStatus || searchQuery) && (
           <button
-            className='border border-gray-700 rounded-lg px-4 py-2 mb-4'
+            className='border border-gray-700 rounded-lg px-4 mb-4'
             onClick={handleResetFilter}
           >
             Reset Filter
@@ -249,25 +161,24 @@ export function EventTable({ events, onSuccess }) {
       </div>
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
         <div className='mb-4 pb-4 p-4 flex justify-between items-center border-b border-[#343B4F]'>
-          <p className='text-sm'>Next 10 Events</p>
-          <p className='text-sm'>1 - 10 of {events?.length}</p>
+          <p className='text-sm'>Next 10 Tournaments</p>
+          <p className='text-sm'>1 - 10 of {filteredTournaments?.length}</p>
         </div>
         <div className='overflow-x-auto'>
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
-                {renderHeader('Event Name', 'name')}
-                {renderHeader('Event Date', 'date')}
+                {renderHeader('Name', 'name')}
+                {renderHeader('Date', 'date')}
                 {renderHeader('Location', 'address')}
-                {renderHeader('Registered Participants', 'participants')}
+                {renderHeader('Participants', 'participants')}
+                {renderHeader('Rules', 'rules')}
                 {renderHeader('Status', 'status')}
                 {renderHeader('Actions', 'actions')}
               </tr>
             </thead>
             <tbody>
-              {sortedEvents.map((event, index) => {
-                const isPublic = publicStatus[event._id] || false
-
+              {filteredTournaments.map((tournament, index) => {
                 return (
                   <tr
                     key={index}
@@ -275,60 +186,40 @@ export function EventTable({ events, onSuccess }) {
                       index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                     }`}
                   >
+                    <td className='p-4'>{tournament.name}</td>
                     <td className='p-4'>
-                      <Link href={`/admin/events/${event._id}`}>
-                        {event.title}
-                      </Link>
+                      {moment(tournament.dateTime).format('YYYY/MM/DD HH:mm')}
                     </td>
+                    <td className='p-4'>{tournament.location}</td>
                     <td className='p-4'>
-                      {moment(event.startDate).format('YYYY/MM/DD')}
+                      <ul className='list-disc list-inside'>
+                        {tournament.participants?.map((participant, idx) => (
+                          <li key={idx}>
+                            {Array.isArray(participant?.fullName)
+                              ? participant.fullName.join(', ')
+                              : participant?.fullName}
+                          </li>
+                        ))}
+                      </ul>
                     </td>
+                    <td className='p-4'>{tournament.rules}</td>
                     <td className='p-4'>
-                      {event.venueName},{event.location}
+                      {getEventStatus(tournament.dateTime)}
                     </td>
-                    <td className='p-4'>{event.registeredParticipants}</td>
-                    <td className='p-4'>
-                      {getEventStatus(event.startDate, event.endDate)}
-                    </td>
-                    <td className='p-4 flex space-x-4 items-center'>
-                      {/* View/Edit */}
+                    <td className='py-8 px-4 flex space-x-4 items-center'>
+                      {/* Edit */}
                       <button
                         className='text-blue-500 hover:underline block'
-                        onClick={() => handleViewEdit(event)}
+                        onClick={() => handleViewEdit(tournament)}
                       >
-                        View/Edit
+                        <SquarePen size={20} />
                       </button>
-
-                      {/* Manage Registrations */}
-                      <button
-                        className='text-green-500 hover:underline block'
-                        onClick={() => handleManageRegistrations(event)}
-                      >
-                        Manage
-                      </button>
-
-                      {/* Publish Toggle */}
-                      <div className='flex items-center gap-2'>
-                        <span>Public</span>
-                        <button
-                          onClick={() => togglePublicStatus(event._id)}
-                          className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out ${
-                            isPublic ? 'bg-violet-500' : 'bg-gray-300'
-                          }`}
-                        >
-                          <div
-                            className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
-                              isPublic ? 'translate-x-6' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                      </div>
 
                       {/* Delete */}
                       <button
                         onClick={() => {
                           setIsDelete(true)
-                          setSelectedEvent(event._id)
+                          setSelectedTournament(tournament._id)
                         }}
                         className='text-red-600'
                       >
@@ -344,8 +235,8 @@ export function EventTable({ events, onSuccess }) {
         {isDelete && (
           <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-gray-800/30'>
             <div className='bg-[#0B1739] bg-opacity-80 p-8 rounded-lg text-white w-full max-w-md'>
-              <h2 className='text-lg font-semibold mb-4'>Delete Event</h2>
-              <p>Are you sure you want to delete this event?</p>
+              <h2 className='text-lg font-semibold mb-4'>Delete Tournament</h2>
+              <p>Are you sure you want to delete this tournament?</p>
               <div className='flex justify-end mt-6 space-x-4'>
                 <button
                   onClick={() => setIsDelete(false)}
@@ -354,7 +245,7 @@ export function EventTable({ events, onSuccess }) {
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleDeleteEvent(selectedEvent)}
+                  onClick={() => handleDeleteTournament(selectedTournament)}
                   className='px-5 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium transition'
                 >
                   Delete

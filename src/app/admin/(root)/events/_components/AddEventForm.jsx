@@ -73,7 +73,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
           <button
-            className='mr-2 text-white cursor-pointer'
+            className='mr-2 text-white'
             onClick={() => setShowAddEvent(false)}
           >
             <svg
@@ -267,7 +267,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                   isPublished: !prevState.isPublished,
                 }))
               }
-              className={`w-12 h-6 flex items-center rounded-full p-1 duration-300 ease-in-out cursor-pointer ${
+              className={`w-12 h-6 flex items-center rounded-full p-1 duration-300 ease-in-out ${
                 formData.isPublished ? 'bg-violet-500' : 'bg-gray-300'
               }`}
             >
@@ -283,7 +283,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
           <div className='flex justify-center gap-4 mt-12'>
             <button
               type='submit'
-              className='text-white font-medium py-2 px-6 rounded transition duration-200 cursor-pointer'
+              className='text-white font-medium py-2 px-6 rounded transition duration-200'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

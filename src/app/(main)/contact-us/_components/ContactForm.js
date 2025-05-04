@@ -177,7 +177,7 @@ const ContactForm = ({ subjects }) => {
         <div className='flex justify-end'>
           <button
             type='submit'
-            className='bg-yellow-500 text-white text-xl font-medium px-6 py-3 rounded cursor-pointer'
+            className='bg-yellow-500 text-white text-xl font-medium px-6 py-3 rounded'
           >
             Send Message
           </button>

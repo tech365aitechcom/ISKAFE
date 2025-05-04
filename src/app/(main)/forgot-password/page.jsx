@@ -82,7 +82,7 @@ const ForgotPasswordPage = () => {
               </div>
               <button
                 type='submit'
-                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center cursor-pointer'
+                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center'
                 disabled={isLoading}
               >
                 Submit

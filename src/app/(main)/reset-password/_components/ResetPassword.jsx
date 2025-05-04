@@ -108,7 +108,7 @@ const ResetPassword = () => {
                   />
                   <span
                     onClick={() => setShowPassword(!showPassword)}
-                    className='absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-white'
+                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </span>
@@ -125,7 +125,7 @@ const ResetPassword = () => {
                   />
                   <span
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className='absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-white'
+                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
                   >
                     {showConfirmPassword ? (
                       <EyeOff size={20} />
@@ -137,7 +137,7 @@ const ResetPassword = () => {
 
                 <button
                   type='submit'
-                  className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center mt-4 cursor-pointer disabled:cursor-not-allowed disabled:bg-red-400'
+                  className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center mt-4 disabled:cursor-not-allowed disabled:bg-red-400'
                   disabled={isLoading}
                 >
                   {isLoading ? 'Resetting...' : 'Reset'}

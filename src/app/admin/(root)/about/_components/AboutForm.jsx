@@ -270,7 +270,7 @@ export const AboutForm = () => {
                   type='file'
                   accept='image/*'
                   onChange={handleFileChange}
-                  className='absolute inset-0 opacity-0 cursor-pointer z-50'
+                  className='absolute inset-0 opacity-0 z-50'
                 />
                 <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
                   <svg
@@ -378,7 +378,7 @@ export const AboutForm = () => {
             <button
               type='button'
               onClick={() => setShowTeamMemberModal(true)}
-              className='text-white font-medium py-2 px-4 rounded cursor-pointer mb-6 border border-[#7F25FB]'
+              className='text-white font-medium py-2 px-4 rounded mb-6 border border-[#7F25FB]'
             >
               + Add Team Member
             </button>
@@ -455,7 +455,7 @@ export const AboutForm = () => {
                         type='file'
                         accept='image/*'
                         onChange={handleTeamMemberImageChange}
-                        className='absolute inset-0 opacity-0 cursor-pointer z-50'
+                        className='absolute inset-0 opacity-0 z-50'
                       />
                       <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
                         <svg
@@ -579,7 +579,7 @@ export const AboutForm = () => {
             <button
               type='submit'
               onClick={handleSubmit}
-              className='text-white font-medium py-2 px-6 rounded cursor-pointer'
+              className='text-white font-medium py-2 px-6 rounded'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

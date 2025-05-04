@@ -68,7 +68,7 @@ export default function EventDetailsPage() {
           {/* Header with back button */}
           <div className='flex items-center gap-4 '>
             <Link href={`/admin/events`}>
-              <button className='mr-2 cursor-pointer'>
+              <button className='mr-2'>
                 <svg
                   xmlns='http://www.w3.org/2000/svg'
                   className='h-6 w-6'
@@ -91,7 +91,7 @@ export default function EventDetailsPage() {
             {/* Dropdown Button */}
             <button
               onClick={toggleDropdown}
-              className='flex items-center justify-between w-full px-4 py-2 bg-[#0A1330] border border-white rounded-lg cursor-pointer'
+              className='flex items-center justify-between w-full px-4 py-2 bg-[#0A1330] border border-white rounded-lg'
             >
               <span>Features</span>
               <ChevronDown
@@ -104,16 +104,16 @@ export default function EventDetailsPage() {
             {isOpen && (
               <div className='absolute w-full mt-2 bg-[#081028] shadow-lg z-10'>
                 <ul className='py-1'>
-                  <li className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'>
+                  <li className='mx-4 py-3 border-b border-[#6C6C6C]'>
                     Fighter Check-in
                   </li>
-                  <li className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'>
+                  <li className='mx-4 py-3 border-b border-[#6C6C6C]'>
                     Bout List
                   </li>
-                  <li className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'>
+                  <li className='mx-4 py-3 border-b border-[#6C6C6C]'>
                     Spectator Ticket Redemption
                   </li>
-                  <li className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'>
+                  <li className='mx-4 py-3 border-b border-[#6C6C6C]'>
                     Cash Payment Tokens
                   </li>
                   <li className='mx-4 py-3'>Reports</li>
@@ -129,7 +129,7 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Bracket Count</span>
-              <button className='cursor-pointer'>
+              <button className=''>
                 <Pencil size={16} />
               </button>
             </div>
@@ -150,7 +150,7 @@ export default function EventDetailsPage() {
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Bout Count</span>
               <Link href={`/admin/events/${eventId}/tournament-brackets`}>
-                <button className='cursor-pointer'>
+                <button className=''>
                   <Pencil size={16} />
                 </button>
               </Link>
@@ -171,7 +171,7 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Registration Fee</span>
-              <button className='cursor-pointer'>
+              <button className=''>
                 <Pencil size={16} />
               </button>
             </div>
@@ -196,7 +196,7 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Participants</span>
-              <button className='cursor-pointer'>
+              <button className=''>
                 <Pencil size={16} />
               </button>
             </div>
@@ -216,7 +216,7 @@ export default function EventDetailsPage() {
           <div className='flex justify-between items-center mb-6'>
             <h2 className='font-bold text-lg'>EVENT PROPERTIES</h2>
             <button
-              className=' px-3 py-1 rounded-md text-sm flex items-center cursor-pointer'
+              className=' px-3 py-1 rounded-md text-sm flex items-center'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

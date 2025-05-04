@@ -4,8 +4,10 @@ import { ChevronDown } from 'lucide-react'
 import axios from 'axios'
 import { API_BASE_URL } from '../../../constants/index'
 import EventCard from '../_components/EventCard'
+import Loader from '../../_components/Loader'
+import { getEventStatus } from '../../../utils/eventUtils'
 
-const EventsSearch = () => {
+const EventsPage = () => {
   const [eventName, setEventName] = useState('')
   const [country, setCountry] = useState('')
   const [gameType, setGameType] = useState('')
@@ -54,7 +56,7 @@ const EventsSearch = () => {
 
   return (
     <div className='relative w-full bg-purple-900'>
-      <div className='absolute inset-0 bg-transparent opacity-90'></div>
+      <div className='absolute inset-0 bg-transparent opacity-90 pointer-events-none'></div>
       <div className='relative w-full max-w-6xl mx-auto px-4 pt-16 pb-32'>
         <div className='text-center mb-8'>
           <h1 className='text-4xl md:text-5xl font-bold text-white'>
@@ -151,25 +153,32 @@ const EventsSearch = () => {
         </div>
       </div>
       <div className='w-full h-32 bg-black'></div>
-      <div className='bg-black w-full mx-auto px-4 py-16 flex flex-wrap justify-center gap-10 items-center'>
-        {events.map((event) => (
-          <EventCard
-            key={event._id}
-            imageUrl={
-              'https://images.unsplash.com/photo-1714583173985-fa58ef40c8d4?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
-            }
-            id={event._id}
-            imageAlt={event.title}
-            location={event.location}
-            month={getMonth(event.startDate)}
-            day={getDate(event.startDate)}
-            title={event.title}
-            description={event.description}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className='flex justify-center items-center h-64 bg-black'>
+          <Loader />
+        </div>
+      ) : (
+        <div className='bg-black w-full mx-auto px-4 py-16 flex flex-wrap justify-center gap-10 items-center'>
+          {events.map((event) => (
+            <EventCard
+              key={event._id}
+              imageUrl={
+                'https://images.unsplash.com/photo-1714583173985-fa58ef40c8d4?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+              }
+              id={event._id}
+              imageAlt={event.title}
+              location={event.location}
+              month={getMonth(event.startDate)}
+              day={getDate(event.startDate)}
+              title={event.title}
+              description={event.description}
+              status={getEventStatus(event.startDate, event.endDate)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-export default EventsSearch
+export default EventsPage

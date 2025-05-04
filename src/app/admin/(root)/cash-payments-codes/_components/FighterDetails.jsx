@@ -23,7 +23,7 @@ const FighterDetails = ({ fighter, onBack, onUpdate, onRemove }) => {
     <div className='min-h-screen text-white p-6 bg-[#0B1739] m-8 rounded'>
       {/* Header with back button */}
       <div className='flex items-center gap-4 mb-6'>
-        <button className='mr-2 text-white cursor-pointer' onClick={onBack}>
+        <button className='mr-2 text-white' onClick={onBack}>
           <svg
             xmlns='http://www.w3.org/2000/svg'
             className='h-6 w-6'
@@ -55,7 +55,7 @@ const FighterDetails = ({ fighter, onBack, onUpdate, onRemove }) => {
                 onClick={() =>
                   setFighterData((prev) => ({ ...prev, image: null }))
                 }
-                className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20 cursor-pointer'
+                className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
               >
                 <Trash className='w-4 h-4' />
               </button>
@@ -70,7 +70,7 @@ const FighterDetails = ({ fighter, onBack, onUpdate, onRemove }) => {
                 type='file'
                 accept='image/*'
                 onChange={handleFileChange}
-                className='absolute inset-0 opacity-0 cursor-pointer z-50'
+                className='absolute inset-0 opacity-0 z-50'
               />
 
               <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>

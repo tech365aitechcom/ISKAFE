@@ -20,7 +20,7 @@ export function ExportButton() {
   return (
     <>
       {isShowButton() && (
-        <button className='text-white px-8 py-2 rounded-md bg-[#0A1330] cursor-pointer flex items-center gap-2'>
+        <button className='text-white px-8 py-2 rounded-md bg-[#0A1330] flex items-center gap-2'>
           Export data
           <svg
             xmlns='http://www.w3.org/2000/svg'

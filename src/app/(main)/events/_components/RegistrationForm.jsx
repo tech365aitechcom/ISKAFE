@@ -1,9 +1,10 @@
 'use client'
-import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
-import useUserStore from '../../../../../stores/userStore'
+import { API_BASE_URL, apiConstants } from '../../../../constants/index'
+import useUserStore from '../../../../stores/userStore'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import React, { useState } from 'react'
+import { X } from 'lucide-react' // Import X icon from lucide-react
 
 export default function RegistrationForm({
   setIsRegistrationModelOpen,
@@ -74,6 +75,16 @@ export default function RegistrationForm({
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-gray-800/30'>
       <div className='bg-[#1b0c2e] p-6 rounded-lg max-w-3xl w-full relative'>
+        {/* Close icon in the top right */}
+        <button
+          onClick={() => setIsRegistrationModelOpen(false)}
+          className='absolute top-4 right-4 text-gray-400 hover:text-white transition-colors'
+          type='button'
+          aria-label='Close'
+        >
+          <X size={24} />
+        </button>
+
         <h2 className='text-2xl font-bold mb-4 text-white'>
           Fill the Registration Form
         </h2>
@@ -201,15 +212,15 @@ export default function RegistrationForm({
           <div className='flex justify-between mt-6'>
             <button
               type='button'
-              className='text-yellow-400 underline cursor-pointer '
+              className='text-yellow-400 underline '
               onClick={() => setIsRegistrationModelOpen(false)}
             >
-              Back to Details
+              Back
             </button>
             <button
               type='submit'
               disabled={!formData.termsAgreed}
-              className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+              className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed'
             >
               Proceed to Payment
             </button>

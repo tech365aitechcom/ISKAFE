@@ -15,6 +15,8 @@ import {
   Newspaper,
   Info,
   SquareUser,
+  Shield,
+  Trophy,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -75,6 +77,13 @@ export function Sidebar() {
           highlight={true}
         />
         <NavItem
+          href='/admin/tournaments'
+          icon={<Trophy size={18} />}
+          title='Tournaments'
+          isActive={pathname === '/admin/tournaments'}
+          highlight={true}
+        />
+        <NavItem
           href='/admin/spectator-ticket-redemption'
           icon={<User size={18} />}
           title='Spectator Ticket Redemption'
@@ -111,24 +120,24 @@ export function Sidebar() {
           title='Venues'
           isActive={pathname === '/venues'}
         />
-        <NavItem
+        {/* <NavItem
           href='/admin/promoters'
           icon={<PartyPopper size={18} />}
           title='Promoters'
           isActive={pathname === '/admin/promoters'}
-        />
+        /> */}
         <NavItem
           href='/admin/news'
           icon={<Newspaper size={18} />}
           title='News'
           isActive={pathname === '/admin/news'}
         />
-        <NavItem
+        {/* <NavItem
           href='/admin/people'
           icon={<Users size={18} />}
           title='People'
           isActive={pathname === '/admin/people'}
-        />
+        /> */}
         <NavItem
           href='/admin/about'
           icon={<Info size={18} />}

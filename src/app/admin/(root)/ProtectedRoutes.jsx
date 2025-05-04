@@ -6,22 +6,27 @@ import { Sidebar } from './_components/Sidebar'
 import Header from './_components/Header'
 import useUserStore from '../../../stores/userStore'
 import Loader from '../../_components/Loader'
+import { roles } from '../../../constants/index'
 
 const ProtectedRoutes = ({ children }) => {
   const router = useRouter()
   const { user, _hasHydrated } = useUserStore()
 
   useEffect(() => {
-    if (_hasHydrated && (!user || user.role !== 'ADMIN')) {
+    if (_hasHydrated && (!user || user.role !== roles.admin)) {
       router.push('/admin/login')
     }
   }, [_hasHydrated, user, router])
 
   if (!_hasHydrated) {
-    return <Loader />
+    return (
+      <div className='flex items-center justify-center h-screen w-full bg-[#07091D]'>
+        <Loader />
+      </div>
+    )
   }
 
-  if (!user || user.role !== 'ADMIN') {
+  if (!user || user.role !== roles.admin) {
     return null
   }
 

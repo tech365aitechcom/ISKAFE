@@ -23,7 +23,7 @@ export default function MyProfile() {
           <div className='flex space-x-8'>
             {type !== 'View Profile' && (
               <button
-                className='text-white flex items-center gap-2 cursor-pointer'
+                className='text-white flex items-center gap-2'
                 onClick={() => setType('View Profile')}
               >
                 <ShieldUser />
@@ -32,7 +32,7 @@ export default function MyProfile() {
             )}
             {type !== 'Edit Profile' && (
               <button
-                className='text-white flex items-center gap-2 cursor-pointer'
+                className='text-white flex items-center gap-2'
                 onClick={() => setType('Edit Profile')}
               >
                 <UserPen />
@@ -41,7 +41,7 @@ export default function MyProfile() {
             )}
             {type !== 'Change Password' && (
               <button
-                className='text-white flex items-center gap-2 cursor-pointer'
+                className='text-white flex items-center gap-2'
                 onClick={() => setType('Change Password')}
               >
                 <KeySquare />
@@ -49,7 +49,7 @@ export default function MyProfile() {
               </button>
             )}
             <button
-              className='text-white flex items-center gap-2 cursor-pointer'
+              className='text-white flex items-center gap-2'
               onClick={() => {
                 useUserStore.getState().clearUser()
               }}

@@ -107,7 +107,7 @@ export function VenuesTable({ venues }) {
           {/* Dropdown Button */}
           <button
             onClick={toggleDropdownCity}
-            className='flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg cursor-pointer'
+            className='flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'
           >
             <span>City</span>
             <ChevronDown
@@ -157,7 +157,7 @@ export function VenuesTable({ venues }) {
           {/* Dropdown Button */}
           <button
             onClick={toggleDropdownStatus}
-            className='flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg cursor-pointer'
+            className='flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'
           >
             <span>Status</span>
             <ChevronDown

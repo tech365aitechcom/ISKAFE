@@ -395,7 +395,7 @@ export const ContactSettingsForm = () => {
           <div className='flex justify-center mt-8 mb-6'>
             <button
               type='submit'
-              className='text-white font-medium py-2 px-6 rounded cursor-pointer'
+              className='text-white font-medium py-2 px-6 rounded'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

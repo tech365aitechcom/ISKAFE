@@ -18,7 +18,7 @@ const Navbar = () => {
 
   const mainMenuItems = [
     { name: 'Home', path: '/' },
-    { name: 'Events', path: '/all-events' },
+    { name: 'Events', path: '/events' },
     { name: 'Fighters', path: '/fighters' },
     { name: 'Rankings', path: '/ranking' },
   ]
@@ -98,7 +98,7 @@ const Navbar = () => {
           <button
             className={`${
               isMoreMenuActive ? 'text-yellow-500' : 'text-white'
-            } font-bold uppercase text-2xl tracking-wide flex items-center cursor-pointer`}
+            } font-bold uppercase text-2xl tracking-wide flex items-center`}
             onClick={() => setDropdownOpen(!dropdownOpen)}
           >
             More <span className='ml-1'>▾</span>
@@ -114,7 +114,7 @@ const Navbar = () => {
                         setDropdownOpen(false)
                         window.location.href = '/'
                       }}
-                      className={`block w-full text-left py-2 text-white uppercase font-semibold cursor-pointer mx-2 ${
+                      className={`block w-full text-left py-2 text-white uppercase font-semibold mx-2 ${
                         index !== array.length - 1
                           ? 'border-b border-[#6C6C6C]'
                           : ''
