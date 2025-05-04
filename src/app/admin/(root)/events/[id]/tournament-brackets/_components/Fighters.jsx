@@ -9,7 +9,7 @@ export default function Fighters({ expandedBracket }) {
           You can change sequence of fighters by drag & drop.
         </h2>
         <button
-          className='text-white px-4 py-2 rounded-md cursor-pointer flex gap-2 items-center'
+          className='text-white px-4 py-2 rounded-md flex gap-2 items-center'
           style={{
             background:
               'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

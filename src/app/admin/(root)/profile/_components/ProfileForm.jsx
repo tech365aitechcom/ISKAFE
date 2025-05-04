@@ -68,7 +68,7 @@ export const ProfileForm = ({ isEditable }) => {
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, profilePic: null }))
                     }
-                    className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20 cursor-pointer'
+                    className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
                   >
                     <Trash className='w-4 h-4' />
                   </button>
@@ -414,7 +414,7 @@ export const ProfileForm = ({ isEditable }) => {
             <div className='flex justify-center gap-4 mt-12'>
               <button
                 type='submit'
-                className='text-white font-medium py-2 px-6 rounded transition duration-200 cursor-pointer'
+                className='text-white font-medium py-2 px-6 rounded transition duration-200'
                 style={{
                   background:
                     'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

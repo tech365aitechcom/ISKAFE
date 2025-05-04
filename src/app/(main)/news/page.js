@@ -230,7 +230,7 @@ const NewsPage = () => {
                     {moment.utc(item.updatedAt).toISOString()}
                   </h3>
                   <Link href={`/news/${item._id}`}>
-                    <button className='bg-[#0A1330] text-white px-4 py-2 rounded transition duration-200 cursor-pointer'>
+                    <button className='bg-[#0A1330] text-white px-4 py-2 rounded transition duration-200'>
                       Read More
                     </button>
                   </Link>
@@ -245,7 +245,7 @@ const NewsPage = () => {
           {currentPage > 1 && (
             <button
               onClick={() => setCurrentPage((prev) => prev - 1)}
-              className='px-4 py-2 rounded text-white bg-[#0A1330] cursor-pointer'
+              className='px-4 py-2 rounded text-white bg-[#0A1330]'
             >
               <ArrowLeft />
             </button>
@@ -254,7 +254,7 @@ const NewsPage = () => {
             <button
               key={i}
               onClick={() => setCurrentPage(i + 1)}
-              className={`px-4 py-2 rounded text-white cursor-pointer ${
+              className={`px-4 py-2 rounded text-white ${
                 currentPage === i + 1 ? 'bg-[#2E133A]' : 'bg-[#0A1330]'
               }`}
             >
@@ -264,7 +264,7 @@ const NewsPage = () => {
           {currentPage < totalPages && (
             <button
               onClick={() => setCurrentPage((prev) => prev + 1)}
-              className='px-4 py-2 rounded text-white bg-[#0A1330] cursor-pointer'
+              className='px-4 py-2 rounded text-white bg-[#0A1330]'
             >
               <ArrowRight />
             </button>

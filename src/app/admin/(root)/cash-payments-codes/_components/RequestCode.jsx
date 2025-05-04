@@ -14,7 +14,7 @@ export default function RequestCode({ onBack }) {
     <div className='text-white'>
       {/* Header with back button */}
       <div className='flex items-center gap-4 mb-6'>
-        <button className='mr-2 text-white cursor-pointer' onClick={onBack}>
+        <button className='mr-2 text-white' onClick={onBack}>
           <svg
             xmlns='http://www.w3.org/2000/svg'
             className='h-6 w-6'
@@ -37,7 +37,7 @@ export default function RequestCode({ onBack }) {
       <div className='flex border border-[#343B4F] p-1 rounded-md w-fit mb-6'>
         <button
           onClick={() => handleToggle('fighter')}
-          className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
             activeButton === 'fighter' ? 'bg-[#2E3094] shadow-md' : ''
           }`}
         >
@@ -46,7 +46,7 @@ export default function RequestCode({ onBack }) {
 
         <button
           onClick={() => handleToggle('trainer')}
-          className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors cursor-pointer ${
+          className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
             activeButton === 'trainer' ? 'bg-[#2E3094] shadow-md' : ''
           }`}
         >
@@ -98,7 +98,7 @@ export default function RequestCode({ onBack }) {
         <div className='pt-4 flex justify-center'>
           <button
             type='submit'
-            className=' text-white font-medium px-6 py-2 rounded-md transition-colors cursor-pointer'
+            className=' text-white font-medium px-6 py-2 rounded-md transition-colors'
             style={{
               background:
                 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

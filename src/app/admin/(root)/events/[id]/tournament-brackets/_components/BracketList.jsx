@@ -38,7 +38,7 @@ export default function BracketList({ brackets }) {
           </div>
           <div className='px-8 py-5'>
             <button
-              className='text-lg flex items-center cursor-pointer'
+              className='text-lg flex items-center'
               onClick={() => {
                 setExpandedBracket(bracket)
                 setActiveTab('props')
@@ -60,7 +60,7 @@ export default function BracketList({ brackets }) {
                     <button
                       key={tab}
                       onClick={() => handleToggle(tab)}
-                      className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors cursor-pointer ${
+                      className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
                         activeTab === tab ? 'bg-[#2E3094] shadow-md' : ''
                       }`}
                     >

@@ -38,8 +38,7 @@ const LoginPage = () => {
       const res = await axios.post(`${API_BASE_URL}/auth/login`, formData)
       console.log('Login response:', res.data)
       if (res.status === 200) {
-        setUser(res.data.user)
-        localStorage.setItem('token', res.data.token)
+        setUser({ ...res.data.user, token: res.data.token })
         enqueueSnackbar(res.data.message, { variant: 'success' })
         if (res.data.user.role === roles.admin) {
           router.push('/admin/dashboard')
@@ -104,7 +103,7 @@ const LoginPage = () => {
                 />
                 <span
                   onClick={() => setShowPassword(!showPassword)}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-white'
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </span>
@@ -132,7 +131,7 @@ const LoginPage = () => {
               </div>
               <button
                 type='submit'
-                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center cursor-pointer'
+                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center'
                 disabled={isLoading}
               >
                 {isLoading ? 'Logging in...' : 'Login'}

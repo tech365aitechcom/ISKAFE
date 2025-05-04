@@ -1,11 +1,16 @@
 'use client'
+import axios from 'axios'
 import React, { useState } from 'react'
+import useUserStore from '../../../../../stores/userStore'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import { enqueueSnackbar } from 'notistack'
 
 export default function ChangePassword() {
+  const user = useUserStore((state) => state.user)
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: '',
+    confirmNewPassword: '',
   })
 
   const handleChange = (e) => {
@@ -15,10 +20,44 @@ export default function ChangePassword() {
       [name]: value,
     }))
   }
+  console.log('Form data:', formData)
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Handle form submission logic here
+  const handleSubmit = async (e) => {
+    try {
+      e.preventDefault()
+
+      console.log('Form submitted:', formData)
+
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/change-password`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+
+      console.log('Response:', response)
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar(response.data.message, {
+          variant: 'success',
+        })
+        setFormData({
+          currentPassword: '',
+          newPassword: '',
+          confirmNewPassword: '',
+        })
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        {
+          variant: 'error',
+        }
+      )
+      console.log('Error:', error)
+    }
   }
 
   return (
@@ -33,7 +72,7 @@ export default function ChangePassword() {
             </label>
             <input
               type='text'
-              name='name'
+              name='currentPassword'
               value={formData.currentPassword}
               onChange={handleChange}
               className='w-full outline-none'
@@ -61,8 +100,8 @@ export default function ChangePassword() {
             </label>
             <input
               type='text'
-              name='confirmPassword'
-              value={formData.confirmPassword}
+              name='confirmNewPassword'
+              value={formData.confirmNewPassword}
               onChange={handleChange}
               className='w-full outline-none'
               required
@@ -73,7 +112,7 @@ export default function ChangePassword() {
           <div className='flex justify-center gap-4 mt-12'>
             <button
               type='submit'
-              className='text-white font-medium py-2 px-6 rounded transition duration-200 cursor-pointer'
+              className='text-white font-medium py-2 px-6 rounded transition duration-200'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

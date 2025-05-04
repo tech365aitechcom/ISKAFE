@@ -30,7 +30,7 @@ export const AddVenuesForm = ({ setShowAddVenues }) => {
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
           <button
-            className='mr-2 text-white cursor-pointer'
+            className='mr-2 text-white'
             onClick={() => setShowAddVenues(false)}
           >
             <svg

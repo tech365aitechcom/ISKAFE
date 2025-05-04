@@ -76,7 +76,7 @@ const NewsDetailsPage = ({ params }) => {
 
       <div className='text-white w-full'>
         <Link href={'/news'} className='flex items-center mb-4'>
-          <ChevronLeft size={24} className='cursor-pointer' />
+          <ChevronLeft size={24} />
           Back
         </Link>
         <h1 className='text-2xl md:text-5xl font-bold uppercase'>

@@ -39,8 +39,7 @@ const LoginPage = () => {
 
         if (res.data.user.role === roles.admin) {
           enqueueSnackbar(res.data.message, { variant: 'success' })
-          localStorage.setItem('token', res.data.token)
-          setUser(res.data.user)
+          setUser({ ...res.data.user, token: res.data.token })
           router.push('/admin/dashboard')
         } else {
           enqueueSnackbar(
@@ -62,7 +61,8 @@ const LoginPage = () => {
   }
 
   useEffect(() => {
-    if (user && user.role == 'ADMIN') {
+    if (user && user.role == roles.admin) {
+      console.log('User is already logged in:', user.role)
       router.push('/admin/dashboard')
     }
   }, [user, router])
@@ -125,7 +125,7 @@ const LoginPage = () => {
               </div> */}
               <button
                 type='submit'
-                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center cursor-pointer'
+                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center'
                 disabled={isLoading}
               >
                 {isLoading ? 'Logging in...' : 'Login'}

@@ -201,13 +201,13 @@ export default function FighterAndRankingTable({ rankings }) {
                         </button>
                         <span className='text-sm font-medium'>Reject</span>{' '}
                       </div>
-                      <button className='text-purple-600 cursor-pointer'>
+                      <button className='text-purple-600'>
                         <Eye size={20} />
                       </button>
-                      <button className='text-blue-600 cursor-pointer'>
+                      <button className='text-blue-600'>
                         <SquarePen size={20} />
                       </button>
-                      <button className='text-white cursor-pointer'>
+                      <button className='text-white'>
                         <NotebookPen size={20} />
                       </button>
                     </td>

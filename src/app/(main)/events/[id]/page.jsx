@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../../../constants/index'
 import axios from 'axios'
 import moment from 'moment'
 import FightPredictionCard from './_components/FightPredictionCard'
-import RegistrationForm from './_components/RegistrationForm'
+import RegistrationForm from '../_components/RegistrationForm'
 
 const page = ({ params }) => {
   const { id } = use(params)
@@ -69,7 +69,7 @@ const page = ({ params }) => {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`
-              px-4 py-2 text-lg font-medium tracking-wider cursor-pointer uppercase
+              px-4 py-2 text-lg font-medium tracking-wider uppercase
               border-b-2 transition-all duration-300 ease-in-out
               ${
                 activeTab === tab
@@ -115,7 +115,7 @@ const page = ({ params }) => {
                 <div className='mt-6'>
                   <button
                     onClick={() => setIsRegistrationModelOpen(true)}
-                    className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-2 rounded-sm text-xl font-semibold cursor-pointer'
+                    className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-2 rounded-sm text-xl font-semibold'
                   >
                     Register To Compete
                   </button>

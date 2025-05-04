@@ -40,7 +40,11 @@ const AboutPage = () => {
   }, [])
 
   if (loading) {
-    return <Loader />
+    return (
+      <div className='flex items-center justify-center h-screen'>
+        <Loader />
+      </div>
+    )
   }
 
   return (
@@ -109,7 +113,7 @@ const AboutPage = () => {
             ))}
           </div>
           <Link href={about?.contactLink || ''}>
-            <button className='border border-white rounded-lg px-4 py-2 mt-8 cursor-pointer'>
+            <button className='border border-white rounded-lg px-4 py-2 mt-8'>
               Contact Us
             </button>
           </Link>

@@ -10,3 +10,7 @@ body {
   font-family: 'Saira Condensed', sans-serif;
   font-style: normal;
 }
+
+button {
+  cursor: pointer;
+}

@@ -47,7 +47,7 @@ export const AddPromoterForm = () => {
       <div className='w-full'>
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
-          <button className='text-white cursor-pointer'>
+          <button className='text-white'>
             <svg
               xmlns='http://www.w3.org/2000/svg'
               className='h-6 w-6'
@@ -81,7 +81,7 @@ export const AddPromoterForm = () => {
                   onClick={() =>
                     setFormData((prev) => ({ ...prev, profilePic: null }))
                   }
-                  className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20 cursor-pointer'
+                  className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
                 >
                   <Trash className='w-4 h-4' />
                 </button>

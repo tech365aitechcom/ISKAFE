@@ -107,7 +107,7 @@ export const AddNewsForm = () => {
     <div className='min-h-screen text-white bg-dark-blue-900'>
       <div className='w-full'>
         <div className='flex items-center gap-4 mb-6'>
-          <button className='mr-2 text-white cursor-pointer'>
+          <button className='mr-2 text-white'>
             <svg
               xmlns='http://www.w3.org/2000/svg'
               className='h-6 w-6'
@@ -282,7 +282,7 @@ export const AddNewsForm = () => {
             <button
               type='submit'
               onClick={(e) => handleSubmit(e, true)}
-              className='text-white font-medium py-2 px-6 rounded cursor-pointer'
+              className='text-white font-medium py-2 px-6 rounded'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
@@ -293,7 +293,7 @@ export const AddNewsForm = () => {
             <button
               type='button'
               onClick={(e) => handleSubmit(e, false)}
-              className='text-white font-medium py-2 px-6 border border-[#7F25FB] rounded cursor-pointer'
+              className='text-white font-medium py-2 px-6 border border-[#7F25FB] rounded'
             >
               Save Draft
             </button>

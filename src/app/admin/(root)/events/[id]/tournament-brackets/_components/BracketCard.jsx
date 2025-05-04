@@ -21,7 +21,7 @@ export default function BracketCard({ fighter1, fighter2, roundNumber }) {
           <div
             className={`w-10 h-5 ${
               isToggled ? 'bg-[#2E3094]' : 'bg-transparent border border-white'
-            } rounded-full relative cursor-pointer`}
+            } rounded-full relative`}
             onClick={handleToggle}
           >
             <div
@@ -32,7 +32,7 @@ export default function BracketCard({ fighter1, fighter2, roundNumber }) {
           </div>
         </div>
         <button
-          className='mt-2 px-4 py-1 text-white rounded-md text-sm cursor-pointer disabled:cursor-not-allowed disabled:bg-[#3F3F3F]'
+          className='mt-2 px-4 py-1 text-white rounded-md text-sm disabled:cursor-not-allowed disabled:bg-[#3F3F3F]'
           style={
             isToggled
               ? {

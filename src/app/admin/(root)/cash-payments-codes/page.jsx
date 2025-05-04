@@ -64,7 +64,7 @@ export default function CashPaymentAndCodesPage() {
                 Cash Payments & Codes
               </h2>
               <button
-                className='text-white px-4 py-2 rounded-md cursor-pointer'
+                className='text-white px-4 py-2 rounded-md'
                 style={{
                   background:
                     'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
@@ -77,7 +77,7 @@ export default function CashPaymentAndCodesPage() {
             <div className='flex bg-blue-950 p-1 rounded-md w-fit'>
               <button
                 onClick={() => handleToggle('select')}
-                className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors cursor-pointer ${
+                className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
                   activeButton === 'select' ? 'bg-[#2E3094] shadow-md' : ''
                 }`}
               >
@@ -86,7 +86,7 @@ export default function CashPaymentAndCodesPage() {
 
               <button
                 onClick={() => handleToggle('specify')}
-                className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors cursor-pointer ${
+                className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
                   activeButton === 'specify' ? 'bg-[#2E3094] shadow-md' : ''
                 }`}
               >

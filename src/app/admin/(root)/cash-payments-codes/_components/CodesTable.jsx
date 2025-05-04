@@ -42,10 +42,7 @@ export function CodesTable({ users, handleFighterClick }) {
   }
 
   const renderHeader = (label, key) => (
-    <th
-      className='px-4 pb-3 whitespace-nowrap cursor-pointer'
-      onClick={() => handleSort(key)}
-    >
+    <th className='px-4 pb-3 whitespace-nowrap' onClick={() => handleSort(key)}>
       <div className='flex items-center gap-1'>
         {label}
         <ChevronsUpDown className='w-4 h-4 text-gray-400' />
@@ -91,7 +88,7 @@ export function CodesTable({ users, handleFighterClick }) {
                 <td className='p-4'>{user.notes}</td>
                 <td className='p-4'>
                   <button
-                    className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out cursor-pointer ${
+                    className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out ${
                       user.redeemed ? 'bg-violet-500' : 'bg-gray-300'
                     }`}
                     disabled
@@ -105,7 +102,7 @@ export function CodesTable({ users, handleFighterClick }) {
                 </td>
                 <td className='p-4 flex space-x-4 items-center'>
                   <button
-                    className='bg-violet-500 block cursor-pointer p-2 rounded text-sm transition-colors duration-200 min-w-min disabled:opacity-50'
+                    className='bg-violet-500 block p-2 rounded text-sm transition-colors duration-200 min-w-min disabled:opacity-50'
                     disabled={user.redeemed}
                   >
                     Redeemed Code
