@@ -1,10 +1,13 @@
 'use client'
 import React, { useState } from 'react'
+import { API_BASE_URL, apiConstants } from '../../../../constants'
+import axios from 'axios'
+import { enqueueSnackbar } from 'notistack'
 
-const ContactForm = () => {
+const ContactForm = ({ subjects }) => {
   const [focusedField, setFocusedField] = useState(null)
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
     subject: '',
@@ -27,10 +30,34 @@ const ContactForm = () => {
     setFocusedField(null)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Add validation or API submission logic here
-    console.log('Form submitted:', formData)
+  const handleSubmit = async (e) => {
+    try {
+      e.preventDefault()
+
+      console.log('Form submitted:', formData)
+      const response = await axios.post(`${API_BASE_URL}/contact`, formData)
+
+      console.log('Response:', response)
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message, {
+          variant: 'success',
+        })
+        setFormData({
+          fullName: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        })
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        {
+          variant: 'error',
+        }
+      )
+    }
   }
 
   return (
@@ -45,11 +72,11 @@ const ContactForm = () => {
           )}
           <input
             type='text'
-            name='name'
+            name='fullName'
             placeholder='Enter your full name*'
-            value={formData.name}
+            value={formData.fullName}
             onChange={handleChange}
-            onFocus={() => handleFocus('name')}
+            onFocus={() => handleFocus('fullName')}
             onBlur={handleBlur}
             required
             className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 bg-transparent text-white'
@@ -115,18 +142,15 @@ const ContactForm = () => {
             <option value='' disabled className='text-purple-950'>
               Select a subject*
             </option>
-            <option value='General Inquiry' className='text-purple-950'>
-              General Inquiry
-            </option>
-            <option value='Support' className='text-purple-950'>
-              Support
-            </option>
-            <option value='Feedback' className='text-purple-950'>
-              Feedback
-            </option>
-            <option value='Business Inquiry' className='text-purple-950'>
-              Business Inquiry
-            </option>
+            {subjects?.map((subject, index) => (
+              <option
+                key={index}
+                value={subject?.name}
+                className='text-purple-950'
+              >
+                {subject.name}
+              </option>
+            ))}
           </select>
         </div>
 

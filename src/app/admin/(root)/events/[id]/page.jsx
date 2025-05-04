@@ -67,7 +67,7 @@ export default function EventDetailsPage() {
         <div className='flex justify-between mb-6'>
           {/* Header with back button */}
           <div className='flex items-center gap-4 '>
-            <Link href={`/events`}>
+            <Link href={`/admin/events`}>
               <button className='mr-2 cursor-pointer'>
                 <svg
                   xmlns='http://www.w3.org/2000/svg'
@@ -149,7 +149,7 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Bout Count</span>
-              <Link href={`/events/${eventId}/tournament-brackets`}>
+              <Link href={`/admin/events/${eventId}/tournament-brackets`}>
                 <button className='cursor-pointer'>
                   <Pencil size={16} />
                 </button>

@@ -13,6 +13,8 @@ import {
   Dumbbell,
   PartyPopper,
   Newspaper,
+  Info,
+  SquareUser,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -60,76 +62,89 @@ export function Sidebar() {
       {/* Navigation Items */}
       <nav className='flex-1 mt-2'>
         <NavItem
-          href='/dashboard'
+          href='/admin/dashboard'
           icon={<Home size={18} />}
           title='Dashboard'
-          isActive={pathname === '/dashboard'}
+          isActive={pathname === '/admin/dashboard'}
         />
         <NavItem
-          href='/events'
+          href='/admin/events'
           icon={<Star size={18} />}
           title='Events'
-          isActive={pathname === '/events'}
+          isActive={pathname === '/admin/events'}
           highlight={true}
         />
         <NavItem
-          href='/spectator-ticket-redemption'
+          href='/admin/spectator-ticket-redemption'
           icon={<User size={18} />}
           title='Spectator Ticket Redemption'
-          isActive={pathname === '/spectator-ticket-redemption'}
+          isActive={pathname === '/admin/spectator-ticket-redemption'}
         />
         <NavItem
-          href='/fighter-trainer-checkin'
+          href='/admin/fighter-trainer-checkin'
           icon={<Dumbbell size={18} />}
           title='Fighter & Trainer Checkin'
-          isActive={pathname === '/fighter-trainer-checkin'}
+          isActive={pathname === '/admin/fighter-trainer-checkin'}
         />
         <NavItem
-          href='/fighter-and-rankings'
+          href='/admin/fighter-and-rankings'
           icon={<Dumbbell size={18} />}
           title='Fighter & Rankings'
-          isActive={pathname === '/fighter-and-rankings'}
+          isActive={pathname === '/admin/fighter-and-rankings'}
         />
         <NavItem
-          href='/event-bout-list'
+          href='/admin/event-bout-list'
           icon={<List size={18} />}
           title='Event Bout List'
-          isActive={pathname === '/event-bout-list'}
+          isActive={pathname === '/admin/event-bout-list'}
         />
         <NavItem
-          href='/cash-payments-codes'
+          href='/admin/cash-payments-codes'
           icon={<DollarSign size={18} />}
           title='Cash Payments & Codes'
-          isActive={pathname === '/cash-payments-codes'}
+          isActive={pathname === '/admin/cash-payments-codes'}
         />
+
         <NavItem
-          href='/venues'
+          href='/admin/venues'
           icon={<MapPin size={18} />}
           title='Venues'
           isActive={pathname === '/venues'}
         />
         <NavItem
-          href='/promoters'
+          href='/admin/promoters'
           icon={<PartyPopper size={18} />}
           title='Promoters'
-          isActive={pathname === '/promoters'}
+          isActive={pathname === '/admin/promoters'}
         />
         <NavItem
-          href='/admin-news'
+          href='/admin/news'
           icon={<Newspaper size={18} />}
           title='News'
-          isActive={pathname === '/admin-news'}
+          isActive={pathname === '/admin/news'}
         />
         <NavItem
-          href='/people'
+          href='/admin/people'
           icon={<Users size={18} />}
           title='People'
-          isActive={pathname === '/people'}
+          isActive={pathname === '/admin/people'}
+        />
+        <NavItem
+          href='/admin/about'
+          icon={<Info size={18} />}
+          title='About'
+          isActive={pathname === '/admin/about'}
+        />
+        <NavItem
+          href='/admin/contact-settings'
+          icon={<SquareUser size={18} />}
+          title='Contact Settings'
+          isActive={pathname === '/admin/contact-settings'}
         />
         {/* User Profile Section */}
         <Link
-          href={`/profile`}
-          className={`${pathname === '/profile' && 'text-[#FFCA28]'}`}
+          href={`/admin/profile`}
+          className={`${pathname === '/admin/profile' && 'text-[#FFCA28]'}`}
         >
           <div className='flex items-center p-4'>
             <div className='flex items-center'>
@@ -145,7 +160,9 @@ export function Sidebar() {
                 <p className='text-sm font-medium'>{user?.fullName}</p>
                 <p
                   className={`text-sm ${
-                    pathname === '/profile' ? 'text-[#FFCA28]' : 'text-gray-400'
+                    pathname === '/admin/profile'
+                      ? 'text-[#FFCA28]'
+                      : 'text-gray-400'
                   }`}
                 >
                   Account settings

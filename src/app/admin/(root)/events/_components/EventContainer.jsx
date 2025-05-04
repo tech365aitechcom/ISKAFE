@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { EventTable } from './EventTable'
 import { AddEventForm } from './AddEventForm'
 import axios from 'axios'
-import Loader from '../../_components/Loader'
+import Loader from '../../../../_components/Loader'
 import { API_BASE_URL } from '../../../../../constants'
 
 export const EventContainer = () => {

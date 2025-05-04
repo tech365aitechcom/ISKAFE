@@ -289,7 +289,9 @@ export function EventTable({ events, onSuccess }) {
                     }`}
                   >
                     <td className='p-4'>
-                      <Link href={`/events/${event._id}`}>{event.title}</Link>
+                      <Link href={`/admin/events/${event._id}`}>
+                        {event.title}
+                      </Link>
                     </td>
                     <td className='p-4'>
                       {moment(event.startDate).format('YYYY/MM/DD')}
