@@ -120,12 +120,12 @@ export function Sidebar() {
           title='Venues'
           isActive={pathname === '/venues'}
         />
-        {/* <NavItem
+        <NavItem
           href='/admin/promoters'
           icon={<PartyPopper size={18} />}
           title='Promoters'
           isActive={pathname === '/admin/promoters'}
-        /> */}
+        />
         <NavItem
           href='/admin/news'
           icon={<Newspaper size={18} />}

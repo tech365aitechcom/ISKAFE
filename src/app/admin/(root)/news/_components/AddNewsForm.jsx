@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react'
 import useUserStore from '../../../../../stores/userStore'
 import { enqueueSnackbar } from 'notistack'
 
-export const AddNewsForm = () => {
+export const AddNewsForm = ({ setShowAddNewsForm }) => {
   const user = useUserStore((state) => state.user)
   const [formData, setFormData] = useState({
     title: '',
@@ -107,7 +107,10 @@ export const AddNewsForm = () => {
     <div className='min-h-screen text-white bg-dark-blue-900'>
       <div className='w-full'>
         <div className='flex items-center gap-4 mb-6'>
-          <button className='mr-2 text-white'>
+          <button
+            className='mr-2 text-white'
+            onClick={() => setShowAddNewsForm(false)}
+          >
             <svg
               xmlns='http://www.w3.org/2000/svg'
               className='h-6 w-6'
