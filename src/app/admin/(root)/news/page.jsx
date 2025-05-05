@@ -1,5 +1,5 @@
 import React from 'react'
-import { AddNewsForm } from './_components/AddNewsForm'
+import { NewsContainer } from './_components/NewsContainer'
 
 export default function AdminNewsPage() {
   return (
@@ -11,9 +11,7 @@ export default function AdminNewsPage() {
             'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
         }}
       ></div>
-      <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
-        <AddNewsForm />
-      </div>
+      <NewsContainer />
     </div>
   )
 }

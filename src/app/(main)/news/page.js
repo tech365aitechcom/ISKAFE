@@ -1,10 +1,11 @@
 'use client'
 import axios from 'axios'
-import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../../../constants'
 import Loader from '../../_components/Loader'
+import Pagination from '../../_components/Pagination'
 import moment from 'moment'
 
 const news = [
@@ -241,35 +242,11 @@ const NewsPage = () => {
         )}
 
         {/* Pagination Controls */}
-        <div className='flex justify-center mt-8 space-x-2'>
-          {currentPage > 1 && (
-            <button
-              onClick={() => setCurrentPage((prev) => prev - 1)}
-              className='px-4 py-2 rounded text-white bg-[#0A1330]'
-            >
-              <ArrowLeft />
-            </button>
-          )}
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`px-4 py-2 rounded text-white ${
-                currentPage === i + 1 ? 'bg-[#2E133A]' : 'bg-[#0A1330]'
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-          {currentPage < totalPages && (
-            <button
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-              className='px-4 py-2 rounded text-white bg-[#0A1330]'
-            >
-              <ArrowRight />
-            </button>
-          )}
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </section>
     </main>
   )
