@@ -173,6 +173,7 @@ export const AddTournamentForm = ({ setShowAddTournament }) => {
               Participants<span className='text-red-500'>*</span>
             </label>
             <CustomMultiSelect
+              label='Select Participants'
               options={userList}
               onChange={(selectedIds) =>
                 setFormData({ ...formData, participants: selectedIds })

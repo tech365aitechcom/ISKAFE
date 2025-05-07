@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import useUserStore from '../../../stores/userStore'
+import Image from 'next/image'
 
 const Navbar = () => {
   const user = useUserStore((state) => state.user)
@@ -74,11 +75,16 @@ const Navbar = () => {
   return (
     <nav className='flex items-center justify-between px-2 container mx-auto h-fit w-full py-4 relative'>
       {/* Logo */}
-      <div>
-        <a href='/' className='flex items-center'>
-          <img src='/logo.png' alt='Logo' className='h-[111px] w-[132px]' />
-        </a>
-      </div>
+      <Link href='/' className='flex'>
+        <div className='relative w-30 h-30'>
+          <Image
+            src='/logo1.png'
+            alt='Global Sports Federation Logo'
+            layout='fill'
+            className='rounded-full'
+          />
+        </div>
+      </Link>
 
       {/* Desktop Navigation */}
       <ul className='hidden lg:flex items-center space-x-6'>

@@ -1,12 +1,13 @@
 'use client'
 
 import axios from 'axios'
-import { Search, SquarePen, Trash } from 'lucide-react'
+import { ChevronDown, Eye, Search, SquarePen, Trash } from 'lucide-react'
 import moment from 'moment'
 import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
 import Image from 'next/image'
 
@@ -21,19 +22,34 @@ export function NewsTable({
   onSuccess,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [isDelete, setIsDelete] = useState(false)
   const [selectedNews, setSelectedNews] = useState(null)
+  const [categories, setCategories] = useState([])
 
   const filteredNews = news?.filter((news) => {
     const matchesSearch = news?.title
       ?.toLowerCase()
       .includes(searchQuery?.toLowerCase())
-    const matchesType = selectedType ? news.city === selectedType : true
-    const matchesStatus = selectedStatus ? news.status === selectedStatus : true
-    return matchesSearch && matchesType && matchesStatus
+    const matchesCategory = selectedCategory
+      ? news.category?._id === selectedCategory
+      : true
+    return matchesSearch && matchesCategory
   })
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/news-category`)
+      console.log('Response:', response.data)
+      setCategories(response.data.data)
+    } catch (error) {
+      console.log('Error fetching events:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
 
   const handleDeleteNews = async (id) => {
     console.log('Deleting news with ID:', id)
@@ -42,7 +58,7 @@ export function NewsTable({
       console.log(res, 'Response from delete news')
 
       if (res.status == apiConstants.success) {
-        enqueueSnackbar('Event deleted successfully', {
+        enqueueSnackbar(res.data.message, {
           variant: 'success',
         })
         setIsDelete(false)
@@ -54,6 +70,11 @@ export function NewsTable({
       })
       console.log('Failed to delete news:', error)
     }
+  }
+
+  const handleResetFilter = () => {
+    setSearchQuery('')
+    setSelectedCategory('')
   }
 
   const renderHeader = (label, key) => (
@@ -76,116 +97,76 @@ export function NewsTable({
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      {/* <div className='flex space-x-4'>
-        <div className='relative w-64 mb-4'>
-          <div className='w-64 mb-4'>
-            <label
-              htmlFor='pro-classification'
-              className='block mb-2 text-sm font-medium text-white'
+      {/* Category Filter */}
+      <div className='flex items-end space-x-4 mb-6'>
+        <div className='w-64'>
+          <label
+            htmlFor='pro-classification'
+            className='block mb-2 text-sm font-medium text-white'
+          >
+            Select Category
+          </label>
+          <div className='relative'>
+            <select
+              name='category'
+              id='pro-classification'
+              value={selectedCategory}
+              onChange={(e) =>
+                setSelectedCategory(
+                  e.target.value === '' ? null : e.target.value
+                )
+              }
+              className='w-full px-4 py-2 pr-10 bg-transparent border border-gray-700 rounded-lg text-white appearance-none outline-none cursor-pointer'
             >
-              Select Status
-            </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-              <select
-                id='pro-classification'
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-              >
-                <option value='All' className='text-black'>
-                  All
+              <option value='' className='text-black'>
+                Select category
+              </option>
+              {categories.map((category) => (
+                <option
+                  key={category._id}
+                  value={category._id}
+                  className='text-black'
+                >
+                  {category.name}
                 </option>
-                <option value='Upcoming' className='text-black'>
-                  Upcoming
-                </option>
-                <option value='Closed' className='text-black'>
-                  Closed
-                </option>
-              </select>
-              <ChevronDown
-                size={16}
-                className='absolute right-4 pointer-news-none'
-              />
-            </div>
-          </div>
-        </div>
-        <div className='relative w-64 mb-4'>
-          <div className='w-64 mb-4'>
-            <label
-              htmlFor='pro-classification'
-              className='block mb-2 text-sm font-medium text-white'
-            >
-              Select <span>Type</span>
-            </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-              <select
-                id='pro-classification'
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-              >
-                <option value='All' className='text-black'>
-                  All
-                </option>
-                <option value='Kickboxing' className='text-black'>
-                  Kickboxing
-                </option>
-                <option value='MMA' className='text-black'>
-                  MMA
-                </option>
-                <option value='Grappling' className='text-black'>
-                  Grappling
-                </option>
-              </select>
-              <ChevronDown
-                size={16}
-                className='absolute right-4 pointer-news-none'
-              />
-            </div>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className='absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-white'
+            />
           </div>
         </div>
 
-        {(selectedType || selectedStatus) && (
+        {(searchQuery || selectedCategory) && (
           <button
-            className='border border-gray-700 rounded-lg px-4 py-2 mb-4'
+            className='self-end border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
             onClick={handleResetFilter}
           >
             Reset Filter
           </button>
         )}
-      </div> */}
+      </div>
+
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
-        <div className='mb-4 pb-4 p-4 flex justify-between items-center border-b border-[#343B4F]'>
-          <div className='flex items-center space-x-2'>
-            <label htmlFor='limit' className='text-sm'>
-              Next
-            </label>
-            <select
-              id='limit'
-              value={limit}
-              onChange={(e) => setLimit(Number(e.target.value))}
-              className='text-sm py-1 outline-none'
-            >
-              {[10, 20, 30, 50].map((val) => (
-                <option key={val} value={val} className='bg-[#0A1330]'>
-                  {val} News
-                </option>
-              ))}
-            </select>
-          </div>
-          <p className='text-sm'>
-            {(currentPage - 1) * limit + 1} -{' '}
-            {Math.min(currentPage * limit, totalItems)} of {totalItems}
-          </p>
-        </div>
+        <PaginationHeader
+          limit={limit}
+          setLimit={setLimit}
+          currentPage={currentPage}
+          totalItems={totalItems}
+          label='news'
+        />
         <div className='overflow-x-auto'>
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
-                {renderHeader('ID', 'id')}
-                {renderHeader('Image', 'image')}
+                {renderHeader('News ID', 'id')}
+                {renderHeader('Cover Image', 'image')}
                 {renderHeader('Title', 'title')}
-                {renderHeader('Published Date', 'date')}
+                {renderHeader('Category', 'category')}
+                {renderHeader('Publish Date', 'publishDate')}
+                {renderHeader('Last Updated At', 'lastUpdated')}
+                {renderHeader('Status', 'status')}
                 {renderHeader('Actions', 'actions')}
               </tr>
             </thead>
@@ -193,19 +174,18 @@ export function NewsTable({
               {filteredNews.map((news, index) => {
                 return (
                   <tr
-                    key={index}
+                    key={news._id}
                     className={`cursor-pointer ${
                       index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                     }`}
                   >
-                    <td className='p-4'>
-                      {index + 1 + (currentPage - 1) * limit}
-                    </td>
+                    <td className='p-4'>{news._id}</td>
                     <td className='p-4'>
                       <div className='relative w-full h-[120px]'>
                         <Image
                           src={
-                            news?.imageUrl && process.env.NEXT_PUBLIC_BASE_URL
+                            news?.imageUrl !== null &&
+                            process.env.NEXT_PUBLIC_BASE_URL
                               ? new URL(
                                   news.imageUrl,
                                   process.env.NEXT_PUBLIC_BASE_URL
@@ -220,25 +200,38 @@ export function NewsTable({
                       </div>
                     </td>
                     <td className='p-4'>{news.title}</td>
+                    <td className='p-4'>{news.category?.name}</td>
                     <td className='p-4'>
                       {moment(news.publishDate).format('YYYY/MM/DD')}
                     </td>
+                    <td className='p-4'>
+                      {moment(news.updatedAt).format('YYYY/MM/DD')}
+                    </td>
+                    <td className='p-4'>
+                      {news.isPublished ? 'Published' : 'Draft'}
+                    </td>
                     <td className='p-4 '>
                       <div className='flex space-x-4 items-center'>
-                        {/* View/Edit */}
-                        {/* <Link href={`/admin/news/${news._id}`}> */}
-                        <button className='text-blue-500 hover:underline block'>
-                          <SquarePen size={20} />
-                        </button>
-                        {/* </Link> */}
+                        {/* View */}
+                        <Link href={`/admin/news/view/${news._id}`}>
+                          <button className='text-gray-400 hover:text-gray-200 transition'>
+                            <Eye size={20} />
+                          </button>
+                        </Link>
 
+                        {/* Edit */}
+                        <Link href={`/admin/news/edit/${news._id}`}>
+                          <button className='text-blue-500 hover:underline'>
+                            <SquarePen size={20} />
+                          </button>
+                        </Link>
                         {/* Delete */}
                         <button
                           onClick={() => {
                             setIsDelete(true)
                             setSelectedNews(news._id)
                           }}
-                          className='text-red-600'
+                          className='text-red-600 hover:text-red-400 transition'
                         >
                           <Trash size={20} />
                         </button>
