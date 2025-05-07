@@ -1,27 +1,30 @@
 'use client'
+import React, { use, useEffect, useState } from 'react'
 import axios from 'axios'
-import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
+import Loader from '../../../../../_components/Loader'
+import { API_BASE_URL, apiConstants } from '../../../../../../constants'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Trash } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
 import { enqueueSnackbar } from 'notistack'
-import Loader from '../../../../_components/Loader'
 
-export const AddNewsForm = ({ setShowAddNewsForm }) => {
-  const user = useUserStore((state) => state.user)
-  const [formData, setFormData] = useState({
+export default function EditNewsPage({ params }) {
+  const { id } = use(params)
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [newsDetails, setNewsDetails] = useState({
     title: '',
+    publishDate: '',
     category: '',
     content: '',
-    image: null,
     videoLink: '',
-    publishDate: '',
     isPublished: false,
+    imageUrl: '',
   })
   const [imagePreview, setImagePreview] = useState(null)
 
-  const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const fetchCategories = async () => {
     try {
@@ -39,106 +42,117 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
     fetchCategories()
   }, [])
 
+  const fetchNewsDetails = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/news/${id}`)
+      const data = response.data.data
+      setNewsDetails({
+        title: data.title || '',
+        publishDate: data.publishDate?.split('T')[0] || '',
+        category: data.category?._id || '',
+        content: data.content || '',
+        videoLink: data.videoUrl || '',
+        isPublished: data.isPublished || false,
+        imageUrl: data.imageUrl || '',
+      })
+      setImagePreview(
+        new URL(data.imageUrl, process.env.NEXT_PUBLIC_BASE_URL).toString() ||
+          null
+      )
+    } catch (err) {
+      console.error('Error fetching news:', err)
+      setError('Failed to load news data.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchNewsDetails()
+  }, [id])
+
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setNewsDetails((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (file) {
       setImagePreview(URL.createObjectURL(file))
-      setFormData((prev) => ({ ...prev, image: file }))
+      setNewsDetails((prev) => ({ ...prev, image: file }))
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setSubmitting(true)
+    setError('')
+
     try {
       const formPayload = new FormData()
-      formPayload.append('title', formData.title)
-      formPayload.append('category', formData.category)
-      formPayload.append('content', formData.content)
-      formPayload.append('videoUrl', formData.videoLink)
-      formPayload.append('publishDate', formData.publishDate)
-      formPayload.append('createdBy', user?.id)
-      formPayload.append('isPublished', formData.isPublished)
+      formPayload.append('title', newsDetails.title)
+      formPayload.append('category', newsDetails.category)
+      formPayload.append('content', newsDetails.content)
+      formPayload.append('videoUrl', newsDetails.videoLink)
+      formPayload.append('publishDate', newsDetails.publishDate)
+      formPayload.append('isPublished', newsDetails.isPublished)
 
-      if (formData.image) {
-        formPayload.append('image', formData.image)
+      if (newsDetails.image) {
+        formPayload.append('image', newsDetails.image)
       }
 
-      const response = await axios.post(`${API_BASE_URL}/news`, formPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-
-      if (response.status === apiConstants.create) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        setFormData({
-          title: '',
-          category: '',
-          content: '',
-          image: null,
-          videoLink: '',
-          publishDate: '',
-        })
-        setImagePreview(null)
+      const res = await axios.put(`${API_BASE_URL}/news/${id}`, formPayload)
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+        fetchNewsDetails()
       }
-    } catch (error) {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
-        {
-          variant: 'error',
-        }
-      )
+    } catch (err) {
+      console.error('Error updating news:', err)
+      setError('Failed to update news.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const handleCancel = () => {
-    setFormData({
-      title: '',
-      category: '',
-      content: '',
-      image: null,
-      videoLink: '',
-      publishDate: '',
-      isPublished: 'Draft',
-    })
-    setShowAddNewsForm(false)
-  }
-
-  if (loading) {
-    return <Loader />
-  }
+  if (loading) return <Loader />
 
   return (
-    <div className='min-h-screen text-white bg-dark-blue-900'>
-      <div className='w-full'>
-        <div className='flex items-center gap-4 mb-6'>
-          <button
-            className='mr-2 text-white'
-            onClick={() => setShowAddNewsForm(false)}
-          >
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              className='h-6 w-6'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M10 19l-7-7m0 0l7-7m-7 7h18'
-              />
-            </svg>
-          </button>
-          <h1 className='text-2xl font-bold'>News Post Editor</h1>
-        </div>
-
+    <div className='text-white p-8 flex justify-center relative overflow-hidden'>
+      <div
+        className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
+        style={{
+          background:
+            'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
+        }}
+      ></div>
+      <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <form onSubmit={handleSubmit}>
-          {/* Image Upload */}
+          <div className='flex items-center gap-4 mb-6'>
+            <Link href='/admin/news'>
+              <button type='button' className='mr-2 text-white'>
+                <svg
+                  xmlns='http://www.w3.org/2000/svg'
+                  className='h-6 w-6'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M10 19l-7-7m0 0l7-7m-7 7h18'
+                  />
+                </svg>
+              </button>
+            </Link>
+            <h1 className='text-2xl font-bold'>Edit News Post</h1>
+          </div>
+
+          {error && <p className='text-red-500 mb-4'>{error}</p>}
+
+          {/* Image Display */}
           <div className='mb-8'>
             {imagePreview ? (
               <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
@@ -151,7 +165,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                   type='button'
                   onClick={() => {
                     setImagePreview(null)
-                    setFormData((prev) => ({ ...prev, image: null }))
+                    setNewsDetails((prev) => ({ ...prev, imageUrl: null }))
                   }}
                   className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
                 >
@@ -196,48 +210,38 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
             )}
           </div>
 
-          <h2 className='font-bold mb-4 uppercase text-sm'>Post Details</h2>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-            {/* Title */}
             <div className='col-span-2 bg-[#00000061] p-2 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Title<span className='text-red-500'>*</span>
-              </label>
+              <label className='block text-sm font-medium mb-1'>Title</label>
               <input
                 type='text'
                 name='title'
-                value={formData.title}
+                value={newsDetails.title}
                 onChange={handleChange}
-                className='w-full outline-none'
-                placeholder='News title here'
-                required
+                className='w-full bg-transparent text-white outline-none'
               />
             </div>
-
-            {/* Date */}
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Publish Date<span className='text-red-500'>*</span>
+                Publish Date
               </label>
               <input
                 type='date'
                 name='publishDate'
-                value={formData.publishDate}
+                value={newsDetails.publishDate}
                 onChange={handleChange}
-                className='w-full outline-none'
-                required
+                className='w-full bg-transparent text-white outline-none'
               />
             </div>
           </div>
 
-          {/* Category Dropdown */}
           <div className='mb-6 bg-[#00000061] p-2 rounded'>
             <label className='block text-sm font-medium mb-1'>
               Category<span className='text-red-500'>*</span>
             </label>
             <select
               name='category'
-              value={formData.category}
+              value={newsDetails.category}
               onChange={handleChange}
               className='w-full outline-none'
               required
@@ -257,23 +261,17 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
             </select>
           </div>
 
-          {/* Main Content */}
           <div className='mb-6 bg-[#00000061] p-2 rounded'>
-            <label className='block text-sm font-medium mb-1'>
-              Content<span className='text-red-500'>*</span>
-            </label>
+            <label className='block text-sm font-medium mb-1'>Content</label>
             <textarea
               name='content'
-              value={formData.content}
+              value={newsDetails.content}
               onChange={handleChange}
               rows='6'
-              className='w-full outline-none resize-none'
-              placeholder='Type your news content here...'
-              required
+              className='w-full bg-transparent text-white outline-none resize-none'
             />
           </div>
 
-          {/* Video Embed Link */}
           <div className='mb-6 bg-[#00000061] p-2 rounded'>
             <label className='block text-sm font-medium mb-1'>
               Video Embed Link
@@ -281,53 +279,43 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
             <input
               type='text'
               name='videoLink'
-              value={formData.videoLink}
+              value={newsDetails.videoLink}
               onChange={handleChange}
-              className='w-full outline-none'
-              placeholder='https://youtube.com/embed/...'
+              className='w-full bg-transparent text-white outline-none'
             />
           </div>
 
-          <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block text-sm font-medium mb-1'>
-              Status<span className='text-red-500'>*</span>
-            </label>
+          <div className='bg-[#00000061] p-2 rounded mb-6'>
+            <label className='block text-sm font-medium mb-1'>Status</label>
             <select
               name='isPublished'
-              value={formData.isPublished}
+              value={newsDetails.isPublished}
               onChange={(e) =>
-                setFormData({ ...formData, isPublished: e.target.value })
+                setFormData({ ...newsDetails, isPublished: e.target.value })
               }
-              className='w-full bg-transparent outline-none'
-              required
+              className='w-full bg-transparent text-white outline-none'
             >
-              <option value='' className='text-black'>
-                Select Status
-              </option>
-              <option value={false} className='text-black'>
-                Draft
-              </option>
-              <option value={true} className='text-black'>
-                Published
-              </option>
-              {/* Add more countries as needed */}
+              <option value={true}>Published</option>
+              <option value={false}>Draft</option>
             </select>
           </div>
-          {/* Action Buttons */}
+
           <div className='flex justify-center gap-4 mt-6'>
             <button
               type='submit'
               className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              disabled={submitting}
             >
               Save
             </button>
-            <button
-              type='button'
-              onClick={handleCancel}
-              className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
-            >
-              Cancel
-            </button>{' '}
+            <Link href='/admin/news'>
+              <button
+                type='button'
+                className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              >
+                Cancel
+              </button>
+            </Link>{' '}
           </div>
         </form>
       </div>

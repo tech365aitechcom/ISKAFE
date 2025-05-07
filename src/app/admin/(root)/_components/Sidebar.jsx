@@ -118,7 +118,7 @@ export function Sidebar() {
           href='/admin/venues'
           icon={<MapPin size={18} />}
           title='Venues'
-          isActive={pathname === '/venues'}
+          isActive={pathname === '/admin/venues'}
         />
         <NavItem
           href='/admin/promoters'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export const CustomMultiSelect = ({ options, onChange }) => {
+export const CustomMultiSelect = ({ label, options, onChange }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [selected, setSelected] = useState([])
 
@@ -15,18 +15,18 @@ export const CustomMultiSelect = ({ options, onChange }) => {
       updated = [...selected, option]
     }
     setSelected(updated)
-    onChange(updated.map((u) => u._id)) // send selected IDs back
+    onChange(updated.map((u) => u._id))
   }
 
   return (
     <div className='relative w-full'>
       <div
-        className='border p-2 bg-white text-black rounded cursor-pointer'
+        className='text-white rounded cursor-pointer'
         onClick={toggleDropdown}
       >
         {selected.length > 0
           ? selected.map((u) => u.fullName).join(', ')
-          : 'Select participants'}
+          : label}
       </div>
 
       {isOpen && (

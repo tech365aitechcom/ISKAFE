@@ -14,3 +14,34 @@ body {
 button {
   cursor: pointer;
 }
+
+/* markdown-dark.css */
+.md-editor {
+  background-color: #1e1e1e !important;
+  color: #e4e4e7;
+  border-color: #333;
+}
+
+.md-editor .section {
+  background-color: #1e1e1e;
+  color: #e4e4e7;
+}
+
+.md-editor .editor-container {
+  background-color: #1e1e1e;
+}
+
+.md-editor .cm-s-default,
+.md-editor .cm-editor {
+  background-color: #1e1e1e !important;
+  color: #e4e4e7 !important;
+}
+
+.md-editor .toolbar {
+  background-color: #2a2a2a;
+  border-color: #333;
+}
+
+.md-editor .toolbar button {
+  color: #e4e4e7;
+}
