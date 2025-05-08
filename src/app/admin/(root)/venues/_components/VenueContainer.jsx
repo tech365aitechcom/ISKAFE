@@ -1,16 +1,76 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AddVenuesForm } from './AddVenuesForm'
-import { VenuesList } from './VenuesList'
+import { VenuesTable } from './VenuesTable'
+import axios from 'axios'
+import { API_BASE_URL } from '../../../../../constants'
+import Loader from '../../../../_components/Loader'
 
 export const VenueContainer = () => {
-  const [showAddVenuesForm, setShowAddVenues] = useState(false)
+  const [showAddVenueForm, setShowAddVenueForm] = useState(false)
+  const [venues, setVenues] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(1)
+  const [limit, setLimit] = useState(10)
+
+  const getVenues = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/venues?page=${currentPage}&limit=${limit}`
+      )
+      console.log('Response:', response.data)
+
+      setVenues(response.data.data.items)
+      setTotalPages(response.data.data.pagination.totalPages)
+      setTotalItems(response.data.data.pagination.totalItems)
+    } catch (error) {
+      console.log('Error fetching venues:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    getVenues()
+  }, [showAddVenueForm, limit, currentPage])
+
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
-      {showAddVenuesForm ? (
-        <AddVenuesForm setShowAddVenues={setShowAddVenues} />
+      {showAddVenueForm ? (
+        <AddVenuesForm setShowAddVenueForm={setShowAddVenueForm} />
       ) : (
-        <VenuesList setShowAddVenues={setShowAddVenues} />
+        <>
+          <div className='flex justify-between items-center mb-6'>
+            <h2 className='text-2xl font-semibold leading-8'>Promoters</h2>
+            <button
+              className='text-white px-4 py-2 rounded-md'
+              style={{
+                background:
+                  'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
+              }}
+              onClick={() => setShowAddPromoterForm(true)}
+            >
+              Create New
+            </button>
+          </div>
+
+          {loading ? (
+            <Loader />
+          ) : (
+            <VenuesTable
+              venues={venues}
+              limit={limit}
+              setLimit={setLimit}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              onSuccess={getVenues}
+            />
+          )}
+        </>
       )}
     </div>
   )

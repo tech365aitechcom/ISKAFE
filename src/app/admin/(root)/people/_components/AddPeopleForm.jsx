@@ -2,7 +2,7 @@
 import { Trash } from 'lucide-react'
 import React, { useState } from 'react'
 
-export const AddPeopleForm = () => {
+export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     middleName: '',
@@ -55,7 +55,10 @@ export const AddPeopleForm = () => {
       <div className='w-full'>
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
-          <button className='mr-2 text-white'>
+          <button
+            onClick={() => setShowAddPeopleForm(false)}
+            className='mr-2 text-white'
+          >
             <svg
               xmlns='http://www.w3.org/2000/svg'
               className='h-6 w-6'
@@ -446,12 +449,6 @@ export const AddPeopleForm = () => {
 
           {/* Action Buttons */}
           <div className='flex justify-center gap-4'>
-            <button
-              type='button'
-              className='bg-[#F35050] text-white font-medium py-2 px-6 rounded transition duration-200'
-            >
-              Remove
-            </button>
             <button
               type='submit'
               className='text-white font-medium py-2 px-6 rounded transition duration-200'
