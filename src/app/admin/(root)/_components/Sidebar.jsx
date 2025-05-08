@@ -11,23 +11,78 @@ import {
   ChevronRight,
   Star,
   Dumbbell,
-  PartyPopper,
   Newspaper,
   Info,
   SquareUser,
-  Shield,
   Trophy,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import useUserStore from '../../../../stores/userStore'
+import { useState } from 'react'
 
 export function Sidebar() {
   const pathname = usePathname()
   const user = useUserStore((state) => state.user)
+  const [search, setSearch] = useState('')
+
+  const navItems = [
+    { href: '/admin/dashboard', icon: <Home size={18} />, title: 'Dashboard' },
+    {
+      href: '/admin/events',
+      icon: <Star size={18} />,
+      title: 'Events',
+      highlight: true,
+    },
+    {
+      href: '/admin/tournaments',
+      icon: <Trophy size={18} />,
+      title: 'Tournaments',
+      highlight: true,
+    },
+    {
+      href: '/admin/spectator-ticket-redemption',
+      icon: <User size={18} />,
+      title: 'Spectator Ticket Redemption',
+    },
+    {
+      href: '/admin/fighter-trainer-checkin',
+      icon: <Dumbbell size={18} />,
+      title: 'Fighter & Trainer Checkin',
+    },
+    {
+      href: '/admin/fighter-and-rankings',
+      icon: <Dumbbell size={18} />,
+      title: 'Fighter & Rankings',
+    },
+    {
+      href: '/admin/event-bout-list',
+      icon: <List size={18} />,
+      title: 'Event Bout List',
+    },
+    {
+      href: '/admin/cash-payments-codes',
+      icon: <DollarSign size={18} />,
+      title: 'Cash Payments & Codes',
+    },
+    { href: '/admin/venues', icon: <MapPin size={18} />, title: 'Venues' },
+    { href: '/admin/news', icon: <Newspaper size={18} />, title: 'News' },
+    {
+      href: '/admin/promoters',
+      icon: <User size={18} />,
+      title: 'Promoters',
+    },
+    { href: '/admin/people', icon: <Users size={18} />, title: 'People' },
+    {
+      href: '/admin/contact-settings',
+      icon: <SquareUser size={18} />,
+      title: 'Contact Settings',
+    },
+    { href: '/admin/about', icon: <Info size={18} />, title: 'About' },
+  ]
 
   return (
-    <div className='flex flex-col w-72 h-full bg-[#081028] text-white font-lato'>
+    <div className='flex flex-col w-72 h-auto bg-[#081028] text-white font-lato overflow-y-auto scrollbar-hide'>
       {/* Font Import in Head */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap');
@@ -56,6 +111,8 @@ export function Sidebar() {
           <input
             type='text'
             placeholder='Search for...'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className='w-full bg-gray-800 text-sm text-white rounded-md py-2 pl-10 pr-4 focus:outline-none focus:ring-1 focus:ring-blue-500 font-lato'
           />
         </div>
@@ -63,93 +120,21 @@ export function Sidebar() {
 
       {/* Navigation Items */}
       <nav className='flex-1 mt-2'>
-        <NavItem
-          href='/admin/dashboard'
-          icon={<Home size={18} />}
-          title='Dashboard'
-          isActive={pathname === '/admin/dashboard'}
-        />
-        <NavItem
-          href='/admin/events'
-          icon={<Star size={18} />}
-          title='Events'
-          isActive={pathname === '/admin/events'}
-          highlight={true}
-        />
-        <NavItem
-          href='/admin/tournaments'
-          icon={<Trophy size={18} />}
-          title='Tournaments'
-          isActive={pathname === '/admin/tournaments'}
-          highlight={true}
-        />
-        <NavItem
-          href='/admin/spectator-ticket-redemption'
-          icon={<User size={18} />}
-          title='Spectator Ticket Redemption'
-          isActive={pathname === '/admin/spectator-ticket-redemption'}
-        />
-        <NavItem
-          href='/admin/fighter-trainer-checkin'
-          icon={<Dumbbell size={18} />}
-          title='Fighter & Trainer Checkin'
-          isActive={pathname === '/admin/fighter-trainer-checkin'}
-        />
-        <NavItem
-          href='/admin/fighter-and-rankings'
-          icon={<Dumbbell size={18} />}
-          title='Fighter & Rankings'
-          isActive={pathname === '/admin/fighter-and-rankings'}
-        />
-        <NavItem
-          href='/admin/event-bout-list'
-          icon={<List size={18} />}
-          title='Event Bout List'
-          isActive={pathname === '/admin/event-bout-list'}
-        />
-        <NavItem
-          href='/admin/cash-payments-codes'
-          icon={<DollarSign size={18} />}
-          title='Cash Payments & Codes'
-          isActive={pathname === '/admin/cash-payments-codes'}
-        />
+        {navItems
+          .filter((item) =>
+            item.title.toLowerCase().includes(search.toLowerCase())
+          )
+          .map((item) => (
+            <NavItem
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              title={item.title}
+              isActive={pathname === item.href}
+              highlight={item.highlight}
+            />
+          ))}
 
-        <NavItem
-          href='/admin/venues'
-          icon={<MapPin size={18} />}
-          title='Venues'
-          isActive={pathname === '/admin/venues'}
-        />
-        <NavItem
-          href='/admin/promoters'
-          icon={<PartyPopper size={18} />}
-          title='Promoters'
-          isActive={pathname === '/admin/promoters'}
-        />
-        <NavItem
-          href='/admin/news'
-          icon={<Newspaper size={18} />}
-          title='News'
-          isActive={pathname === '/admin/news'}
-        />
-        {/* <NavItem
-          href='/admin/people'
-          icon={<Users size={18} />}
-          title='People'
-          isActive={pathname === '/admin/people'}
-        /> */}
-        <NavItem
-          href='/admin/about'
-          icon={<Info size={18} />}
-          title='About'
-          isActive={pathname === '/admin/about'}
-        />
-        <NavItem
-          href='/admin/contact-settings'
-          icon={<SquareUser size={18} />}
-          title='Contact Settings'
-          isActive={pathname === '/admin/contact-settings'}
-        />
         {/* User Profile Section */}
         <Link
           href={`/admin/profile`}

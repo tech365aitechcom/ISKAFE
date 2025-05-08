@@ -1,19 +1,25 @@
 'use client'
 
-import { ChevronDown, ChevronsUpDown, Search, Trash } from 'lucide-react'
+import { ChevronsUpDown, Search, Trash } from 'lucide-react'
 import { useState } from 'react'
+import PaginationHeader from '../../../../_components/PaginationHeader'
+import Pagination from '../../../../_components/Pagination'
 
-export function VenuesTable({ venues }) {
+export function VenuesTable({
+  venues,
+  limit,
+  setLimit,
+  currentPage,
+  setCurrentPage,
+  totalPages,
+  totalItems,
+  onSuccess,
+}) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isOpenCity, setIsOpenCity] = useState(false)
   const [isOpenStatus, setIsOpenStatus] = useState(false)
   const [selectedCity, setSelectedCity] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
-
-  const [sortConfig, setSortConfig] = useState({
-    key: null,
-    direction: 'asc',
-  })
 
   const toggleDropdownCity = () => {
     setIsOpenCity(!isOpenCity)
@@ -33,35 +39,6 @@ export function VenuesTable({ venues }) {
       : true
     return matchesSearch && matchesCity && matchesStatus
   })
-
-  const sortedVenues = [...filteredVenues].sort((a, b) => {
-    if (!sortConfig.key) return 0
-    const aValue = a[sortConfig.key]
-    const bValue = b[sortConfig.key]
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortConfig.direction === 'asc'
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue)
-    } else {
-      return sortConfig.direction === 'asc'
-        ? aValue > bValue
-          ? 1
-          : -1
-        : aValue < bValue
-        ? 1
-        : -1
-    }
-  })
-
-  const handleSort = (key) => {
-    setSortConfig((prev) => {
-      if (prev.key === key) {
-        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
-      } else {
-        return { key, direction: 'asc' }
-      }
-    })
-  }
 
   const handleDelete = (id) => {
     console.log('Deleting venue with ID:', id)
@@ -102,123 +79,70 @@ export function VenuesTable({ venues }) {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      <div className='flex space-x-4'>
-        <div className='relative w-64 mb-4'>
-          {/* Dropdown Button */}
-          <button
-            onClick={toggleDropdownCity}
-            className='flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'
-          >
-            <span>City</span>
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${
-                isOpenCity ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          {/* Dropdown Menu */}
-          {isOpenCity && (
-            <div className='absolute w-full mt-2 bg-[#081028] shadow-lg z-10'>
-              <ul className='py-1'>
-                <li
-                  className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'
-                  onClick={() => {
-                    setSelectedCity('')
-                    setIsOpenCity(false)
-                  }}
-                >
-                  All
-                </li>{' '}
-                <li
-                  className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'
-                  onClick={() => {
-                    setSelectedCity('Charlotte')
-                    setIsOpenCity(false)
-                  }}
-                >
-                  Charlotte
-                </li>
-                <li
-                  className='mx-4 py-3 cursor-pointer'
-                  onClick={() => {
-                    setSelectedCity('Newport Beach')
-                    setIsOpenCity(false)
-                  }}
-                >
-                  Newport Beach
-                </li>
-              </ul>
-            </div>
-          )}
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
+        <div className='relative'>
+          <label className='block mb-2 text-sm font-medium text-white'>
+            City
+          </label>
+          <div className='relative'>
+            <select
+              className='w-full px-4 py-2 bg-transparent border border-gray-700 rounded-lg text-white appearance-none outline-none'
+              value={selectedCity || ''}
+              onChange={(e) => setSelectedCity(e.target.value || null)}
+            >
+              <option value='' className='text-black'>
+                All
+              </option>
+              <option value='Charlotte' className='text-black'>
+                Charlotte
+              </option>
+              <option value='Newport Beach' className='text-black'>
+                Newport Beach
+              </option>
+            </select>
+          </div>
         </div>
-        <div className='relative w-64 mb-4'>
-          {/* Dropdown Button */}
-          <button
-            onClick={toggleDropdownStatus}
-            className='flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'
-          >
-            <span>Status</span>
-            <ChevronDown
-              size={16}
-              className={`transition-transform ${
-                isOpenStatus ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          {/* Dropdown Menu */}
-          {isOpenStatus && (
-            <div className='absolute w-full mt-2 bg-[#081028] shadow-lg z-10'>
-              <ul className='py-1'>
-                <li
-                  className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'
-                  onClick={() => {
-                    setSelectedStatus('')
-                    setIsOpenStatus(false)
-                  }}
-                >
-                  All
-                </li>{' '}
-                <li
-                  className='mx-4 py-3 border-b border-[#6C6C6C] cursor-pointer'
-                  onClick={() => {
-                    setSelectedStatus('Active')
-                    setIsOpenStatus(false)
-                  }}
-                >
-                  Active
-                </li>
-                <li
-                  className='mx-4 py-3 cursor-pointer'
-                  onClick={() => {
-                    setSelectedStatus('Upcoming')
-                    setIsOpenStatus(false)
-                  }}
-                >
-                  Upcoming
-                </li>
-              </ul>
-            </div>
-          )}
+        <div className='relative'>
+          <label className='block mb-2 text-sm font-medium text-white'>
+            Status
+          </label>
+          <div className='relative'>
+            <select
+              className='w-full px-4 py-2 bg-transparent border border-gray-700 rounded-lg text-white appearance-none outline-none'
+              value={selectedStatus || ''}
+              onChange={(e) => setSelectedStatus(e.target.value || null)}
+            >
+              <option value='' className='text-black'>
+                All
+              </option>
+              <option value='Active' className='text-black'>
+                Active
+              </option>
+              <option value='Upcoming' className='text-black'>
+                Upcoming
+              </option>
+            </select>
+          </div>
         </div>
-        {(selectedCity || selectedStatus) && (
+      </div>
+      {(selectedCity || selectedStatus) && (
+        <div className='flex justify-end mb-6'>
           <button
-            className='border border-gray-700 rounded-lg px-4 py-2 mb-4'
+            className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
             onClick={handleResetFilter}
           >
-            Reset Filter
+            Reset Filters
           </button>
-        )}
-      </div>
-      <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
-        <div className='mb-4 pb-4 p-4 flex justify-between items-center border-b border-[#343B4F]'>
-          <p className='text-sm'>Next 10 Venues</p>
-          <p className='text-sm'>
-            1 - {sortedVenues.length} of {filteredVenues.length}
-          </p>
         </div>
+      )}
+      <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
+        <PaginationHeader
+          limit={limit}
+          setLimit={setLimit}
+          currentPage={currentPage}
+          totalItems={totalItems}
+          label='venues'
+        />
         <div className='overflow-x-auto'>
           <table className='w-full text-sm text-left'>
             <thead>
@@ -240,63 +164,76 @@ export function VenuesTable({ venues }) {
               </tr>
             </thead>
             <tbody>
-              {sortedVenues.map((venue, index) => (
-                <tr
-                  key={index}
-                  className={`text-center ${
-                    index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
-                  }`}
-                >
-                  <td className='p-4'>{venue.name}</td>
-                  <td className='p-4'>{venue.address}</td>
-                  <td className='p-4'>{venue.city}</td>
-                  <td className='p-4'>{venue.state}</td>
-                  <td className='p-4'>{venue.country}</td>
-                  <td className='p-4'>{venue.postalCode}</td>
-                  <td className='p-4'>{venue.person}</td>
-                  <td className='p-4'>{venue.email}</td>
-                  <td className='p-4'>{venue.contact}</td>
-                  <td className='p-4'>{venue.capacity}</td>
-                  <td className='p-4'>{venue.status}</td>
-                  <td className='p-4'>
-                    {venue.images?.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={img}
-                        alt='Venue'
-                        className='h-10 w-10 object-cover rounded mr-2 inline-block'
-                      />
-                    ))}
-                  </td>
-                  <td className='p-4'>
-                    <a
-                      href={venue.mapLocation}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='text-blue-500 underline'
-                    >
-                      View Map
-                    </a>
-                  </td>
-                  <td className='p-4 py-8 flex items-center space-x-2'>
-                    <button
-                      onClick={() => handleUpdate(venue)}
-                      className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
-                    >
-                      Save/Update
-                    </button>
-                    <button
-                      onClick={() => handleDelete(venue)}
-                      className='text-red-600'
-                    >
-                      <Trash size={20} />
-                    </button>
+              {filteredVenues && filteredVenues.length > 0 ? (
+                filteredVenues.map((venue, index) => (
+                  <tr
+                    key={index}
+                    className={`text-center ${
+                      index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
+                    }`}
+                  >
+                    <td className='p-4'>{venue.name}</td>
+                    <td className='p-4'>{venue.address}</td>
+                    <td className='p-4'>{venue.city}</td>
+                    <td className='p-4'>{venue.state}</td>
+                    <td className='p-4'>{venue.country}</td>
+                    <td className='p-4'>{venue.postalCode}</td>
+                    <td className='p-4'>{venue.person}</td>
+                    <td className='p-4'>{venue.email}</td>
+                    <td className='p-4'>{venue.contact}</td>
+                    <td className='p-4'>{venue.capacity}</td>
+                    <td className='p-4'>{venue.status}</td>
+                    <td className='p-4'>
+                      {venue.images?.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt='Venue'
+                          className='h-10 w-10 object-cover rounded mr-2 inline-block'
+                        />
+                      ))}
+                    </td>
+                    <td className='p-4'>
+                      <a
+                        href={venue.mapLocation}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-blue-500 underline'
+                      >
+                        View Map
+                      </a>
+                    </td>
+                    <td className='p-4 py-8 flex items-center space-x-2'>
+                      <button
+                        onClick={() => handleUpdate(venue)}
+                        className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
+                      >
+                        Save/Update
+                      </button>
+                      <button
+                        onClick={() => handleDelete(venue)}
+                        className='text-red-600'
+                      >
+                        <Trash size={20} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr className='text-center bg-[#0A1330]'>
+                  <td colSpan='14' className='p-4'>
+                    No venues found.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </>
   )

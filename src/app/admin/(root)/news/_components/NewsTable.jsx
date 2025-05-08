@@ -10,6 +10,7 @@ import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
 import Image from 'next/image'
+import ConfirmationModal from '../../../../_components/ConfirmationModal'
 
 export function NewsTable({
   news,
@@ -171,102 +172,97 @@ export function NewsTable({
               </tr>
             </thead>
             <tbody>
-              {filteredNews.map((news, index) => {
-                return (
-                  <tr
-                    key={news._id}
-                    className={`cursor-pointer ${
-                      index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
-                    }`}
-                  >
-                    <td className='p-4'>{news._id}</td>
-                    <td className='p-4'>
-                      <div className='relative w-full h-[120px]'>
-                        <Image
-                          src={
-                            news?.imageUrl !== null &&
-                            process.env.NEXT_PUBLIC_BASE_URL
-                              ? new URL(
-                                  news.imageUrl,
-                                  process.env.NEXT_PUBLIC_BASE_URL
-                                ).toString()
-                              : null
-                          }
-                          alt={news.title}
-                          fill
-                          sizes='(max-width: 768px) 100vw, 50vw'
-                          className='object-cover rounded'
-                        />
-                      </div>
-                    </td>
-                    <td className='p-4'>{news.title}</td>
-                    <td className='p-4'>{news.category?.name}</td>
-                    <td className='p-4'>
-                      {moment(news.publishDate).format('YYYY/MM/DD')}
-                    </td>
-                    <td className='p-4'>
-                      {moment(news.updatedAt).format('YYYY/MM/DD')}
-                    </td>
-                    <td className='p-4'>
-                      {news.isPublished ? 'Published' : 'Draft'}
-                    </td>
-                    <td className='p-4 '>
-                      <div className='flex space-x-4 items-center'>
-                        {/* View */}
-                        <Link href={`/admin/news/view/${news._id}`}>
-                          <button className='text-gray-400 hover:text-gray-200 transition'>
-                            <Eye size={20} />
-                          </button>
-                        </Link>
+              {filteredNews && filteredNews.length > 0 ? (
+                filteredNews.map((news, index) => {
+                  return (
+                    <tr
+                      key={news._id}
+                      className={`cursor-pointer ${
+                        index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
+                      }`}
+                    >
+                      <td className='p-4'>{news._id}</td>
+                      <td className='p-4'>
+                        <div className='relative w-full h-[120px]'>
+                          <Image
+                            src={
+                              news?.imageUrl !== null &&
+                              process.env.NEXT_PUBLIC_BASE_URL
+                                ? new URL(
+                                    news.imageUrl,
+                                    process.env.NEXT_PUBLIC_BASE_URL
+                                  ).toString()
+                                : null
+                            }
+                            alt={news.title}
+                            fill
+                            sizes='(max-width: 768px) 100vw, 50vw'
+                            className='object-cover rounded'
+                          />
+                        </div>
+                      </td>
+                      <td className='p-4'>{news.title}</td>
+                      <td className='p-4'>{news.category?.name}</td>
+                      <td className='p-4'>
+                        {moment(news.publishDate).format('YYYY/MM/DD')}
+                      </td>
+                      <td className='p-4'>
+                        {moment(news.updatedAt).format('YYYY/MM/DD')}
+                      </td>
+                      <td className='p-4'>
+                        {news.isPublished ? 'Published' : 'Draft'}
+                      </td>
+                      <td className='p-4 '>
+                        <div className='flex space-x-4 items-center'>
+                          {/* View */}
+                          <Link href={`/admin/news/view/${news._id}`}>
+                            <button className='text-gray-400 hover:text-gray-200 transition'>
+                              <Eye size={20} />
+                            </button>
+                          </Link>
 
-                        {/* Edit */}
-                        <Link href={`/admin/news/edit/${news._id}`}>
-                          <button className='text-blue-500 hover:underline'>
-                            <SquarePen size={20} />
+                          {/* Edit */}
+                          <Link href={`/admin/news/edit/${news._id}`}>
+                            <button className='text-blue-500 hover:underline'>
+                              <SquarePen size={20} />
+                            </button>
+                          </Link>
+                          {/* Delete */}
+                          <button
+                            onClick={() => {
+                              setIsDelete(true)
+                              setSelectedNews(news._id)
+                            }}
+                            className='text-red-600 hover:text-red-400 transition'
+                          >
+                            <Trash size={20} />
                           </button>
-                        </Link>
-                        {/* Delete */}
-                        <button
-                          onClick={() => {
-                            setIsDelete(true)
-                            setSelectedNews(news._id)
-                          }}
-                          className='text-red-600 hover:text-red-400 transition'
-                        >
-                          <Trash size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className='p-4 text-center text-gray-400'>
+                    No news found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        {isDelete && (
-          <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-gray-800/30'>
-            <div className='bg-[#0B1739] bg-opacity-80 p-8 rounded-lg text-white w-full max-w-md'>
-              <h2 className='text-lg font-semibold mb-4'>Delete News</h2>
-              <p>Are you sure you want to delete this news?</p>
-              <div className='flex justify-end mt-6 space-x-4'>
-                <button
-                  onClick={() => setIsDelete(false)}
-                  className='px-5 py-2 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 font-medium transition'
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDeleteNews(selectedNews)}
-                  className='px-5 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium transition'
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={isDelete}
+          onClose={() => setIsDelete(false)}
+          onConfirm={() => handleDeleteNews(selectedNews)}
+          title='Delete News'
+          message='Are you sure you want to delete this news?'
+        />
       </div>
+
       {/* Pagination Controls */}
       <Pagination
         currentPage={currentPage}
