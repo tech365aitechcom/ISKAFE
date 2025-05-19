@@ -6,6 +6,7 @@ import { enqueueSnackbar } from 'notistack'
 import useUserStore from '../../../stores/userStore'
 import { useRouter } from 'next/navigation'
 import { API_BASE_URL, apiConstants, roles } from '../../../constants/index'
+import Link from 'next/link'
 
 const LoginPage = () => {
   const { user, setUser } = useUserStore()
@@ -68,7 +69,7 @@ const LoginPage = () => {
   }, [user, router])
 
   return (
-    <div className='flex h-screen w-full bg-transparent px-28 py-6'>
+    <div className='flex h-screen w-full bg-transparent md:px-28 py-6'>
       <div className='flex w-full'>
         <div className='w-full flex md:items-center justify-center p-8'>
           <div className='w-full max-w-md'>
@@ -102,8 +103,8 @@ const LoginPage = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </span>
               </div>
-              {/* <div className='flex justify-end items-center'>
-                <div className='flex items-center'>
+              <div className='flex justify-end items-center'>
+                {/* <div className='flex items-center'>
                   <input
                     type='checkbox'
                     id='rememberMe'
@@ -115,14 +116,14 @@ const LoginPage = () => {
                   <label htmlFor='rememberMe' className='text-white'>
                     Remember Me
                   </label>
-                </div>
+                </div> */}
                 <Link
-                  href={'/forgot-password'}
+                  href={'/admin/forgot-password'}
                   className='text-blue-400 hover:underline'
                 >
                   Forgot Password?
                 </Link>
-              </div> */}
+              </div>
               <button
                 type='submit'
                 className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center'
@@ -130,15 +131,15 @@ const LoginPage = () => {
               >
                 {isLoading ? 'Logging in...' : 'Login'}
               </button>
-              {/* <div className='text-center text-white mt-4'>
+              <div className='text-center text-white mt-4'>
                 If you don't have an account?{' '}
                 <Link
-                  href={'/signup'}
+                  href={'/admin/signup'}
                   className='text-yellow-500 hover:underline'
                 >
                   Sign Up
                 </Link>
-              </div> */}
+              </div>
               {/* <div className='flex items-center my-6'>
                 <div className='flex-grow border-t border-gray-700'></div>
                 <span className='px-4 text-gray-400 text-sm'>

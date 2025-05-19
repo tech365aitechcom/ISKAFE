@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronsUpDown, Search, Trash } from 'lucide-react'
+import { Search, Trash } from 'lucide-react'
 import { useState } from 'react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
@@ -16,18 +16,8 @@ export function VenuesTable({
   onSuccess,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [isOpenCity, setIsOpenCity] = useState(false)
-  const [isOpenStatus, setIsOpenStatus] = useState(false)
   const [selectedCity, setSelectedCity] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
-
-  const toggleDropdownCity = () => {
-    setIsOpenCity(!isOpenCity)
-  }
-
-  const toggleDropdownStatus = () => {
-    setIsOpenStatus(!isOpenStatus)
-  }
 
   const filteredVenues = venues.filter((venue) => {
     const matchesSearch = venue.name
@@ -53,15 +43,9 @@ export function VenuesTable({
     setSearchQuery('')
   }
 
-  const renderHeader = (label, key) => (
-    <th
-      className='px-4 pb-3 whitespace-nowrap cursor-pointer'
-      onClick={() => handleSort(key)}
-    >
-      <div className='flex items-center gap-1'>
-        {label}
-        <ChevronsUpDown className='w-4 h-4 text-gray-400' />
-      </div>
+  const renderHeader = (label) => (
+    <th className='px-4 pb-3 whitespace-nowrap cursor-pointer'>
+      <div className='flex items-center gap-1'>{label}</div>
     </th>
   )
 

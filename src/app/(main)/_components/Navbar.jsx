@@ -21,7 +21,7 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Events', path: '/events' },
     { name: 'Fighters', path: '/fighters' },
-    { name: 'Rankings', path: '/ranking' },
+    { name: 'Rules', path: '/rules' },
   ]
 
   let moreMenuItems = [
@@ -29,13 +29,14 @@ const Navbar = () => {
     { name: 'News', path: '/news' },
     { name: 'About', path: '/about' },
     { name: 'Contact Us', path: '/contact-us' },
+    { name: 'Rankings', path: '/ranking' },
   ]
 
   if (isLoggedIn) {
     moreMenuItems = [
       ...moreMenuItems,
       { name: 'My Purchases', path: '/my-purchases' },
-      { name: 'My Fight Family', path: '/my-fight-family' },
+      // { name: 'My Fight Family', path: '/my-fight-family' },
       { name: 'My Profile', path: '/my-profile' },
       { name: 'Logout', action: 'logout' },
     ]
@@ -151,7 +152,10 @@ const Navbar = () => {
       </ul>
 
       {/* Desktop Login/Signup */}
-      {!isLoggedIn ? (
+      {!isLoggedIn &&
+      pathname !== '/login' &&
+      pathname !== '/signup' &&
+      pathname !== '/forgot-password' ? (
         <div className='hidden lg:block'>
           <Link
             href={'/login'}
@@ -210,7 +214,10 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Login/Signup */}
-            {!isLoggedIn ? (
+            {!isLoggedIn &&
+            pathname !== '/login' &&
+            pathname !== '/signup' &&
+            pathname !== '/forgot-password' ? (
               <div className='px-3 py-4'>
                 <Link
                   href={'/login'}

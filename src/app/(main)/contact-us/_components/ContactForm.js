@@ -107,18 +107,17 @@ const ContactForm = ({ subjects }) => {
         <div className='relative'>
           {focusedField === 'phone' && (
             <label className='absolute -top-2.5 left-2 px-1 text-xs text-yellow-500 bg-purple-950'>
-              Phone Number*
+              Phone Number
             </label>
           )}
           <input
             type='tel'
             name='phone'
-            placeholder='Phone Number*'
+            placeholder='Phone Number'
             value={formData.phone}
             onChange={handleChange}
             onFocus={() => handleFocus('phone')}
             onBlur={handleBlur}
-            required
             className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 bg-transparent text-white'
           />
         </div>

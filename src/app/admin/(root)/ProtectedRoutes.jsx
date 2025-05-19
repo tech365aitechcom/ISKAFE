@@ -13,8 +13,8 @@ const ProtectedRoutes = ({ children }) => {
   const { user, _hasHydrated } = useUserStore()
 
   useEffect(() => {
-    if (_hasHydrated && (!user || user.role !== roles.admin)) {
-      router.push('/admin/login')
+    if (_hasHydrated && !user) {
+      // router.push('/admin/login')
     }
   }, [_hasHydrated, user, router])
 
@@ -26,9 +26,9 @@ const ProtectedRoutes = ({ children }) => {
     )
   }
 
-  if (!user || user.role !== roles.admin) {
-    return null
-  }
+  // if (!user || user?.role !== roles.admin) {
+  //   return null
+  // }
 
   return (
     <div className='flex h-screen w-full inset-0 bg-[#07091D]'>

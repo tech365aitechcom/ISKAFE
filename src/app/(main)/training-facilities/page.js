@@ -67,6 +67,7 @@ const TrainingFacilitiesPage = () => {
   const [state, setState] = useState('')
   const [bgImage, setBgImage] = useState('/Cover.png')
   const [topPosition, setTopPosition] = useState('90%')
+  const [isShowForm, setIsShowForm] = useState(false)
 
   const handleSearch = () => {
     console.log('Searching for:', { facilityName, country, state })
@@ -198,9 +199,11 @@ const TrainingFacilitiesPage = () => {
       <section className='mt-72 mb-12 md:my-56 mx-4'>
         <div className='container mx-auto'>
           <div className='flex justify-end mb-4'>
-            <button className='bg-yellow-500 text-white px-4 py-2 rounded font-bold hover:bg-yellow-600 transition-colors'>
-              Register Your Training Facility
-            </button>
+            <Link href='/training-facilities/register'>
+              <button className='bg-yellow-500 text-white px-4 py-2 rounded font-bold hover:bg-yellow-600 transition-colors'>
+                Register Your Training Facility
+              </button>
+            </Link>
           </div>
           <div className='grid grid-cols-1 md:grid-cols-4 gap-8'>
             {trainingFacilities.map((facility, index) => (
