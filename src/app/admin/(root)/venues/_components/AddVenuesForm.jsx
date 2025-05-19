@@ -1,36 +1,33 @@
 'use client'
-import React, { useState } from 'react'
+import axios from 'axios'
+import { enqueueSnackbar } from 'notistack'
+import React, { useEffect, useState } from 'react'
+import { countries } from '../../../../../constants'
+import { Country, State } from 'country-state-city'
 
 export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
   const [formData, setFormData] = useState({
-    // Basic Info
-    venueName: '',
-    duplicateCheck: true,
+    name: '',
 
-    // Address Info
-    street1: '',
-    street2: '',
-    city: '',
-    state: '',
-    country: 'United States',
-    zipCode: '',
+    address: {
+      street1: '',
+      street2: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: 'US',
+    },
 
-    // Contact Info
-    contactPersonName: '',
+    contactName: '',
+    contactPhone: '',
     contactEmail: '',
-    contactPhoneNumber: '',
 
-    // Venue Details
     capacity: '',
+    mapLink: '',
+
+    media: [],
+
     status: 'Active',
-
-    // Media
-    uploadImages: null,
-
-    // Map
-    mapLocationLink: '',
-
-    // Status Scheduler
     autoStatusChange: false,
     scheduledStatus: '',
     statusChangeDate: '',
@@ -38,9 +35,14 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
 
   const [errors, setErrors] = useState({})
 
+  const countries = Country.getAllCountries()
+  const states = formData.address.country
+    ? State.getStatesOfCountry(formData.address.country)
+    : []
+
   const validateField = (name, value) => {
     switch (name) {
-      case 'venueName':
+      case 'name':
         return value.trim() === ''
           ? 'Venue name is required'
           : value.length > 100
@@ -54,13 +56,13 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
         return value.trim() === '' ? 'State is required' : ''
       case 'country':
         return value.trim() === '' ? 'Country is required' : ''
-      case 'zipCode':
+      case 'postalCode':
         return value.trim() === ''
           ? 'ZIP code is required'
           : !/^\d{5}(-\d{4})?$/.test(value)
           ? 'Enter a valid ZIP code'
           : ''
-      case 'contactPersonName':
+      case 'contactName':
         return value.trim() === ''
           ? 'Contact person name is required'
           : value.length > 50
@@ -72,7 +74,7 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
           : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
           ? 'Enter a valid email address'
           : ''
-      case 'contactPhoneNumber':
+      case 'contactPhone':
         return value.trim() === ''
           ? 'Phone number is required'
           : !/^\+\d{1,3}-\d{3,}-\d{3,}$/.test(value)
@@ -86,12 +88,12 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
           : ''
       case 'status':
         return value.trim() === '' ? 'Status is required' : ''
-      case 'mapLocationLink':
+      case 'mapLink':
         if (value.trim() !== '' && !value.startsWith('https://')) {
           return 'Enter a valid URL'
         }
         return ''
-      case 'uploadImages':
+      case 'media':
         if (value && value.size > 5 * 1024 * 1024) {
           return 'Image must be less than 5MB'
         }
@@ -103,64 +105,87 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
-    const newValue =
-      type === 'checkbox' ? checked : type === 'file' ? files[0] || null : value
+
+    // Handle nested address fields
+    if (name.startsWith('address.')) {
+      const addressField = name.split('.')[1]
+      setFormData((prevState) => ({
+        ...prevState,
+        address: {
+          ...prevState.address,
+          [addressField]: type === 'checkbox' ? checked : value,
+        },
+      }))
+
+      // Validate nested address fields
+      const error = validateField(addressField, value)
+      setErrors((prev) => ({
+        ...prev,
+        [name]: error,
+      }))
+      return
+    }
+
+    // Handle file uploads for media
+    if (name === 'media' && files && files.length > 0) {
+      // Create a copy of the current media array
+      const updatedMedia = [...formData.media]
+      // Add the new files
+      for (let i = 0; i < files.length; i++) {
+        updatedMedia.push(files[i])
+      }
+
+      setFormData((prevState) => ({
+        ...prevState,
+        media: updatedMedia,
+      }))
+      return
+    }
+
+    // Handle regular fields
+    const newValue = type === 'checkbox' ? checked : value
 
     setFormData((prevState) => ({
       ...prevState,
       [name]: newValue,
     }))
 
-    // Validate field if it's required
-    if (
-      [
-        'venueName',
-        'street1',
-        'city',
-        'state',
-        'country',
-        'zipCode',
-        'contactPersonName',
-        'contactEmail',
-        'contactPhoneNumber',
-        'capacity',
-        'status',
-      ].includes(name)
-    ) {
-      const error = validateField(name, newValue)
-      setErrors((prev) => ({
-        ...prev,
-        [name]: error,
-      }))
-    }
+    // Validate field
+    const error = validateField(name, newValue)
+    setErrors((prev) => ({
+      ...prev,
+      [name]: error,
+    }))
   }
 
   const validateForm = () => {
     const newErrors = {}
     let isValid = true
 
-    // Validate all required fields
-    Object.keys(formData).forEach((field) => {
-      if (
-        [
-          'venueName',
-          'street1',
-          'city',
-          'state',
-          'country',
-          'zipCode',
-          'contactPersonName',
-          'contactEmail',
-          'contactPhoneNumber',
-          'capacity',
-          'status',
-        ].includes(field)
-      ) {
-        const error = validateField(field, formData[field])
-        if (error) {
-          newErrors[field] = error
-          isValid = false
-        }
+    // Validate main fields
+    const mainFields = [
+      'name',
+      'contactName',
+      'contactEmail',
+      'contactPhone',
+      'capacity',
+      'status',
+    ]
+    mainFields.forEach((field) => {
+      const error = validateField(field, formData[field])
+      if (error) {
+        newErrors[field] = error
+        isValid = false
+      }
+    })
+
+    // Validate address fields
+    const addressFields = ['street1', 'city', 'state', 'postalCode', 'country']
+    addressFields.forEach((field) => {
+      const error = validateField(field, formData.address[field])
+      if (error) {
+        newErrors[`address.${field}`] = error
+        isValid = false
       }
     })
 
@@ -168,13 +193,71 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
     return isValid
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (validateForm()) {
-      // Handle form submission logic here
-      console.log('Form submitted:', formData)
-      // You would typically send this data to an API endpoint
+      // Create FormData object for submission
+      const submitFormData = new FormData()
+
+      // Add main fields to FormData
+      submitFormData.append('name', formData.name)
+      submitFormData.append('contactName', formData.contactName)
+      submitFormData.append('contactPhone', formData.contactPhone)
+      submitFormData.append('contactEmail', formData.contactEmail)
+      submitFormData.append('capacity', formData.capacity)
+      submitFormData.append('mapLink', formData.mapLink)
+      submitFormData.append('status', formData.status)
+      submitFormData.append('autoStatusChange', formData.autoStatusChange)
+
+      // Add conditional fields
+      if (formData.autoStatusChange) {
+        submitFormData.append('scheduledStatus', formData.scheduledStatus)
+        submitFormData.append('statusChangeDate', formData.statusChangeDate)
+      }
+
+      // Add address fields to FormData
+      Object.entries(formData.address).forEach(([key, value]) => {
+        submitFormData.append(`address[${key}]`, value)
+      })
+
+      // Add media files to FormData
+      formData.media.forEach((file, index) => {
+        submitFormData.append(`media[${index}]`, file)
+      })
+
+      // Log the FormData (for debugging)
+      console.log('Form submitted as FormData')
+
+      // Example of how you would send this to an API
+      const response = await axios.post('/api/venues/add', submitFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message, { variant: 'success' })
+        setFormData({
+          name: '',
+          address: {
+            street1: '',
+            street2: '',
+            city: '',
+            state: '',
+            postalCode: '',
+            country: 'United States',
+          },
+          contactName: '',
+          contactPhone: '',
+          contactEmail: '',
+          capacity: '',
+          mapLink: '',
+          media: [],
+          status: 'Active',
+          autoStatusChange: false,
+          scheduledStatus: '',
+          statusChangeDate: '',
+        })
+      }
     } else {
       console.log('Form has errors')
     }
@@ -182,26 +265,33 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
 
   const handleCancel = () => {
     setFormData({
-      venueName: '',
-      duplicateCheck: true,
-      street1: '',
-      street2: '',
-      city: '',
-      state: '',
-      country: 'United States',
-      zipCode: '',
-      contactPersonName: '',
+      name: '',
+      address: {
+        street1: '',
+        street2: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: 'United States',
+      },
+      contactName: '',
+      contactPhone: '',
       contactEmail: '',
-      contactPhoneNumber: '',
       capacity: '',
+      mapLink: '',
+      media: [],
       status: 'Active',
-      uploadImages: null,
-      mapLocationLink: '',
       autoStatusChange: false,
       scheduledStatus: '',
       statusChangeDate: '',
     })
     setShowAddVenues(false)
+  }
+
+  const removeMedia = (index) => {
+    const updatedMedia = [...formData.media]
+    updatedMedia.splice(index, 1)
+    setFormData((prev) => ({ ...prev, media: updatedMedia }))
   }
 
   return (
@@ -245,31 +335,17 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
               </label>
               <input
                 type='text'
-                name='venueName'
-                value={formData.venueName}
+                name='name'
+                value={formData.name}
                 onChange={handleChange}
                 placeholder='Enter venue name'
                 maxLength={100}
                 className='w-full bg-transparent outline-none'
                 required
               />
-              {errors.venueName && (
-                <p className='text-red-500 text-xs mt-1'>{errors.venueName}</p>
+              {errors.name && (
+                <p className='text-red-500 text-xs mt-1'>{errors.name}</p>
               )}
-            </div>
-
-            {/* Duplicate Venue Check */}
-            <div className='flex items-center pt-4'>
-              <input
-                type='checkbox'
-                name='duplicateCheck'
-                checked={formData.duplicateCheck}
-                onChange={handleChange}
-                className='mr-2'
-              />
-              <label className='text-sm font-medium'>
-                Duplicate Venue Check
-              </label>
             </div>
           </div>
 
@@ -284,15 +360,17 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                 </label>
                 <input
                   type='text'
-                  name='street1'
-                  value={formData.street1}
+                  name='address.street1'
+                  value={formData.address.street1}
                   onChange={handleChange}
                   placeholder='123 Arena Road'
                   className='w-full bg-transparent outline-none'
                   required
                 />
-                {errors.street1 && (
-                  <p className='text-red-500 text-xs mt-1'>{errors.street1}</p>
+                {errors['address.street1'] && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors['address.street1']}
+                  </p>
                 )}
               </div>
 
@@ -303,8 +381,8 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                 </label>
                 <input
                   type='text'
-                  name='street2'
-                  value={formData.street2}
+                  name='address.street2'
+                  value={formData.address.street2}
                   onChange={handleChange}
                   placeholder='Suite 402'
                   className='w-full bg-transparent outline-none'
@@ -318,15 +396,17 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                 </label>
                 <input
                   type='text'
-                  name='city'
-                  value={formData.city}
+                  name='address.city'
+                  value={formData.address.city}
                   onChange={handleChange}
                   placeholder='Los Angeles'
                   className='w-full bg-transparent outline-none'
                   required
                 />
-                {errors.city && (
-                  <p className='text-red-500 text-xs mt-1'>{errors.city}</p>
+                {errors['address.city'] && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors['address.city']}
+                  </p>
                 )}
               </div>
 
@@ -337,8 +417,8 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                     State / Province<span className='text-red-500'>*</span>
                   </label>
                   <select
-                    name='state'
-                    value={formData.state}
+                    name='address.state'
+                    value={formData.address.state}
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none'
                     required
@@ -346,22 +426,20 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                     <option value='' className='text-black'>
                       Select State
                     </option>
-                    <option value='AL' className='text-black'>
-                      Alabama
-                    </option>
-                    <option value='AK' className='text-black'>
-                      Alaska
-                    </option>
-                    <option value='AZ' className='text-black'>
-                      Arizona
-                    </option>
-                    <option value='CA' className='text-black'>
-                      California
-                    </option>
-                    {/* Add more states as needed */}
+                    {states.map((state) => (
+                      <option
+                        key={state.isoCode}
+                        value={state.name}
+                        className='text-black'
+                      >
+                        {state.name}
+                      </option>
+                    ))}
                   </select>
-                  {errors.state && (
-                    <p className='text-red-500 text-xs mt-1'>{errors.state}</p>
+                  {errors['address.state'] && (
+                    <p className='text-red-500 text-xs mt-1'>
+                      {errors['address.state']}
+                    </p>
                   )}
                 </div>
 
@@ -371,23 +449,27 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                     Country<span className='text-red-500'>*</span>
                   </label>
                   <select
-                    name='country'
-                    value={formData.country}
+                    name='address.country'
+                    value={formData.address.country}
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none'
                     required
                   >
-                    <option value='United States' className='text-black'>
-                      United States
-                    </option>
-                    <option value='Canada' className='text-black'>
-                      Canada
-                    </option>
+                    {countries.map((country) => (
+                      <option
+                        key={country.isoCode}
+                        value={country.isoCode}
+                        className='text-black'
+                      >
+                        {country.name}
+                      </option>
+                    ))}
+
                     {/* Add more countries as needed */}
                   </select>
-                  {errors.country && (
+                  {errors['address.country'] && (
                     <p className='text-red-500 text-xs mt-1'>
-                      {errors.country}
+                      {errors['address.country']}
                     </p>
                   )}
                 </div>
@@ -400,15 +482,17 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                 </label>
                 <input
                   type='text'
-                  name='zipCode'
-                  value={formData.zipCode}
+                  name='address.postalCode'
+                  value={formData.address.postalCode}
                   onChange={handleChange}
                   placeholder='90210'
                   className='w-full bg-transparent outline-none'
                   required
                 />
-                {errors.zipCode && (
-                  <p className='text-red-500 text-xs mt-1'>{errors.zipCode}</p>
+                {errors['address.postalCode'] && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors['address.postalCode']}
+                  </p>
                 )}
               </div>
             </div>
@@ -425,17 +509,17 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                 </label>
                 <input
                   type='text'
-                  name='contactPersonName'
-                  value={formData.contactPersonName}
+                  name='contactName'
+                  value={formData.contactName}
                   onChange={handleChange}
                   placeholder='John Doe'
                   maxLength={50}
                   className='w-full bg-transparent outline-none'
                   required
                 />
-                {errors.contactPersonName && (
+                {errors.contactName && (
                   <p className='text-red-500 text-xs mt-1'>
-                    {errors.contactPersonName}
+                    {errors.contactName}
                   </p>
                 )}
               </div>
@@ -468,16 +552,16 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                 </label>
                 <input
                   type='text'
-                  name='contactPhoneNumber'
-                  value={formData.contactPhoneNumber}
+                  name='contactPhone'
+                  value={formData.contactPhone}
                   onChange={handleChange}
                   placeholder='+1-555-123456'
                   className='w-full bg-transparent outline-none'
                   required
                 />
-                {errors.contactPhoneNumber && (
+                {errors.contactPhone && (
                   <p className='text-red-500 text-xs mt-1'>
-                    {errors.contactPhoneNumber}
+                    {errors.contactPhone}
                   </p>
                 )}
               </div>
@@ -549,18 +633,37 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
               </label>
               <input
                 type='file'
-                name='uploadImages'
+                name='media'
                 onChange={handleChange}
                 accept='.jpg,.jpeg,.png'
+                multiple
                 className='w-full bg-transparent outline-none'
               />
               <p className='text-xs text-gray-400 mt-1'>
                 Max 5 MB image formats
               </p>
-              {errors.uploadImages && (
-                <p className='text-red-500 text-xs mt-1'>
-                  {errors.uploadImages}
-                </p>
+              {errors.media && (
+                <p className='text-red-500 text-xs mt-1'>{errors.media}</p>
+              )}
+
+              {/* Preview uploaded images */}
+              {formData.media.length > 0 && (
+                <div className='mt-3 grid grid-cols-2 md:grid-cols-3 gap-2'>
+                  {formData.media.map((file, index) => (
+                    <div key={index} className='relative'>
+                      <div className='bg-gray-800 p-2 rounded flex items-center justify-between'>
+                        <span className='text-xs truncate'>{file.name}</span>
+                        <button
+                          type='button'
+                          onClick={() => removeMedia(index)}
+                          className='text-red-500 ml-2'
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -574,16 +677,14 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
               </label>
               <input
                 type='url'
-                name='mapLocationLink'
-                value={formData.mapLocationLink}
+                name='mapLink'
+                value={formData.mapLink}
                 onChange={handleChange}
                 placeholder='Paste Google Maps URL'
                 className='w-full bg-transparent outline-none'
               />
-              {errors.mapLocationLink && (
-                <p className='text-red-500 text-xs mt-1'>
-                  {errors.mapLocationLink}
-                </p>
+              {errors.mapLink && (
+                <p className='text-red-500 text-xs mt-1'>{errors.mapLink}</p>
               )}
             </div>
           </div>
@@ -622,8 +723,17 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
                       <option value='' className='text-black'>
                         Select Status
                       </option>
+                      <option value='Active' className='text-black'>
+                        Active
+                      </option>
+                      <option value='Inactive' className='text-black'>
+                        Inactive
+                      </option>
                       <option value='Cancelled' className='text-black'>
                         Cancelled
+                      </option>
+                      <option value='Upcoming' className='text-black'>
+                        Upcoming
                       </option>
                       <option value='Archived' className='text-black'>
                         Archived

@@ -5,7 +5,6 @@ import { Trash } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import useUserStore from '../../../../../stores/userStore'
 import { enqueueSnackbar } from 'notistack'
-import Loader from '../../../../_components/Loader'
 
 export const AddNewsForm = ({ setShowAddNewsForm }) => {
   const user = useUserStore((state) => state.user)
@@ -13,31 +12,20 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
     title: '',
     category: '',
     content: '',
-    image: null,
+    coverImage: null,
     videoLink: '',
     publishDate: '',
-    isPublished: false,
+    status: 'Draft',
+    isDeleted: false,
   })
   const [imagePreview, setImagePreview] = useState(null)
 
-  const [categories, setCategories] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/news-category`)
-      console.log('Response:', response.data)
-      setCategories(response.data.data)
-    } catch (error) {
-      console.log('Error fetching events:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
+  const [categories, setCategories] = useState([
+    'Announcement',
+    'Rule Update',
+    'Interview',
+    'Media',
+  ])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -48,7 +36,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
     const file = e.target.files[0]
     if (file) {
       setImagePreview(URL.createObjectURL(file))
-      setFormData((prev) => ({ ...prev, image: file }))
+      setFormData((prev) => ({ ...prev, coverImage: file }))
     }
   }
 
@@ -59,13 +47,15 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
       formPayload.append('title', formData.title)
       formPayload.append('category', formData.category)
       formPayload.append('content', formData.content)
-      formPayload.append('videoUrl', formData.videoLink)
+      formPayload.append('videoEmbedLink', formData.videoLink)
       formPayload.append('publishDate', formData.publishDate)
-      formPayload.append('createdBy', user?.id)
-      formPayload.append('isPublished', formData.isPublished)
+      formPayload.append('createdBy', user?.id ?? '6824b6af47faa9de6eb81caa')
+      formPayload.append('updatedBy', user?.id ?? '6824b6af47faa9de6eb81caa')
+      formPayload.append('status', formData.isPublished)
+      formPayload.append('isDeleted', formData.isDeleted)
 
-      if (formData.image) {
-        formPayload.append('image', formData.image)
+      if (formData.coverImage) {
+        formPayload.append('coverImage', formData.coverImage)
       }
 
       const response = await axios.post(`${API_BASE_URL}/news`, formPayload, {
@@ -78,13 +68,17 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
           title: '',
           category: '',
           content: '',
-          image: null,
+          coverImage: null,
           videoLink: '',
           publishDate: '',
+          status: 'Draft',
+          isDeleted: false,
         })
         setImagePreview(null)
       }
     } catch (error) {
+      console.log(error)
+
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
         {
@@ -99,16 +93,13 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
       title: '',
       category: '',
       content: '',
-      image: null,
+      coverImage: null,
       videoLink: '',
       publishDate: '',
-      isPublished: 'Draft',
+      status: 'Draft',
+      isDeleted: false,
     })
     setShowAddNewsForm(false)
-  }
-
-  if (loading) {
-    return <Loader />
   }
 
   return (
@@ -151,7 +142,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                   type='button'
                   onClick={() => {
                     setImagePreview(null)
-                    setFormData((prev) => ({ ...prev, image: null }))
+                    setFormData((prev) => ({ ...prev, coverImage: null }))
                   }}
                   className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
                 >
@@ -246,12 +237,8 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                 Select category
               </option>
               {categories.map((category) => (
-                <option
-                  key={category._id}
-                  value={category._id}
-                  className='text-black'
-                >
-                  {category.name}
+                <option key={category} value={category} className='text-black'>
+                  {category}
                 </option>
               ))}
             </select>
@@ -304,10 +291,10 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
               <option value='' className='text-black'>
                 Select Status
               </option>
-              <option value={false} className='text-black'>
+              <option value='Draft' className='text-black'>
                 Draft
               </option>
-              <option value={true} className='text-black'>
+              <option value='Published' className='text-black'>
                 Published
               </option>
               {/* Add more countries as needed */}

@@ -13,32 +13,58 @@ export const AboutForm = () => {
     missionStatement: '',
     organizationHistory: '',
     leadershipTeam: [],
-    mediaImageUrl: null,
-    contactLink: '',
-    socialLinks: {
-      facebook: '',
-      instagram: '',
-      youtube: '',
-    },
+    coverImage: null,
+    contactURL: '',
+    facebookURL: '',
+    instagramURL: '',
+    twitterURL: '',
+    // New footer legal document fields
+    termsConditionsPDF: null,
+    privacyPolicyPDF: null,
+    copyrightNoticePDF: null,
+    platformVersion: '',
   })
   const [imagePreview, setImagePreview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [currentTeamMember, setCurrentTeamMember] = useState({
     name: '',
-    title: '',
-    image: null,
+    position: '',
+    photo: null,
   })
   const [teamMemberImagePreview, setTeamMemberImagePreview] = useState(null)
   const [showTeamMemberModal, setShowTeamMemberModal] = useState(false)
 
+  // File previews for legal documents
+  const [termsAndConditionsFileName, setTermsAndConditionsFileName] =
+    useState(null)
+  const [privacyPolicyFileName, setPrivacyPolicyFileName] = useState(null)
+  const [copyrightNoticeFileName, setCopyrightNoticeFileName] = useState(null)
+
   const fetchAboutData = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/about-us`)
+      const response = await axios.get(`${API_BASE_URL}/about/find`)
       console.log('Response:', response.data)
       if (response.data.data) {
         setFormData(response.data.data)
-        if (response.data.data.mediaImageUrl) {
-          setImagePreview(response.data.data?.mediaImageUrl)
+        if (response.data.data.coverImage) {
+          setImagePreview(response.data.data?.coverImage)
+        }
+
+        // Set filenames for legal documents if they exist
+        if (response.data.data.termsConditionsPDF) {
+          setTermsAndConditionsFileName(
+            response.data.data.termsConditionsPDF.split('/').pop()
+          )
+        }
+        if (response.data.data.privacyPolicyPDF) {
+          setPrivacyPolicyFileName(
+            response.data.data.privacyPolicyPDF.split('/').pop()
+          )
+        }
+        if (response.data.data.copyrightNoticePDF) {
+          setCopyrightNoticeFileName(
+            response.data.data.copyrightNoticePDF.split('/').pop()
+          )
         }
       }
     } catch (error) {
@@ -57,14 +83,6 @@ export const AboutForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSocialLinkChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      socialLinks: { ...prev.socialLinks, [name]: value },
-    }))
-  }
-
   const handleTeamMemberChange = (e) => {
     const { name, value } = e.target
     setCurrentTeamMember((prev) => ({ ...prev, [name]: value }))
@@ -74,7 +92,7 @@ export const AboutForm = () => {
     const file = e.target.files[0]
     if (file) {
       setTeamMemberImagePreview(URL.createObjectURL(file))
-      setCurrentTeamMember((prev) => ({ ...prev, image: file }))
+      setCurrentTeamMember((prev) => ({ ...prev, photo: file }))
     }
   }
 
@@ -82,25 +100,52 @@ export const AboutForm = () => {
     const file = e.target.files[0]
     if (file) {
       setImagePreview(URL.createObjectURL(file))
-      setFormData((prev) => ({ ...prev, mediaImageUrl: file }))
+      setFormData((prev) => ({ ...prev, coverImage: file }))
     }
   }
 
+  // Handle legal document file uploads
+  const handleLegalDocUpload = (e, fieldName) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (fieldName === 'termsConditionsPDF') {
+        setTermsAndConditionsFileName(file.name)
+      } else if (fieldName === 'privacyPolicyPDF') {
+        setPrivacyPolicyFileName(file.name)
+      } else if (fieldName === 'copyrightNoticePDF') {
+        setCopyrightNoticeFileName(file.name)
+      }
+      setFormData((prev) => ({ ...prev, [fieldName]: file }))
+    }
+  }
+
+  // Remove legal document files
+  const handleRemoveLegalDoc = (fieldName) => {
+    if (fieldName === 'termsConditionsPDF') {
+      setTermsAndConditionsFileName(null)
+    } else if (fieldName === 'privacyPolicyPDF') {
+      setPrivacyPolicyFileName(null)
+    } else if (fieldName === 'copyrightNoticePDF') {
+      setCopyrightNoticeFileName(null)
+    }
+    setFormData((prev) => ({ ...prev, [fieldName]: null }))
+  }
+
   const handleAddTeamMember = () => {
-    if (currentTeamMember.name && currentTeamMember.title) {
+    if (currentTeamMember.name && currentTeamMember.position) {
       setFormData((prev) => ({
         ...prev,
         leadershipTeam: [...prev.leadershipTeam, currentTeamMember],
       }))
       setCurrentTeamMember({
         name: '',
-        title: '',
-        image: null,
+        position: '',
+        photo: null,
       })
       setTeamMemberImagePreview(null)
       setShowTeamMemberModal(false)
     } else {
-      enqueueSnackbar('Name and title are required for team members', {
+      enqueueSnackbar('Name and position are required for team members', {
         variant: 'error',
       })
     }
@@ -130,50 +175,61 @@ export const AboutForm = () => {
       }
 
       // Validate contact link
-      if (formData.contactLink && !isValidURL(formData.contactLink)) {
+      if (formData.contactURL && !isValidURL(formData.contactURL)) {
         enqueueSnackbar('Please enter a valid URL for contact link', {
           variant: 'error',
         })
         return
       }
-
-      // Validate social links
-      for (const [platform, url] of Object.entries(formData.socialLinks)) {
-        if (url && !isValidURL(url)) {
-          enqueueSnackbar(`Please enter a valid URL for ${platform}`, {
-            variant: 'error',
-          })
-          return
-        }
-      }
+      console.log(formData.leadershipTeam)
 
       const formPayload = new FormData()
       formPayload.append('pageTitle', formData.pageTitle)
       formPayload.append('missionStatement', formData.missionStatement)
       formPayload.append('organizationHistory', formData.organizationHistory)
-      formPayload.append('contactLink', formData.contactLink)
-      formPayload.append('socialLinks', JSON.stringify(formData.socialLinks))
+      formPayload.append('contactURL', formData.contactURL)
+      formPayload.append('facebookURL', formData.facebookURL)
+      formPayload.append('instagramURL', formData.instagramURL)
+      formPayload.append('twitterURL', formData.twitterURL)
       formPayload.append(
         'leadershipTeam',
         JSON.stringify(formData.leadershipTeam)
       )
-      formPayload.append('updatedBy', user?.id)
+      // formPayload.append('updatedBy', user?.id)
 
-      if (formData.mediaImageUrl instanceof File) {
-        formPayload.append('mediaImageUrl', formData.mediaImageUrl)
+      // Add platform version if provided
+      if (formData.platformVersion) {
+        formPayload.append('platformVersion', formData.platformVersion)
+      }
+
+      if (formData.coverImage instanceof File) {
+        formPayload.append('coverImage', formData.coverImage)
       }
 
       // Handle team member images
       formData.leadershipTeam.forEach((member, index) => {
-        if (member.image instanceof File) {
-          formPayload.append(`teamMemberImages[${index}]`, member.image)
+        if (member.photo instanceof File) {
+          formPayload.append(`leadershipTeam[${index}].photo`, member.photo)
         }
       })
+
+      // Append legal document files if they exist
+      if (formData.termsConditionsPDF instanceof File) {
+        formPayload.append('termsConditionsPDF', formData.termsConditionsPDF)
+      }
+
+      if (formData.privacyPolicyPDF instanceof File) {
+        formPayload.append('privacyPolicyPDF', formData.privacyPolicyPDF)
+      }
+
+      if (formData.copyrightNoticePDF instanceof File) {
+        formPayload.append('copyrightNoticePDF', formData.copyrightNoticePDF)
+      }
 
       console.log('Form submitted:', Object.fromEntries(formPayload.entries()))
 
       const response = await axios.post(
-        `${API_BASE_URL}/about-us`,
+        `${API_BASE_URL}/about/admin/add-update`,
         formPayload,
         {
           headers: {
@@ -195,6 +251,8 @@ export const AboutForm = () => {
         )
       }
     } catch (error) {
+      console.log('Error submitting form:', error)
+
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
         {
@@ -253,7 +311,7 @@ export const AboutForm = () => {
                   type='button'
                   onClick={() => {
                     setImagePreview(null)
-                    setFormData((prev) => ({ ...prev, mediaImageUrl: null }))
+                    setFormData((prev) => ({ ...prev, coverImage: null }))
                   }}
                   className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
                 >
@@ -361,7 +419,7 @@ export const AboutForm = () => {
                       />
                     )}
                     <h3 className='font-medium'>{member.name}</h3>
-                    <p className='text-sm text-gray-300'>{member.title}</p>
+                    <p className='text-sm text-gray-300'>{member.position}</p>
                     <button
                       type='button'
                       onClick={() => handleRemoveTeamMember(index)}
@@ -413,8 +471,8 @@ export const AboutForm = () => {
                   </label>
                   <input
                     type='text'
-                    name='title'
-                    value={currentTeamMember.title}
+                    name='position'
+                    value={currentTeamMember.position}
                     onChange={handleTeamMemberChange}
                     className='w-full outline-none'
                     placeholder='Title'
@@ -437,7 +495,7 @@ export const AboutForm = () => {
                           setTeamMemberImagePreview(null)
                           setCurrentTeamMember((prev) => ({
                             ...prev,
-                            image: null,
+                            photo: null,
                           }))
                         }}
                         className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
@@ -518,8 +576,8 @@ export const AboutForm = () => {
             </label>
             <input
               type='text'
-              name='contactLink'
-              value={formData.contactLink}
+              name='contactURL'
+              value={formData.contactURL}
               onChange={handleChange}
               className='w-full outline-none'
               placeholder='Link to contact form'
@@ -538,24 +596,11 @@ export const AboutForm = () => {
                 </label>
                 <input
                   type='text'
-                  name='facebook'
-                  value={formData.socialLinks.facebook}
-                  onChange={handleSocialLinkChange}
+                  name='facebookURL'
+                  value={formData.facebookURL}
+                  onChange={handleChange}
                   className='w-full outline-none'
                   placeholder='Enter Facebook URL'
-                />
-              </div>
-              <div className='bg-[#00000061] p-2 rounded'>
-                <label className='block text-xs text-gray-400 mb-1'>
-                  Twitter
-                </label>
-                <input
-                  type='text'
-                  name='instagram'
-                  value={formData.socialLinks.instagram}
-                  onChange={handleSocialLinkChange}
-                  className='w-full outline-none'
-                  placeholder='Enter Instagram URL'
                 />
               </div>
               <div className='bg-[#00000061] p-2 rounded'>
@@ -564,13 +609,177 @@ export const AboutForm = () => {
                 </label>
                 <input
                   type='text'
-                  name='youtube'
-                  value={formData.socialLinks.youtube}
-                  onChange={handleSocialLinkChange}
+                  name='instagramURL'
+                  value={formData.instagramURL}
+                  onChange={handleChange}
                   className='w-full outline-none'
-                  placeholder='Enter Youtube URL'
+                  placeholder='Enter Instagram URL'
                 />
               </div>
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-xs text-gray-400 mb-1'>
+                  Twitter
+                </label>
+                <input
+                  type='text'
+                  name='twitterURL'
+                  value={formData.twitterURL}
+                  onChange={handleChange}
+                  className='w-full outline-none'
+                  placeholder='Enter Twitter URL'
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Legal Documents Section */}
+          <div className='mb-6'>
+            <h3 className='text-sm font-medium mb-4'>Legal Documents</h3>
+
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              {/* Terms & Conditions PDF */}
+              <div className='mb-4'>
+                <label className='block text-sm font-medium mb-2'>
+                  Terms & Conditions PDF
+                </label>
+                {termsAndConditionsFileName ? (
+                  <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
+                    <span className='text-sm truncate'>
+                      {termsAndConditionsFileName}
+                    </span>
+                    <button
+                      type='button'
+                      onClick={() => handleRemoveLegalDoc('termsConditionsPDF')}
+                      className='bg-[#14255D] p-1 rounded text-[#AEB9E1] ml-auto'
+                    >
+                      <Trash className='w-4 h-4' />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor='terms-conditions-upload'
+                    className='cursor-pointer border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center h-12 relative'
+                  >
+                    <input
+                      id='terms-conditions-upload'
+                      type='file'
+                      accept='.pdf'
+                      onChange={(e) =>
+                        handleLegalDocUpload(e, 'termsConditionsPDF')
+                      }
+                      className='absolute inset-0 opacity-0 z-50'
+                    />
+                    <p className='text-sm text-[#AEB9E1] z-10'>
+                      <span className='text-[#FEF200] mr-1'>
+                        Click to upload
+                      </span>
+                      Terms & Conditions PDF (Max 5MB)
+                    </p>
+                  </label>
+                )}
+              </div>
+
+              {/* Privacy Policy PDF */}
+              <div className='mb-4'>
+                <label className='block text-sm font-medium mb-2'>
+                  Privacy Policy PDF
+                </label>
+                {privacyPolicyFileName ? (
+                  <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
+                    <span className='text-sm truncate'>
+                      {privacyPolicyFileName}
+                    </span>
+                    <button
+                      type='button'
+                      onClick={() => handleRemoveLegalDoc('privacyPolicyPDF')}
+                      className='bg-[#14255D] p-1 rounded text-[#AEB9E1] ml-auto'
+                    >
+                      <Trash className='w-4 h-4' />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor='privacy-policy-upload'
+                    className='cursor-pointer border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center h-12 relative'
+                  >
+                    <input
+                      id='privacy-policy-upload'
+                      type='file'
+                      accept='.pdf'
+                      onChange={(e) =>
+                        handleLegalDocUpload(e, 'privacyPolicyPDF')
+                      }
+                      className='absolute inset-0 opacity-0 z-50'
+                    />
+                    <p className='text-sm text-[#AEB9E1] z-10'>
+                      <span className='text-[#FEF200] mr-1'>
+                        Click to upload
+                      </span>
+                      Privacy Policy PDF (Max 5MB)
+                    </p>
+                  </label>
+                )}
+              </div>
+
+              {/* Copyright Notice PDF */}
+              <div className='mb-4'>
+                <label className='block text-sm font-medium mb-2'>
+                  Copyright Notice PDF
+                </label>
+                {copyrightNoticeFileName ? (
+                  <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
+                    <span className='text-sm truncate'>
+                      {copyrightNoticeFileName}
+                    </span>
+                    <button
+                      type='button'
+                      onClick={() => handleRemoveLegalDoc('copyrightNoticePDF')}
+                      className='bg-[#14255D] p-1 rounded text-[#AEB9E1] ml-auto'
+                    >
+                      <Trash className='w-4 h-4' />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor='copyright-notice-upload'
+                    className='cursor-pointer border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center h-12 relative'
+                  >
+                    <input
+                      id='copyright-notice-upload'
+                      type='file'
+                      accept='.pdf'
+                      onChange={(e) =>
+                        handleLegalDocUpload(e, 'copyrightNoticePDF')
+                      }
+                      className='absolute inset-0 opacity-0 z-50'
+                    />
+                    <p className='text-sm text-[#AEB9E1] z-10'>
+                      <span className='text-[#FEF200] mr-1'>
+                        Click to upload
+                      </span>
+                      Copyright Notice PDF (Max 5MB)
+                    </p>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Platform Version */}
+            <div className='mb-6 bg-[#00000061] p-2 rounded'>
+              <label className='block text-sm font-medium mb-1'>
+                Platform Version (Display Only)
+              </label>
+              <input
+                type='text'
+                name='platformVersion'
+                value={formData.platformVersion}
+                onChange={handleChange}
+                className='w-full outline-none'
+                placeholder='e.g., v2.5.0'
+              />
+              <p className='text-xs text-gray-400 mt-1'>
+                Displays system or platform version in site footer
+              </p>
             </div>
           </div>
 

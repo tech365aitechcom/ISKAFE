@@ -15,6 +15,11 @@ import {
   Info,
   SquareUser,
   Trophy,
+  Scale,
+  Ban,
+  Crown,
+  UserCheck,
+  Medal,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -35,24 +40,18 @@ export function Sidebar() {
       highlight: true,
     },
     {
-      href: '/admin/tournaments',
-      icon: <Trophy size={18} />,
-      title: 'Tournaments',
-      highlight: true,
-    },
-    {
       href: '/admin/spectator-ticket-redemption',
       icon: <User size={18} />,
       title: 'Spectator Ticket Redemption',
     },
     {
       href: '/admin/fighter-trainer-checkin',
-      icon: <Dumbbell size={18} />,
+      icon: <UserCheck size={18} />,
       title: 'Fighter & Trainer Checkin',
     },
     {
       href: '/admin/fighter-and-rankings',
-      icon: <Dumbbell size={18} />,
+      icon: <Medal size={18} />,
       title: 'Fighter & Rankings',
     },
     {
@@ -65,8 +64,20 @@ export function Sidebar() {
       icon: <DollarSign size={18} />,
       title: 'Cash Payments & Codes',
     },
+    {
+      href: '/admin/training-and-gym-facilities',
+      icon: <Dumbbell size={18} />,
+      title: 'Training & Gym Facilities',
+      highlight: true,
+    },
+    {
+      href: '/admin/suspension-list',
+      icon: <Ban size={18} />,
+      title: 'Suspensions List',
+    },
     { href: '/admin/venues', icon: <MapPin size={18} />, title: 'Venues' },
     { href: '/admin/news', icon: <Newspaper size={18} />, title: 'News' },
+    { href: '/admin/rules', icon: <Scale size={18} />, title: 'Rules' },
     {
       href: '/admin/promoters',
       icon: <User size={18} />,
@@ -74,9 +85,20 @@ export function Sidebar() {
     },
     { href: '/admin/people', icon: <Users size={18} />, title: 'People' },
     {
+      href: '/admin/official-title-holders',
+      icon: <Crown size={18} />,
+      title: 'Official Title Holders',
+      highlight: true,
+    },
+    {
       href: '/admin/contact-settings',
       icon: <SquareUser size={18} />,
       title: 'Contact Settings',
+    },
+    {
+      href: '/admin/home-setting',
+      icon: <SquareUser size={18} />,
+      title: 'Homepage Settings',
     },
     { href: '/admin/about', icon: <Info size={18} />, title: 'About' },
   ]

@@ -239,12 +239,14 @@ export function EventTable({ events, onSuccess }) {
         </div>
 
         {(selectedType || selectedStatus) && (
-          <button
-            className='border border-gray-700 rounded-lg px-4 py-2 mb-4'
-            onClick={handleResetFilter}
-          >
-            Reset Filter
-          </button>
+          <div className='mt-7'>
+            <button
+              className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
+              onClick={handleResetFilter}
+            >
+              Reset Filters
+            </button>
+          </div>
         )}
       </div>
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
@@ -265,79 +267,87 @@ export function EventTable({ events, onSuccess }) {
               </tr>
             </thead>
             <tbody>
-              {sortedEvents.map((event, index) => {
-                const isPublic = publicStatus[event._id] || false
+              {sortedEvents && sortedEvents.length > 0 ? (
+                sortedEvents.map((event, index) => {
+                  const isPublic = publicStatus[event._id] || false
 
-                return (
-                  <tr
-                    key={index}
-                    className={`cursor-pointer ${
-                      index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
-                    }`}
-                  >
-                    <td className='p-4'>
-                      <Link href={`/admin/events/${event._id}`}>
-                        {event.title}
-                      </Link>
-                    </td>
-                    <td className='p-4'>
-                      {moment(event.startDate).format('YYYY/MM/DD')}
-                    </td>
-                    <td className='p-4'>
-                      {event.venueName},{event.location}
-                    </td>
-                    <td className='p-4'>{event.registeredParticipants}</td>
-                    <td className='p-4'>
-                      {getEventStatus(event.startDate, event.endDate)}
-                    </td>
-                    <td className='p-4 flex space-x-4 items-center'>
-                      {/* View/Edit */}
-                      <button
-                        className='text-blue-500 hover:underline block'
-                        onClick={() => handleViewEdit(event)}
-                      >
-                        View/Edit
-                      </button>
-
-                      {/* Manage Registrations */}
-                      <button
-                        className='text-green-500 hover:underline block'
-                        onClick={() => handleManageRegistrations(event)}
-                      >
-                        Manage
-                      </button>
-
-                      {/* Publish Toggle */}
-                      <div className='flex items-center gap-2'>
-                        <span>Public</span>
+                  return (
+                    <tr
+                      key={index}
+                      className={`cursor-pointer ${
+                        index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
+                      }`}
+                    >
+                      <td className='p-4'>
+                        <Link href={`/admin/events/${event._id}`}>
+                          {event.title}
+                        </Link>
+                      </td>
+                      <td className='p-4'>
+                        {moment(event.startDate).format('YYYY/MM/DD')}
+                      </td>
+                      <td className='p-4'>
+                        {event.venueName},{event.location}
+                      </td>
+                      <td className='p-4'>{event.registeredParticipants}</td>
+                      <td className='p-4'>
+                        {getEventStatus(event.startDate, event.endDate)}
+                      </td>
+                      <td className='p-4 flex space-x-4 items-center'>
+                        {/* View/Edit */}
                         <button
-                          onClick={() => togglePublicStatus(event._id)}
-                          className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out ${
-                            isPublic ? 'bg-violet-500' : 'bg-gray-300'
-                          }`}
+                          className='text-blue-500 hover:underline block'
+                          onClick={() => handleViewEdit(event)}
                         >
-                          <div
-                            className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
-                              isPublic ? 'translate-x-6' : 'translate-x-0'
-                            }`}
-                          />
+                          View/Edit
                         </button>
-                      </div>
 
-                      {/* Delete */}
-                      <button
-                        onClick={() => {
-                          setIsDelete(true)
-                          setSelectedEvent(event._id)
-                        }}
-                        className='text-red-600'
-                      >
-                        <Trash size={20} />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
+                        {/* Manage Registrations */}
+                        <button
+                          className='text-green-500 hover:underline block'
+                          onClick={() => handleManageRegistrations(event)}
+                        >
+                          Manage
+                        </button>
+
+                        {/* Publish Toggle */}
+                        <div className='flex items-center gap-2'>
+                          <span>Public</span>
+                          <button
+                            onClick={() => togglePublicStatus(event._id)}
+                            className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out ${
+                              isPublic ? 'bg-violet-500' : 'bg-gray-300'
+                            }`}
+                          >
+                            <div
+                              className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
+                                isPublic ? 'translate-x-6' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => {
+                            setIsDelete(true)
+                            setSelectedEvent(event._id)
+                          }}
+                          className='text-red-600'
+                        >
+                          <Trash size={20} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
+              ) : (
+                <tr className='text-center bg-[#0A1330]'>
+                  <td colSpan='6' className='p-4'>
+                    No events found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

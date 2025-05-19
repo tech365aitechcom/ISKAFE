@@ -26,7 +26,12 @@ export function NewsTable({
   const [selectedCategory, setSelectedCategory] = useState('')
   const [isDelete, setIsDelete] = useState(false)
   const [selectedNews, setSelectedNews] = useState(null)
-  const [categories, setCategories] = useState([])
+  const [categories, setCategories] = useState([
+    'Announcement',
+    'Rule Update',
+    'Interview',
+    'Media',
+  ])
 
   const filteredNews = news?.filter((news) => {
     const matchesSearch = news?.title
@@ -37,20 +42,6 @@ export function NewsTable({
       : true
     return matchesSearch && matchesCategory
   })
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/news-category`)
-      console.log('Response:', response.data)
-      setCategories(response.data.data)
-    } catch (error) {
-      console.log('Error fetching events:', error)
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
 
   const handleDeleteNews = async (id) => {
     console.log('Deleting news with ID:', id)
@@ -123,12 +114,8 @@ export function NewsTable({
                 Select category
               </option>
               {categories.map((category) => (
-                <option
-                  key={category._id}
-                  value={category._id}
-                  className='text-black'
-                >
-                  {category.name}
+                <option key={category} value={category} className='text-black'>
+                  {category}
                 </option>
               ))}
             </select>

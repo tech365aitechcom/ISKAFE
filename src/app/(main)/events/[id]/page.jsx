@@ -10,7 +10,7 @@ const page = ({ params }) => {
   const { id } = use(params)
   const [activeTab, setActiveTab] = useState('Details')
   const tabNames = ['Details', 'Teams', 'Fight Card']
-  const [isRegistrationModelOpen, setIsRegistrationModelOpen] = useState(false)
+  const [isRegistrationModelOpen, setIsRegistrationModelOpen] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [eventDetails, setEventDetails] = useState(null)
 
