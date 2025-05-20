@@ -222,7 +222,7 @@ export function SuspensionTable({
                         'N/A'
                       )}
                     </td>
-                    <td className='p-4 py-8 flex items-center justify-center space-x-2'>
+                    <td className='p-4 py-8 flex items-center space-x-2'>
                       <button
                         onClick={() => handleUpdate(suspension)}
                         className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
