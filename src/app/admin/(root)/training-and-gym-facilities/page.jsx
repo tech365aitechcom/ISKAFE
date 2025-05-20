@@ -25,7 +25,7 @@ export default function TrainingAndGymFacilities() {
   const [selectedApprovalStatus, setSelectedApprovalStatus] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalItems, setTotalItems] = useState(50) // Example data
+  const [totalItems, setTotalItems] = useState(3)
   const [limit, setLimit] = useState(10)
 
   // Mock data for demonstration
@@ -440,7 +440,7 @@ export default function TrainingAndGymFacilities() {
             totalItems={totalItems}
             label='Training and Gym Facilities'
           />
-          <div className='overflow-x-auto'>
+          <div className='overflow-x-auto custom-scrollbar'>
             <table className='w-full text-sm text-left'>
               <thead>
                 <tr className='text-gray-400 text-sm'>
@@ -477,7 +477,7 @@ export default function TrainingAndGymFacilities() {
                           className='h-10 w-10 object-cover rounded'
                         />
                       </td>
-                      <td className='px-4 py-3'>
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
                         <button
                           onClick={() => handleViewProfile(facility)}
                           className='text-blue-400 hover:text-blue-300 underline'
@@ -485,24 +485,30 @@ export default function TrainingAndGymFacilities() {
                           {facility.name}
                         </button>
                       </td>
-                      <td className='px-4 py-3'>{facility.location}</td>
-                      <td className='px-4 py-3'>
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                        {facility.location}
+                      </td>
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
                         {facility.styles.join(', ')}
                       </td>
-                      <td className='px-4 py-3'>
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
                         <span className={getStatusBadge(facility.status)}>
                           {facility.status}
                         </span>
                       </td>
-                      <td className='px-4 py-3'>
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
                         <span
                           className={getApprovalBadge(facility.approvalStatus)}
                         >
                           {facility.approvalStatus}
                         </span>
                       </td>
-                      <td className='px-4 py-3'>{facility.createdOn}</td>
-                      <td className='px-4 py-3'>{facility.addedBy}</td>
+                      <td className='px-4 py-3 whitespace-nowrap'>
+                        {facility.createdOn}
+                      </td>
+                      <td className='px-4 py-3 whitespace-nowrap'>
+                        {facility.addedBy}
+                      </td>
                       <td className='px-4 py-3 text-center'>
                         {facility.trainersCount}
                       </td>

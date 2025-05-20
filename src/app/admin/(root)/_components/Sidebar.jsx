@@ -20,6 +20,9 @@ import {
   Crown,
   UserCheck,
   Medal,
+  BarChart2,
+  ClipboardList,
+  PhoneCall,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -30,6 +33,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const user = useUserStore((state) => state.user)
   const [search, setSearch] = useState('')
+  const [reportsOpen, setReportsOpen] = useState(false)
 
   const navItems = [
     { href: '/admin/dashboard', icon: <Home size={18} />, title: 'Dashboard' },
@@ -156,6 +160,57 @@ export function Sidebar() {
               highlight={item.highlight}
             />
           ))}
+
+        <div className='flex flex-col'>
+          <button
+            onClick={() => setReportsOpen((prev) => !prev)}
+            className={`flex items-center p-4 text-sm w-full text-left ${
+              reportsOpen
+                ? 'text-[#FFCA28]'
+                : 'text-gray-300 hover:text-[#FFCA28]'
+            } font-lato`}
+          >
+            <span className='mr-3'>
+              <BarChart2 size={18} />
+            </span>
+            Reports
+            <span className='ml-auto'>
+              <ChevronRight
+                size={14}
+                className={`transition-transform duration-200 ${
+                  reportsOpen ? 'rotate-90' : ''
+                }`}
+              />
+            </span>
+          </button>
+
+          {reportsOpen && (
+            <div className='ml-2 flex flex-col'>
+              <Link
+                href='/admin/reports/event-registrations'
+                className={`p-2 text-sm  hover:text-[#FFCA28] font-lato flex gap-2 ${
+                  pathname === '/admin/reports/event-registrations'
+                    ? 'text-[#FFCA28]'
+                    : 'text-gray-300'
+                }`}
+              >
+                <ClipboardList size={18} />
+                Event Registrations (Fighters and Trainers)
+              </Link>
+              <Link
+                href='/admin/reports/contact-us'
+                className={`p-2 text-sm hover:text-[#FFCA28] font-lato flex gap-2 ${
+                  pathname === '/admin/reports/contact-us'
+                    ? 'text-[#FFCA28]'
+                    : 'text-gray-300'
+                }`}
+              >
+                <PhoneCall size={18} />
+                Contact Us
+              </Link>
+            </div>
+          )}
+        </div>
 
         {/* User Profile Section */}
         <Link
