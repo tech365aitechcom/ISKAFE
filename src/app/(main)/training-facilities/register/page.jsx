@@ -255,9 +255,9 @@ const RegisterTrainingFacilityPage = () => {
 
   return (
     <div className='flex items-center justify-center'>
-      <div className='bg-[#160B25] p-6 rounded-lg container w-full mx-4 my-8 relative'>
+      <div className='bg-[#160B25] p-6 rounded-lg w-full mx-4 my-8 relative'>
         <div className='flex items-center justify-between'>
-          <h2 className='text-2xl font-bold mb-6 text-white'>
+          <h2 className='text-4xl font-bold mb-6 text-white'>
             Register Training Facility
           </h2>
           <Link href='/training-facilities'>

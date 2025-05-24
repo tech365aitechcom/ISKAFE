@@ -38,6 +38,7 @@ const Navbar = () => {
       { name: 'My Purchases', path: '/my-purchases' },
       // { name: 'My Fight Family', path: '/my-fight-family' },
       { name: 'My Profile', path: '/my-profile' },
+      { name: 'Change Password', path: '/change-password' },
       { name: 'Logout', action: 'logout' },
     ]
   }
@@ -74,7 +75,7 @@ const Navbar = () => {
   }
 
   return (
-    <nav className='flex items-center justify-between px-2 container mx-auto h-fit w-full py-4 relative'>
+    <nav className='flex items-center justify-between container mx-auto px-2 h-fit w-full py-4 relative'>
       {/* Logo */}
       <Link href='/' className='flex'>
         <div className='relative w-30 h-30'>

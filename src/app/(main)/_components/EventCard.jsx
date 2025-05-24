@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { Flag } from 'lucide-react'
 import Link from 'next/link'
-import RegistrationForm from '../events/_components/RegistrationForm'
+import RegistrationForm from '../events/_components/FighterRegistrationForm'
 
 const EventCard = ({
   imageUrl,

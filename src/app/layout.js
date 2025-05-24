@@ -9,7 +9,7 @@ const saira = Saira_Condensed({
 })
 
 export const metadata = {
-  title: 'ISKA - International Kickboxing Federation',
+  title: 'ISKA',
   description:
     'The ISKA is the world’s largest amateur and professional kickboxing organization.',
 }

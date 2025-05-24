@@ -23,6 +23,7 @@ import {
   BarChart2,
   ClipboardList,
   PhoneCall,
+  ShieldCheck,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -88,6 +89,11 @@ export function Sidebar() {
       title: 'Promoters',
     },
     { href: '/admin/people', icon: <Users size={18} />, title: 'People' },
+    {
+      href: '/admin/access-control',
+      icon: <ShieldCheck size={18} />,
+      title: 'User Roles And Permissions',
+    },
     {
       href: '/admin/official-title-holders',
       icon: <Crown size={18} />,

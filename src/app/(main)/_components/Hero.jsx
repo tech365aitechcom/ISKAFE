@@ -5,22 +5,18 @@ const Hero = () => {
     <div className='bg-transparent w-full flex flex-col md:flex-row lg:px-40'>
       <div className='flex-1 p-8 pt-16 pb-16 flex flex-col justify-center'>
         <h1 className='text-white font-bold text-4xl md:text-5xl uppercase tracking-wide'>
-          INTERNATIONAL KICKBOXING
+          COMBAT SPORTS
         </h1>
         <h2 className='text-red-500 font-bold text-4xl md:text-5xl uppercase tracking-wide mt-2'>
-          FEDERATION
+          CIRCUIT
         </h2>
         <p className='text-white text-xl mt-10 max-w-lg leading-relaxed'>
-          Mr. Don Rodger and his Triangle Kickboxing Promotions will be hosing
-          another IKF Super Show that will have fight fans at the edge of their
-          seats in the State of NC!
+          Where Kickboxing, Muey Thai, and boxing champions are forged
         </p>
-        <p className='text-white text-xl mt-6 leading-relaxed'>
-          Men and Women will be competing in Knockout Action!
-        </p>
+
         <div className='mt-10 flex justify-between w-full'>
           <button className='bg-red-600 text-white font-bold px-2 py-4 uppercase text-xl'>
-            Get Tickets
+            Register Now
           </button>
           <a className=' text-center hidden md:block' href='#events'>
             <p className='text-gray-400 text-xs'>Scroll to explore</p>
