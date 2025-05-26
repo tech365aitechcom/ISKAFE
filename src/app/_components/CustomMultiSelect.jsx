@@ -37,7 +37,9 @@ export const CustomMultiSelect = ({ label, options, onChange }) => {
               className='p-2 hover:bg-gray-200 cursor-pointer flex items-center gap-2'
               onClick={() => handleSelect(option)}
             >
-              <span className='text-black'>{option.fullName}</span>
+              <span className='text-black'>
+                {option.fullName || option.label}
+              </span>
             </div>
           ))}
         </div>

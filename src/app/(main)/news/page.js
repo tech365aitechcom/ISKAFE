@@ -8,7 +8,7 @@ import Loader from '../../_components/Loader'
 import Pagination from '../../_components/Pagination'
 import moment from 'moment'
 
-const news = [
+const dummyNews = [
   {
     title: 'Professional Photography at the IKF Spring Classic!',
     description:
@@ -212,25 +212,27 @@ const NewsPage = () => {
           <Loader />
         ) : (
           <div className='flex flex-wrap gap-4'>
-            {news.map((item, index) => (
+            {dummyNews?.map((item, index) => (
               <div
                 key={index}
                 className='w-100 mx-auto border border-gray-500 rounded block hover:shadow-lg transition-shadow duration-300'
               >
                 <img
-                  src={process.env.NEXT_PUBLIC_BASE_URL + item.imageUrl}
-                  alt={item.title}
+                  src={process.env.NEXT_PUBLIC_BASE_URL + item?.imageUrl}
+                  alt={item?.title}
                   className='w-100 h-60 object-cover rounded-t'
                 />
                 <div className='p-4 text-white'>
-                  <h3 className='text-white text-xl font-bold'>{item.title}</h3>
+                  <h3 className='text-white text-xl font-bold'>
+                    {item?.title}
+                  </h3>
                   <h3 className='text-[#BDBDBD] text-lg font-medium my-2 leading-6'>
-                    {item.content}
+                    {item?.content}
                   </h3>
                   <h3 className='text-[#BDBDBD] font-medium mb-4'>
-                    {moment.utc(item.updatedAt).toISOString()}
+                    {moment.utc(item?.updatedAt).toISOString()}
                   </h3>
-                  <Link href={`/news/${item._id}`}>
+                  <Link href={`/news/${item?._id}`}>
                     <button className='bg-[#0A1330] text-white px-4 py-2 rounded transition duration-200'>
                       Read More
                     </button>

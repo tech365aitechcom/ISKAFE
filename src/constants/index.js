@@ -2278,6 +2278,9 @@ export const roles = {
   admin: 'Admin',
   user: 'User',
   fighter: 'Fighter',
+  trainer: 'Trainer',
+  parent: 'Parent',
+  promoter: 'Promoter',
 }
 
 export const apiConstants = {
