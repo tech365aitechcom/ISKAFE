@@ -30,7 +30,7 @@ export const CustomMultiSelect = ({ label, options, onChange }) => {
       </div>
 
       {isOpen && (
-        <div className='absolute w-full mt-1 max-h-60 overflow-y-auto border bg-white shadow-lg z-10 rounded'>
+        <div className='absolute w-full mt-1 max-h-44 overflow-y-auto border bg-white shadow-lg z-10 rounded'>
           {options.map((option) => (
             <div
               key={option._id}

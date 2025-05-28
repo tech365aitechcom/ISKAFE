@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { API_BASE_URL, countries } from '../../../constants/index'
+import { API_BASE_URL } from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
 import { useRouter } from 'next/navigation'
 import { roles } from '../../../constants/index'
@@ -59,11 +59,6 @@ const SignUpPage = () => {
     { length: currentYear - (currentYear - 100) + 1 },
     (_, i) => currentYear - i
   ).filter((year) => year <= currentYear - 18)
-
-  // Load countries list
-  useEffect(() => {
-    setCountryList(countries)
-  }, [])
 
   // Country code mapping
   const countryCodeMap = {

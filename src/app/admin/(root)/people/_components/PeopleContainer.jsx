@@ -11,13 +11,14 @@ export const PeopleContainer = () => {
   const user = useUserStore((state) => state.user)
   const [showAddPeopleForm, setShowAddPeopleForm] = useState(false)
   const [people, setPeople] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
 
   const getPeople = async () => {
+    setLoading(true)
     try {
       const response = await axios.get(
         `${API_BASE_URL}/auth/users?page=${currentPage}&limit=${limit}`,

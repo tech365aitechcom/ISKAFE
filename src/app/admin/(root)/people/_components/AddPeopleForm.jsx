@@ -1,5 +1,5 @@
 'use client'
-import { Trash } from 'lucide-react'
+import { Eye, EyeOff, Trash } from 'lucide-react'
 import React, { useState } from 'react'
 
 export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
@@ -12,7 +12,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
     email: '',
     gender: '',
     dateOfBirth: '',
-    roleName: '',
+    role: 'user',
+    password: '',
+    confirmPassword: '',
     about: '',
     isPremiumProfile: false,
     adminNotes: '',
@@ -24,6 +26,18 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
     street2: '',
     profilePic: null,
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const roleOptions = [
+    { value: 'user', label: 'User' },
+    { value: 'parent', label: 'Parent' },
+    { value: 'trainer', label: 'Trainer' },
+    { value: 'fighter', label: 'Fighter' },
+    { value: 'promoter', label: 'Promoter' },
+    { value: 'trainer', label: 'Trainer' },
+    { value: 'superAdmin', label: 'Super Admin' },
+  ]
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -43,6 +57,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
       }))
     }
   }
+  console.log('Form Data:', formData)
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -231,18 +246,30 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             </div>
 
             {/* Gender Field */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
+            <div className='mb-6 bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Gender<span className='text-red-500'>*</span>
               </label>
-              <input
-                type='text'
+              <select
                 name='gender'
                 value={formData.gender}
                 onChange={handleChange}
                 className='w-full outline-none'
-                placeholder='Male'
-              />
+                required
+              >
+                <option value='' className='text-black'>
+                  Select Gender
+                </option>
+                <option value='Male' className='text-black'>
+                  Male
+                </option>
+                <option value='Female' className='text-black'>
+                  Female
+                </option>
+                <option value='Other' className='text-black'>
+                  Other
+                </option>
+              </select>
             </div>
 
             {/* Date of Birth Field */}
@@ -261,20 +288,86 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             </div>
           </div>
 
-          <div className='grid grid-cols-1 md:grid-cols-1 gap-4 mb-6'>
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
             {/* Role Name Field */}
-            <div className='md:w-1/4 bg-[#00000061] p-2 h-16 rounded'>
+            <div className='mb-6 bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Role Name
+                Role Name<span className='text-red-500'>*</span>
               </label>
-              <input
-                type='text'
-                name='roleName'
-                value={formData.roleName}
+              <select
+                name='gender'
+                value={formData.gender}
                 onChange={handleChange}
                 className='w-full outline-none'
-                placeholder='40 Months'
-              />
+                required
+              >
+                <option value='' className='text-black'>
+                  Select role
+                </option>
+                {roleOptions.map((option, index) => (
+                  <option
+                    key={index}
+                    value={option.value}
+                    className='text-black'
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Password Field */}
+            <div className='bg-[#00000061] p-2 h-16 rounded relative'>
+              <label className='block text-xs font-medium mb-1'>
+                Password<span className='text-red-500'>*</span>
+              </label>
+              <div className='relative'>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name='password'
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder='********'
+                  className='w-full bg-transparent outline-none pr-10'
+                  minLength={8}
+                  required
+                />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </span>
+              </div>
+            </div>
+
+            {/* Confirm Password Field */}
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
+              <label className='block text-xs font-medium mb-1'>
+                Confirm Password<span className='text-red-500'>*</span>
+              </label>
+              <div className='relative'>
+                <input
+                  type='password'
+                  name='confirmPassword'
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder='********'
+                  className='w-full bg-transparent outline-none'
+                  minLength={8}
+                  required
+                />
+                <span
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </span>
+              </div>
             </div>
           </div>
 
