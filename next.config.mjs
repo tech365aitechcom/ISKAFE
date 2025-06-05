@@ -7,6 +7,8 @@ const nextConfig = {
       'ikf.onrender.com',
       'localhost',
       'example.com',
+      'res.cloudinary.com',
+      'ikf-assets.s3.amazonaws.com',
     ],
   },
 }

@@ -3,13 +3,13 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import { Eye, EyeOff } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
-import useUserStore from '../../../stores/userStore'
+import useStore from '../../../stores/useStore'
 import { useRouter } from 'next/navigation'
 import { API_BASE_URL, apiConstants, roles } from '../../../constants/index'
 import Link from 'next/link'
 
 const LoginPage = () => {
-  const { user, setUser } = useUserStore()
+  const { user, setUser } = useStore()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -21,6 +21,7 @@ const LoginPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
+
     setFormData({
       ...formData,
       [name]: value,
@@ -38,7 +39,7 @@ const LoginPage = () => {
       if (res.status === apiConstants.success) {
         console.log('Login successful:', res.data.user.role)
 
-        if (res.data.user.role === roles.admin) {
+        if (res.data.user.role === roles.superAdmin) {
           enqueueSnackbar(res.data.message, { variant: 'success' })
           setUser({ ...res.data.user, token: res.data.token })
           router.push('/admin/dashboard')
@@ -62,7 +63,7 @@ const LoginPage = () => {
   }
 
   useEffect(() => {
-    if (user && user.role == roles.admin) {
+    if (user && user.role == roles.superAdmin) {
       console.log('User is already logged in:', user.role)
       router.push('/admin/dashboard')
     }

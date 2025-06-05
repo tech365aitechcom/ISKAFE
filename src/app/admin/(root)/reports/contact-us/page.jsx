@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Search,
   Mail,
@@ -16,96 +16,43 @@ import {
 } from 'lucide-react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import axios from 'axios'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import moment from 'moment'
+import { enqueueSnackbar } from 'notistack'
 
 export default function ContactUsReports() {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalItems, setTotalItems] = useState(3)
+  const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
   const [sortField, setSortField] = useState('submissionTime')
   const [sortDirection, setSortDirection] = useState('desc')
   const [selectedStatus, setSelectedStatus] = useState('All')
 
-  // Mock data for demonstration
-  const [reports, setReports] = useState([
-    {
-      id: 1,
-      eventId: 'EVT-2023-001',
-      date: '2025-05-15',
-      submissionTime: '2025-05-15 09:23:45',
-      topic: 'General Inquiry',
-      subject: 'Question about membership',
-      submittedBy: 'john.doe@example.com',
-      db: 'MYSQL-PROD-01',
-      state: 'New',
-      assignedAdmin: 'Sarah Johnson',
-      userRole: 'Fighter',
-      responseSent: 'Yes',
-      responseDate: '2025-05-15 14:30:22',
-      lastUpdated: '2025-05-15 14:30:22',
-      attachment: 'membership_form.pdf',
-      email: 'john.doe@example.com',
-    },
-    {
-      id: 2,
-      eventId: 'EVT-2023-002',
-      date: '2025-05-14',
-      submissionTime: '2025-05-14 15:45:10',
-      topic: 'Technical Support',
-      subject: 'Cannot upload profile picture',
-      submittedBy: 'jane.smith@example.com',
-      db: 'MYSQL-PROD-01',
-      state: 'In Progress',
-      assignedAdmin: 'Michael Brown',
-      userRole: 'Coach',
-      responseSent: 'No',
-      responseDate: null,
-      lastUpdated: '2025-05-14 16:02:45',
-      attachment: null,
-      email: 'jane.smith@example.com',
-    },
-    {
-      id: 3,
-      eventId: 'EVT-2023-003',
-      date: '2025-05-13',
-      submissionTime: '2025-05-13 11:12:33',
-      topic: 'Complaint',
-      subject: 'Issue with tournament registration',
-      submittedBy: 'robert.miller@example.com',
-      db: 'MYSQL-PROD-01',
-      state: 'Closed',
-      assignedAdmin: 'Jessica White',
-      userRole: 'Gym Owner',
-      responseSent: 'Yes',
-      responseDate: '2025-05-13 14:05:17',
-      lastUpdated: '2025-05-13 14:05:17',
-      attachment: 'screenshot.jpg',
-      email: 'robert.miller@example.com',
-    },
-  ])
+  const [reports, setReports] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-  // Filter reports based on search query and status
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch =
-      report.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.submittedBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.topic.toLowerCase().includes(searchQuery.toLowerCase())
+  const getContactReports = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/contact-us`)
+      console.log('Response:', response.data)
 
-    const matchesStatus =
-      selectedStatus === 'All' || report.state === selectedStatus
-
-    return matchesSearch && matchesStatus
-  })
-
-  // Sort reports based on sortField and sortDirection
-  const sortedReports = [...filteredReports].sort((a, b) => {
-    if (sortDirection === 'asc') {
-      return a[sortField] > b[sortField] ? 1 : -1
-    } else {
-      return a[sortField] < b[sortField] ? 1 : -1
+      setReports(response.data.data.items)
+      setTotalPages(response.data.data.pagination.totalPages)
+      setTotalItems(response.data.data.pagination.totalItems)
+    } catch (error) {
+      console.log('Error fetching about details:', error)
+    } finally {
+      setLoading(false)
     }
-  })
+  }
+
+  useEffect(() => {
+    getContactReports()
+  }, [])
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -122,21 +69,31 @@ export default function ContactUsReports() {
   }
 
   const handleGetReports = () => {
-    console.log('Fetching latest registration forms...')
-    // Implement API call to refresh data
+    getContactReports()
+    setCurrentPage(1)
+    setSortField('submissionTime')
+    setSortDirection('desc')
+    setSearchQuery('')
+    setSelectedStatus('All')
   }
 
-  const handleSendResponse = (report) => {
-    console.log('Sending response to:', report.submittedBy)
-    // Implement send response logic
+  const handleSendResponse = async (reportId) => {
+    await axios.put(`${API_BASE_URL}/contact-us/${reportId}`, {
+      state: 'In Progress',
+      responseSent: 'Yes',
+      responseDate: new Date(),
+    })
+    getContactReports()
   }
 
-  const handleCloseReport = (reportId) => {
-    setReports((prev) =>
-      prev.map((report) =>
-        report.id === reportId ? { ...report, state: 'Closed' } : report
-      )
-    )
+  const handleCloseReport = async (reportId) => {
+    const response = await axios.put(`${API_BASE_URL}/contact-us/${reportId}`, {
+      state: 'Closed',
+    })
+    if (response.status === apiConstants.success) {
+      enqueueSnackbar('Report closed successfully', { variant: 'success' })
+      getContactReports()
+    }
   }
 
   const handleDownloadAttachment = (attachment) => {
@@ -184,28 +141,6 @@ export default function ContactUsReports() {
       </div>
     </th>
   )
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    })
-  }
-
-  const formatDateTime = (dateTimeString) => {
-    if (!dateTimeString) return '-'
-    return new Date(dateTimeString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    })
-  }
 
   return (
     <div className='text-white p-8 flex justify-center relative overflow-hidden'>
@@ -326,32 +261,34 @@ export default function ContactUsReports() {
                 </tr>
               </thead>
               <tbody>
-                {sortedReports && sortedReports.length > 0 ? (
-                  sortedReports.map((report, index) => (
+                {reports && reports.length > 0 ? (
+                  reports.map((report, index) => (
                     <tr
-                      key={report.id}
+                      key={report._id}
                       className={`${
                         index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                       }`}
                     >
-                      <td className='px-4 py-3'>{formatDate(report.date)}</td>
+                      <td className='px-4 py-3'>
+                        {moment(report.date).format('DD/MM/YYYY')}
+                      </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {formatDateTime(report.submissionTime)}
+                        {moment(report.date).format('DD/MM/YYYY')}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
                         {report.topic}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report.subject}
+                        {report.subIssue}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report.submittedBy}
+                        {report.createdBy?.email}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report.db}
+                        {report?._id}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report.eventId ? (
+                        {report?.eventId ? (
                           <a
                             href={`/admin/event-${report.eventId}`}
                             className='text-blue-400 hover:text-blue-300 flex items-center gap-1 '
@@ -370,17 +307,23 @@ export default function ContactUsReports() {
                       <td className='px-4 py-3'>
                         {report.assignedAdmin || 'Unassigned'}
                       </td>
-                      <td className='px-4 py-3'>{report.userRole}</td>
+                      <td className='px-4 py-3 uppercase'>
+                        {report.createdBy?.role}
+                      </td>
                       <td className='px-4 py-3'>
                         <span className={getResponseBadge(report.responseSent)}>
                           {report.responseSent}
                         </span>
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {formatDateTime(report.responseDate) || '-'}
+                        {(report.responseDate &&
+                          moment(report.responseDate).format(
+                            'DD/MM/YYYY HH:mm:ss'
+                          )) ||
+                          '-'}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {formatDateTime(report.lastUpdated)}
+                        {moment(report.updatedAt).format('DD/MM/YYYY HH:mm:ss')}
                       </td>
                       <td className='px-4 py-3'>
                         {report.attachment ? (
@@ -398,7 +341,7 @@ export default function ContactUsReports() {
                       </td>
                       <td className='px-4 py-3'>
                         <button
-                          onClick={() => handleSendResponse(report)}
+                          onClick={() => handleSendResponse(report._id)}
                           className='text-purple-400 hover:text-purple-300 flex items-center gap-1'
                         >
                           <Mail size={16} />
@@ -407,7 +350,7 @@ export default function ContactUsReports() {
                       <td className='px-4 py-3'>
                         {report.state !== 'Closed' ? (
                           <button
-                            onClick={() => handleCloseReport(report.id)}
+                            onClick={() => handleCloseReport(report._id)}
                             className='text-red-400 hover:text-red-300 flex items-center gap-1'
                             title='Close Report'
                           >

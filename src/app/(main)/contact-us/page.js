@@ -12,7 +12,7 @@ const ContactUs = () => {
 
   const getContactSettings = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/contact-settings`)
+      const response = await axios.get(`${API_BASE_URL}/contactUs-settings`)
       console.log('Response:', response.data)
 
       setData(response.data.data)
@@ -64,7 +64,7 @@ const ContactUs = () => {
           ></iframe>
         </div>
       </div>
-      <ContactForm subjects={data?.subjects} />
+      <ContactForm />
     </div>
   )
 }

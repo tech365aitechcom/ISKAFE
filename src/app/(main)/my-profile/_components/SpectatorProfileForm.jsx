@@ -4,7 +4,7 @@ import { User, MapPin, Bell, Save, ArrowLeft } from 'lucide-react'
 import FormField from '../../../_components/FormField'
 import FormSection from '../../../_components/FormSection'
 
-const SpectatorProfileForm = () => {
+const SpectatorProfileForm = ({ userDetails }) => {
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: '',
@@ -20,26 +20,26 @@ const SpectatorProfileForm = () => {
     city: '',
 
     // Preferences
-    communicationPreference: [],
+    communicationPreferences: [],
   })
 
-  // Dummy Data on mount
   useEffect(() => {
-    const dummyData = {
-      firstName: 'John',
-      lastName: 'Smith',
-      email: 'john.smith@example.com',
-      phoneNumber: '+1 555-123-4567',
-      dateOfBirth: '1985-06-15',
-      gender: 'male',
-      country: 'United States',
-      stateProvince: 'California',
-      city: 'San Francisco',
-      communicationPreference: ['email'],
+    if (userDetails?.dateOfBirth) {
+      const formattedDOB = new Date(userDetails.dateOfBirth)
+        .toISOString()
+        .split('T')[0]
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+        dateOfBirth: formattedDOB,
+      }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+      }))
     }
-
-    setFormData((prev) => ({ ...prev, ...dummyData }))
-  }, [])
+  }, [userDetails])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -82,14 +82,7 @@ const SpectatorProfileForm = () => {
     // In a real application, you would send this FormData to your API
     console.log('Submitting form data...', formData)
 
-    // Example of form submission (commented out)
-    // fetch('/api/spectator-profile', {
-    //   method: 'POST',
-    //   body: submitFormData,
-    // })
-    // .then(response => response.json())
-    // .then(data => console.log("Success:", data))
-    // .catch(error => console.error("Error:", error));
+    // Example API call (uncomment and modify as needed)
   }
 
   return (
@@ -159,7 +152,7 @@ const SpectatorProfileForm = () => {
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
                 required={true}
-                validation='Ages 13+'
+                validation='Ages 18+'
               />
 
               <FormField
@@ -248,9 +241,9 @@ const SpectatorProfileForm = () => {
                     <input
                       type='checkbox'
                       id='comm-email'
-                      name='communicationPreference'
+                      name='communicationPreferences'
                       value='email'
-                      checked={formData.communicationPreference.includes(
+                      checked={formData.communicationPreferences.includes(
                         'email'
                       )}
                       onChange={handleInputChange}
@@ -262,9 +255,11 @@ const SpectatorProfileForm = () => {
                     <input
                       type='checkbox'
                       id='comm-sms'
-                      name='communicationPreference'
+                      name='communicationPreferences'
                       value='sms'
-                      checked={formData.communicationPreference.includes('sms')}
+                      checked={formData.communicationPreferences.includes(
+                        'sms'
+                      )}
                       onChange={handleInputChange}
                       className='rounded text-blue-500 focus:ring-blue-500 bg-gray-700 border-gray-600'
                     />
@@ -274,9 +269,9 @@ const SpectatorProfileForm = () => {
                     <input
                       type='checkbox'
                       id='comm-push'
-                      name='communicationPreference'
+                      name='communicationPreferences'
                       value='push'
-                      checked={formData.communicationPreference.includes(
+                      checked={formData.communicationPreferences.includes(
                         'push'
                       )}
                       onChange={handleInputChange}

@@ -3,11 +3,12 @@ import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
-import useUserStore from '../../../stores/userStore'
+import useStore from '../../../stores/useStore'
 import Image from 'next/image'
+import { roles } from '../../../constants'
 
 const Navbar = () => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -38,6 +39,9 @@ const Navbar = () => {
       { name: 'My Purchases', path: '/my-purchases' },
       // { name: 'My Fight Family', path: '/my-fight-family' },
       { name: 'My Profile', path: '/my-profile' },
+      ...(user?.role === roles.superAdmin
+        ? [{ name: 'Admin Site', path: '/admin/dashboard' }]
+        : []),
       { name: 'Change Password', path: '/change-password' },
       { name: 'Logout', action: 'logout' },
     ]
@@ -118,7 +122,7 @@ const Navbar = () => {
                   {item.action === 'logout' ? (
                     <button
                       onClick={() => {
-                        useUserStore.getState().clearUser()
+                        useStore.getState().clearUser()
                         setDropdownOpen(false)
                         window.location.href = '/'
                       }}

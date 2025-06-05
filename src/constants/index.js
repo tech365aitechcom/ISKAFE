@@ -2273,14 +2273,18 @@ export const suspensionsData = [
 ]
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+export const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL
+export const CLOUD_NAME = process.env.NEXT_CLOUDINARY_CLOUD_NAME || 'dzreoypvy'
+export const UPLOAD_PRESET =
+  process.env.NEXT_CLOUDINARY_UPLOAD_PRESET || 'iska_media'
 
 export const roles = {
-  admin: 'Admin',
-  user: 'User',
-  fighter: 'Fighter',
-  trainer: 'Trainer',
-  parent: 'Parent',
-  promoter: 'Promoter',
+  superAdmin: 'superAdmin',
+  user: 'user',
+  fighter: 'fighter',
+  trainer: 'trainer',
+  parent: 'parent',
+  promoter: 'promoter',
 }
 
 export const apiConstants = {

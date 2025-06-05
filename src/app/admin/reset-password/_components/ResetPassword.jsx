@@ -60,7 +60,7 @@ const ResetPassword = () => {
       console.log('Reset Password response:', res.data)
       if (res.status === apiConstants.success) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
-        router.push('/login')
+        router.push('/admin/login')
       }
     } catch (err) {
       console.log('Reset Password error:', err)
@@ -73,16 +73,7 @@ const ResetPassword = () => {
     <Suspense fallback={<div>Loading...</div>}>
       <div className='flex h-screen w-full bg-transparent px-12 md:px-28 py-20 md:py-6'>
         <div className='flex w-full'>
-          <div className='hidden md:flex md:w-1/2 bg-gradient-to-b from-purple-900 to-black items-center justify-center'>
-            <div className='p-12'>
-              <img
-                src='/gloves.png'
-                alt='Red boxing glove'
-                className='max-w-full h-auto transform -rotate-12'
-              />
-            </div>
-          </div>
-          <div className='w-full md:w-1/2 flex md:items-center justify-center p-0 md:p-8'>
+          <div className='w-full flex md:items-center justify-center p-0 md:p-8'>
             <div className='w-full max-w-md'>
               <div className='flex justify-between items-center mb-6'>
                 <h1 className='text-3xl font-bold text-white'>
@@ -143,7 +134,7 @@ const ResetPassword = () => {
                 <div className='text-center text-white mt-4'>
                   Already have an account?{' '}
                   <Link
-                    href='/login'
+                    href='/admin/login'
                     className='text-yellow-500 hover:underline'
                   >
                     Login

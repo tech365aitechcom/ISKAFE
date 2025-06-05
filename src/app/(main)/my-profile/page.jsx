@@ -1,19 +1,54 @@
-import React from 'react'
+'use client'
+import React, { useEffect, useState } from 'react'
 import FighterProfileForm from './_components/FighterProfileForm'
 import TrainerProfileForm from './_components/TrainerProfileForm'
 import SpectatorProfileForm from './_components/SpectatorProfileForm'
-import { roles } from '../../../constants'
+import { API_BASE_URL, roles } from '../../../constants'
+import useStore from '../../../stores/useStore'
+import axios from 'axios'
 
 export default function MyProfile() {
-  const role = roles.fighter
+  const user = useStore((state) => state.user)
+  const [userDetails, setUserDetails] = useState(null)
+
+  const getUserDetails = async () => {
+    const response = await axios.get(`${API_BASE_URL}/auth/users/${user._id}`, {
+      headers: {
+        Authorization: `Bearer ${user.token}`,
+      },
+    })
+    console.log('User details:', response.data)
+    setUserDetails(response.data.data)
+  }
+
+  useEffect(() => {
+    if (user && user.token) {
+      getUserDetails()
+    }
+  }, [user])
+
+  if (!user) {
+    return (
+      <div className='bg-transparent border-t border-[#D9E2F930] p-4'>
+        <p className='text-center text-gray-500'>
+          Please log in to view your profile.
+        </p>
+      </div>
+    )
+  }
+
+  console.log('User in MyProfile:', user)
+
+  const role = user.role
+
   return (
     <div className='bg-transparent border-t border-[#D9E2F930]'>
       {role === roles.fighter ? (
-        <FighterProfileForm />
+        <FighterProfileForm userDetails={userDetails} />
       ) : role === roles.trainer ? (
-        <TrainerProfileForm />
+        <TrainerProfileForm userDetails={userDetails} />
       ) : (
-        <SpectatorProfileForm />
+        <SpectatorProfileForm userDetails={userDetails} />
       )}
     </div>
   )

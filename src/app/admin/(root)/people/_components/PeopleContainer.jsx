@@ -5,10 +5,10 @@ import Loader from '../../../../_components/Loader'
 import { API_BASE_URL } from '../../../../../constants'
 import { AddPeopleForm } from './AddPeopleForm'
 import { PeopleTable } from './PeopleTable'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 
 export const PeopleContainer = () => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [showAddPeopleForm, setShowAddPeopleForm] = useState(false)
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(false)

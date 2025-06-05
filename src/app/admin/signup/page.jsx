@@ -3,10 +3,8 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { API_BASE_URL } from '../../../constants/index'
+import { API_BASE_URL, apiConstants } from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
-import { useRouter } from 'next/navigation'
-import { roles } from '../../../constants/index'
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -18,23 +16,20 @@ const SignUpPage = () => {
     dobDay: '',
     dobMonth: '',
     dobYear: '',
-    country: 'United States',
-    mobileNumber: '',
+    country: '',
+    phoneNumber: '',
     termsAgreed: false,
-    // role: roles.admin,
+    role: 'superAdmin',
   })
 
   console.log('Form Data:', formData)
 
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [countryList, setCountryList] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-
-  const router = useRouter()
 
   // Generate days, months, years for DOB
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -135,7 +130,6 @@ const SignUpPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
 
     try {
       // Validate first and last name
@@ -186,8 +180,8 @@ const SignUpPage = () => {
       }
 
       // Validate mobile number
-      if (!validateMobileNumber(formData.mobileNumber)) {
-        enqueueSnackbar('Mobile number should contain only digits', {
+      if (!validateMobileNumber(formData.phoneNumber)) {
+        enqueueSnackbar('Phone number should contain only digits', {
           variant: 'warning',
         })
         setIsLoading(false)
@@ -196,20 +190,30 @@ const SignUpPage = () => {
 
       console.log('Registration data ready to be sent:', formData)
 
-      const res = await axios.post(`${API_BASE_URL}/auth/signup`, formData)
+      const res = await axios.post(`${API_BASE_URL}/auth/signup`, {
+        ...formData,
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/verify-email`,
+      })
       console.log('Registration response:', res)
-      if (res.status === 201) {
-        enqueueSnackbar(
-          'Account Created! Please check your inbox and verify your email.',
-          { variant: 'success' }
-        )
-        router.push('/login')
+      if (res.status === apiConstants.create) {
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          dobDay: '',
+          dobMonth: '',
+          dobYear: '',
+          country: '',
+          phoneNumber: '',
+          termsAgreed: false,
+          role: 'superAdmin',
+        })
       }
     } catch (err) {
-      console.error('Registration error:', err)
-      setError(
-        err?.response?.data?.message || 'An error occurred during registration'
-      )
+      console.log('Registration error:', err)
       enqueueSnackbar(
         err?.response?.data?.message || 'An error occurred during registration',
         { variant: 'error' }
@@ -230,11 +234,6 @@ const SignUpPage = () => {
                 *Indicates Mandatory Fields
               </span>
             </div>
-            {error && (
-              <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
-                {error}
-              </div>
-            )}
             <form className='space-y-4' onSubmit={handleSubmit}>
               {/* First Name */}
               <div>
@@ -428,9 +427,9 @@ const SignUpPage = () => {
                   </div>
                   <input
                     type='tel'
-                    name='mobileNumber'
+                    name='phoneNumber'
                     placeholder='Enter Mobile Number*'
-                    value={formData.mobileNumber}
+                    value={formData.phoneNumber}
                     onChange={handleChange}
                     className='w-3/4 px-4 py-3 rounded-r border border-gray-700 bg-transparent text-white'
                     required

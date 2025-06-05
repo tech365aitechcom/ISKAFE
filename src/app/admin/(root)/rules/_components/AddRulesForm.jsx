@@ -204,105 +204,83 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
         <form onSubmit={handleSubmit}>
           {/* Rule Category Section */}
           <div className='mb-6'>
-            <h2 className='text-lg font-semibold mb-3'>
+            <h2 className='text-lg font-semibold mb-2'>
               Rule Category Information
             </h2>
-            {/* Rule Category Field */}
-            <div className='bg-[#00000061] p-2 rounded mb-4'>
-              <label className='block text-sm font-medium mb-1'>
-                Rule Category Tab Name<span className='text-red-500'>*</span>
-              </label>
-              <div className='flex space-x-2'>
-                <select
-                  name='ruleCategory'
-                  value={formData.ruleCategory}
-                  onChange={handleChange}
-                  className='w-2/3 bg-transparent outline-none'
-                  required
-                >
-                  <option value='' className='text-black'>
-                    Select Category
-                  </option>
-                  <option value='Kickboxing' className='text-black'>
-                    Kickboxing
-                  </option>
-                  <option value='Muay Thai' className='text-black'>
-                    Muay Thai
-                  </option>
-                  <option value='Boxing' className='text-black'>
-                    Boxing
-                  </option>
-                  <option value='MMA' className='text-black'>
-                    MMA
-                  </option>
-                </select>
-                <input
-                  type='text'
-                  name='ruleCategory'
-                  value={
-                    formData.ruleCategory === 'custom'
-                      ? formData.ruleCategoryCustom
-                      : ''
-                  }
-                  onChange={handleChange}
-                  placeholder='Or enter custom category'
-                  className='w-1/3 bg-transparent outline-none'
-                  disabled={formData.ruleCategory !== 'custom'}
-                />
+            <div className='grid grid-cols-2 gap-4'>
+              {/* Rule Category Field */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  Rule Category Tab Name<span className='text-red-500'>*</span>
+                </label>
+                <div className='flex space-x-2'>
+                  <select
+                    name='ruleCategory'
+                    value={formData.ruleCategory}
+                    onChange={handleChange}
+                    className='w-full bg-transparent outline-none'
+                    required
+                  >
+                    <option value='' className='text-black'>
+                      Select Category
+                    </option>
+                    <option value='Kickboxing' className='text-black'>
+                      Kickboxing
+                    </option>
+                    <option value='Muay Thai' className='text-black'>
+                      Muay Thai
+                    </option>
+                    <option value='Boxing' className='text-black'>
+                      Boxing
+                    </option>
+                    <option value='MMA' className='text-black'>
+                      MMA
+                    </option>
+                  </select>
+                </div>
+                {errors.ruleCategory && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors.ruleCategory}
+                  </p>
+                )}
               </div>
-              {errors.ruleCategory && (
-                <p className='text-red-500 text-xs mt-1'>
-                  {errors.ruleCategory}
-                </p>
-              )}
-            </div>
 
-            {/* Sub-Tab Name */}
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Sub-Tab Name<span className='text-red-500'>*</span>
-              </label>
-              <div className='flex space-x-2'>
-                <select
-                  name='subTabName'
-                  value={formData.subTabName}
-                  onChange={handleChange}
-                  className='w-2/3 bg-transparent outline-none'
-                  required
-                >
-                  <option value='' className='text-black'>
-                    Select Sub-Tab
-                  </option>
-                  <option value='General' className='text-black'>
-                    General
-                  </option>
-                  <option value='Equipment' className='text-black'>
-                    Equipment
-                  </option>
-                  <option value='Judging' className='text-black'>
-                    Judging
-                  </option>
-                  <option value='Other' className='text-black'>
-                    Other
-                  </option>
-                </select>
-                <input
-                  type='text'
-                  name='subTabName'
-                  value={
-                    formData.subTabName === 'custom'
-                      ? formData.subTabNameCustom
-                      : ''
-                  }
-                  onChange={handleChange}
-                  placeholder='Or enter custom sub-tab'
-                  className='w-1/3 bg-transparent outline-none'
-                  disabled={formData.subTabName !== 'custom'}
-                />
+              {/* Sub-Tab Name */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  Sub-Tab Name<span className='text-red-500'>*</span>
+                </label>
+                <div className='flex space-x-2'>
+                  <select
+                    name='subTabName'
+                    value={formData.subTabName}
+                    onChange={handleChange}
+                    className='w-full bg-transparent outline-none'
+                    required
+                  >
+                    <option value='' className='text-black'>
+                      Select Sub-Tab
+                    </option>
+                    <option value='General' className='text-black'>
+                      General
+                    </option>
+                    <option value='Equipment' className='text-black'>
+                      Equipment
+                    </option>
+                    <option value='Judging' className='text-black'>
+                      Judging
+                    </option>
+                    <option value='Other' className='text-black'>
+                      Other
+                    </option>
+                  </select>
+                </div>
+                {errors.subTabName && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors.subTabName}
+                  </p>
+                )}
               </div>
-              {errors.subTabName && (
-                <p className='text-red-500 text-xs mt-1'>{errors.subTabName}</p>
-              )}
             </div>
           </div>
 

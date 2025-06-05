@@ -3,7 +3,7 @@ import { KeySquare, LogOut, ShieldUser, UserPen } from 'lucide-react'
 import React, { useState } from 'react'
 import { ProfileForm } from './_components/ProfileForm'
 import ChangePassword from './_components/ChangePassword'
-import useUserStore from '../../../../stores/userStore'
+import useStore from '../../../../stores/useStore'
 
 export default function MyProfile() {
   const [type, setType] = useState('View Profile')
@@ -51,7 +51,7 @@ export default function MyProfile() {
             <button
               className='text-white flex items-center gap-2'
               onClick={() => {
-                useUserStore.getState().clearUser()
+                useStore.getState().clearUser()
               }}
             >
               <LogOut />

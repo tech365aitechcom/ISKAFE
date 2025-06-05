@@ -20,7 +20,8 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
     adminNotes: '',
     phoneNumber: '',
     country: '',
-    stateProvince: '',
+    state: '',
+    postalCode: '',
     city: '',
     street1: '',
     street2: '',
@@ -474,8 +475,8 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               </label>
               <div className='relative'>
                 <select
-                  name='stateProvince'
-                  value={formData.stateProvince}
+                  name='state'
+                  value={formData.state}
                   onChange={handleChange}
                   className='w-full outline-none appearance-none'
                 >

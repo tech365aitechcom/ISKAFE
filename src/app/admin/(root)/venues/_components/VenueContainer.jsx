@@ -9,6 +9,9 @@ import Loader from '../../../../_components/Loader'
 export const VenueContainer = () => {
   const [showAddVenueForm, setShowAddVenueForm] = useState(false)
   const [venues, setVenues] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCity, setSelectedCity] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('')
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -18,7 +21,7 @@ export const VenueContainer = () => {
   const getVenues = async () => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/venues/find-all?page=${currentPage}&limit=${limit}`
+        `${API_BASE_URL}/venues?page=${currentPage}&limit=${limit}`
       )
       console.log('Response:', response.data)
 
@@ -61,6 +64,12 @@ export const VenueContainer = () => {
           ) : (
             <VenuesTable
               venues={venues}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedCity={selectedCity}
+              setSelectedCity={setSelectedCity}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
               limit={limit}
               setLimit={setLimit}
               currentPage={currentPage}

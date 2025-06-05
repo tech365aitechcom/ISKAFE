@@ -1,12 +1,12 @@
 'use client'
 import { API_BASE_URL, apiConstants } from '../../../../constants/index'
-import useUserStore from '../../../../stores/userStore'
+import useStore from '../../../../stores/useStore'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import React, { useState } from 'react'
 
 export default function FighterRegistrationForm({ setIsOpen, eventId }) {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     // Personal Info

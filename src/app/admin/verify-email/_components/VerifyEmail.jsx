@@ -51,7 +51,7 @@ const VerifyEmail = () => {
         setStatus({ loading: false, success: true, error: '' })
 
         setTimeout(() => {
-          router.push('/login')
+          router.push('/admin/login')
         }, 3000)
       } catch (err) {
         const errMsg =
@@ -89,7 +89,7 @@ const VerifyEmail = () => {
                 Not redirected?{' '}
                 <Button
                   variant='link'
-                  onClick={() => router.push('/login')}
+                  onClick={() => router.push('/admin/login')}
                   className='p-0 h-auto text-blue-400'
                 >
                   Click here
@@ -103,7 +103,7 @@ const VerifyEmail = () => {
               <Button
                 variant='secondary'
                 className='mt-4'
-                onClick={() => router.push('/login')}
+                onClick={() => router.push('/admin/login')}
               >
                 Go to Login
               </Button>

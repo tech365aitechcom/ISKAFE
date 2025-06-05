@@ -3,15 +3,14 @@ import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
 import { Send, X } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import Loader from '../../../../_components/Loader'
 
 export const ContactSettingsForm = () => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     emailRecipients: [],
-    subjects: [],
     enableCaptcha: false,
     address: '',
     phone: '',
@@ -21,14 +20,17 @@ export const ContactSettingsForm = () => {
 
   const [loading, setLoading] = useState(true)
   const [newEmailRecipient, setNewEmailRecipient] = useState('')
-  const [newSubject, setNewSubject] = useState('')
+  const [newTopic, setNewTopic] = useState('')
   const [emailError, setEmailError] = useState('')
+
+  const [existingId, setExistingId] = useState('')
 
   const fetchContactSettings = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/contact-settings`)
+      const response = await axios.get(`${API_BASE_URL}/contactUs-settings`)
       console.log('Response:', response.data)
       if (response.data.data) {
+        setExistingId(response.data.data._id)
         setFormData(response.data.data)
       }
     } catch (error) {
@@ -92,40 +94,6 @@ export const ContactSettingsForm = () => {
     }))
   }
 
-  const handleAddSubject = () => {
-    if (!newSubject.trim()) {
-      enqueueSnackbar('Subject cannot be empty', {
-        variant: 'error',
-      })
-      return
-    }
-
-    const exists = formData.subjects.some(
-      (subject) =>
-        subject.name.toLowerCase() === newSubject.trim().toLowerCase()
-    )
-
-    if (exists) {
-      enqueueSnackbar('This subject already exists', {
-        variant: 'error',
-      })
-      return
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      subjects: [...prev.subjects, { name: newSubject.trim() }],
-    }))
-    setNewSubject('')
-  }
-
-  const handleRemoveSubject = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      subjects: prev.subjects.filter((_, i) => i !== index),
-    }))
-  }
-
   const handleSubmit = async (e) => {
     try {
       e.preventDefault()
@@ -133,13 +101,6 @@ export const ContactSettingsForm = () => {
       // Validate mandatory fields
       if (formData.emailRecipients.length === 0) {
         enqueueSnackbar('At least one email recipient is required', {
-          variant: 'error',
-        })
-        return
-      }
-
-      if (formData.subjects.length === 0) {
-        enqueueSnackbar('At least one subject option is required', {
           variant: 'error',
         })
         return
@@ -153,27 +114,36 @@ export const ContactSettingsForm = () => {
         return
       }
 
-      const payload = {
-        ...formData,
-        updatedBy: user?.id,
-      }
+      console.log('Form submitted:', formData)
 
-      console.log('Form submitted:', payload)
-
-      const response = await axios.put(
-        `${API_BASE_URL}/contact-settings`,
-        payload
-      )
-
-      console.log('Response:', response)
-      if (response.status === apiConstants.success) {
-        enqueueSnackbar(
-          response.data.message || 'Contact settings updated successfully',
+      let response = null
+      if (existingId) {
+        response = await axios.put(
+          `${API_BASE_URL}/contactUs-settings/${existingId}`,
+          formData
+        )
+      } else {
+        response = await axios.post(
+          `${API_BASE_URL}/contactUs-settings`,
+          formData,
           {
-            variant: 'success',
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
           }
         )
       }
+
+      console.log('Response:', response)
+      if (
+        response.status === apiConstants.success ||
+        response.status === apiConstants.create
+      ) {
+        enqueueSnackbar(response.data.message, {
+          variant: 'success',
+        })
+      }
+      fetchContactSettings()
     } catch (error) {
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
@@ -249,51 +219,6 @@ export const ContactSettingsForm = () => {
             {emailError && (
               <p className='mt-1 text-sm text-red-500'>{emailError}</p>
             )}
-          </div>
-
-          {/* Settings Section */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>Settings</h2>
-
-          {/* Subject Dropdown */}
-          <div className='mb-6'>
-            <label className='block text-sm font-medium mb-2'>
-              Subject Dropdown Options<span className='text-red-500'>*</span>
-            </label>
-            <div className='mb-2 flex flex-wrap gap-2'>
-              {formData.subjects.map((subject, index) => (
-                <div
-                  key={index}
-                  className='bg-[#14255D] px-3 py-1 rounded-full flex items-center gap-2'
-                >
-                  <span className='text-sm'>{subject.name}</span>
-                  <button
-                    type='button'
-                    onClick={() => handleRemoveSubject(index)}
-                    className='text-[#AEB9E1] hover:text-white'
-                  >
-                    <X className='w-4 h-4' />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className='flex'>
-              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
-                <input
-                  type='text'
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
-                  className='w-full outline-none'
-                  placeholder='Add/remove options'
-                />
-              </div>
-              <button
-                type='button'
-                onClick={handleAddSubject}
-                className='bg-[#7F25FB] px-4 rounded-r flex items-center justify-center'
-              >
-                <Send className='w-5 h-5' />
-              </button>
-            </div>
           </div>
 
           {/* Enable CAPTCHA */}

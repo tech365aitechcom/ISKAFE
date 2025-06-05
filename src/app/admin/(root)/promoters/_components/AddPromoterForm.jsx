@@ -1,21 +1,26 @@
 'use client'
+import useStore from '../../../../../stores/useStore'
+import { enqueueSnackbar } from 'notistack'
+import { uploadToCloudinary } from '../../../../../utils/uploadToCloudinary'
 import { Trash } from 'lucide-react'
 import React, { useState } from 'react'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
 
 export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
+  const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     // Profile Info
-    profilePic: null,
-    promoterName: '',
-    abbreviations: '',
+    profilePhoto: null,
+    name: '',
+    abbreviation: '',
     websiteURL: '',
     aboutUs: '',
 
     // Contact Info
     contactPersonName: '',
-    mobileNumber: '',
-    alternateMobileNumber: '',
-    emailAddress: '',
+    phoneNumber: '',
+    email: '',
+    alternatePhoneNumber: '',
 
     // Compliance
     sanctioningBody: '',
@@ -29,7 +34,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
     country: 'United States',
     state: '',
     city: '',
-    zipCode: '',
+    postalCode: '',
 
     // Access
     accountStatus: 'Active',
@@ -37,7 +42,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
     password: '',
     confirmPassword: '',
     assignRole: 'Promoter',
-    internalNotes: '',
+    adminNotes: '',
   })
 
   const handleChange = (e) => {
@@ -59,16 +64,74 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
     }
   }
 
-  const validateForm = () => {
-    // Validation logic would go here
-    return true
-  }
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (validateForm()) {
-      console.log('Form submitted:', formData)
-      // Submit logic here
+    try {
+      if (formData.profilePhoto !== null) {
+        formData.profilePhoto = await uploadToCloudinary(formData.profilePhoto)
+      }
+      if (formData.licenseCertificate !== null) {
+        formData.licenseCertificate = await uploadToCloudinary(
+          formData.licenseCertificate
+        )
+      }
+      const response = await axios.post(
+        `${API_BASE_URL}/promoter`,
+        { ...formData },
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message, { variant: 'success' })
+        setFormData({
+          // Profile Info
+          profilePhoto: null,
+          name: '',
+          abbreviation: '',
+          websiteURL: '',
+          aboutUs: '',
+
+          // Contact Info
+          contactPersonName: '',
+          phoneNumber: '',
+          email: '',
+          alternatePhoneNumber: '',
+
+          // Compliance
+          sanctioningBody: '',
+
+          // Documents
+          licenseCertificate: null,
+
+          // Address Info
+          street1: '',
+          street2: '',
+          country: 'United States',
+          state: '',
+          city: '',
+          postalCode: '',
+
+          // Access
+          accountStatus: 'Active',
+          username: '',
+          password: '',
+          confirmPassword: '',
+          assignRole: 'Promoter',
+          adminNotes: '',
+        })
+      }
+    } catch (error) {
+      console.log(error)
+
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        {
+          variant: 'error',
+        }
+      )
     }
   }
 
@@ -110,17 +173,17 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 Upload Image (jpg/png)
                 <span className='text-gray-400'> - Optional</span>
               </label>
-              {formData.profilePic ? (
+              {formData.profilePhoto ? (
                 <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                   <img
-                    src={formData.profilePic}
+                    src={formData.profilePhoto}
                     alt='Selected image'
                     className='w-full h-full object-cover'
                   />
                   <button
                     type='button'
                     onClick={() =>
-                      setFormData((prev) => ({ ...prev, profilePic: null }))
+                      setFormData((prev) => ({ ...prev, profilePhoto: null }))
                     }
                     className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
                   >
@@ -136,7 +199,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     id='profile-pic-upload'
                     type='file'
                     accept='image/*'
-                    onChange={(e) => handleFileChange(e, 'profilePic')}
+                    onChange={(e) => handleFileChange(e, 'profilePhoto')}
                     className='absolute inset-0 opacity-0 cursor-pointer z-50'
                   />
 
@@ -177,8 +240,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 </label>
                 <input
                   type='text'
-                  name='promoterName'
-                  value={formData.promoterName}
+                  name='name'
+                  value={formData.name}
                   onChange={handleChange}
                   placeholder='Enter Promoter Name'
                   className='w-full bg-transparent outline-none'
@@ -193,8 +256,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 </label>
                 <input
                   type='text'
-                  name='abbreviations'
-                  value={formData.abbreviations}
+                  name='abbreviation'
+                  value={formData.abbreviation}
                   onChange={handleChange}
                   placeholder='e.g. IKF'
                   className='w-full bg-transparent outline-none'
@@ -273,8 +336,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 </label>
                 <input
                   type='tel'
-                  name='mobileNumber'
-                  value={formData.mobileNumber}
+                  name='phoneNumber'
+                  value={formData.phoneNumber}
                   onChange={handleChange}
                   placeholder='+1-555-123456'
                   className='w-full bg-transparent outline-none'
@@ -290,8 +353,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 </label>
                 <input
                   type='tel'
-                  name='alternateMobileNumber'
-                  value={formData.alternateMobileNumber}
+                  name='alternatePhoneNumber'
+                  value={formData.alternatePhoneNumber}
                   onChange={handleChange}
                   placeholder='+1-555-000000'
                   className='w-full bg-transparent outline-none'
@@ -307,8 +370,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 </label>
                 <input
                   type='email'
-                  name='emailAddress'
-                  value={formData.emailAddress}
+                  name='email'
+                  value={formData.email}
                   onChange={handleChange}
                   placeholder='promoter@event.com'
                   className='w-full bg-transparent outline-none'
@@ -578,8 +641,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 </label>
                 <input
                   type='text'
-                  name='zipCode'
-                  value={formData.zipCode}
+                  name='postalCode'
+                  value={formData.postalCode}
                   onChange={handleChange}
                   placeholder='90001'
                   className='w-full bg-transparent outline-none'
@@ -721,8 +784,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 Internal Notes<span className='text-gray-400'> - Optional</span>
               </label>
               <textarea
-                name='internalNotes'
-                value={formData.internalNotes}
+                name='adminNotes'
+                value={formData.adminNotes}
                 onChange={handleChange}
                 placeholder='Admin-only remarks'
                 rows='3'

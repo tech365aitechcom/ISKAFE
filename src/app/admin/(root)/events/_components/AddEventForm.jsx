@@ -3,14 +3,14 @@ import { enqueueSnackbar } from 'notistack'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { CustomMultiSelect } from '../../../../_components/CustomMultiSelect'
 import MarkdownEditor from '../../../../_components/MarkdownEditor'
 import { AddVenuesForm } from '../../venues/_components/AddVenuesForm'
 import Autocomplete from '../../../../_components/Autocomplete'
 
 export const AddEventForm = ({ setShowAddEvent }) => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
 
   // Mock data for dropdown lists - replace with actual data from your API
   const ageCategories = [

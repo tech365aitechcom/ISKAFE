@@ -14,7 +14,6 @@ import {
   Newspaper,
   Info,
   SquareUser,
-  Trophy,
   Scale,
   Ban,
   Crown,
@@ -24,15 +23,16 @@ import {
   ClipboardList,
   PhoneCall,
   ShieldCheck,
+  Globe,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import useUserStore from '../../../../stores/userStore'
+import useStore from '../../../../stores/useStore'
 import { useState } from 'react'
 
 export function Sidebar() {
   const pathname = usePathname()
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [search, setSearch] = useState('')
   const [reportsOpen, setReportsOpen] = useState(false)
 
@@ -111,6 +111,7 @@ export function Sidebar() {
       title: 'Homepage Settings',
     },
     { href: '/admin/about', icon: <Info size={18} />, title: 'About' },
+    { href: '/', icon: <Globe size={18} />, title: 'Public Site' },
   ]
 
   return (

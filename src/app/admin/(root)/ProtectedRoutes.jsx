@@ -4,17 +4,17 @@ import React, { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from './_components/Sidebar'
 import Header from './_components/Header'
-import useUserStore from '../../../stores/userStore'
+import useStore from '../../../stores/useStore'
 import Loader from '../../_components/Loader'
 import { roles } from '../../../constants/index'
 
 const ProtectedRoutes = ({ children }) => {
   const router = useRouter()
-  const { user, _hasHydrated } = useUserStore()
+  const { user, _hasHydrated } = useStore()
 
   useEffect(() => {
     if (_hasHydrated && !user) {
-      // router.push('/admin/login')
+      router.push('/admin/login')
     }
   }, [_hasHydrated, user, router])
 
@@ -26,9 +26,9 @@ const ProtectedRoutes = ({ children }) => {
     )
   }
 
-  // if (!user || user?.role !== roles.admin) {
-  //   return null
-  // }
+  if (!user || user?.role !== roles.superAdmin) {
+    return null
+  }
 
   return (
     <div className='flex h-screen w-full inset-0 bg-[#07091D]'>

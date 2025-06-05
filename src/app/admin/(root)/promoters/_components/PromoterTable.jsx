@@ -21,6 +21,8 @@ import Pagination from '../../../../_components/Pagination'
 
 export function PromoterTable({
   promoters,
+  searchQuery,
+  setSearchQuery,
   limit,
   setLimit,
   currentPage,
@@ -29,18 +31,8 @@ export function PromoterTable({
   totalItems,
   onSuccess,
 }) {
-  const [searchQuery, setSearchQuery] = useState('')
   const [isDelete, setIsDelete] = useState(false)
   const [selectedPromoter, setSelectedPromoter] = useState(null)
-
-  const filteredPromoters = promoters?.filter((promoter) => {
-    // Match by name, email or abbreviation
-    const matchesSearch =
-      promoter?.name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-      promoter?.email?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-      promoter?.abbreviation?.toLowerCase().includes(searchQuery?.toLowerCase())
-    return matchesSearch
-  })
 
   const handleDeletePromoter = async (promoterId) => {
     try {
@@ -98,8 +90,8 @@ export function PromoterTable({
               </tr>
             </thead>
             <tbody>
-              {filteredPromoters && filteredPromoters.length > 0 ? (
-                filteredPromoters.map((promoter, index) => {
+              {promoters && promoters.length > 0 ? (
+                promoters.map((promoter, index) => {
                   return (
                     <tr
                       key={promoter._id}
@@ -108,34 +100,37 @@ export function PromoterTable({
                       }`}
                     >
                       <td className='p-4'>{promoter._id}</td>
-                      <td className='p-4'>{promoter.name}</td>
+                      <td className='p-4'>
+                        {promoter.user?.firstName} {promoter.user?.middleName}{' '}
+                        {promoter.user?.lastName}
+                      </td>
                       <td className='p-4'>{promoter.abbreviation}</td>
                       <td className='p-4'>
                         <a
-                          href={promoter.websiteUrl}
+                          href={promoter.websiteURL}
                           target='_blank'
                           rel='noopener noreferrer'
                           className='text-blue-500 hover:underline flex items-center'
                         >
-                          {promoter.websiteUrl}
+                          {promoter.websiteURL}
                           <ExternalLink size={14} className='ml-1' />
                         </a>
                       </td>
                       <td className='p-4'>
                         <a
-                          href={`mailto:${promoter.email}`}
+                          href={`mailto:${promoter.user.email}`}
                           className='text-blue-500 hover:underline flex items-center'
                         >
-                          {promoter.email}
+                          {promoter.user.email}
                           <Mail size={14} className='ml-1' />
                         </a>
                       </td>
                       <td className='p-4'>
                         <a
-                          href={`tel:${promoter.contactNumber}`}
+                          href={`tel:${promoter.user.phoneNumber}`}
                           className='flex items-center'
                         >
-                          {promoter.contactNumber}
+                          {promoter.user.phoneNumber}
                           <Phone size={14} className='ml-1' />
                         </a>
                       </td>
@@ -143,12 +138,12 @@ export function PromoterTable({
                       <td className='p-4'>
                         <span
                           className={`px-2 py-1 rounded ${
-                            promoter.status === 'Active'
+                            promoter.accountStatus === 'Active'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {promoter.status}
+                          {promoter.accountStatus}
                         </span>
                       </td>
                       <td className='p-4'>

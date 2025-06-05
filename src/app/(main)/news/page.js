@@ -7,86 +7,7 @@ import { API_BASE_URL } from '../../../constants'
 import Loader from '../../_components/Loader'
 import Pagination from '../../_components/Pagination'
 import moment from 'moment'
-
-const dummyNews = [
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: '/news.png',
-    time: '8 hours ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?...',
-    time: '8 hours ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title:
-      'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
-    description:
-      'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?...',
-    time: '1 day ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title:
-      'Great Semi Contact also at the IKF Spring Classic! Tickets on Sale Now!',
-    description:
-      'PSR Point Kickboxing & Muay Thai Sparring will be part of the IKF Spr...',
-    img: 'https://s3-alpha-sig.figma.com/img/28ca/dbe4/dcf28a3b76bdea8db3030c422b77e63a?...',
-    time: '2 days ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title:
-      "Introducing 'Shooter Gloves': Perfect for MMA and IKF Freestyle Kickboxing",
-    description:
-      "Introducing 'Shooter Gloves': Perfect for MMA and IKF Freestyle Kickboxing by Blackout Gear Company...",
-    img: 'https://s3-alpha-sig.figma.com/img/1b66/67cf/809244bc93484e0e2880ede325be2a8d?...',
-    time: '3 days ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title:
-      'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
-    description:
-      'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img/01d8/826f/5c52a35ac978105397cdbf2534a77596?...',
-    time: '5 days ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: '/news.png',
-    time: '8 hours ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title: 'Professional Photography at the IKF Spring Classic!',
-    description:
-      'We are pleased to welcome Zaneta Hech as our official photographer for the 2025 IKF Spring Muay Thai...',
-    img: 'https://s3-alpha-sig.figma.com/img/18da/24d1/f176376b9bb4073e276aa5cf1e93628f?...',
-    time: '8 hours ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-  {
-    title:
-      'Get Tickets and Pay Per View for IKF Spring Classic Super Fights! Myrtle Beach, SC',
-    description:
-      'Get the Best Prices on Tickets for the best show in the Grand Strand this Saturday, March 15th! Fights will be at...',
-    img: 'https://s3-alpha-sig.figma.com/img...',
-    time: '1 day ago',
-    date: '2025-04-24T12:00:00Z',
-  },
-]
+import useStore from '../../../stores/useStore'
 
 const NewsPage = () => {
   const [news, setNews] = useState([])
@@ -97,6 +18,26 @@ const NewsPage = () => {
   const [category, setCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
   const newsPerPage = 9
+
+  const { newsCategories } = useStore()
+
+  useEffect(() => {
+    const getCategories = async () => {
+      setLoading(true)
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/master/newsCategories`
+        )
+        console.log('Response:', response.data)
+        useStore.getState().setNewsCategories(response.data.result)
+      } catch (error) {
+        console.log('Error fetching news:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    getCategories()
+  }, [])
 
   useEffect(() => {
     const updateBackground = () => {
@@ -111,28 +52,41 @@ const NewsPage = () => {
     return () => window.removeEventListener('resize', updateBackground)
   }, [])
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      setLoading(true)
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/news?page=${currentPage}&limit=${newsPerPage}`
-        )
-        console.log('Response:', response.data)
-        setNews(response.data.data.items)
-        setTotalPages(response.data.data.pagination.totalPages)
-      } catch (error) {
-        console.error('Error fetching news:', error)
-      } finally {
-        setLoading(false)
+  const fetchNews = async (category, search) => {
+    setLoading(true)
+
+    try {
+      let queryParams = `?page=${currentPage}&limit=${newsPerPage}`
+      if (category && category !== 'All') {
+        queryParams += `&category=${category}`
       }
+      if (search) {
+        queryParams += `&search=${encodeURIComponent(search)}`
+      }
+      const response = await axios.get(`${API_BASE_URL}/news?${queryParams}`)
+      console.log('Response:', response.data)
+      setNews(response.data.data.items)
+      setTotalPages(response.data.data.pagination.totalPages)
+    } catch (error) {
+      console.error('Error fetching news:', error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchNews()
   }, [currentPage])
 
   const handleSearch = () => {
-    console.log('Searching for:', { category, searchTerm })
-    // Implement actual search functionality here
+    fetchNews(category, searchTerm)
+  }
+
+  const handleReset = () => {
+    setCategory('All')
+    setSearchTerm('')
+    setCurrentPage(1)
+    fetchNews('All', '')
   }
 
   return (
@@ -169,15 +123,15 @@ const NewsPage = () => {
                   <option value='' className='bg-purple-900'>
                     Select
                   </option>
-                  <option value='events' className='bg-purple-900'>
-                    Events
-                  </option>
-                  <option value='rankings' className='bg-purple-900'>
-                    Rankings
-                  </option>
-                  <option value='announcements' className='bg-purple-900'>
-                    Announcements
-                  </option>
+                  {newsCategories.map((category) => (
+                    <option
+                      key={category._id}
+                      value={category.label}
+                      className='text-black'
+                    >
+                      {category.label}
+                    </option>
+                  ))}
                 </select>
                 <div className='absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none'>
                   <ChevronDown className='h-5 w-5 text-white' />
@@ -205,6 +159,14 @@ const NewsPage = () => {
             >
               Search
             </button>
+            {(category !== 'All' || searchTerm) && (
+              <button
+                onClick={handleReset}
+                className='bg-gray-500 text-white ml-4 px-12 py-3 rounded font-medium hover:bg-gray-600 transition-colors'
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -212,13 +174,13 @@ const NewsPage = () => {
           <Loader />
         ) : (
           <div className='flex flex-wrap gap-4'>
-            {dummyNews?.map((item, index) => (
+            {news?.map((item, index) => (
               <div
                 key={index}
                 className='w-100 mx-auto border border-gray-500 rounded block hover:shadow-lg transition-shadow duration-300'
               >
                 <img
-                  src={process.env.NEXT_PUBLIC_BASE_URL + item?.imageUrl}
+                  src={item?.coverImage}
                   alt={item?.title}
                   className='w-100 h-60 object-cover rounded-t'
                 />

@@ -5,15 +5,20 @@ import { ChevronDown, Eye, Search, SquarePen, Trash } from 'lucide-react'
 import moment from 'moment'
 import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
 import Image from 'next/image'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
+import useStore from '../../../../../stores/useStore'
 
 export function NewsTable({
   news,
+  searchQuery,
+  setSearchQuery,
+  selectedCategory,
+  setSelectedCategory,
   limit,
   setLimit,
   currentPage,
@@ -22,32 +27,19 @@ export function NewsTable({
   totalItems,
   onSuccess,
 }) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const user = useStore((state) => state.user)
   const [isDelete, setIsDelete] = useState(false)
   const [selectedNews, setSelectedNews] = useState(null)
-  const [categories, setCategories] = useState([
-    'Announcement',
-    'Rule Update',
-    'Interview',
-    'Media',
-  ])
-
-  const filteredNews = news?.filter((news) => {
-    const matchesSearch = news?.title
-      ?.toLowerCase()
-      .includes(searchQuery?.toLowerCase())
-    const matchesCategory = selectedCategory
-      ? news.category?._id === selectedCategory
-      : true
-    return matchesSearch && matchesCategory
-  })
+  const { newsCategories } = useStore()
 
   const handleDeleteNews = async (id) => {
     console.log('Deleting news with ID:', id)
     try {
-      const res = await axios.delete(`${API_BASE_URL}/news/${id}`)
-      console.log(res, 'Response from delete news')
+      const res = await axios.delete(`${API_BASE_URL}/news/${id}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
 
       if (res.status == apiConstants.success) {
         enqueueSnackbar(res.data.message, {
@@ -113,9 +105,13 @@ export function NewsTable({
               <option value='' className='text-black'>
                 Select category
               </option>
-              {categories.map((category) => (
-                <option key={category} value={category} className='text-black'>
-                  {category}
+              {newsCategories.map((category) => (
+                <option
+                  key={category._id}
+                  value={category.label}
+                  className='text-black'
+                >
+                  {category.label}
                 </option>
               ))}
             </select>
@@ -159,57 +155,49 @@ export function NewsTable({
               </tr>
             </thead>
             <tbody>
-              {filteredNews && filteredNews.length > 0 ? (
-                filteredNews.map((news, index) => {
+              {news && news.length > 0 ? (
+                news.map((item, index) => {
                   return (
                     <tr
-                      key={news._id}
+                      key={item._id}
                       className={`cursor-pointer ${
                         index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                       }`}
                     >
-                      <td className='p-4'>{news._id}</td>
+                      <td className='p-4'>{item._id}</td>
                       <td className='p-4'>
-                        <div className='relative w-full h-[120px]'>
-                          <Image
-                            src={
-                              news?.imageUrl !== null &&
-                              process.env.NEXT_PUBLIC_BASE_URL
-                                ? new URL(
-                                    news.imageUrl,
-                                    process.env.NEXT_PUBLIC_BASE_URL
-                                  ).toString()
-                                : null
-                            }
-                            alt={news.title}
-                            fill
-                            sizes='(max-width: 768px) 100vw, 50vw'
-                            className='object-cover rounded'
-                          />
-                        </div>
+                        {item.coverImage !== null && (
+                          <div className='relative w-full h-[120px]'>
+                            <Image
+                              src={item.coverImage}
+                              alt={item.title}
+                              fill
+                              sizes='(max-width: 768px) 100vw, 50vw'
+                              className='object-cover rounded'
+                            />
+                          </div>
+                        )}
                       </td>
-                      <td className='p-4'>{news.title}</td>
-                      <td className='p-4'>{news.category?.name}</td>
+                      <td className='p-4'>{item.title}</td>
+                      <td className='p-4'>{item.category}</td>
                       <td className='p-4'>
-                        {moment(news.publishDate).format('YYYY/MM/DD')}
+                        {moment(item.publishDate).format('YYYY/MM/DD')}
                       </td>
                       <td className='p-4'>
-                        {moment(news.updatedAt).format('YYYY/MM/DD')}
+                        {moment(item.updatedAt).format('YYYY/MM/DD')}
                       </td>
-                      <td className='p-4'>
-                        {news.isPublished ? 'Published' : 'Draft'}
-                      </td>
+                      <td className='p-4'>{item.status}</td>
                       <td className='p-4 '>
                         <div className='flex space-x-4 items-center'>
                           {/* View */}
-                          <Link href={`/admin/news/view/${news._id}`}>
+                          <Link href={`/admin/news/view/${item._id}`}>
                             <button className='text-gray-400 hover:text-gray-200 transition'>
                               <Eye size={20} />
                             </button>
                           </Link>
 
                           {/* Edit */}
-                          <Link href={`/admin/news/edit/${news._id}`}>
+                          <Link href={`/admin/news/edit/${item._id}`}>
                             <button className='text-blue-500 hover:underline'>
                               <SquarePen size={20} />
                             </button>
@@ -218,7 +206,7 @@ export function NewsTable({
                           <button
                             onClick={() => {
                               setIsDelete(true)
-                              setSelectedNews(news._id)
+                              setSelectedNews(item._id)
                             }}
                             className='text-red-600 hover:text-red-400 transition'
                           >

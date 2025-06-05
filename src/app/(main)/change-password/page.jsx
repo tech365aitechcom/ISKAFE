@@ -1,14 +1,14 @@
 'use client'
 import axios from 'axios'
 import React, { useState } from 'react'
-import useUserStore from '../../../stores/userStore'
+import useStore from '../../../stores/useStore'
 import { API_BASE_URL, apiConstants } from '../../../constants'
 import { enqueueSnackbar } from 'notistack'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
 
 const ChangePassword = () => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
 
   const [formData, setFormData] = useState({
     currentPassword: '',

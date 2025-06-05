@@ -3,12 +3,12 @@ import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
 import { Send, X, Pencil, Trash2, EyeOff, Eye } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import Loader from '../../../../_components/Loader'
 
 export const HomeSettingsForm = () => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     logo: null,
@@ -500,6 +500,9 @@ export const HomeSettingsForm = () => {
             </div>
           </div>
           {/* Platform Name and Tagline */}
+          <h2 className='font-bold mb-4 uppercase text-sm'>
+            Hero Section
+          </h2>{' '}
           <div className='mb-6'>
             <div className='mb-4 bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>

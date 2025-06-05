@@ -3,17 +3,19 @@ import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
 import { Trash } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
+import { uploadToCloudinary } from '../../../../../utils/uploadToCloudinary'
+import Loader from '../../../../_components/Loader'
 
 export const AboutForm = () => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     pageTitle: '',
+    coverImage: null,
     missionStatement: '',
     organizationHistory: '',
     leadershipTeam: [],
-    coverImage: null,
     contactURL: '',
     facebookURL: '',
     instagramURL: '',
@@ -26,10 +28,11 @@ export const AboutForm = () => {
   })
   const [imagePreview, setImagePreview] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentTeamMember, setCurrentTeamMember] = useState({
     name: '',
     position: '',
-    photo: null,
+    profilePic: null,
   })
   const [teamMemberImagePreview, setTeamMemberImagePreview] = useState(null)
   const [showTeamMemberModal, setShowTeamMemberModal] = useState(false)
@@ -40,11 +43,14 @@ export const AboutForm = () => {
   const [privacyPolicyFileName, setPrivacyPolicyFileName] = useState(null)
   const [copyrightNoticeFileName, setCopyrightNoticeFileName] = useState(null)
 
+  const [existingAboutUsId, setExistingAboutUsId] = useState('')
+
   const fetchAboutData = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/about/find`)
+      const response = await axios.get(`${API_BASE_URL}/about-us`)
       console.log('Response:', response.data)
       if (response.data.data) {
+        setExistingAboutUsId(response.data.data?._id)
         setFormData(response.data.data)
         if (response.data.data.coverImage) {
           setImagePreview(response.data.data?.coverImage)
@@ -92,7 +98,7 @@ export const AboutForm = () => {
     const file = e.target.files[0]
     if (file) {
       setTeamMemberImagePreview(URL.createObjectURL(file))
-      setCurrentTeamMember((prev) => ({ ...prev, photo: file }))
+      setCurrentTeamMember((prev) => ({ ...prev, profilePic: file }))
     }
   }
 
@@ -104,7 +110,6 @@ export const AboutForm = () => {
     }
   }
 
-  // Handle legal document file uploads
   const handleLegalDocUpload = (e, fieldName) => {
     const file = e.target.files[0]
     if (file) {
@@ -140,7 +145,7 @@ export const AboutForm = () => {
       setCurrentTeamMember({
         name: '',
         position: '',
-        photo: null,
+        profilePic: null,
       })
       setTeamMemberImagePreview(null)
       setShowTeamMemberModal(false)
@@ -159,10 +164,10 @@ export const AboutForm = () => {
   }
 
   const handleSubmit = async (e) => {
+    setIsSubmitting(true)
     try {
       e.preventDefault()
 
-      // Validate mandatory fields
       if (
         !formData.pageTitle ||
         !formData.missionStatement ||
@@ -174,82 +179,86 @@ export const AboutForm = () => {
         return
       }
 
-      // Validate contact link
       if (formData.contactURL && !isValidURL(formData.contactURL)) {
         enqueueSnackbar('Please enter a valid URL for contact link', {
           variant: 'error',
         })
         return
       }
-      console.log(formData.leadershipTeam)
-
-      const formPayload = new FormData()
-      formPayload.append('pageTitle', formData.pageTitle)
-      formPayload.append('missionStatement', formData.missionStatement)
-      formPayload.append('organizationHistory', formData.organizationHistory)
-      formPayload.append('contactURL', formData.contactURL)
-      formPayload.append('facebookURL', formData.facebookURL)
-      formPayload.append('instagramURL', formData.instagramURL)
-      formPayload.append('twitterURL', formData.twitterURL)
-      formPayload.append(
-        'leadershipTeam',
-        JSON.stringify(formData.leadershipTeam)
-      )
-      // formPayload.append('updatedBy', user?.id)
-
-      // Add platform version if provided
-      if (formData.platformVersion) {
-        formPayload.append('platformVersion', formData.platformVersion)
+      let coverImageCloudinaryUrl = null
+      let termsConditionsPDFCloudinaryUrl = null
+      let privacyPolicyPDFCloudinaryUrl = null
+      let copyrightNoticePDFCloudinaryUrl = null
+      if (formData.coverImage !== null) {
+        coverImageCloudinaryUrl = await uploadToCloudinary(formData.coverImage)
+      }
+      if (formData.termsConditionsPDF !== null) {
+        termsConditionsPDFCloudinaryUrl = await uploadToCloudinary(
+          formData.termsConditionsPDF
+        )
+      }
+      if (formData.privacyPolicyPDF !== null) {
+        privacyPolicyPDFCloudinaryUrl = await uploadToCloudinary(
+          formData.privacyPolicyPDF
+        )
+      }
+      if (formData.copyrightNoticePDF !== null) {
+        copyrightNoticePDFCloudinaryUrl = await uploadToCloudinary(
+          formData.copyrightNoticePDF
+        )
       }
 
-      if (formData.coverImage instanceof File) {
-        formPayload.append('coverImage', formData.coverImage)
-      }
-
-      // Handle team member images
-      formData.leadershipTeam.forEach((member, index) => {
-        if (member.photo instanceof File) {
-          formPayload.append(`leadershipTeam[${index}].photo`, member.photo)
-        }
-      })
-
-      // Append legal document files if they exist
-      if (formData.termsConditionsPDF instanceof File) {
-        formPayload.append('termsConditionsPDF', formData.termsConditionsPDF)
-      }
-
-      if (formData.privacyPolicyPDF instanceof File) {
-        formPayload.append('privacyPolicyPDF', formData.privacyPolicyPDF)
-      }
-
-      if (formData.copyrightNoticePDF instanceof File) {
-        formPayload.append('copyrightNoticePDF', formData.copyrightNoticePDF)
-      }
-
-      console.log('Form submitted:', Object.fromEntries(formPayload.entries()))
-
-      const response = await axios.post(
-        `${API_BASE_URL}/about/admin/add-update`,
-        formPayload,
+      console.log(
         {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
+          ...formData,
+          coverImage: coverImageCloudinaryUrl,
+          termsConditionsPDF: termsConditionsPDFCloudinaryUrl,
+          privacyPolicyPDF: privacyPolicyPDFCloudinaryUrl,
+          copyrightNoticePDF: copyrightNoticePDFCloudinaryUrl,
+        },
+        'Form Data before submission'
       )
 
+      let response = null
+
+      if (existingAboutUsId) {
+        response = await axios.put(
+          `${API_BASE_URL}/about-us/${existingAboutUsId}`,
+          {
+            ...formData,
+            coverImage: coverImageCloudinaryUrl,
+            termsConditionsPDF: termsConditionsPDFCloudinaryUrl,
+            privacyPolicyPDF: privacyPolicyPDFCloudinaryUrl,
+            copyrightNoticePDF: copyrightNoticePDFCloudinaryUrl,
+          }
+        )
+      } else {
+        response = await axios.post(
+          `${API_BASE_URL}/about-us`,
+          {
+            ...formData,
+            coverImage: coverImageCloudinaryUrl,
+            termsConditionsPDF: termsConditionsPDFCloudinaryUrl,
+            privacyPolicyPDF: privacyPolicyPDFCloudinaryUrl,
+            copyrightNoticePDF: copyrightNoticePDFCloudinaryUrl,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        )
+      }
       console.log('Response:', response)
       if (
         response.status === apiConstants.create ||
         response.status === apiConstants.ok
       ) {
-        enqueueSnackbar(
-          response.data.message || 'About page updated successfully',
-          {
-            variant: 'success',
-          }
-        )
+        enqueueSnackbar(response.data.message, {
+          variant: 'success',
+        })
       }
+      fetchAboutData() // Refresh data after submission
     } catch (error) {
       console.log('Error submitting form:', error)
 
@@ -259,7 +268,23 @@ export const AboutForm = () => {
           variant: 'error',
         }
       )
+    } finally {
+      setIsSubmitting(false)
     }
+  }
+
+  const uploadPdf = async (e) => {
+    e.preventDefault()
+    let termsConditionsPDFCloudinaryUrl = null
+    if (formData.termsConditionsPDF !== null) {
+      termsConditionsPDFCloudinaryUrl = await uploadToCloudinary(
+        formData.termsConditionsPDF
+      )
+    }
+    console.log(
+      termsConditionsPDFCloudinaryUrl,
+      'termsConditionsPDFCloudinaryUrl'
+    )
   }
 
   const isValidURL = (url) => {
@@ -269,6 +294,14 @@ export const AboutForm = () => {
     } catch (e) {
       return false
     }
+  }
+
+  if (loading) {
+    return (
+      <div className='flex items-center justify-center min-h-screen'>
+        <Loader />
+      </div>
+    )
   }
 
   return (
@@ -495,7 +528,7 @@ export const AboutForm = () => {
                           setTeamMemberImagePreview(null)
                           setCurrentTeamMember((prev) => ({
                             ...prev,
-                            photo: null,
+                            profilePic: null,
                           }))
                         }}
                         className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
@@ -787,14 +820,16 @@ export const AboutForm = () => {
           <div className='flex justify-center mt-8 mb-6'>
             <button
               type='submit'
-              onClick={handleSubmit}
+              onClick={uploadPdf}
               className='text-white font-medium py-2 px-6 rounded'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
               }}
+              disabled={isSubmitting}
             >
-              Save & Publish
+              {/* {isSubmitting ? <Loader /> : 'Save & Publish'} */}
+              Save
             </button>
           </div>
         </form>

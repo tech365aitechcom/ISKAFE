@@ -3,12 +3,12 @@ import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
 import { ArrowLeft } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import { CustomMultiSelect } from '../../../../_components/CustomMultiSelect'
 
 export const AddTournamentForm = ({ setShowAddTournament }) => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     name: '',
     dateTime: '',

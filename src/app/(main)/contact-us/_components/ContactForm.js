@@ -1,11 +1,17 @@
 'use client'
-import React, { useState } from 'react'
-import { API_BASE_URL, apiConstants, events } from '../../../../constants'
+import React, { useEffect, useState } from 'react'
+import { API_BASE_URL, apiConstants } from '../../../../constants'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
+import useStore from '../../../../stores/useStore'
+import Loader from '../../../_components/Loader'
 
-const ContactForm = ({ subjects }) => {
+const ContactForm = () => {
+  const user = useStore((state) => state.user)
   const [focusedField, setFocusedField] = useState(null)
+  const [topics, setTopics] = useState([])
+  const [events, setEvents] = useState([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     topic: '',
     subIssue: '',
@@ -16,48 +22,17 @@ const ContactForm = ({ subjects }) => {
     message: '',
   })
 
-  const topics = [
-    {
-      title: 'Events',
-      subtopics: [
-        'Registering to Compete',
-        'Payment Issue or Question',
-        'Matchmaking Question',
-        'Incorrect Bout Result',
-        'Other Event-Related Topic',
-      ],
-    },
-    {
-      title: 'Suspensions',
-      subtopics: [
-        'Reason for Suspension',
-        'Ask for Medical Clearance',
-        'Challenge a Suspension',
-      ],
-    },
-    {
-      title: 'Accounts',
-      subtopics: [
-        'Creating an Account',
-        'Editing an Account',
-        'Changing Your Email Address',
-        'Forgot Password',
-        'Updating Your Fight Record',
-      ],
-    },
-    {
-      title: 'General ISKA Questions',
-    },
-    {
-      title: 'Advertising & Sponsorships',
-    },
-    {
-      title: 'Using the Fight Platform for Your Event',
-    },
-    {
-      title: 'Other',
-    },
-  ]
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/master/topics`)
+        setTopics(response.data.result)
+      } catch (err) {
+        console.error('Failed to fetch topics:', err)
+      }
+    }
+    fetchTopics()
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -76,22 +51,35 @@ const ContactForm = ({ subjects }) => {
   }
 
   const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setFocusedField(null)
+
     try {
-      e.preventDefault()
       const { topic, subIssue, event, fullName, email, phone, message } =
         formData
+
       const payload = {
         topic: topic?.title || '',
         subIssue: subIssue || '',
-        event: event || '',
         fullName: fullName.trim(),
         email: email.trim(),
         phone: phone.trim(),
         message: message.trim(),
       }
 
+      if (event) {
+        payload.event = event
+      }
+
       console.log('payload submitted:', payload)
-      const response = await axios.post(`${API_BASE_URL}/contact`, formData)
+
+      const response = await axios.post(`${API_BASE_URL}/contact-us`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: user?.token ? `Bearer ${user.token}` : '',
+        },
+      })
 
       console.log('Response:', response)
       if (response.status === apiConstants.create) {
@@ -99,6 +87,9 @@ const ContactForm = ({ subjects }) => {
           variant: 'success',
         })
         setFormData({
+          topic: '',
+          subIssue: '',
+          event: '',
           fullName: '',
           email: '',
           phone: '',
@@ -112,6 +103,8 @@ const ContactForm = ({ subjects }) => {
           variant: 'error',
         }
       )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -295,8 +288,9 @@ const ContactForm = ({ subjects }) => {
           <button
             type='submit'
             className='bg-yellow-500 text-white text-xl font-medium px-6 py-3 rounded'
+            disabled={isSubmitting}
           >
-            Send Message
+            {isSubmitting ? <Loader /> : 'Send Message '}
           </button>
         </div>
       </form>
