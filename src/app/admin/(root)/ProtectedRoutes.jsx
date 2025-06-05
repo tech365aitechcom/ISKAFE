@@ -15,6 +15,8 @@ const ProtectedRoutes = ({ children }) => {
   useEffect(() => {
     if (_hasHydrated && !user) {
       router.push('/admin/login')
+    } else if (user && user?.role !== roles.superAdmin) {
+      router.push('/')
     }
   }, [_hasHydrated, user, router])
 
