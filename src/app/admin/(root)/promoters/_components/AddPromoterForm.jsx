@@ -1,7 +1,7 @@
 'use client'
 import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
-import { uploadToCloudinary } from '../../../../../utils/uploadToCloudinary'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 import { Trash } from 'lucide-react'
 import React, { useState } from 'react'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
@@ -68,10 +68,10 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
     e.preventDefault()
     try {
       if (formData.profilePhoto !== null) {
-        formData.profilePhoto = await uploadToCloudinary(formData.profilePhoto)
+        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
       }
       if (formData.licenseCertificate !== null) {
-        formData.licenseCertificate = await uploadToCloudinary(
+        formData.licenseCertificate = await uploadToS3(
           formData.licenseCertificate
         )
       }

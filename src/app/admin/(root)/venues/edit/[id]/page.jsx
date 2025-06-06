@@ -6,7 +6,7 @@ import { API_BASE_URL, apiConstants } from '../../../../../../constants'
 import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../../../stores/useStore'
-import { uploadToCloudinary } from '../../../../../../utils/uploadToCloudinary'
+import { uploadToS3 } from '../../../../../../utils/uploadToS3'
 import { Country, State } from 'country-state-city'
 import Image from 'next/image'
 
@@ -134,8 +134,8 @@ export default function EditVenuePage({ params }) {
 
     for (const image of venue.media) {
       if (typeof image !== 'string') {
-        const cloudinaryUrl = await uploadToCloudinary(image)
-        uploadedMediaUrls.push(cloudinaryUrl)
+        const s3UploadedUrl = await uploadToS3(image)
+        uploadedMediaUrls.push(s3UploadedUrl)
       } else {
         uploadedMediaUrls.push(image)
       }

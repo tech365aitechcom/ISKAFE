@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Trash } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../../../stores/useStore'
-import { uploadToCloudinary } from '../../../../../../utils/uploadToCloudinary'
+import { uploadToS3 } from '../../../../../../utils/uploadToS3'
 
 export default function EditNewsPage({ params }) {
   const { id } = use(params)
@@ -83,8 +83,8 @@ export default function EditNewsPage({ params }) {
         typeof newsDetails.coverImage !== 'string'
       ) {
         try {
-          const cloudinaryUrl = await uploadToCloudinary(newsDetails.coverImage)
-          newsDetails.coverImage = cloudinaryUrl
+          const s3UploadedUrl = await uploadToS3(newsDetails.coverImage)
+          newsDetails.coverImage = s3UploadedUrl
         } catch (error) {
           console.error('Image upload failed:', error)
           return

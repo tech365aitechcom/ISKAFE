@@ -5,7 +5,7 @@ import { Trash } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
-import { uploadToCloudinary } from '../../../../../utils/uploadToCloudinary'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 import Loader from '../../../../_components/Loader'
 
 export const AboutForm = () => {
@@ -185,80 +185,105 @@ export const AboutForm = () => {
         })
         return
       }
-      let coverImageCloudinaryUrl = null
-      let termsConditionsPDFCloudinaryUrl = null
-      let privacyPolicyPDFCloudinaryUrl = null
-      let copyrightNoticePDFCloudinaryUrl = null
-      if (formData.coverImage !== null) {
-        coverImageCloudinaryUrl = await uploadToCloudinary(formData.coverImage)
+
+      if (formData.coverImage && typeof formData.coverImage !== 'string') {
+        try {
+          const s3UploadedUrl = await uploadToS3(formData.coverImage)
+          formData.coverImage = s3UploadedUrl
+        } catch (error) {
+          console.error('Image upload failed:', error)
+          return
+        }
       }
-      if (formData.termsConditionsPDF !== null) {
-        termsConditionsPDFCloudinaryUrl = await uploadToCloudinary(
-          formData.termsConditionsPDF
-        )
+      if (
+        formData.termsConditionsPDF &&
+        typeof formData.termsConditionsPDF !== 'string'
+      ) {
+        try {
+          const s3UploadedUrl = await uploadToS3(formData.termsConditionsPDF)
+          formData.termsConditionsPDF = s3UploadedUrl
+        } catch (error) {
+          console.error('Pdf upload failed:', error)
+          return
+        }
       }
-      if (formData.privacyPolicyPDF !== null) {
-        privacyPolicyPDFCloudinaryUrl = await uploadToCloudinary(
-          formData.privacyPolicyPDF
-        )
+      if (
+        formData.privacyPolicyPDF &&
+        typeof formData.privacyPolicyPDF !== 'string'
+      ) {
+        try {
+          const s3UploadedUrl = await uploadToS3(formData.privacyPolicyPDF)
+          formData.privacyPolicyPDF = s3UploadedUrl
+        } catch (error) {
+          console.error('Pdf upload failed:', error)
+          return
+        }
       }
-      if (formData.copyrightNoticePDF !== null) {
-        copyrightNoticePDFCloudinaryUrl = await uploadToCloudinary(
-          formData.copyrightNoticePDF
-        )
+      if (
+        formData.copyrightNoticePDF &&
+        typeof formData.copyrightNoticePDF !== 'string'
+      ) {
+        try {
+          const s3UploadedUrl = await uploadToS3(formData.copyrightNoticePDF)
+          formData.copyrightNoticePDF = s3UploadedUrl
+        } catch (error) {
+          console.error('Pdf upload failed:', error)
+          return
+        }
       }
 
-      console.log(
-        {
-          ...formData,
-          coverImage: coverImageCloudinaryUrl,
-          termsConditionsPDF: termsConditionsPDFCloudinaryUrl,
-          privacyPolicyPDF: privacyPolicyPDFCloudinaryUrl,
-          copyrightNoticePDF: copyrightNoticePDFCloudinaryUrl,
-        },
-        'Form Data before submission'
-      )
+      if (formData?.leadershipTeam?.length > 0) {
+        const updatedTeam = await Promise.all(
+          formData.leadershipTeam.map(async (teamMember) => {
+            if (
+              teamMember.profilePic &&
+              typeof teamMember.profilePic !== 'string'
+            ) {
+              try {
+                const s3UploadedUrl = await uploadToS3(teamMember.profilePic)
+                return {
+                  ...teamMember,
+                  profilePic: s3UploadedUrl,
+                }
+              } catch (error) {
+                console.error('Image upload failed:', error)
+                return teamMember // fallback to original if upload fails
+              }
+            }
+            return teamMember
+          })
+        )
+
+        formData.leadershipTeam = updatedTeam
+      }
+
+      console.log('Form data:', formData)
 
       let response = null
+      console.log(`${API_BASE_URL}/about-us/${existingAboutUsId}`, 'url')
 
       if (existingAboutUsId) {
         response = await axios.put(
           `${API_BASE_URL}/about-us/${existingAboutUsId}`,
-          {
-            ...formData,
-            coverImage: coverImageCloudinaryUrl,
-            termsConditionsPDF: termsConditionsPDFCloudinaryUrl,
-            privacyPolicyPDF: privacyPolicyPDFCloudinaryUrl,
-            copyrightNoticePDF: copyrightNoticePDFCloudinaryUrl,
-          }
+          formData
         )
       } else {
-        response = await axios.post(
-          `${API_BASE_URL}/about-us`,
-          {
-            ...formData,
-            coverImage: coverImageCloudinaryUrl,
-            termsConditionsPDF: termsConditionsPDFCloudinaryUrl,
-            privacyPolicyPDF: privacyPolicyPDFCloudinaryUrl,
-            copyrightNoticePDF: copyrightNoticePDFCloudinaryUrl,
+        response = await axios.post(`${API_BASE_URL}/about-us`, formData, {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
           },
-          {
-            headers: {
-              Authorization: `Bearer ${user?.token}`,
-            },
-          }
-        )
+        })
       }
       console.log('Response:', response)
       if (
         response.status === apiConstants.create ||
-        response.status === apiConstants.ok
+        response.status === apiConstants.success
       ) {
         enqueueSnackbar(response.data.message, {
           variant: 'success',
         })
+        fetchAboutData()
       }
-      fetchAboutData() // Refresh data after submission
     } catch (error) {
       console.log('Error submitting form:', error)
 
@@ -271,20 +296,6 @@ export const AboutForm = () => {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const uploadPdf = async (e) => {
-    e.preventDefault()
-    let termsConditionsPDFCloudinaryUrl = null
-    if (formData.termsConditionsPDF !== null) {
-      termsConditionsPDFCloudinaryUrl = await uploadToCloudinary(
-        formData.termsConditionsPDF
-      )
-    }
-    console.log(
-      termsConditionsPDFCloudinaryUrl,
-      'termsConditionsPDFCloudinaryUrl'
-    )
   }
 
   const isValidURL = (url) => {
@@ -440,12 +451,12 @@ export const AboutForm = () => {
                     key={index}
                     className='bg-[#00000061] p-3 rounded relative group'
                   >
-                    {member.photoUrl && (
+                    {member.profilePic && (
                       <img
                         src={
-                          member.photoUrl instanceof File
-                            ? URL.createObjectURL(member.photoUrl)
-                            : member.photoUrl
+                          member.profilePic instanceof File
+                            ? URL.createObjectURL(member.profilePic)
+                            : member.profilePic
                         }
                         alt={member.name}
                         className='w-full h-32 object-cover rounded mb-2'
@@ -516,7 +527,7 @@ export const AboutForm = () => {
                 {/* Image Upload */}
                 <div className='mb-4'>
                   {teamMemberImagePreview ? (
-                    <div className='relative w-full h-40 rounded-lg overflow-hidden border border-[#D9E2F930]'>
+                    <div className='relative h-40 w-50 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                       <img
                         src={teamMemberImagePreview}
                         alt='Team Member'
@@ -820,7 +831,7 @@ export const AboutForm = () => {
           <div className='flex justify-center mt-8 mb-6'>
             <button
               type='submit'
-              onClick={uploadPdf}
+              onClick={handleSubmit}
               className='text-white font-medium py-2 px-6 rounded'
               style={{
                 background:
@@ -828,8 +839,7 @@ export const AboutForm = () => {
               }}
               disabled={isSubmitting}
             >
-              {/* {isSubmitting ? <Loader /> : 'Save & Publish'} */}
-              Save
+              {isSubmitting ? <Loader /> : 'Save & Publish'}
             </button>
           </div>
         </form>

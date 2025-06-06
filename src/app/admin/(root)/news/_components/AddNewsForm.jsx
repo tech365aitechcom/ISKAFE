@@ -5,7 +5,7 @@ import { Trash } from 'lucide-react'
 import React, { useState } from 'react'
 import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
-import { uploadToCloudinary } from '../../../../../utils/uploadToCloudinary'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 
 export const AddNewsForm = ({ setShowAddNewsForm }) => {
   const user = useStore((state) => state.user)
@@ -39,13 +39,13 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      let cloudinaryUrl = null
+      let s3UploadedUrl = null
       if (image !== null) {
-        cloudinaryUrl = await uploadToCloudinary(image)
+        s3UploadedUrl = await uploadToS3(image)
       }
       const response = await axios.post(
         `${API_BASE_URL}/news`,
-        { ...formData, coverImage: cloudinaryUrl },
+        { ...formData, coverImage: s3UploadedUrl },
         {
           headers: {
             Authorization: `Bearer ${user?.token}`,

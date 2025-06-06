@@ -128,7 +128,7 @@ const page = ({ params }) => {
         ) : activeTab === 'Teams' ? (
           <>teams</>
         ) : activeTab === 'Registration' ? (
-          <RegistrationSection />
+          <RegistrationSection eventId={id} />
         ) : (
           activeTab === 'Fight Card' && <FightCard fighters={fighters} />
         )}

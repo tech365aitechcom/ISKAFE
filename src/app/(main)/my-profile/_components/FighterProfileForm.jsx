@@ -130,7 +130,7 @@ const FightProfileForm = ({ userDetails }) => {
   }
 
   return (
-    <div className='min-h-screen text-white bg-[#0a0a1a] py-6 px-4'>
+    <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='container mx-auto'>
         <div className='flex items-center gap-4 mb-6'>
           <h1 className='text-4xl font-bold'>My Fighter Profile</h1>
@@ -245,7 +245,7 @@ const FightProfileForm = ({ userDetails }) => {
                 name='dateOfBirth'
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
-                className='w-full p-3 outline-none bg-white/10 rounded-lg text-white border border-white/20 focus:border-purple-400 transition-colors'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               />
             </div>
 

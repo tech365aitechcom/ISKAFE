@@ -3,7 +3,7 @@ import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import React, { useState } from 'react'
 import { Country, State } from 'country-state-city'
-import { uploadToCloudinary } from '../../../../../utils/uploadToCloudinary'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 import useStore from '../../../../../stores/useStore'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 
@@ -202,8 +202,8 @@ export const AddVenuesForm = ({
       const uploadedMediaUrls = []
 
       for (const image of formData.media) {
-        const cloudinaryUrl = await uploadToCloudinary(image)
-        uploadedMediaUrls.push(cloudinaryUrl)
+        const s3UploadedUrl = await uploadToS3(image)
+        uploadedMediaUrls.push(s3UploadedUrl)
       }
 
       formData.media = uploadedMediaUrls

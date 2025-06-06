@@ -79,10 +79,18 @@ const Navbar = () => {
   }
 
   return (
-    <nav className='flex items-center justify-between container mx-auto px-2 h-fit w-full py-4 relative'>
+    <nav className='flex items-center justify-between container mx-auto px-4 h-fit w-full py-4 relative'>
       {/* Logo */}
       <Link href='/' className='flex'>
-        <div className='relative w-30 h-30'>
+        <div className='hidden lg:block relative w-30 h-30'>
+          <Image
+            src='/logo1.png'
+            alt='Global Sports Federation Logo'
+            layout='fill'
+            className='rounded-full'
+          />
+        </div>
+        <div className='md:hidden relative w-18 h-18'>
           <Image
             src='/logo1.png'
             alt='Global Sports Federation Logo'

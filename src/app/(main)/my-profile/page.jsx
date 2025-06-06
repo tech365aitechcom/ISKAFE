@@ -29,7 +29,7 @@ export default function MyProfile() {
 
   if (!user) {
     return (
-      <div className='bg-transparent border-t border-[#D9E2F930] p-4'>
+      <div className='bg-transparent p-4'>
         <p className='text-center text-gray-500'>
           Please log in to view your profile.
         </p>
