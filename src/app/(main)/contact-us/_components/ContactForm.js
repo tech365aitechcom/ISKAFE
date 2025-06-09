@@ -56,9 +56,14 @@ const ContactForm = () => {
     setFocusedField(null)
 
     try {
+      if (!user) {
+        enqueueSnackbar('Please login to submit your message', {
+          variant: 'warning',
+        })
+        return
+      }
       const { topic, subIssue, event, fullName, email, phone, message } =
         formData
-
       const payload = {
         topic: topic?.title || '',
         subIssue: subIssue || '',

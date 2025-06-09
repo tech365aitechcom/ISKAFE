@@ -26,7 +26,11 @@ export const AddEventForm = ({ setShowAddEvent }) => {
     { _id: 'heavyweight', fullName: 'Heavyweight' },
   ]
 
-  const venues = ['Venue 1', 'Venue 2', 'Venue 3']
+  const venues = [
+    { value: 'venue1', label: 'Venue 1' },
+    { value: 'venue2', label: 'Venue 2' },
+    { value: 'venue3', label: 'Venue 3' },
+  ]
 
   const [formData, setFormData] = useState({
     // Basic Info
@@ -48,13 +52,9 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
     // Venue
     venue: '',
-    addNewVenue: false,
 
     // Promoter
-    promoterName: '',
-    promoterPhone: '',
-    iskaRepName: '',
-    iskaRepPhone: '',
+    promoter: '',
 
     // Descriptions
     briefDescription: '',
@@ -74,6 +74,9 @@ export const AddEventForm = ({ setShowAddEvent }) => {
     isDraft: true,
     showBrackets: false,
   })
+
+  const [addNewVenue, setAddNewVenue] = useState(false)
+  const [addNewPromoter, setAddNewPromoter] = useState(false)
 
   const handleChange = (eOrName, value) => {
     if (typeof eOrName === 'string') {
@@ -170,13 +173,9 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
           // Venue
           venue: '',
-          addNewVenue: false,
 
-          // Promoter Info
-          promoterName: '',
-          promoterPhone: '',
-          iskaRepName: '',
-          iskaRepPhone: '',
+          // Promoter
+          promoter: '',
 
           // Descriptions
           briefDescription: '',
@@ -528,23 +527,18 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             <div className=''>
               <button
                 type='button'
-                onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    addNewVenue: !prev.addNewVenue,
-                  }))
-                }
+                onClick={() => setAddNewVenue(!addNewVenue)}
                 className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
-                  formData.addNewVenue
+                  addNewVenue
                     ? 'bg-red-600 text-white hover:bg-red-700'
                     : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
                 }`}
               >
-                {formData.addNewVenue ? 'Cancel Add Venue' : 'Add New Venue'}
+                {addNewVenue ? 'Cancel Add Venue' : 'Add New Venue'}
               </button>
             </div>
           </div>
-          {formData.addNewVenue && (
+          {addNewVenue && (
             <AddVenuesForm
               setShowAddVenues={() =>
                 setFormData((prev) => ({
@@ -561,37 +555,41 @@ export const AddEventForm = ({ setShowAddEvent }) => {
           </h2>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
-            {/* Promoter Name */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Promoter Name<span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                name='promoterName'
-                value={formData.promoterName}
-                onChange={handleChange}
-                className='w-full outline-none bg-transparent'
-                required
-                placeholder='Select or enter promoter'
-              />
-            </div>
+            {/* Promoter */}
+            <Autocomplete
+              label={'Search or select promoter'}
+              options={venues}
+              selected={formData.promoter}
+              onChange={(value) => handleChange('promoter', value)}
+              placeholder='Search promoter name'
+              required={true}
+            />
 
-            {/* Promoter Phone */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Promoter Phone
-              </label>
-              <input
-                type='tel'
-                name='promoterPhone'
-                value={formData.promoterPhone}
-                onChange={handleChange}
-                className='w-full outline-none bg-transparent'
-                placeholder='Enter phone number'
-              />
+            {/* Add New promoter */}
+            <div className=''>
+              <button
+                type='button'
+                onClick={() => setAddNewPromoter(!addNewPromoter)}
+                className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+                  addNewPromoter
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                }`}
+              >
+                {addNewPromoter ? 'Cancel Add Promoter' : 'Add New Promoter'}
+              </button>
             </div>
-
+            {addNewVenue && (
+              <AddVenuesForm
+                setShowAddVenues={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    addNewVenue: false,
+                  }))
+                }
+                showBackButton={false}
+              />
+            )}
             {/* ISKA Rep Name */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>

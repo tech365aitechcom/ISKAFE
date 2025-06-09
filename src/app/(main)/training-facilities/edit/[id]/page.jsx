@@ -1,14 +1,15 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import { X, Plus, Trash2, Camera, Users, Trash } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { City, Country, State } from 'country-state-city'
-import Autocomplete from '../../../_components/Autocomplete'
+import Autocomplete from '../../../../_components/Autocomplete'
 import axios from 'axios'
-import { API_BASE_URL, apiConstants } from '../../../../constants'
-import { uploadToS3 } from '../../../../utils/uploadToS3'
-import useStore from '../../../../stores/useStore'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
+import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
+import Loader from '../../../../_components/Loader'
 
 const steps = [
   { id: 1, label: 'Basic Info & Address' },
@@ -17,13 +18,18 @@ const steps = [
   { id: 4, label: 'Review & Submit' },
 ]
 
-const RegisterTrainingFacilityPage = () => {
+const EditRegisterTrainingFacilityPage = ({ params }) => {
   const user = useStore((state) => state.user)
+  const { id } = use(params)
+  const router = useRouter()
+
+  const [loading, setLoading] = useState(true)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     // Basic Info
     name: '',
     logo: null,
+    logoUrl: '', // For displaying existing logo
     martialArtsStyles: [],
     email: '',
     phoneNumber: '',
@@ -37,6 +43,7 @@ const RegisterTrainingFacilityPage = () => {
     description: '',
     externalWebsite: '',
     imageGallery: [],
+    existingGallery: [], // For displaying existing images
     videoIntroduction: '',
 
     // Trainers & Fighters
@@ -86,7 +93,6 @@ const RegisterTrainingFacilityPage = () => {
     'Kung Fu',
   ]
 
-  const router = useRouter()
   const countries = Country.getAllCountries()
   const states = formData.country
     ? State.getStatesOfCountry(formData.country)
@@ -95,6 +101,100 @@ const RegisterTrainingFacilityPage = () => {
     formData.country && formData.state
       ? City.getCitiesOfState(formData.country, formData.state)
       : []
+
+  // Fetch existing facility data
+  useEffect(() => {
+    const fetchFacilityData = async () => {
+      if (!id) return
+
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/training-facilities/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        )
+
+        const facility = response.data.data
+        console.log('Existing facility data:', facility)
+
+        // Map the existing data to form state
+        setFormData({
+          name: facility.name || '',
+          logo: null, // Will be set as new file if uploaded
+          logoUrl: facility.logo || '',
+          martialArtsStyles: facility.martialArtsStyles || [],
+          email: facility.email || '',
+          phoneNumber: facility.phoneNumber || '',
+          address: facility.address || '',
+          country: facility.country || '',
+          state: facility.state || '',
+          city: facility.city || '',
+          description: facility.description || '',
+          externalWebsite: facility.externalWebsite || '',
+          imageGallery: [], // New images to upload
+          existingGallery: facility.imageGallery || [],
+          videoIntroduction: facility.videoIntroduction || '',
+          trainers:
+            facility.trainers?.map((trainer) => ({
+              ...trainer,
+              id: trainer._id || trainer.id || Date.now(),
+              label: trainer.existingTrainerId
+                ? `${trainer.existingTrainerId.userId?.firstName} ${trainer.existingTrainerId.userId?.lastName} (${trainer.existingTrainerId.userId?.email})`
+                : trainer.name,
+              value: trainer.existingTrainerId?._id || null,
+            })) || [],
+          fighters:
+            facility.fighters?.map((fighter) => ({
+              ...fighter,
+              id: fighter._id || fighter.id || Date.now(),
+              label: fighter.existingFighterId
+                ? `${fighter.existingFighterId.userId?.firstName} ${fighter.existingFighterId.userId?.lastName} (${fighter.existingFighterId.userId?.email})`
+                : fighter.name,
+              value: fighter.existingFighterId?._id || null,
+            })) || [],
+          sendInvites: false,
+          termsAgreed: true, // Assume already agreed for edit
+        })
+      } catch (error) {
+        console.error('Error fetching facility data:', error)
+        enqueueSnackbar('Error loading facility data', { variant: 'error' })
+        router.push('/training-facilities')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFacilityData()
+  }, [id, user?.token, router])
+
+  // Fetch existing trainers and fighters
+  useEffect(() => {
+    const getExistingTrainers = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/auth/trainer`)
+        const trainers = response.data.data
+        setExistingTrainers(trainers)
+      } catch (error) {
+        console.error('Error fetching existing trainers:', error)
+      }
+    }
+
+    const getExistingFighters = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/auth/fighter`)
+        const fighters = response.data.data
+        setExistingFighters(fighters)
+      } catch (error) {
+        console.error('Error fetching existing fighters:', error)
+      }
+    }
+
+    getExistingTrainers()
+    getExistingFighters()
+  }, [])
 
   const handleChange = (eOrName, value) => {
     if (typeof eOrName === 'object' && eOrName?.target) {
@@ -199,59 +299,43 @@ const RegisterTrainingFacilityPage = () => {
     }))
   }
 
-  console.log(formData.trainers, 'trainers')
-
-  useEffect(() => {
-    const getExistingTrainers = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/auth/trainer`)
-        const trainers = response.data.data
-        console.log('trainers', trainers)
-
-        setExistingTrainers(trainers)
-      } catch (error) {
-        console.error('Error fetching existing trainers:', error)
-      }
-    }
-    const getExistingFighters = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/auth/fighter`)
-        const fighters = response.data.data
-        console.log('fighters', fighters)
-
-        setExistingFighters(fighters)
-      } catch (error) {
-        console.error('Error fetching existing fighters:', error)
-      }
-    }
-    getExistingTrainers()
-    getExistingFighters()
-  }, [])
-
   const handleSubmit = async (e, action) => {
     e.preventDefault()
     console.log('Form submitted with action:', action)
     console.log('Form data:', formData)
+
     try {
-      if (formData.logo) {
+      let updatedFormData = { ...formData }
+
+      // Upload new logo if provided
+      if (formData.logo && typeof formData.logo === 'object') {
         try {
           const s3UploadedUrl = await uploadToS3(formData.logo)
-          formData.logo = s3UploadedUrl
+          updatedFormData.logo = s3UploadedUrl
         } catch (error) {
-          console.error('Image upload failed:', error)
+          console.error('Logo upload failed:', error)
           return
         }
+      } else {
+        // Keep existing logo URL
+        updatedFormData.logo = formData.logoUrl
       }
-      if (formData.imageGallery) {
+
+      // Upload new gallery images
+      if (formData.imageGallery.length > 0) {
         const s3Urls = await Promise.all(
           formData.imageGallery.map((file) => uploadToS3(file))
         )
-        formData.imageGallery = s3Urls
+        updatedFormData.imageGallery = [...formData.existingGallery, ...s3Urls]
+      } else {
+        updatedFormData.imageGallery = formData.existingGallery
       }
+
+      // Upload trainer images
       if (formData.trainers?.length) {
         await Promise.all(
           formData.trainers.map(async (trainer) => {
-            if (trainer.image) {
+            if (trainer.image && typeof trainer.image === 'object') {
               try {
                 const s3UploadedUrl = await uploadToS3(trainer.image)
                 trainer.image = s3UploadedUrl
@@ -263,10 +347,11 @@ const RegisterTrainingFacilityPage = () => {
         )
       }
 
+      // Upload fighter images
       if (formData.fighters?.length) {
         await Promise.all(
           formData.fighters.map(async (fighter) => {
-            if (fighter.image) {
+            if (fighter.image && typeof fighter.image === 'object') {
               try {
                 const s3UploadedUrl = await uploadToS3(fighter.image)
                 fighter.image = s3UploadedUrl
@@ -279,14 +364,36 @@ const RegisterTrainingFacilityPage = () => {
       }
 
       let payload = {
-        ...formData,
-        trainers: formData.trainers.map((t) =>
-          t.value ? { existingTrainerId: t.value } : t
+        ...updatedFormData,
+        trainers: updatedFormData.trainers.map((t) =>
+          t.value
+            ? { existingTrainerId: t.value }
+            : {
+                name: t.name,
+                role: t.role,
+                email: t.email,
+                phone: t.phone,
+                bio: t.bio,
+                image: t.image,
+              }
         ),
-        fighters: formData.fighters.map((f) =>
-          f.value ? { existingFighterId: f.value } : f
+        fighters: updatedFormData.fighters.map((f) =>
+          f.value
+            ? { existingFighterId: f.value }
+            : {
+                name: f.name,
+                gender: f.gender,
+                age: f.age,
+                record: f.record,
+                bio: f.bio,
+                image: f.image,
+              }
         ),
       }
+
+      // Remove fields not needed for update
+      delete payload.logoUrl
+      delete payload.existingGallery
 
       if (action === 'draft') {
         payload = {
@@ -297,60 +404,32 @@ const RegisterTrainingFacilityPage = () => {
         payload = {
           ...payload,
           isAdminApprovalRequired: true,
+          isDraft: false,
         }
       }
 
-      console.log('Payload:', payload)
+      console.log('Update Payload:', payload)
 
-      const response = await axios.post(
-        `${API_BASE_URL}/training-facilities`,
-        {
-          ...payload,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
+      const response = await axios.put(
+        `${API_BASE_URL}/training-facilities/${id}`,
+        payload
       )
-      console.log('Response:', response)
 
-      if (response.status === apiConstants.create) {
+      console.log('Update Response:', response)
+
+      if (response.status === 200 || response.status === apiConstants.success) {
         enqueueSnackbar(
-          response.data.message || 'Facility registered successfully',
+          response.data.message || 'Facility updated successfully',
           {
             variant: 'success',
           }
         )
-        setFormData({
-          // Basic Info
-          name: '',
-          logo: null,
-          martialArtsStyles: [],
-
-          // Address Info
-          address: '',
-          country: '',
-          state: '',
-          city: '',
-
-          // Description & Branding
-          description: '',
-          externalWebsite: '',
-          imageGallery: [],
-          videoIntroduction: '',
-
-          // Trainers & Fighters
-          trainers: [],
-          fighters: [],
-          sendInvites: false,
-
-          // Terms
-          termsAgreed: false,
-        })
-        setCurrentStep(1)
+        router.push('/training-facilities')
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error('Update error:', error)
+      enqueueSnackbar('Error updating facility', { variant: 'error' })
+    }
   }
 
   const nextStep = () => {
@@ -362,39 +441,13 @@ const RegisterTrainingFacilityPage = () => {
   }
 
   const handleCancel = () => {
-    setFormData({
-      // Basic Info
-      name: '',
-      logo: null,
-      martialArtsStyles: [],
-
-      // Address Info
-      address: '',
-      country: '',
-      state: '',
-      city: '',
-
-      // Description & Branding
-      description: '',
-      externalWebsite: '',
-      imageGallery: [],
-      videoIntroduction: '',
-
-      // Trainers & Fighters
-      trainers: [],
-      fighters: [],
-      sendInvites: false,
-
-      // Terms
-      termsAgreed: false,
-    })
     router.push('/training-facilities')
   }
 
   const isStep1Valid = () => {
     return (
       formData.name.length >= 3 &&
-      formData.logo &&
+      (formData.logo || formData.logoUrl) &&
       formData.martialArtsStyles.length > 0 &&
       formData.address &&
       formData.country &&
@@ -407,11 +460,15 @@ const RegisterTrainingFacilityPage = () => {
     return formData.description.length > 0
   }
 
+  if (loading) {
+    return <Loader />
+  }
+
   return (
     <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='w-full container mx-auto'>
         <div className='mb-6'>
-          <h1 className='text-4xl font-bold'>Register Training Facility</h1>
+          <h1 className='text-4xl font-bold'>Edit Training Facility</h1>
           <p>Fill the form below to register you training and gym facility</p>
         </div>
         <div className='mb-8'>
@@ -479,12 +536,23 @@ const RegisterTrainingFacilityPage = () => {
                     3-50 characters, must be unique
                   </span>
                 </div>
-
                 <div>
                   <label className='block font-medium mb-2'>
                     Facility Logo <span className='text-red-400'>*</span>
                   </label>
                   <div className='mt-1'>
+                    {formData.logoUrl && (
+                      <div className='mb-2'>
+                        <img
+                          src={formData.logoUrl}
+                          alt='Current logo'
+                          className='w-20 h-20 object-cover rounded border'
+                        />
+                        <p className='text-xs text-gray-400 mt-1'>
+                          Current logo
+                        </p>
+                      </div>
+                    )}
                     <input
                       type='file'
                       name='logo'
@@ -492,7 +560,9 @@ const RegisterTrainingFacilityPage = () => {
                       accept='image/jpeg,image/jpg,image/png'
                       className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
                     />
-                    <p className='text-xs text-gray-400 mt-1'>JPG/PNG</p>
+                    <p className='text-xs text-gray-400 mt-1'>
+                      JPG/PNG - Upload new logo to replace current one
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1395,10 +1465,10 @@ const RegisterTrainingFacilityPage = () => {
                   <button
                     type='button'
                     onClick={nextStep}
-                    disabled={
-                      (currentStep === 1 && !isStep1Valid()) ||
-                      (currentStep === 2 && !isStep2Valid())
-                    }
+                    // disabled={
+                    //   (currentStep === 1 && !isStep1Valid()) ||
+                    //   (currentStep === 2 && !isStep2Valid())
+                    // }
                     className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     Next
@@ -1431,4 +1501,4 @@ const RegisterTrainingFacilityPage = () => {
   )
 }
 
-export default RegisterTrainingFacilityPage
+export default EditRegisterTrainingFacilityPage

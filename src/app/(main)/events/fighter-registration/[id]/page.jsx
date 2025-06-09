@@ -16,6 +16,7 @@ import {
 import useStore from '../../../../../stores/useStore'
 import React, { use, useState } from 'react'
 import Link from 'next/link'
+import { City, Country, State } from 'country-state-city'
 
 const steps = [
   'Personal Info',
@@ -48,9 +49,9 @@ const FighterRegistrationPage = ({ params }) => {
     // Address
     street1: '',
     street2: '',
-    city: '',
-    state: '',
     country: '',
+    state: '',
+    city: '',
     zipCode: '',
 
     // Profile Photo
@@ -95,6 +96,15 @@ const FighterRegistrationPage = ({ params }) => {
     cashCode: '',
   })
   const [errors, setErrors] = useState({})
+
+  const countries = Country.getAllCountries()
+  const states = formData.country
+    ? State.getStatesOfCountry(formData.country)
+    : []
+  const cities =
+    formData.country && formData.state
+      ? City.getCitiesOfState(formData.country, formData.state)
+      : []
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
@@ -352,7 +362,6 @@ const FighterRegistrationPage = ({ params }) => {
             label: 'Street Address2',
             name: 'street2',
           },
-          { label: 'City', name: 'city' },
         ].map((field) => (
           <div key={field.name} className='bg-[#00000061] p-2 rounded'>
             <label className='block font-medium mb-1'>
@@ -368,11 +377,7 @@ const FighterRegistrationPage = ({ params }) => {
                 field.placeholder || `Enter ${field.label.toLowerCase()}`
               }
               disabled={field.disabled}
-              className={`${
-                field.type !== 'date'
-                  ? 'w-full outline-none bg-transparent text-white disabled:text-gray-400'
-                  : 'w-full p-3 outline-none bg-white/10 rounded-lg text-white border border-white/20 focus:border-purple-400 transition-colors'
-              }`}
+              className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               required={!field.disabled}
             />
             {errors[field.name] && (
@@ -383,7 +388,32 @@ const FighterRegistrationPage = ({ params }) => {
       </div>
 
       <div className='grid grid-cols-3 gap-4'>
-        <div className='bg-[#00000030] p-2 rounded'>
+        <div className='bg-[#00000061] p-2 rounded'>
+          <label className='block font-medium mb-1'>Country</label>
+          <select
+            name='country'
+            value={formData.country}
+            onChange={handleChange}
+            className='w-full outline-none bg-transparent text-white'
+          >
+            <option value='' className='text-black'>
+              Select Country
+            </option>
+            {countries.map((country) => (
+              <option
+                key={country.isoCode}
+                value={country.isoCode}
+                className='text-black'
+              >
+                {country.name}
+              </option>
+            ))}
+          </select>
+          {errors.country && (
+            <p className='text-red-400 text-sm mt-1'>{errors.country}</p>
+          )}
+        </div>
+        <div className='bg-[#00000061] p-2 rounded'>
           <label className='block font-medium mb-1'>State</label>
           <select
             name='state'
@@ -394,21 +424,15 @@ const FighterRegistrationPage = ({ params }) => {
             <option value='' className='text-black'>
               Select State
             </option>
-            <option value='AL' className='text-black'>
-              Alabama
-            </option>
-            <option value='CA' className='text-black'>
-              California
-            </option>
-            <option value='FL' className='text-black'>
-              Florida
-            </option>
-            <option value='NY' className='text-black'>
-              New York
-            </option>
-            <option value='TX' className='text-black'>
-              Texas
-            </option>
+            {states.map((state) => (
+              <option
+                key={state.isoCode}
+                value={state.isoCode}
+                className='text-black'
+              >
+                {state.name}
+              </option>
+            ))}
           </select>
           {errors.state && (
             <p className='text-red-400 text-sm mt-1'>{errors.state}</p>
@@ -428,34 +452,25 @@ const FighterRegistrationPage = ({ params }) => {
             <p className='text-red-400 text-sm mt-1'>{errors.zipCode}</p>
           )}
         </div>
-
-        <div className='bg-[#00000030] p-2 rounded'>
-          <label className='block font-medium mb-1'>Country</label>
+        <div className='bg-[#00000061] p-2 rounded'>
+          <label className='text-white font-medium'>
+            City<span className='text-red-500'>*</span>
+          </label>
           <select
-            name='country'
-            value={formData.country}
+            name='city'
+            value={formData.city}
             onChange={handleChange}
             className='w-full outline-none bg-transparent text-white'
+            required
+            disabled={!formData.state}
           >
-            <option value='' className='text-black'>
-              Select Country
-            </option>
-            <option value='USA' className='text-black'>
-              United States
-            </option>
-            <option value='Canada' className='text-black'>
-              Canada
-            </option>
-            <option value='UK' className='text-black'>
-              United Kingdom
-            </option>
-            <option value='Other' className='text-black'>
-              Other
-            </option>
+            <option value=''>Select City</option>
+            {cities.map((city) => (
+              <option key={city.name} value={city.name} className='text-black'>
+                {city.name}
+              </option>
+            ))}
           </select>
-          {errors.country && (
-            <p className='text-red-400 text-sm mt-1'>{errors.country}</p>
-          )}
         </div>
       </div>
 

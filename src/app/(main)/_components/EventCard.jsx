@@ -2,7 +2,6 @@
 import React, { useState } from 'react'
 import { Flag } from 'lucide-react'
 import Link from 'next/link'
-import RegistrationForm from '../events/_components/FighterRegistrationForm'
 
 const EventCard = ({
   imageUrl,
@@ -11,13 +10,11 @@ const EventCard = ({
   location,
   month,
   day,
-  title,
+  name,
   description,
   className,
   status,
 }) => {
-  const [isRegistrationModelOpen, setIsRegistrationModelOpen] = useState(false)
-
   // Status badge color mapping
   const statusColors = {
     live: 'bg-green-500',
@@ -59,7 +56,7 @@ const EventCard = ({
           <div className='text-white text-2xl font-bold'>{day}</div>
         </div>
         <div className='flex flex-col flex-grow'>
-          <h3 className='font-bold text-lg leading-tight mb-1'>{title}</h3>
+          <h3 className='font-bold text-lg leading-tight mb-1'>{name}</h3>
           <p className='text-gray-400 text-sm mb-3'>{description}</p>
 
           <div className='flex space-x-2 mt-auto'>
@@ -68,21 +65,9 @@ const EventCard = ({
                 View Details
               </button>
             </Link>
-            <button
-              className='bg-yellow-500 hover:bg-yellow-600 text-black font-medium py-1 px-3 rounded text-sm transition-colors'
-              onClick={() => setIsRegistrationModelOpen(true)}
-            >
-              Register
-            </button>
           </div>
         </div>
       </div>
-      {isRegistrationModelOpen && (
-        <RegistrationForm
-          setIsRegistrationModelOpen={setIsRegistrationModelOpen}
-          eventId={id}
-        />
-      )}
     </div>
   )
 }

@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 
 const Autocomplete = ({
   label,
-  options,
+  options = [],
   selected,
   onChange,
   multiple = false,
@@ -29,22 +29,24 @@ const Autocomplete = ({
 
   const handleSelect = (option) => {
     if (multiple) {
-      if (!selectedValues.includes(option)) {
+      if (!selectedValues.find((item) => item.value === option.value)) {
         onChange([...selectedValues, option])
       }
+      setInputValue('')
     } else {
       onChange(option)
+      setInputValue(option.label)
       setIsFocused(false)
     }
-    setInputValue(multiple ? '' : option)
     inputRef.current?.focus()
   }
 
   const handleRemove = (option) => {
     if (multiple) {
-      onChange(selectedValues.filter((item) => item !== option))
+      onChange(selectedValues.filter((item) => item.value !== option.value))
     } else {
-      onChange('')
+      onChange(null)
+      setInputValue('')
     }
     inputRef.current?.focus()
   }
@@ -58,7 +60,6 @@ const Autocomplete = ({
         setIsFocused(false)
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
@@ -67,20 +68,23 @@ const Autocomplete = ({
 
   useEffect(() => {
     if (!multiple && !isFocused && selected) {
-      setInputValue(selected)
+      setInputValue(selected.label || '')
     }
   }, [selected, isFocused, multiple])
 
   const filteredOptions = options.filter(
     (opt) =>
-      opt.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !selectedValues.includes(opt)
+      opt.label.toLowerCase().includes(inputValue.toLowerCase()) &&
+      !selectedValues.find((sel) => sel.value === opt.value)
   )
 
   return (
-    <div className='relative w-full' ref={containerRef}>
+    <div className='w-full' ref={containerRef}>
+      {label && (
+        <label className='block font-medium mb-1 text-white'>{label}</label>
+      )}
       <div
-        className='flex flex-wrap items-center gap-2 bg-[#00000061] px-3 py-2 rounded cursor-text min-h-[44px]'
+        className='flex flex-wrap items-center gap-2 bg-[#00000061] px-3 py-2 rounded cursor-text min-h-[50px]'
         onClick={() => {
           inputRef.current?.focus()
           setIsFocused(true)
@@ -89,10 +93,10 @@ const Autocomplete = ({
         {multiple &&
           selectedValues.map((item) => (
             <span
-              key={item}
+              key={item.value}
               className='flex items-center bg-blue-700 text-white text-sm px-2 py-1 rounded-full'
             >
-              {item}
+              {item.label}
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -114,9 +118,7 @@ const Autocomplete = ({
               ? inputValue
               : isFocused
               ? inputValue
-              : selected
-              ? selected
-              : ''
+              : selected?.label ?? ''
           }
           onChange={handleInputChange}
           placeholder={placeholder}
@@ -127,14 +129,14 @@ const Autocomplete = ({
       </div>
 
       {isFocused && filteredOptions.length > 0 && (
-        <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow max-h-48 overflow-y-auto'>
-          {filteredOptions.map((option, index) => (
+        <div className='absolute z-10 min-w-[100px] mt-1 bg-white border border-gray-300 rounded shadow max-h-48 overflow-y-auto'>
+          {filteredOptions.map((option) => (
             <div
-              key={index}
+              key={option.value}
               onClick={() => handleSelect(option)}
               className='px-4 py-2 text-sm cursor-pointer hover:bg-blue-100 text-black'
             >
-              {option}
+              {option.label}
             </div>
           ))}
         </div>

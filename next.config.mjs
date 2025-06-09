@@ -10,6 +10,7 @@ const nextConfig = {
       'res.cloudinary.com',
       'ikf-assets.s3.amazonaws.com',
       'ikfgames.s3.ap-south-1.amazonaws.com',
+      'flagcdn.com',
     ],
   },
 }

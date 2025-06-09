@@ -18,10 +18,12 @@ const EventsPage = () => {
   useEffect(() => {
     const getEvents = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/events/find-all`)
+        const response = await axios.get(
+          `${API_BASE_URL}/events?isPublished=true`
+        )
         console.log('Response:', response.data)
 
-        setEvents(response.data.data.events)
+        setEvents(response.data.data.items)
       } catch (error) {
         console.error('Error fetching events:', error)
       } finally {
@@ -158,7 +160,7 @@ const EventsPage = () => {
           <Loader />
         </div>
       ) : (
-        <div className='bg-black w-full mx-auto px-4 py-16 flex flex-wrap justify-center gap-10 items-center'>
+        <div className='bg-black w-full mx-auto px-4 py-52 md:py-16 flex flex-wrap justify-center gap-10 items-center'>
           {events.map((event) => (
             <EventCard
               key={event._id}
@@ -166,12 +168,26 @@ const EventsPage = () => {
                 'https://images.unsplash.com/photo-1714583173985-fa58ef40c8d4?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
               }
               id={event._id}
-              imageAlt={event.title}
-              location={event.location}
+              imageAlt={event.name}
+              location={
+                event.venue?.name +
+                ', ' +
+                event.venue?.address.country +
+                ', ' +
+                event.venue?.address.state +
+                ', ' +
+                event.venue?.address.city +
+                ', ' +
+                event.venue?.address.street1 +
+                ', ' +
+                event.venue?.address?.street2 +
+                ', ' +
+                event.venue?.address.postalCode
+              }
               month={getMonth(event.startDate)}
               day={getDate(event.startDate)}
-              title={event.title}
-              description={event.description}
+              name={event.name}
+              description={event.briefDescription}
               status={getEventStatus(event.startDate, event.endDate)}
             />
           ))}

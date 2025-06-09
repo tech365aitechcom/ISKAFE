@@ -56,14 +56,14 @@ const NewsPage = () => {
     setLoading(true)
 
     try {
-      let queryParams = `?page=${currentPage}&limit=${newsPerPage}`
+      let queryParams = `?isPublished=true&page=${currentPage}&limit=${newsPerPage}`
       if (category && category !== 'All') {
         queryParams += `&category=${category}`
       }
       if (search) {
         queryParams += `&search=${encodeURIComponent(search)}`
       }
-      const response = await axios.get(`${API_BASE_URL}/news?${queryParams}`)
+      const response = await axios.get(`${API_BASE_URL}/news${queryParams}`)
       console.log('Response:', response.data)
       setNews(response.data.data.items)
       setTotalPages(response.data.data.pagination.totalPages)
