@@ -1,19 +1,20 @@
 'use client'
-import { uploadToS3 } from '../../../../../utils/uploadToS3'
-import {
-  API_BASE_URL,
-  apiConstants,
-  APP_BASE_URL,
-} from '../../../../../constants'
-import useStore from '@/src/stores/useStore'
+import React, { use, useEffect, useState } from 'react'
 import axios from 'axios'
-import { City, Country, State } from 'country-state-city'
-import { Eye, EyeOff, Trash } from 'lucide-react'
-import React, { useState } from 'react'
+import Loader from '../../../../../_components/Loader'
+import { API_BASE_URL } from '../../../../../../constants'
+import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
+import useStore from '../../../../../../stores/useStore'
+import { City, Country, State } from 'country-state-city'
+import moment from 'moment'
 
-export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
-  const [formData, setFormData] = useState({
+export default function ViewPeoplePage({ params }) {
+  const { id } = use(params)
+  const { roles } = useStore()
+
+  const [loading, setLoading] = useState(true)
+  const [people, setPeople] = useState({
     firstName: '',
     middleName: '',
     lastName: '',
@@ -23,8 +24,6 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
     gender: '',
     dateOfBirth: '',
     role: '',
-    password: '',
-    confirmPassword: '',
     about: '',
     isPremium: false,
     adminNotes: '',
@@ -36,156 +35,114 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
     street1: '',
     street2: '',
     profilePhoto: null,
+    createdAt: '',
+    updatedAt: '',
+    lastLogin: '',
   })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
-  const { roles, user } = useStore()
 
   const countries = Country.getAllCountries()
-  const states = formData.country
-    ? State.getStatesOfCountry(formData.country)
-    : []
+  const states = people.country ? State.getStatesOfCountry(people.country) : []
   const cities =
-    formData.country && formData.state
-      ? City.getCitiesOfState(formData.country, formData.state)
+    people.country && people.state
+      ? City.getCitiesOfState(people.country, people.state)
       : []
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: type === 'checkbox' ? checked : value,
-    }))
-  }
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setFormData((prevState) => ({
-        ...prevState,
-        profilePhoto: file,
-      }))
-    }
-  }
-  console.log('Form Data:', formData)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const fetchPeopleDetails = async () => {
     try {
-      if (
-        formData.profilePhoto !== null &&
-        typeof formData.profilePhoto !== 'string'
-      ) {
-        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
-      }
-      const payload = {
-        ...formData,
-        redirectUrl: `${APP_BASE_URL}/verify-email`,
-      }
-      const response = await axios.post(`${API_BASE_URL}/people`, payload, {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
+      const response = await axios.get(`${API_BASE_URL}/people/${id}`)
+      const data = response.data.data
+      const formattedDOB = new Date(data.dateOfBirth)
+        .toISOString()
+        .split('T')[0]
+
+      setPeople({
+        firstName: data.firstName || '',
+        middleName: data.middleName || '',
+        lastName: data.lastName || '',
+        suffix: data.suffix || '',
+        nickname: data.nickname || '',
+        email: data.email || '',
+        gender: data.gender || '',
+        dateOfBirth: formattedDOB || '',
+        role: data.role || '',
+        about: data.about || '',
+        isPremium: data.isPremium || false,
+        adminNotes: data.adminNotes || '',
+        phoneNumber: data.phoneNumber || '',
+        country: data.country || '',
+        state: data.state || '',
+        postalCode: data.postalCode || '',
+        city: data.city || '',
+        street1: data.street1 || '',
+        street2: data.street2 || '',
+        profilePhoto: data.profilePhoto || null,
+        createdAt: data.createdAt || '',
+        updatedAt: data.updatedAt || '',
+        lastLogin: data.lastLogin || '',
       })
-      if (response.status === apiConstants.create) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        setFormData({
-          firstName: '',
-          middleName: '',
-          lastName: '',
-          suffix: '',
-          nickname: '',
-          email: '',
-          gender: '',
-          dateOfBirth: '',
-          role: '',
-          password: '',
-          confirmPassword: '',
-          about: '',
-          isPremium: false,
-          adminNotes: '',
-          phoneNumber: '',
-          country: '',
-          state: '',
-          postalCode: '',
-          city: '',
-          street1: '',
-          street2: '',
-          profilePhoto: null,
-        })
-      }
-    } catch (error) {
-      console.error(error)
-      enqueueSnackbar(error?.response?.data?.message, { variant: 'error' })
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
+    } finally {
+      setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchPeopleDetails()
+  }, [id])
+
+  console.log('People:', people)
+
+  if (loading) return <Loader />
 
   return (
-    <div className='min-h-screen text-white bg-dark-blue-900'>
-      <div className='w-full'>
-        {/* Header with back button */}
+    <div className='text-white p-8 flex justify-center relative overflow-hidden'>
+      <div
+        className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
+        style={{
+          background:
+            'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
+        }}
+      ></div>
+      <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex items-center gap-4 mb-6'>
-          <button
-            onClick={() => setShowAddPeopleForm(false)}
-            className='mr-2 text-white'
-          >
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              className='h-6 w-6'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M10 19l-7-7m0 0l7-7m-7 7h18'
-              />
-            </svg>
-          </button>
-          <h1 className='text-2xl font-bold'>Add New People</h1>
+          <Link href='/admin/people'>
+            <button className='mr-2 text-white'>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-6 w-6'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M10 19l-7-7m0 0l7-7m-7 7h18'
+                />
+              </svg>
+            </button>
+          </Link>
+          <h1 className='text-2xl font-bold'>People Details</h1>
         </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
+        <form>
           {/* Image Upload */}
           <div className='mb-8'>
-            {formData.profilePhoto !== null ? (
+            {people.profilePhoto !== null ? (
               <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                 <img
                   src={
-                    typeof formData.profilePhoto == 'string'
-                      ? formData.profilePhoto
-                      : URL.createObjectURL(formData.profilePhoto)
+                    typeof people.profilePhoto == 'string'
+                      ? people.profilePhoto
+                      : URL.createObjectURL(people.profilePhoto)
                   }
                   alt='Selected Profile'
                   className='w-full h-full object-cover'
                 />
-                <button
-                  type='button'
-                  onClick={() =>
-                    setFormData((prev) => ({ ...prev, profilePhoto: null }))
-                  }
-                  className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
-                >
-                  <Trash className='w-4 h-4' />
-                </button>
               </div>
             ) : (
-              <label
-                htmlFor='profile-pic-upload'
-                className='cursor-pointer border-2 border-dashed border-gray-500 rounded-lg flex flex-col items-center justify-center w-72 h-52 relative overflow-hidden'
-              >
-                <input
-                  id='profile-pic-upload'
-                  type='file'
-                  accept='image/*'
-                  onChange={handleFileChange}
-                  className='absolute inset-0 opacity-0 cursor-pointer z-50'
-                />
-
+              <div className='border-2 border-dashed border-gray-500 rounded-lg flex flex-col items-center justify-center w-72 h-52 relative overflow-hidden'>
                 <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
                   <svg
                     xmlns='http://www.w3.org/2000/svg'
@@ -203,12 +160,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                   </svg>
                 </div>
                 <p className='text-sm text-center text-[#AEB9E1] z-10'>
-                  <span className='text-[#FEF200] mr-1'>Click to upload</span>
-                  or drag and drop profile pic
-                  <br />
-                  SVG, PNG, JPG or GIF (max. 800 x 400px)
+                  No profile photo uploaded
                 </p>
-              </label>
+              </div>
             )}
           </div>
 
@@ -224,11 +178,11 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='firstName'
-                value={formData.firstName}
-                onChange={handleChange}
+                value={people.firstName}
                 className='w-full outline-none'
                 required
                 placeholder='Eric'
+                readOnly
               />
             </div>
 
@@ -238,10 +192,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='middleName'
-                value={formData.middleName}
-                onChange={handleChange}
+                value={people.middleName}
                 className='w-full outline-none'
                 placeholder='M'
+                readOnly
               />
             </div>
 
@@ -253,11 +207,11 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='lastName'
-                value={formData.lastName}
-                onChange={handleChange}
+                value={people.lastName}
                 className='w-full outline-none'
                 required
                 placeholder='Franks'
+                readOnly
               />
             </div>
 
@@ -267,10 +221,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='suffix'
-                value={formData.suffix}
-                onChange={handleChange}
+                value={people.suffix}
                 className='w-full outline-none'
                 placeholder='Mr'
+                readOnly
               />
             </div>
 
@@ -280,10 +234,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='nickname'
-                value={formData.nickname}
-                onChange={handleChange}
+                value={people.nickname}
                 className='w-full outline-none'
                 placeholder='Eric'
+                readOnly
               />
             </div>
 
@@ -295,11 +249,11 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='email'
                 name='email'
-                value={formData.email}
-                onChange={handleChange}
+                value={people.email}
                 className='w-full outline-none'
                 required
                 placeholder='eric@gmail.com'
+                readOnly
               />
             </div>
 
@@ -311,9 +265,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='phoneNumber'
-                value={formData.phoneNumber}
-                onChange={handleChange}
+                value={people.phoneNumber}
                 className='w-full outline-none'
+                readOnly
               />
             </div>
 
@@ -324,10 +278,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               </label>
               <select
                 name='gender'
-                value={formData.gender}
-                onChange={handleChange}
+                value={people.gender}
                 className='w-full outline-none'
                 required
+                disabled
               >
                 <option value='' className='text-black'>
                   Select Gender
@@ -352,10 +306,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='date'
                 name='dateOfBirth'
-                value={formData.dateOfBirth}
-                onChange={handleChange}
+                value={people.dateOfBirth}
                 className='w-full  text-white'
                 required
+                readOnly
               />
             </div>
 
@@ -366,10 +320,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               </label>
               <select
                 name='role'
-                value={formData.role}
-                onChange={handleChange}
+                value={people.role}
                 className='w-full outline-none'
                 required
+                disabled
               >
                 <option value='' className='text-black'>
                   Select role
@@ -385,60 +339,6 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 ))}
               </select>
             </div>
-
-            {/* Password Field */}
-            <div className='bg-[#00000061] p-2 h-16 rounded relative'>
-              <label className='block text-xs font-medium mb-1'>
-                Password<span className='text-red-500'>*</span>
-              </label>
-              <div className='relative'>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name='password'
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder='********'
-                  className='w-full bg-transparent outline-none pr-10'
-                  minLength={8}
-                  required
-                />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </span>
-              </div>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-xs font-medium mb-1'>
-                Confirm Password<span className='text-red-500'>*</span>
-              </label>
-              <div className='relative'>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name='confirmPassword'
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder='********'
-                  className='w-full bg-transparent outline-none'
-                  minLength={8}
-                  required
-                />
-                <span
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={20} />
-                  ) : (
-                    <Eye size={20} />
-                  )}
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* About Field */}
@@ -446,11 +346,11 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             <label className='block text-sm font-medium mb-1'>About</label>
             <textarea
               name='about'
-              value={formData.about}
-              onChange={handleChange}
+              value={people.about}
               rows='2'
               className='w-full outline-none resize-none'
               placeholder='Message'
+              readOnly
             />
           </div>
 
@@ -461,11 +361,11 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             </label>
             <textarea
               name='adminNotes'
-              value={formData.adminNotes}
-              onChange={handleChange}
+              value={people.adminNotes}
               rows='2'
               className='w-full outline-none resize-none'
               placeholder='Message'
+              readOnly
             />
           </div>
 
@@ -475,13 +375,25 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               type='checkbox'
               id='isPremium'
               name='isPremium'
-              checked={formData.isPremium}
-              onChange={handleChange}
+              checked={people.isPremium}
               className='mr-2'
+              disabled
             />
             <label htmlFor='isPremium' className='text-sm'>
               Is Premium Profile?
             </label>
+          </div>
+
+          <div className='flex justify-between mb-4'>
+            <h3>
+              Created On: {moment(people.createdAt).format('DD/MM/YYYY HH:mm')}
+            </h3>
+            <h3>
+              Updated On: {moment(people.updatedAt).format('DD/MM/YYYY HH:mm')}
+            </h3>
+            <h3>
+              Last Login: {moment(people.lastLogin).format('DD/MM/YYYY HH:mm')}
+            </h3>
           </div>
 
           {/* ADDRESS DETAILS */}
@@ -496,10 +408,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <div className='relative'>
                 <select
                   name='country'
-                  value={formData.country}
-                  onChange={handleChange}
+                  value={people.country}
                   className='w-full outline-none appearance-none'
                   required
+                  disabled
                 >
                   <option value='' className='text-black'>
                     Select Country
@@ -534,9 +446,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <div className='relative'>
                 <select
                   name='state'
-                  value={formData.state}
-                  onChange={handleChange}
+                  value={people.state}
                   className='w-full outline-none appearance-none'
+                  disabled
                 >
                   <option value='' className='text-black'>
                     Select State
@@ -570,11 +482,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               </label>
               <select
                 name='city'
-                value={formData.city}
-                onChange={handleChange}
+                value={people.city}
                 className='w-full outline-none bg-transparent text-white'
                 required
-                disabled={!formData.state}
+                disabled
               >
                 <option value=''>Select City</option>
                 {cities.map((city) => (
@@ -594,10 +505,10 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='postalCode'
-                value={formData.postalCode}
-                onChange={handleChange}
+                value={people.postalCode}
                 placeholder='Enter ZIP Code'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                readOnly
               />
             </div>
           </div>
@@ -609,9 +520,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='street1'
-                value={formData.street1}
-                onChange={handleChange}
+                value={people.street1}
                 className='w-full outline-none'
+                readOnly
               />
             </div>
 
@@ -621,25 +532,11 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='street2'
-                value={formData.street2}
-                onChange={handleChange}
+                value={people.street2}
                 className='w-full outline-none'
+                readOnly
               />
             </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className='flex justify-center gap-4'>
-            <button
-              type='submit'
-              className='text-white font-medium py-2 px-6 rounded transition duration-200'
-              style={{
-                background:
-                  'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
-              }}
-            >
-              Save
-            </button>
           </div>
         </form>
       </div>

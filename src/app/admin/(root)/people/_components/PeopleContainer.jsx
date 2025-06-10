@@ -8,7 +8,6 @@ import { PeopleTable } from './PeopleTable'
 import useStore from '../../../../../stores/useStore'
 
 export const PeopleContainer = () => {
-  const user = useStore((state) => state.user)
   const [showAddPeopleForm, setShowAddPeopleForm] = useState(false)
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(false)
@@ -16,23 +15,46 @@ export const PeopleContainer = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [id, setId] = useState('')
+  const [name, setName] = useState('')
+  const [gender, setGender] = useState('')
+  const [role, setRole] = useState('')
+  const { user } = useStore()
 
   const getPeople = async () => {
     setLoading(true)
+
     try {
+      const queryParams = {
+        page: currentPage,
+        limit,
+        id,
+        name,
+        gender,
+        role,
+      }
+
+      const filteredParams = Object.fromEntries(
+        Object.entries(queryParams).filter(
+          ([_, value]) => value !== '' && value !== null && value !== undefined
+        )
+      )
+
+      const queryString = new URLSearchParams(filteredParams).toString()
+
       const response = await axios.get(
-        `${API_BASE_URL}/auth/users?page=${currentPage}&limit=${limit}`,
+        `${API_BASE_URL}/people?${queryString}`,
         {
           headers: {
             Authorization: `Bearer ${user?.token}`,
           },
         }
       )
-      console.log('Response:', response.data)
 
-      setPeople(response.data.data.items)
-      setTotalPages(response.data.data.pagination.totalPages)
-      setTotalItems(response.data.data.pagination.totalItems)
+      console.log('Response:', response.data)
+      setPeople(response.data.items)
+      setTotalPages(response.data.pagination.totalPages)
+      setTotalItems(response.data.pagination.totalItems)
     } catch (error) {
       console.log('Error fetching people:', error)
     } finally {
@@ -42,7 +64,7 @@ export const PeopleContainer = () => {
 
   useEffect(() => {
     getPeople()
-  }, [showAddPeopleForm, limit, currentPage])
+  }, [showAddPeopleForm, limit, currentPage, id, name, gender, role])
 
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
@@ -76,6 +98,14 @@ export const PeopleContainer = () => {
               totalPages={totalPages}
               totalItems={totalItems}
               onSuccess={getPeople}
+              id={id}
+              setId={setId}
+              name={name}
+              setName={setName}
+              gender={gender}
+              setGender={setGender}
+              role={role}
+              setRole={setRole}
             />
           )}
         </>

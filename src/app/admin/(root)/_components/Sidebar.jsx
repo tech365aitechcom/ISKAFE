@@ -111,7 +111,6 @@ export function Sidebar() {
       title: 'Homepage Settings',
     },
     { href: '/admin/about', icon: <Info size={18} />, title: 'About' },
-    { href: '/', icon: <Globe size={18} />, title: 'Public Site' },
   ]
 
   return (
@@ -163,10 +162,20 @@ export function Sidebar() {
               href={item.href}
               icon={item.icon}
               title={item.title}
-              isActive={pathname === item.href}
+              isActive={pathname.startsWith(item.href)}
               highlight={item.highlight}
             />
           ))}
+
+        <Link href={'/'} className={`flex items-center p-4 text-sm`}>
+          <span className='mr-3'>
+            <Globe size={18} />
+          </span>
+          Public Site
+          <span className='ml-auto'>
+            <ChevronRight size={14} />
+          </span>
+        </Link>
 
         <div className='flex flex-col'>
           <button

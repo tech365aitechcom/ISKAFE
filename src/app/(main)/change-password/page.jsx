@@ -72,8 +72,8 @@ const ChangePassword = () => {
   }
 
   return (
-    <div className='min-h-screen text-white bg-transparent'>
-      <div className='w-full bg-purple-900'>
+    <div className='min-h-screen text-white bg-[#0B1739]'>
+      <div className='w-full'>
         <div className='max-w-3xl mx-auto py-6 px-4'>
           <div className='text-center mb-8'>
             <h1 className='text-4xl md:text-5xl font-bold text-white'>
@@ -165,7 +165,7 @@ const ChangePassword = () => {
               <Button
                 variant='secondary'
                 size='lg'
-                className='text-white'
+                className='text-white rounded w-1/5'
                 style={{
                   background:
                     'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',

@@ -1,19 +1,22 @@
 'use client'
-import { uploadToS3 } from '../../../../../utils/uploadToS3'
-import {
-  API_BASE_URL,
-  apiConstants,
-  APP_BASE_URL,
-} from '../../../../../constants'
-import useStore from '@/src/stores/useStore'
+import React, { use, useEffect, useState } from 'react'
 import axios from 'axios'
-import { City, Country, State } from 'country-state-city'
+import Loader from '../../../../../_components/Loader'
+import { API_BASE_URL, apiConstants } from '../../../../../../constants'
+import Link from 'next/link'
 import { Eye, EyeOff, Trash } from 'lucide-react'
-import React, { useState } from 'react'
 import { enqueueSnackbar } from 'notistack'
+import useStore from '../../../../../../stores/useStore'
+import { uploadToS3 } from '../../../../../../utils/uploadToS3'
+import { City, Country, State } from 'country-state-city'
+import moment from 'moment'
 
-export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
-  const [formData, setFormData] = useState({
+export default function EditPeoplePage({ params }) {
+  const { id } = use(params)
+  const { user, roles } = useStore()
+
+  const [loading, setLoading] = useState(true)
+  const [people, setPeople] = useState({
     firstName: '',
     middleName: '',
     lastName: '',
@@ -36,24 +39,69 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
     street1: '',
     street2: '',
     profilePhoto: null,
+    createdAt: '',
+    updatedAt: '',
+    lastLogin: '',
   })
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
-  const { roles, user } = useStore()
+  const [submitting, setSubmitting] = useState(false)
 
   const countries = Country.getAllCountries()
-  const states = formData.country
-    ? State.getStatesOfCountry(formData.country)
-    : []
+  const states = people.country ? State.getStatesOfCountry(people.country) : []
   const cities =
-    formData.country && formData.state
-      ? City.getCitiesOfState(formData.country, formData.state)
+    people.country && people.state
+      ? City.getCitiesOfState(people.country, people.state)
       : []
+
+  const fetchPeopleDetails = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/people/${id}`)
+      const data = response.data.data
+      const formattedDOB = new Date(data.dateOfBirth)
+        .toISOString()
+        .split('T')[0]
+
+      setPeople({
+        firstName: data.firstName || '',
+        middleName: data.middleName || '',
+        lastName: data.lastName || '',
+        suffix: data.suffix || '',
+        nickname: data.nickname || '',
+        email: data.email || '',
+        gender: data.gender || '',
+        dateOfBirth: formattedDOB || '',
+        role: data.role || '',
+        about: data.about || '',
+        isPremium: data.isPremium || false,
+        adminNotes: data.adminNotes || '',
+        phoneNumber: data.phoneNumber || '',
+        country: data.country || '',
+        state: data.state || '',
+        postalCode: data.postalCode || '',
+        city: data.city || '',
+        street1: data.street1 || '',
+        street2: data.street2 || '',
+        profilePhoto: data.profilePhoto || null,
+        createdAt: data.createdAt || '',
+        updatedAt: data.updatedAt || '',
+        lastLogin: data.lastLogin || '',
+      })
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPeopleDetails()
+  }, [id])
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData((prevState) => ({
+    setPeople((prevState) => ({
       ...prevState,
       [name]: type === 'checkbox' ? checked : value,
     }))
@@ -62,103 +110,87 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      setFormData((prevState) => ({
-        ...prevState,
-        profilePhoto: file,
-      }))
+      setPeople((prev) => ({ ...prev, profilePhoto: file }))
     }
   }
-  console.log('Form Data:', formData)
+
+  console.log('People:', people)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setSubmitting(true)
+
     try {
-      if (
-        formData.profilePhoto !== null &&
-        typeof formData.profilePhoto !== 'string'
-      ) {
-        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+      if (people.profilePhoto && typeof people.profilePhoto !== 'string') {
+        try {
+          const s3UploadedUrl = await uploadToS3(people.profilePhoto)
+          people.profilePhoto = s3UploadedUrl
+        } catch (error) {
+          console.log('Image upload failed:', error)
+          return
+        }
       }
-      const payload = {
-        ...formData,
-        redirectUrl: `${APP_BASE_URL}/verify-email`,
-      }
-      const response = await axios.post(`${API_BASE_URL}/people`, payload, {
+      console.log('Submitting people details:', people)
+
+      const res = await axios.put(`${API_BASE_URL}/people/${id}`, people, {
         headers: {
           Authorization: `Bearer ${user?.token}`,
         },
       })
-      if (response.status === apiConstants.create) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        setFormData({
-          firstName: '',
-          middleName: '',
-          lastName: '',
-          suffix: '',
-          nickname: '',
-          email: '',
-          gender: '',
-          dateOfBirth: '',
-          role: '',
-          password: '',
-          confirmPassword: '',
-          about: '',
-          isPremium: false,
-          adminNotes: '',
-          phoneNumber: '',
-          country: '',
-          state: '',
-          postalCode: '',
-          city: '',
-          street1: '',
-          street2: '',
-          profilePhoto: null,
-        })
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+        fetchPeopleDetails()
       }
-    } catch (error) {
-      console.error(error)
-      enqueueSnackbar(error?.response?.data?.message, { variant: 'error' })
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  return (
-    <div className='min-h-screen text-white bg-dark-blue-900'>
-      <div className='w-full'>
-        {/* Header with back button */}
-        <div className='flex items-center gap-4 mb-6'>
-          <button
-            onClick={() => setShowAddPeopleForm(false)}
-            className='mr-2 text-white'
-          >
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              className='h-6 w-6'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M10 19l-7-7m0 0l7-7m-7 7h18'
-              />
-            </svg>
-          </button>
-          <h1 className='text-2xl font-bold'>Add New People</h1>
-        </div>
+  if (loading) return <Loader />
 
-        {/* Form */}
+  return (
+    <div className='text-white p-8 flex justify-center relative overflow-hidden'>
+      <div
+        className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
+        style={{
+          background:
+            'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
+        }}
+      ></div>
+      <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
+        <div className='flex items-center gap-4 mb-6'>
+          <Link href='/admin/people'>
+            <button className='mr-2 text-white'>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-6 w-6'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M10 19l-7-7m0 0l7-7m-7 7h18'
+                />
+              </svg>
+            </button>
+          </Link>
+          <h1 className='text-2xl font-bold'>People Editor</h1>
+        </div>
         <form onSubmit={handleSubmit}>
           {/* Image Upload */}
           <div className='mb-8'>
-            {formData.profilePhoto !== null ? (
+            {people.profilePhoto !== null ? (
               <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                 <img
                   src={
-                    typeof formData.profilePhoto == 'string'
-                      ? formData.profilePhoto
-                      : URL.createObjectURL(formData.profilePhoto)
+                    typeof people.profilePhoto == 'string'
+                      ? people.profilePhoto
+                      : URL.createObjectURL(people.profilePhoto)
                   }
                   alt='Selected Profile'
                   className='w-full h-full object-cover'
@@ -224,7 +256,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='firstName'
-                value={formData.firstName}
+                value={people.firstName}
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
@@ -238,7 +270,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='middleName'
-                value={formData.middleName}
+                value={people.middleName}
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='M'
@@ -253,7 +285,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='lastName'
-                value={formData.lastName}
+                value={people.lastName}
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
@@ -267,7 +299,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='suffix'
-                value={formData.suffix}
+                value={people.suffix}
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Mr'
@@ -280,7 +312,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='nickname'
-                value={formData.nickname}
+                value={people.nickname}
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Eric'
@@ -295,7 +327,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='email'
                 name='email'
-                value={formData.email}
+                value={people.email}
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
@@ -311,7 +343,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='phoneNumber'
-                value={formData.phoneNumber}
+                value={people.phoneNumber}
                 onChange={handleChange}
                 className='w-full outline-none'
               />
@@ -324,7 +356,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               </label>
               <select
                 name='gender'
-                value={formData.gender}
+                value={people.gender}
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
@@ -352,7 +384,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='date'
                 name='dateOfBirth'
-                value={formData.dateOfBirth}
+                value={people.dateOfBirth}
                 onChange={handleChange}
                 className='w-full  text-white'
                 required
@@ -366,7 +398,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               </label>
               <select
                 name='role'
-                value={formData.role}
+                value={people.role}
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
@@ -388,19 +420,16 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
 
             {/* Password Field */}
             <div className='bg-[#00000061] p-2 h-16 rounded relative'>
-              <label className='block text-xs font-medium mb-1'>
-                Password<span className='text-red-500'>*</span>
-              </label>
+              <label className='block text-xs font-medium mb-1'>Password</label>
               <div className='relative'>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name='password'
-                  value={formData.password}
+                  value={people.password}
                   onChange={handleChange}
                   placeholder='********'
                   className='w-full bg-transparent outline-none pr-10'
                   minLength={8}
-                  required
                 />
                 <span
                   onClick={() => setShowPassword(!showPassword)}
@@ -414,18 +443,17 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             {/* Confirm Password Field */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-xs font-medium mb-1'>
-                Confirm Password<span className='text-red-500'>*</span>
+                Confirm Password
               </label>
               <div className='relative'>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   name='confirmPassword'
-                  value={formData.confirmPassword}
+                  value={people.confirmPassword}
                   onChange={handleChange}
                   placeholder='********'
                   className='w-full bg-transparent outline-none'
                   minLength={8}
-                  required
                 />
                 <span
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -446,7 +474,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             <label className='block text-sm font-medium mb-1'>About</label>
             <textarea
               name='about'
-              value={formData.about}
+              value={people.about}
               onChange={handleChange}
               rows='2'
               className='w-full outline-none resize-none'
@@ -461,7 +489,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             </label>
             <textarea
               name='adminNotes'
-              value={formData.adminNotes}
+              value={people.adminNotes}
               onChange={handleChange}
               rows='2'
               className='w-full outline-none resize-none'
@@ -475,13 +503,28 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               type='checkbox'
               id='isPremium'
               name='isPremium'
-              checked={formData.isPremium}
+              checked={people.isPremium}
               onChange={handleChange}
               className='mr-2'
             />
             <label htmlFor='isPremium' className='text-sm'>
               Is Premium Profile?
             </label>
+          </div>
+
+          <div className='flex justify-between mb-4'>
+            <h3>
+              Created On: {moment(people.createdAt).format('DD/MM/YYYY HH:mm')}
+            </h3>
+            <h3>
+              Updated On: {moment(people.updatedAt).format('DD/MM/YYYY HH:mm')}
+            </h3>
+            <h3>
+              Last Login:{' '}
+              {people.lastLogin
+                ? moment(people.lastLogin).format('DD/MM/YYYY HH:mm')
+                : 'N/A'}
+            </h3>
           </div>
 
           {/* ADDRESS DETAILS */}
@@ -496,7 +539,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <div className='relative'>
                 <select
                   name='country'
-                  value={formData.country}
+                  value={people.country}
                   onChange={handleChange}
                   className='w-full outline-none appearance-none'
                   required
@@ -534,7 +577,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <div className='relative'>
                 <select
                   name='state'
-                  value={formData.state}
+                  value={people.state}
                   onChange={handleChange}
                   className='w-full outline-none appearance-none'
                 >
@@ -570,11 +613,11 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               </label>
               <select
                 name='city'
-                value={formData.city}
+                value={people.city}
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent text-white'
                 required
-                disabled={!formData.state}
+                disabled={!people.state}
               >
                 <option value=''>Select City</option>
                 {cities.map((city) => (
@@ -594,7 +637,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='postalCode'
-                value={formData.postalCode}
+                value={people.postalCode}
                 onChange={handleChange}
                 placeholder='Enter ZIP Code'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -609,7 +652,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='street1'
-                value={formData.street1}
+                value={people.street1}
                 onChange={handleChange}
                 className='w-full outline-none'
               />
@@ -621,7 +664,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <input
                 type='text'
                 name='street2'
-                value={formData.street2}
+                value={people.street2}
                 onChange={handleChange}
                 className='w-full outline-none'
               />

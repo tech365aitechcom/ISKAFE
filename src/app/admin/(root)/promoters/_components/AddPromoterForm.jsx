@@ -77,7 +77,10 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
       }
       const response = await axios.post(
         `${API_BASE_URL}/promoter`,
-        { ...formData },
+        {
+          ...formData,
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verify-email`,
+        },
         {
           headers: {
             Authorization: `Bearer ${user?.token}`,

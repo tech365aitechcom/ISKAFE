@@ -1,12 +1,18 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import axios from 'axios'
-import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import Loader from '../../../../../_components/Loader'
+import { API_BASE_URL, apiConstants } from '../../../../../../constants'
+import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
-import useStore from '../../../../../stores/useStore'
+import useStore from '../../../../../../stores/useStore'
 
-export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
-  const [formData, setFormData] = useState({
+export default function EditOfficialTitleHolderPage({ params }) {
+  const { id } = use(params)
+  const { user } = useStore()
+
+  const [loading, setLoading] = useState(true)
+  const [officialTitle, setOfficialTitle] = useState({
     proClassification: '',
     sport: '',
     ageClass: '',
@@ -16,11 +22,63 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
     notes: '',
     fighter: '',
   })
-
   const [classifications, setClassifications] = useState([])
   const [fighters, setFighters] = useState([])
+  const [submitting, setSubmitting] = useState(false)
 
-  const { user } = useStore()
+  const fetchOfficialTitleDetails = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/official-title-holders/${id}`
+      )
+      const data = response.data.data
+      setOfficialTitle({
+        proClassification: data.proClassification || '',
+        sport: data.sport || '',
+        ageClass: data.ageClass || '',
+        weightClass: data.weightClass || '',
+        title: data.title || '',
+        date: data.date?.split('T')[0] || '',
+        notes: data.notes || '',
+        fighter: data.fighter?._id || '',
+      })
+    } catch (err) {
+      console.log('Error fetching news details:', err)
+      enqueueSnackbar(err.response.data.message, { variant: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const selectedClassification = classifications.find(
+    (c) => c.label === officialTitle.proClassification
+  )
+
+  const sportOptions =
+    selectedClassification?.sports.map((sport) => sport.label) || []
+
+  const selectedSport = selectedClassification?.sports.find(
+    (s) => s.label === officialTitle.sport
+  )
+
+  const weightClassOptions = selectedSport?.weightClass || []
+  const ageClassOptions = selectedSport?.ageClass || []
+
+  const getFullName = (fighter) => {
+    return [fighter.firstName, fighter.lastName].filter(Boolean).join(' ')
+  }
+  console.log('fighters', fighters)
+
+  const selectOptionsMap = {
+    proClassification: classifications.map((c) => c.label),
+    sport: sportOptions,
+    ageClass: ageClassOptions,
+    weightClass: weightClassOptions,
+    fighter: fighters.map((f) => ({
+      label: getFullName(f.userId),
+      value: f._id,
+    })),
+  }
 
   const fetchMasterData = async () => {
     try {
@@ -47,104 +105,75 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
     fetchFighters()
   }, [])
 
+  useEffect(() => {
+    fetchOfficialTitleDetails()
+  }, [id])
+
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-      ...(name === 'proClassification' && { sport: '', weightClass: '' }),
-      ...(name === 'sport' && { weightClass: '' }),
-    }))
+    setOfficialTitle((prev) => ({ ...prev, [name]: value }))
   }
 
-  const selectedClassification = classifications.find(
-    (c) => c.label === formData.proClassification
-  )
-
-  const sportOptions =
-    selectedClassification?.sports.map((sport) => sport.label) || []
-
-  const selectedSport = selectedClassification?.sports.find(
-    (s) => s.label === formData.sport
-  )
-
-  const weightClassOptions = selectedSport?.weightClass || []
-  const ageClassOptions = selectedSport?.ageClass || []
-
-  const getFullName = (fighter) => {
-    return [fighter.firstName, fighter.lastName].filter(Boolean).join(' ')
-  }
-  console.log('fighters', fighters)
-
-  const selectOptionsMap = {
-    proClassification: classifications.map((c) => c.label),
-    sport: sportOptions,
-    ageClass: ageClassOptions,
-    weightClass: weightClassOptions,
-    fighter: fighters.map((f) => ({
-      label: getFullName(f.userId),
-      value: f._id,
-    })),
-  }
+  console.log('Official Title Details:', officialTitle)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setSubmitting(true)
+
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/official-title-holders`,
-        formData,
+      const res = await axios.put(
+        `${API_BASE_URL}/official-title-holders/${id}`,
+        officialTitle,
         {
           headers: {
             Authorization: `Bearer ${user?.token}`,
           },
         }
       )
-      console.log('Response:', response)
-
-      if (response.status === apiConstants.create) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        setFormData({
-          proClassification: '',
-          sport: '',
-          ageClass: '',
-          weightClass: '',
-          title: '',
-          date: '',
-          notes: '',
-          fighter: '',
-        })
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+        fetchOfficialTitleDetails()
       }
-    } catch (error) {
-      enqueueSnackbar(error?.response?.data?.message, { variant: 'error' })
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  return (
-    <div className='min-h-screen text-white bg-dark-blue-900'>
-      <div className='w-full'>
-        <div className='flex items-center gap-4 mb-6'>
-          <button
-            className='text-white'
-            onClick={() => setShowAddTitleForm(false)}
-          >
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              className='h-6 w-6'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M10 19l-7-7m0 0l7-7m-7 7h18'
-              />
-            </svg>
-          </button>
-          <h1 className='text-xl font-medium'>Add New Title</h1>
-        </div>
+  if (loading) return <Loader />
 
+  return (
+    <div className='text-white p-8 flex justify-center relative overflow-hidden'>
+      <div
+        className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
+        style={{
+          background:
+            'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
+        }}
+      ></div>
+      <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
+        <div className='flex items-center gap-4 mb-6'>
+          <Link href='/admin/official-title-holders'>
+            <button className='mr-2 text-white'>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-6 w-6'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M10 19l-7-7m0 0l7-7m-7 7h18'
+                />
+              </svg>
+            </button>
+          </Link>
+          <h1 className='text-2xl font-bold'>Official Title Editor</h1>
+        </div>
         <form onSubmit={handleSubmit}>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
             {[
@@ -161,7 +190,9 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
               const prevFieldName = index > 0 ? arr[index - 1].name : null
 
               // Disable current field if previous is not selected (and previous exists)
-              const disabled = prevFieldName ? !formData[prevFieldName] : false
+              const disabled = prevFieldName
+                ? !officialTitle[prevFieldName]
+                : false
 
               return (
                 <div key={name} className='bg-[#00000061] p-2 rounded'>
@@ -172,7 +203,7 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
                   {isSelect ? (
                     <select
                       name={name}
-                      value={formData[name]}
+                      value={officialTitle[name]}
                       onChange={handleChange}
                       className='w-full bg-transparent outline-none text-white'
                       required={!disabled}
@@ -191,7 +222,7 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
                     <input
                       type={type}
                       name={name}
-                      value={formData[name]}
+                      value={officialTitle[name]}
                       onChange={handleChange}
                       className='w-full bg-transparent outline-none'
                       required={!disabled}
@@ -206,7 +237,7 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
               <label className='block text-sm font-medium mb-1'>Fighter</label>
               <select
                 name='fighter'
-                value={formData.fighter}
+                value={officialTitle.fighter}
                 onChange={handleChange}
                 className='w-full bg-transparent outline-none text-white'
               >
@@ -229,7 +260,7 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
             </label>
             <textarea
               name='notes'
-              value={formData.notes}
+              value={officialTitle.notes}
               onChange={handleChange}
               rows='3'
               className='w-full bg-transparent outline-none resize-none'
@@ -241,8 +272,9 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
             <button
               type='submit'
               className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              disabled={submitting}
             >
-              Save
+              {submitting ? <Loader /> : 'Save'}
             </button>
           </div>
         </form>

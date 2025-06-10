@@ -19,22 +19,18 @@ export function OfficialTitleTable({
   totalPages,
   totalItems,
   onSuccess,
+  searchQuery,
+  setSearchQuery,
 }) {
-  const [searchQuery, setSearchQuery] = useState('')
   const [isDelete, setIsDelete] = useState(false)
   const [selectedTitle, setSelectedTitle] = useState(null)
 
-  const filteredTitles = officialTitles?.filter((title) => {
-    const matchesSearch = title?.title
-      ?.toLowerCase()
-      .includes(searchQuery?.toLowerCase())
-    return matchesSearch
-  })
-
   const handleDeleteTitle = async (titleId) => {
     try {
-      await axios.delete(`${API_BASE_URL}/officialTitles/${titleId}`)
-      enqueueSnackbar('Title deleted successfully', { variant: 'success' })
+      const response = await axios.delete(
+        `${API_BASE_URL}/official-title-holders/${titleId}`
+      )
+      enqueueSnackbar(response.data.message, { variant: 'success' })
       setIsDelete(false)
       if (onSuccess) onSuccess()
     } catch (error) {
@@ -82,8 +78,8 @@ export function OfficialTitleTable({
               </tr>
             </thead>
             <tbody>
-              {filteredTitles && filteredTitles.length > 0 ? (
-                filteredTitles.map((title, index) => {
+              {officialTitles && officialTitles.length > 0 ? (
+                officialTitles.map((title, index) => {
                   return (
                     <tr
                       key={title._id}
@@ -91,20 +87,28 @@ export function OfficialTitleTable({
                         index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                       }`}
                     >
-                      <td className='p-4'>{title.fighter}</td>
+                      <td className='p-4'>
+                        {title.fighter?.userId?.firstName +
+                          ' ' +
+                          title.fighter?.userId?.lastName}
+                      </td>
                       <td className='p-4'>{title.title}</td>
                       <td className='p-4'>{title.weightClass}</td>
                       <td className='p-4'>
                         <div className='flex space-x-4 items-center'>
                           {/* View */}
-                          <Link href={`/admin/title/view/${title._id}`}>
+                          <Link
+                            href={`/admin/official-title-holders/view/${title._id}`}
+                          >
                             <button className='text-gray-400 hover:text-gray-200 transition'>
                               <Eye size={20} />
                             </button>
                           </Link>
 
                           {/* Edit */}
-                          <Link href={`/admin/title/edit/${title._id}`}>
+                          <Link
+                            href={`/admin/official-title-holders/edit/${title._id}`}
+                          >
                             <button className='text-blue-500 hover:underline'>
                               <SquarePen size={20} />
                             </button>

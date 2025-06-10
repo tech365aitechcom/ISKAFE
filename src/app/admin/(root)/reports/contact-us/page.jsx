@@ -6,12 +6,10 @@ import {
   Mail,
   ArrowUp,
   ArrowDown,
-  FileText,
   Download,
   ExternalLink,
   X,
   Check,
-  Clock,
   RefreshCw,
 } from 'lucide-react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
@@ -20,6 +18,7 @@ import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import moment from 'moment'
 import { enqueueSnackbar } from 'notistack'
+import Loader from '../../../../_components/Loader'
 
 export default function ContactUsReports() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -141,6 +140,8 @@ export default function ContactUsReports() {
       </div>
     </th>
   )
+
+  if (loading) return <Loader />
 
   return (
     <div className='text-white p-8 flex justify-center relative overflow-hidden'>
