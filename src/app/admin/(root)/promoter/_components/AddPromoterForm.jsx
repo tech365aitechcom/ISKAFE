@@ -2,9 +2,15 @@
 import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import { uploadToS3 } from '../../../../../utils/uploadToS3'
-import { Trash } from 'lucide-react'
+import { Eye, EyeOff, Trash } from 'lucide-react'
 import React, { useState } from 'react'
-import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import {
+  API_BASE_URL,
+  apiConstants,
+  APP_BASE_URL,
+} from '../../../../../constants'
+import axios from 'axios'
+import { City, Country, State } from 'country-state-city'
 
 export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
   const user = useStore((state) => state.user)
@@ -38,12 +44,23 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
 
     // Access
     accountStatus: 'Active',
-    username: '',
+    userName: '',
     password: '',
     confirmPassword: '',
     assignRole: 'Promoter',
     adminNotes: '',
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const countries = Country.getAllCountries()
+  const states = formData.country
+    ? State.getStatesOfCountry(formData.country)
+    : []
+  const cities =
+    formData.country && formData.state
+      ? City.getCitiesOfState(formData.country, formData.state)
+      : []
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -56,10 +73,9 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
   const handleFileChange = (e, fieldName) => {
     const file = e.target.files[0]
     if (file) {
-      const previewURL = URL.createObjectURL(file)
       setFormData((prevState) => ({
         ...prevState,
-        [fieldName]: previewURL,
+        [fieldName]: file,
       }))
     }
   }
@@ -79,7 +95,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
         `${API_BASE_URL}/promoter`,
         {
           ...formData,
-          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verify-email`,
+          redirectUrl: `${APP_BASE_URL}/verify-email`,
         },
         {
           headers: {
@@ -119,7 +135,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
 
           // Access
           accountStatus: 'Active',
-          username: '',
+          userName: '',
           password: '',
           confirmPassword: '',
           assignRole: 'Promoter',
@@ -179,7 +195,11 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
               {formData.profilePhoto ? (
                 <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                   <img
-                    src={formData.profilePhoto}
+                    src={
+                      typeof formData.profilePhoto == 'string'
+                        ? formData.profilePhoto
+                        : URL.createObjectURL(formData.profilePhoto)
+                    }
                     alt='Selected image'
                     className='w-full h-full object-cover'
                   />
@@ -559,15 +579,18 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     className='w-full bg-transparent outline-none appearance-none'
                     required
                   >
-                    <option value='United States' className='text-black'>
-                      United States
+                    <option value='' className='text-black'>
+                      Select Country
                     </option>
-                    <option value='Canada' className='text-black'>
-                      Canada
-                    </option>
-                    <option value='UK' className='text-black'>
-                      UK
-                    </option>
+                    {countries.map((country) => (
+                      <option
+                        key={country.isoCode}
+                        value={country.isoCode}
+                        className='text-black'
+                      >
+                        {country.name}
+                      </option>
+                    ))}
                   </select>
                   <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white'>
                     <svg
@@ -596,18 +619,18 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     className='w-full bg-transparent outline-none appearance-none'
                     required
                   >
-                    <option value='' disabled className='text-black'>
-                      Select state
+                    <option value='' className='text-black'>
+                      Select State
                     </option>
-                    <option value='California' className='text-black'>
-                      California
-                    </option>
-                    <option value='New York' className='text-black'>
-                      New York
-                    </option>
-                    <option value='Texas' className='text-black'>
-                      Texas
-                    </option>
+                    {states.map((state) => (
+                      <option
+                        key={state.isoCode}
+                        value={state.isoCode}
+                        className='text-black'
+                      >
+                        {state.name}
+                      </option>
+                    ))}
                   </select>
                   <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white'>
                     <svg
@@ -622,19 +645,30 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
               </div>
 
               {/* City Field */}
-              <div className='bg-[#00000061] p-2 h-16 rounded'>
-                <label className='block text-xs font-medium mb-1'>
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='text-white font-medium'>
                   City<span className='text-red-500'>*</span>
                 </label>
-                <input
-                  type='text'
+                <select
                   name='city'
                   value={formData.city}
                   onChange={handleChange}
-                  placeholder='Los Angeles'
-                  className='w-full bg-transparent outline-none'
+                  className='w-full outline-none bg-transparent text-white'
                   required
-                />
+                >
+                  <option value='' className='text-black'>
+                    Select City
+                  </option>
+                  {cities.map((city) => (
+                    <option
+                      key={city.name}
+                      value={city.name}
+                      className='text-black'
+                    >
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* ZIP/Postal Code Field */}
@@ -649,7 +683,6 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   onChange={handleChange}
                   placeholder='90001'
                   className='w-full bg-transparent outline-none'
-                  pattern='[0-9]{5}'
                   required
                 />
               </div>
@@ -700,8 +733,8 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 </label>
                 <input
                   type='text'
-                  name='username'
-                  value={formData.username}
+                  name='userName'
+                  value={formData.userName}
                   onChange={handleChange}
                   placeholder='promoter_admin'
                   className='w-full bg-transparent outline-none'
@@ -721,15 +754,10 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled
                   >
-                    <option value='Promoter' className='text-black'>
+                    <option value='promoter' className='text-black'>
                       Promoter
-                    </option>
-                    <option value='Viewer' className='text-black'>
-                      Viewer
-                    </option>
-                    <option value='Admin' className='text-black'>
-                      Admin
                     </option>
                   </select>
                   <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white'>
@@ -747,37 +775,55 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
 
             <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
               {/* Password Field */}
-              <div className='bg-[#00000061] p-2 h-16 rounded'>
+              <div className='bg-[#00000061] p-2 h-16 rounded relative'>
                 <label className='block text-xs font-medium mb-1'>
-                  Password<span className='text-red-500'>*</span>
+                  Password
                 </label>
-                <input
-                  type='password'
-                  name='password'
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder='********'
-                  className='w-full bg-transparent outline-none'
-                  minLength={8}
-                  required
-                />
+                <div className='relative'>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name='password'
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder='********'
+                    className='w-full bg-transparent outline-none pr-10'
+                    minLength={8}
+                  />
+                  <span
+                    onClick={() => setShowPassword(!showPassword)}
+                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </span>
+                </div>
               </div>
 
               {/* Confirm Password Field */}
               <div className='bg-[#00000061] p-2 h-16 rounded'>
                 <label className='block text-xs font-medium mb-1'>
-                  Confirm Password<span className='text-red-500'>*</span>
+                  Confirm Password
                 </label>
-                <input
-                  type='password'
-                  name='confirmPassword'
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder='********'
-                  className='w-full bg-transparent outline-none'
-                  minLength={8}
-                  required
-                />
+                <div className='relative'>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name='confirmPassword'
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder='********'
+                    className='w-full bg-transparent outline-none'
+                    minLength={8}
+                  />
+                  <span
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={20} />
+                    ) : (
+                      <Eye size={20} />
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
 

@@ -1,9 +1,14 @@
 'use client'
 
-import { ChevronsUpDown, Search, Trash } from 'lucide-react'
+import { FileText, Search, Video } from 'lucide-react'
 import { useState } from 'react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import ConfirmationModal from '../../../../_components/ConfirmationModal'
+import ActionButtons from '../../../../_components/ActionButtons'
+import axios from 'axios'
+import { enqueueSnackbar } from 'notistack'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
 
 export function RulesTable({
   rules,
@@ -13,37 +18,30 @@ export function RulesTable({
   setCurrentPage,
   totalPages,
   totalItems,
-  onEditRule,
-  onDeleteRule,
+  onSuccess,
+  searchQuery,
+  setSearchQuery,
+  selectedCategory,
+  setSelectedCategory,
+  selectedSubTab,
+  setSelectedSubTab,
+  selectedStatus,
+  setSelectedStatus,
 }) {
-  const [searchQuery, setSearchQuery] = useState('')
+  const [isDelete, setIsDelete] = useState(false)
+  const [selectedRule, setSelectedRule] = useState('')
 
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [selectedSubTab, setSelectedSubTab] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('')
-
-  const filteredRules = rules.filter((rule) => {
-    const matchesSearch = rule.ruleTitle
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory
-      ? rule.ruleCategory === selectedCategory
-      : true
-    const matchesSubTab = selectedSubTab
-      ? rule.subTabName === selectedSubTab
-      : true
-    const matchesStatus = selectedStatus ? rule.status === selectedStatus : true
-    return matchesSearch && matchesCategory && matchesSubTab && matchesStatus
-  })
-
-  const handleDelete = (id) => {
-    if (onDeleteRule) onDeleteRule(id)
-    console.log('Deleting rule with ID:', id)
-  }
-
-  const handleUpdate = (rule) => {
-    if (onEditRule) onEditRule(rule)
-    console.log('Editing rule:', rule)
+  const handleDelete = async (id) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/rules/${id}`)
+      if (response.status == apiConstants.success) {
+        enqueueSnackbar('Person deleted successfully', { variant: 'success' })
+        setIsDelete(false)
+        if (onSuccess) onSuccess()
+      }
+    } catch (error) {
+      enqueueSnackbar('Failed to delete person', { variant: 'error' })
+    }
   }
 
   const handleResetFilter = () => {
@@ -59,9 +57,12 @@ export function RulesTable({
     </th>
   )
 
-  // Get unique categories and sub-tabs for filters
-  const categories = [...new Set(rules.map((rule) => rule.ruleCategory))]
-  const subTabs = [...new Set(rules.map((rule) => rule.subTabName))]
+  const getStatusBadge = (status) => {
+    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium'
+    return status === 'Active'
+      ? `${baseClasses} bg-green-100 text-green-800`
+      : `${baseClasses} bg-red-100 text-red-800`
+  }
 
   return (
     <>
@@ -91,11 +92,18 @@ export function RulesTable({
               <option value='' className='text-black'>
                 All Categories
               </option>
-              {categories.map((category) => (
-                <option key={category} value={category} className='text-black'>
-                  {category}
-                </option>
-              ))}
+              <option value='Kickboxing' className='text-black'>
+                Kickboxing
+              </option>
+              <option value='Muay Thai' className='text-black'>
+                Muay Thai
+              </option>
+              <option value='Boxing' className='text-black'>
+                Boxing
+              </option>
+              <option value='MMA' className='text-black'>
+                MMA
+              </option>
             </select>
           </div>
         </div>
@@ -112,11 +120,18 @@ export function RulesTable({
               <option value='' className='text-black'>
                 All Sub-Tabs
               </option>
-              {subTabs.map((subTab) => (
-                <option key={subTab} value={subTab} className='text-black'>
-                  {subTab}
-                </option>
-              ))}
+              <option value='General' className='text-black'>
+                General
+              </option>
+              <option value='Equipment' className='text-black'>
+                Equipment
+              </option>
+              <option value='Judging' className='text-black'>
+                Judging
+              </option>
+              <option value='Other' className='text-black'>
+                Other
+              </option>
             </select>
           </div>
         </div>
@@ -177,29 +192,29 @@ export function RulesTable({
               </tr>
             </thead>
             <tbody>
-              {filteredRules && filteredRules.length > 0 ? (
-                filteredRules.map((rule, index) => (
+              {rules && rules.length > 0 ? (
+                rules.map((rule, index) => (
                   <tr
-                    key={index}
-                    className={`text-center ${
+                    key={rule?._id}
+                    className={`cursor-pointer ${
                       index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                     }`}
                   >
-                    <td className='p-4'>{rule.ruleCategory}</td>
-                    <td className='p-4'>{rule.subTabName}</td>
+                    <td className='p-4'>{rule.category}</td>
+                    <td className='p-4'>{rule.subTab}</td>
                     <td className='p-4'>{rule.ruleTitle}</td>
                     <td className='p-4 max-w-xs truncate'>
                       {rule.ruleDescription}
                     </td>
                     <td className='p-4'>
-                      {rule.uploadPDF && (
+                      {rule.rule && (
                         <a
-                          href={rule.uploadPDF}
+                          href={rule.rule}
                           target='_blank'
                           rel='noopener noreferrer'
-                          className='text-blue-500 underline'
+                          className='flex items-center gap-2'
                         >
-                          View PDF
+                          <FileText size={18} /> View PDF
                         </a>
                       )}
                     </td>
@@ -209,37 +224,27 @@ export function RulesTable({
                           href={rule.videoLink}
                           target='_blank'
                           rel='noopener noreferrer'
-                          className='text-blue-500 underline'
+                          className='flex items-center gap-2'
                         >
-                          View Video
+                          <Video size={18} /> Watch Video
                         </a>
                       )}
                     </td>
                     <td className='p-4'>{rule.sortOrder}</td>
-                    <td className='p-4'>
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          rule.status === 'Active'
-                            ? 'bg-green-900 text-green-300'
-                            : 'bg-gray-800 text-gray-300'
-                        }`}
-                      >
+                    <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                      <span className={getStatusBadge(rule.status)}>
                         {rule.status}
                       </span>
                     </td>
-                    <td className='p-4 py-8 flex items-center space-x-2'>
-                      <button
-                        onClick={() => handleUpdate(rule)}
-                        className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(rule.id)}
-                        className='text-red-600'
-                      >
-                        <Trash size={20} />
-                      </button>
+                    <td className='p-4 align-middle'>
+                      <ActionButtons
+                        viewUrl={`/admin/rules/view/${rule._id}`}
+                        editUrl={`/admin/rules/edit/${rule._id}`}
+                        onDelete={() => {
+                          setIsDelete(true)
+                          setSelectedRule(rule._id)
+                        }}
+                      />
                     </td>
                   </tr>
                 ))
@@ -253,6 +258,15 @@ export function RulesTable({
             </tbody>
           </table>
         </div>
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={isDelete}
+          onClose={() => setIsDelete(false)}
+          onConfirm={() => handleDelete(selectedRule)}
+          title='Delete Rule'
+          message='Are you sure you want to delete this rule?'
+        />
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

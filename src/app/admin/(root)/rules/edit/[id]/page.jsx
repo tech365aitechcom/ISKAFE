@@ -1,13 +1,17 @@
 'use client'
-import { API_BASE_URL, apiConstants } from '.././../../../../constants'
-import useStore from '../../../../../stores/useStore'
-import React, { useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import axios from 'axios'
+import Loader from '../../../../../_components/Loader'
+import { API_BASE_URL, apiConstants } from '../../../../../../constants'
+import Link from 'next/link'
+import { Eye, EyeOff, Trash } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
-import { uploadToS3 } from '../../../../../utils/uploadToS3'
+import { uploadToS3 } from '../../../../../../utils/uploadToS3'
 
-export const AddRulesForm = ({ setShowAddRuleForm }) => {
-  const { user } = useStore()
+export default function EditRulePage({ params }) {
+  const { id } = use(params)
+
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     category: '',
     subTab: '',
@@ -17,10 +21,39 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
     rule: null,
     videoLink: '',
     sortOrder: '',
-    status: 'Active',
+    status: '',
   })
 
+  const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
+
+  const fetchRuleDetails = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/rules/${id}`)
+      const data = response.data.data
+
+      setFormData({
+        category: data.category,
+        subTab: data.subTab,
+        subTabRuleDescription: data.subTabRuleDescription,
+        ruleTitle: data.ruleTitle,
+        ruleDescription: data.ruleDescription,
+        rule: data.rule,
+        videoLink: data.videoLink,
+        sortOrder: data.sortOrder,
+        status: data.status,
+      })
+    } catch (err) {
+      enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchRuleDetails()
+  }, [id])
 
   const validateField = (name, value) => {
     switch (name) {
@@ -152,76 +185,63 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-
+    setSubmitting(true)
     try {
       if (validateForm()) {
         console.log('Form submitted:', formData)
         if (formData.rule && formData.rule.name.endsWith('.pdf')) {
           formData.rule = await uploadToS3(formData.rule)
         }
-        const response = await axios.post(`${API_BASE_URL}/rules`, formData, {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        })
+        const response = await axios.put(`${API_BASE_URL}/rules`, formData)
 
-        if (response.status === apiConstants.create) {
+        if (response.status === apiConstants.success) {
           enqueueSnackbar(response.data.message || 'Rule added successfully', {
             variant: 'success',
           })
-          handleCancel()
         }
       } else {
         enqueueSnackbar('Fill all the required fields', { variant: 'error' })
       }
     } catch (error) {
       enqueueSnackbar(error.response.data.message, { variant: 'error' })
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const handleCancel = () => {
-    setFormData({
-      category: '',
-      subTab: '',
-      subTabRuleDescription: '',
-      ruleTitle: '',
-      ruleDescription: '',
-      rule: null,
-      videoLink: '',
-      sortOrder: '',
-      status: 'Active',
-    })
-    setShowAddRuleForm(false)
-  }
+  if (loading) return <Loader />
 
   return (
-    <div className='min-h-screen text-white w-full'>
-      <div className='w-full'>
-        {/* Header with back button */}
+    <div className='text-white p-8 flex justify-center relative overflow-hidden'>
+      <div
+        className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
+        style={{
+          background:
+            'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
+        }}
+      ></div>
+      <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex items-center gap-4 mb-6'>
-          <button
-            className='mr-2 text-white'
-            onClick={() => setShowAddRuleForm(false)}
-          >
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              className='h-6 w-6'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M10 19l-7-7m0 0l7-7m-7 7h18'
-              />
-            </svg>
-          </button>
-          <h1 className='text-2xl font-bold'>Add New Rule</h1>
+          <Link href='/admin/people'>
+            <button className='mr-2 text-white'>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-6 w-6'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M10 19l-7-7m0 0l7-7m-7 7h18'
+                />
+              </svg>
+            </button>
+          </Link>
+          <h1 className='text-2xl font-bold'>Rule Editor</h1>
         </div>
-
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           {/* Rule Category Section */}
           <div className='mb-6'>
@@ -407,6 +427,20 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
               )}
             </div>
 
+            {/* PDF Preview */}
+            {formData.rule && typeof formData.rule == 'string' && (
+              <div className='my-4'>
+                <h4 className='text-sm text-gray-300 my-4'>Uploaded PDF :</h4>
+                <a
+                  href={formData.rule}
+                  target='_blank'
+                  className='w-full p-2 h-96 border border-gray-700 rounded'
+                >
+                  {formData.rule}
+                </a>
+              </div>
+            )}
+
             {/* Video Link */}
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>
@@ -489,18 +523,20 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
 
           {/* Admin Controls */}
           <div className='flex justify-center gap-4 mt-8'>
+            <Link href={`/admin/rules`}>
+              <button
+                type='button'
+                className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              >
+                Cancel
+              </button>
+            </Link>{' '}
             <button
               type='submit'
               className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              disabled={submitting}
             >
-              Save Rule
-            </button>
-            <button
-              type='button'
-              onClick={handleCancel}
-              className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
-            >
-              Cancel
+              {submitting ? 'Updating...' : 'Update'}
             </button>
           </div>
         </form>

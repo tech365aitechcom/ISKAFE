@@ -525,11 +525,11 @@ export default function TrainingAndGymFacilities() {
                         <td className='px-4 py-3 text-center'>
                           {facility.fighters?.length ?? 0}
                         </td>
-                        <td className='px-4 py-3'>
-                          <div className='flex items-center gap-2'>
+                        <td className='p-4 align-middle'>
+                          <div className='flex items-center justify-start space-x-4'>
                             <button
                               onClick={() => handleViewProfile(facility)}
-                              className='text-blue-400 hover:text-blue-300'
+                              className='text-gray-400 hover:text-gray-200 transition flex items-center justify-center'
                               title='View Profile'
                             >
                               <Eye size={18} />

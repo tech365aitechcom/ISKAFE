@@ -51,9 +51,9 @@ export default function ViewPeoplePage({ params }) {
     try {
       const response = await axios.get(`${API_BASE_URL}/people/${id}`)
       const data = response.data.data
-      const formattedDOB = new Date(data.dateOfBirth)
-        .toISOString()
-        .split('T')[0]
+      const formattedDOB =
+        data.dateOfBirth &&
+        new Date(data.dateOfBirth).toISOString().split('T')[0]
 
       setPeople({
         firstName: data.firstName || '',
@@ -81,6 +81,7 @@ export default function ViewPeoplePage({ params }) {
         lastLogin: data.lastLogin || '',
       })
     } catch (err) {
+      console.log(err)
       enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
     } finally {
       setLoading(false)
@@ -392,7 +393,10 @@ export default function ViewPeoplePage({ params }) {
               Updated On: {moment(people.updatedAt).format('DD/MM/YYYY HH:mm')}
             </h3>
             <h3>
-              Last Login: {moment(people.lastLogin).format('DD/MM/YYYY HH:mm')}
+              Last Login:
+              {people.lastLogin
+                ? moment(people.lastLogin).format('DD/MM/YYYY HH:mm')
+                : 'N/A'}
             </h3>
           </div>
 

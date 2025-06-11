@@ -14,12 +14,20 @@ export const RuleContainer = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedSubTab, setSelectedSubTab] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('')
 
   const getRules = async () => {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/rules?page=${currentPage}&limit=${limit}`
-      )
+      let queryParams = `?page=${currentPage}&limit=${limit}`
+      if (searchQuery) queryParams += `&search=${searchQuery}`
+      if (selectedCategory) queryParams += `&category=${selectedCategory}`
+      if (selectedSubTab) queryParams += `&subTab=${selectedSubTab}`
+      if (selectedStatus) queryParams += `&status=${selectedStatus}`
+
+      const response = await axios.get(`${API_BASE_URL}/rules${queryParams}`)
       console.log('Response:', response.data)
 
       setRules(response.data.data.items)
@@ -34,7 +42,15 @@ export const RuleContainer = () => {
 
   useEffect(() => {
     getRules()
-  }, [showAddRuleForm, limit, currentPage])
+  }, [
+    showAddRuleForm,
+    limit,
+    currentPage,
+    searchQuery,
+    selectedCategory,
+    selectedSubTab,
+    selectedStatus,
+  ])
 
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
@@ -68,6 +84,14 @@ export const RuleContainer = () => {
               totalPages={totalPages}
               totalItems={totalItems}
               onSuccess={getRules}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              selectedSubTab={selectedSubTab}
+              setSelectedSubTab={setSelectedSubTab}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
             />
           )}
         </>

@@ -1,83 +1,86 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { FileText, Video } from 'lucide-react'
-
-const dummyRules = [
-  {
-    categoryTabName: 'Kickboxing',
-    subTabName: 'General Rules',
-    subTabRuleDescription:
-      'Basic competition guidelines and scoring rules for Kickboxing.',
-    ruleTitle: 'Kickboxing Match Guidelines',
-    ruleDescription: `
-      <h3>Basic Rules</h3>
-      <ul>
-        <li>Protective gear is mandatory</li>
-        <li>Three 2-minute rounds per match</li>
-        <li>Matches officiated by certified referees</li>
-      </ul>
-    `,
-    pdfUploadUrl: '/downloads/kickboxing-general.pdf',
-    videoLink: 'https://youtube.com/watch?v=kickboxing123',
-    sortOrder: 1,
-    status: true,
-    createdBy: '60f7f291bcf86cd799439011',
-  },
-  {
-    categoryTabName: 'Kickboxing',
-    subTabName: 'Safety',
-    subTabRuleDescription: 'Required safety equipment and medical clearance.',
-    ruleTitle: 'Kickboxing Safety Standards',
-    ruleDescription: `
-      <p>All participants must pass a medical exam and wear approved protective gear.</p>
-    `,
-    pdfUploadUrl: '/downloads/kickboxing-safety.pdf',
-    sortOrder: 2,
-    status: true,
-    createdBy: '60f7f291bcf86cd799439011',
-  },
-  {
-    categoryTabName: 'Muay Thai',
-    subTabName: 'Traditional Techniques',
-    subTabRuleDescription: 'Detailed look at the techniques used in Muay Thai.',
-    ruleTitle: 'Muay Thai Techniques',
-    ruleDescription: `
-      <p>Includes elbow, knee, punch, and kick techniques with clinch rules.</p>
-    `,
-    videoLink: 'https://youtube.com/watch?v=muaythai101',
-    sortOrder: 1,
-    status: true,
-    createdBy: '60f7f291bcf86cd799439011',
-  },
-]
+import axios from 'axios'
+import { API_BASE_URL } from '../../../constants'
+import Loader from '../../_components/Loader'
 
 const groupRules = (rules) => {
   const categoryMap = {}
   for (const rule of rules) {
-    if (!categoryMap[rule.categoryTabName]) {
-      categoryMap[rule.categoryTabName] = {}
+    if (!categoryMap[rule.category]) {
+      categoryMap[rule.category] = {}
     }
-    if (!categoryMap[rule.categoryTabName][rule.subTabName]) {
-      categoryMap[rule.categoryTabName][rule.subTabName] = {
+    if (!categoryMap[rule.category][rule.subTab]) {
+      categoryMap[rule.category][rule.subTab] = {
         description: rule.subTabRuleDescription,
         rules: [],
       }
     }
-    categoryMap[rule.categoryTabName][rule.subTabName].rules.push(rule)
+    categoryMap[rule.category][rule.subTab].rules.push(rule)
   }
   return categoryMap
 }
 
 const PublicRulesScreen = () => {
   const [expandedRules, setExpandedRules] = useState(new Set())
-  const grouped = groupRules(dummyRules)
-  const categoryTabs = Object.keys(grouped)
-  const [activeCategory, setActiveCategory] = useState(categoryTabs[0])
+  const [rules, setRules] = useState([])
+  const [activeCategory, setActiveCategory] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const getRules = async () => {
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/rules?page=1&limit=500`
+        )
+        const fetchedRules = response.data.data.items
+        setRules(fetchedRules)
+
+        // Set default active category safely after rules are available
+        const grouped = groupRules(fetchedRules)
+        const categories = Object.keys(grouped)
+        if (categories.length > 0) {
+          setActiveCategory(categories[0])
+        }
+      } catch (error) {
+        console.log('Error fetching rules:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getRules()
+  }, [])
 
   const toggleRule = (id) => {
     const newSet = new Set(expandedRules)
     newSet.has(id) ? newSet.delete(id) : newSet.add(id)
     setExpandedRules(newSet)
+  }
+
+  if (loading) {
+    return (
+      <div className='text-white min-h-screen flex items-center justify-center'>
+        <Loader />
+      </div>
+    )
+  }
+
+  const grouped = groupRules(rules)
+  const categoryTabs = Object.keys(grouped)
+
+  if (categoryTabs.length === 0 || !grouped[activeCategory]) {
+    return (
+      <div className='text-white min-h-screen bg-transparent border-t border-gray-700'>
+        <div className='p-4 container mx-auto'>
+          <h1 className='text-4xl font-bold mb-6'>Competition Rules</h1>
+          <p className='text-gray-400 text-lg'>
+            No rules available at the moment.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -103,10 +106,10 @@ const PublicRulesScreen = () => {
         </div>
 
         {/* SubTabs and Rules */}
-        {Object.entries(grouped[activeCategory]).map(
-          ([subTabName, { description, rules }]) => (
-            <div key={subTabName} className='mb-8'>
-              <h2 className='text-2xl font-semibold mb-1'>{subTabName}</h2>
+        {Object.entries(grouped[activeCategory] || {}).map(
+          ([subTab, { description, rules }]) => (
+            <div key={subTab} className='mb-8'>
+              <h2 className='text-2xl font-semibold mb-1'>{subTab}</h2>
               <p className='text-gray-400 mb-4'>{description}</p>
 
               {rules
@@ -145,9 +148,9 @@ const PublicRulesScreen = () => {
                           }}
                         />
                         <div className='mt-4 flex gap-4 flex-wrap'>
-                          {rule.pdfUploadUrl && (
+                          {rule.rule && (
                             <a
-                              href={rule.pdfUploadUrl}
+                              href={rule.rule}
                               target='_blank'
                               rel='noopener noreferrer'
                               className='flex items-center gap-2 text-blue-400 hover:underline'

@@ -680,8 +680,9 @@ export default function EditPeoplePage({ params }) {
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
               }}
+              disabled={submitting}
             >
-              Save
+              {submitting ? 'Updating...' : 'Update'}
             </button>
           </div>
         </form>

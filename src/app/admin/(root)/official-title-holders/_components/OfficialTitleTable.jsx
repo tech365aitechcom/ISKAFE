@@ -1,14 +1,14 @@
 'use client'
 
 import axios from 'axios'
-import { Eye, Search, SquarePen, Trash } from 'lucide-react'
-import Link from 'next/link'
+import { Search } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
 import { useState } from 'react'
-import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import { API_BASE_URL } from '../../../../../constants'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import ActionButtons from '../../../../_components/ActionButtons'
 
 export function OfficialTitleTable({
   officialTitles,
@@ -94,37 +94,15 @@ export function OfficialTitleTable({
                       </td>
                       <td className='p-4'>{title.title}</td>
                       <td className='p-4'>{title.weightClass}</td>
-                      <td className='p-4'>
-                        <div className='flex space-x-4 items-center'>
-                          {/* View */}
-                          <Link
-                            href={`/admin/official-title-holders/view/${title._id}`}
-                          >
-                            <button className='text-gray-400 hover:text-gray-200 transition'>
-                              <Eye size={20} />
-                            </button>
-                          </Link>
-
-                          {/* Edit */}
-                          <Link
-                            href={`/admin/official-title-holders/edit/${title._id}`}
-                          >
-                            <button className='text-blue-500 hover:underline'>
-                              <SquarePen size={20} />
-                            </button>
-                          </Link>
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => {
-                              setIsDelete(true)
-                              setSelectedTitle(title._id)
-                            }}
-                            className='text-red-600 hover:text-red-400 transition'
-                          >
-                            <Trash size={20} />
-                          </button>
-                        </div>
+                      <td className='p-4 align-middle'>
+                        <ActionButtons
+                          viewUrl={`/admin/official-title-holders/view/${title._id}`}
+                          editUrl={`/admin/official-title-holders/edit/${title._id}`}
+                          onDelete={() => {
+                            setIsDelete(true)
+                            setSelectedTitle(title._id)
+                          }}
+                        />
                       </td>
                     </tr>
                   )

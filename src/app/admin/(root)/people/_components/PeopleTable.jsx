@@ -1,8 +1,6 @@
 'use client'
 
 import axios from 'axios'
-import { Eye, SquarePen, Trash, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
 import { useState } from 'react'
 import { API_BASE_URL } from '../../../../../constants'
@@ -11,6 +9,7 @@ import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
 import useStore from '../../../../../stores/useStore'
 import { Country } from 'country-state-city'
+import ActionButtons from '../../../../_components/ActionButtons'
 
 export function PeopleTable({
   people,
@@ -234,28 +233,15 @@ export function PeopleTable({
                         'No Address On File'}
                     </td>
                     <td className='p-4 capitalize'>{person.role}</td>
-                    <td className='p-4'>
-                      <div className='flex space-x-4 items-center'>
-                        <Link href={`/admin/people/view/${person._id}`}>
-                          <button className='text-gray-400 hover:text-gray-200 transition'>
-                            <Eye size={20} />
-                          </button>
-                        </Link>
-                        <Link href={`/admin/people/edit/${person._id}`}>
-                          <button className='text-blue-500 hover:underline'>
-                            <SquarePen size={20} />
-                          </button>
-                        </Link>
-                        <button
-                          onClick={() => {
-                            setIsDelete(true)
-                            setSelectedPerson(person._id)
-                          }}
-                          className='text-red-600 hover:text-red-400 transition'
-                        >
-                          <Trash size={20} />
-                        </button>
-                      </div>
+                    <td className='p-4 align-middle'>
+                      <ActionButtons
+                        viewUrl={`/admin/people/view/${person._id}`}
+                        editUrl={`/admin/people/edit/${person._id}`}
+                        onDelete={() => {
+                          setIsDelete(true)
+                          setSelectedPerson(person._id)
+                        }}
+                      />
                     </td>
                   </tr>
                 ))

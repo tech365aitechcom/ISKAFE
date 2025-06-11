@@ -1,14 +1,14 @@
 'use client'
-import { Eye, MapPin, Search, SquarePen, Trash } from 'lucide-react'
+import { MapPin, Search } from 'lucide-react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
-import Link from 'next/link'
 import { useState } from 'react'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import useStore from '../../../../../stores/useStore'
+import ActionButtons from '../../../../_components/ActionButtons'
 
 export function VenuesTable({
   venues,
@@ -147,7 +147,7 @@ export function VenuesTable({
           totalItems={totalItems}
           label='venues'
         />
-        <div className='overflow-x-auto'>
+        <div className='overflow-x-auto custom-scrollbar'>
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
@@ -225,32 +225,15 @@ export function VenuesTable({
                         <MapPin size={20} />
                       </a>
                     </td>
-                    <td className='p-4 whitespace-nowrap'>
-                      <div className='flex space-x-4 items-center'>
-                        {/* View */}
-                        <Link href={`/admin/venues/view/${venue._id}`}>
-                          <button className='text-gray-400 hover:text-gray-200 transition'>
-                            <Eye size={20} />
-                          </button>
-                        </Link>
-
-                        {/* Edit */}
-                        <Link href={`/admin/venues/edit/${venue._id}`}>
-                          <button className='text-blue-500 hover:underline'>
-                            <SquarePen size={20} />
-                          </button>
-                        </Link>
-                        {/* Delete */}
-                        <button
-                          onClick={() => {
-                            setIsDelete(true)
-                            setSelectedVenue(venue._id)
-                          }}
-                          className='text-red-600 hover:text-red-400 transition'
-                        >
-                          <Trash size={20} />
-                        </button>
-                      </div>
+                    <td className='p-4 align-middle'>
+                      <ActionButtons
+                        viewUrl={`/admin/venues/view/${venue._id}`}
+                        editUrl={`/admin/venues/edit/${venue._id}`}
+                        onDelete={() => {
+                          setIsDelete(true)
+                          setSelectedVenue(venue._id)
+                        }}
+                      />
                     </td>
                   </tr>
                 ))

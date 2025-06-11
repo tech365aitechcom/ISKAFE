@@ -12,6 +12,7 @@ import Pagination from '../../../../_components/Pagination'
 import Image from 'next/image'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import useStore from '../../../../../stores/useStore'
+import ActionButtons from '../../../../_components/ActionButtons'
 
 export function NewsTable({
   news,
@@ -140,7 +141,7 @@ export function NewsTable({
           totalItems={totalItems}
           label='news'
         />
-        <div className='overflow-x-auto'>
+        <div className='overflow-x-auto custom-scrollbar'>
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
@@ -167,7 +168,7 @@ export function NewsTable({
                       <td className='p-4'>{item._id}</td>
                       <td className='p-4'>
                         {item.coverImage !== null && (
-                          <div className='relative w-full h-[120px]'>
+                          <div className='relative w-full h-[80px]'>
                             <Image
                               src={item.coverImage}
                               alt={item.title}
@@ -187,32 +188,15 @@ export function NewsTable({
                         {moment(item.updatedAt).format('YYYY/MM/DD')}
                       </td>
                       <td className='p-4'>{item.status}</td>
-                      <td className='p-4 '>
-                        <div className='flex space-x-4 items-center'>
-                          {/* View */}
-                          <Link href={`/admin/news/view/${item._id}`}>
-                            <button className='text-gray-400 hover:text-gray-200 transition'>
-                              <Eye size={20} />
-                            </button>
-                          </Link>
-
-                          {/* Edit */}
-                          <Link href={`/admin/news/edit/${item._id}`}>
-                            <button className='text-blue-500 hover:underline'>
-                              <SquarePen size={20} />
-                            </button>
-                          </Link>
-                          {/* Delete */}
-                          <button
-                            onClick={() => {
-                              setIsDelete(true)
-                              setSelectedNews(item._id)
-                            }}
-                            className='text-red-600 hover:text-red-400 transition'
-                          >
-                            <Trash size={20} />
-                          </button>
-                        </div>
+                      <td className='p-4 align-middle'>
+                        <ActionButtons
+                          viewUrl={`/admin/news/view/${item._id}`}
+                          editUrl={`/admin/news/edit/${item._id}`}
+                          onDelete={() => {
+                            setIsDelete(true)
+                            setSelectedNews(item._id)
+                          }}
+                        />
                       </td>
                     </tr>
                   )
