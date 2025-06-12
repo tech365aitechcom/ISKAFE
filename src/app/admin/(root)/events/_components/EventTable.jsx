@@ -280,8 +280,8 @@ export function EventTable({
                         {getEventStatus(event.startDate, event.endDate)}
                       </td>
                       <td className='p-4 whitespace-nowrap'>
-                        {event.promoter?.userId.firstName}{' '}
-                        {event.promoter?.userId.lastName}
+                        {event.promoter?.userId?.firstName}{' '}
+                        {event.promoter?.userId?.lastName}
                       </td>
                       <td className='p-4 flex space-x-4 items-center'>
                         {/* View */}

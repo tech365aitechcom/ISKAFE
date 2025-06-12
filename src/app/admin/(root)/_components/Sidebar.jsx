@@ -76,7 +76,7 @@ export function Sidebar() {
       highlight: true,
     },
     {
-      href: '/admin/suspension-list',
+      href: '/admin/suspensions',
       icon: <Ban size={18} />,
       title: 'Suspensions List',
     },
@@ -236,15 +236,25 @@ export function Sidebar() {
           <div className='flex items-center p-4'>
             <div className='flex items-center'>
               <div className='relative w-10 h-10 mr-3'>
-                <Image
-                  src='/john.png'
-                  alt='Profile'
-                  layout='fill'
-                  className='rounded-full bg-violet-700'
-                />
+                {user?.profilePhoto ? (
+                  <Image
+                    src={user.profilePhoto}
+                    alt='Profile'
+                    layout='fill'
+                    className='rounded-full bg-violet-700 object-cover'
+                  />
+                ) : (
+                  <div className='w-full h-full rounded-full bg-violet-700 flex items-center justify-center text-white text-sm font-semibold'>
+                    {user?.firstName?.charAt(0) + user?.lastName?.charAt(0) ||
+                      'U'}
+                  </div>
+                )}
               </div>
+
               <div>
-                <p className='text-sm font-medium'>{user?.fullName}</p>
+                <p className='text-sm font-medium'>
+                  {user?.firstName + ' ' + user?.lastName}
+                </p>
                 <p
                   className={`text-sm ${
                     pathname === '/admin/profile'

@@ -1,9 +1,14 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { User, MapPin, Bell } from 'lucide-react'
-import { countries } from '../../../../constants'
+import { API_BASE_URL, apiConstants } from '../../../../constants'
+import useStore from '../../../../stores/useStore'
+import axios from 'axios'
+import { City, Country, State } from 'country-state-city'
+import { enqueueSnackbar } from 'notistack'
 
 const SpectatorProfileForm = ({ userDetails }) => {
+  const { user } = useStore()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -12,10 +17,19 @@ const SpectatorProfileForm = ({ userDetails }) => {
     dateOfBirth: '',
     gender: '',
     country: '',
-    stateProvince: '',
+    state: '',
     city: '',
     communicationPreferences: [],
   })
+
+  const countries = Country.getAllCountries()
+  const states = formData.country
+    ? State.getStatesOfCountry(formData.country)
+    : []
+  const cities =
+    formData.country && formData.state
+      ? City.getCitiesOfState(formData.country, formData.state)
+      : []
 
   useEffect(() => {
     if (userDetails?.dateOfBirth) {
@@ -58,21 +72,29 @@ const SpectatorProfileForm = ({ userDetails }) => {
     }
   }
 
-  const handleSubmit = () => {
-    const submitFormData = new FormData()
-    Object.keys(formData).forEach((key) => {
-      if (formData[key] !== null) {
-        if (Array.isArray(formData[key])) {
-          submitFormData.append(key, JSON.stringify(formData[key]))
-        } else {
-          submitFormData.append(key, formData[key])
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/auth/users/${user._id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
         }
+      )
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar(response.data.message, { variant: 'success' })
+        onSuccess()
       }
-    })
-
-    console.log('Submitting form data...', formData)
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
-
   return (
     <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='w-full container mx-auto'>
@@ -125,13 +147,13 @@ const SpectatorProfileForm = ({ userDetails }) => {
               <option value='' className='text-black'>
                 Select Gender
               </option>
-              <option value='male' className='text-black'>
+              <option value='Male' className='text-black'>
                 Male
               </option>
-              <option value='female' className='text-black'>
+              <option value='Female' className='text-black'>
                 Female
               </option>
-              <option value='other' className='text-black'>
+              <option value='Other' className='text-black'>
                 Other
               </option>
               <option value='prefer_not_to_say' className='text-black'>
@@ -147,57 +169,71 @@ const SpectatorProfileForm = ({ userDetails }) => {
           <h2 className='font-bold uppercase text-lg'>Address Information</h2>
         </div>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-          {[
-            {
-              label: 'Country',
-              name: 'country',
-              type: 'select',
-              options: countries,
-            },
-            { label: 'State / Province', name: 'stateProvince' },
-            { label: 'City', name: 'city' },
-          ].map((field) =>
-            field.type === 'select' ? (
-              <div key={field.name} className='bg-[#00000061] p-2 rounded'>
-                <label className='block font-medium mb-1'>
-                  {field.label}
-                  <span className='text-red-500'>*</span>
-                </label>
-                <select
-                  name={field.name}
-                  value={formData[field.name]}
-                  onChange={handleInputChange}
-                  className='w-full outline-none bg-transparent text-white'
-                  required
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='block font-medium mb-1'>Country</label>
+            <select
+              name='country'
+              value={formData.country}
+              onChange={handleInputChange}
+              className='w-full outline-none bg-transparent text-white'
+            >
+              <option value='' className='text-black'>
+                Select Country
+              </option>
+              {countries.map((country) => (
+                <option
+                  key={country.isoCode}
+                  value={country.isoCode}
+                  className='text-black'
                 >
-                  <option value='' className='text-black'>
-                    Select {field.label}
-                  </option>
-                  {field.options.map((opt) => (
-                    <option key={opt} value={opt} className='text-black'>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div key={field.name} className='bg-[#00000061] p-2 rounded'>
-                <label className='block font-medium mb-1'>
-                  {field.label}
-                  <span className='text-red-500'>*</span>
-                </label>
-                <input
-                  type='text'
-                  name={field.name}
-                  value={formData[field.name]}
-                  onChange={handleInputChange}
-                  className='w-full outline-none bg-transparent text-white'
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
-                  required
-                />
-              </div>
-            )
-          )}
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='block font-medium mb-1'>State</label>
+            <select
+              name='state'
+              value={formData.state}
+              onChange={handleInputChange}
+              className='w-full outline-none bg-transparent text-white'
+            >
+              <option value='' className='text-black'>
+                Select State
+              </option>
+              {states.map((state) => (
+                <option
+                  key={state.isoCode}
+                  value={state.isoCode}
+                  className='text-black'
+                >
+                  {state.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='text-white font-medium'>City</label>
+            <select
+              name='city'
+              value={formData.city}
+              onChange={handleInputChange}
+              className='w-full outline-none bg-transparent text-white'
+            >
+              <option value=''>Select City</option>
+              {cities.map((city) => (
+                <option
+                  key={city.name}
+                  value={city.name}
+                  className='text-black'
+                >
+                  {city.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Preferences */}
@@ -229,13 +265,6 @@ const SpectatorProfileForm = ({ userDetails }) => {
 
         {/* Actions */}
         <div className='flex justify-center gap-4 mt-6'>
-          <button
-            type='button'
-            onClick={() => console.log('Cancel')}
-            className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
-          >
-            Cancel
-          </button>
           <button
             type='button'
             onClick={handleSubmit}

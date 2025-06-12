@@ -1,14 +1,13 @@
 'use client'
+import useStore from '../../../../../stores/useStore'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import React, { useEffect, useState } from 'react'
+import Loader from '../../../../_components/Loader'
 
-export const SuspensionEditorForm = ({
-  setShowAddSuspensionForm,
-  suspensionData = null,
-}) => {
+export const AddSuspensionForm = ({ setShowAddSuspensionForm }) => {
   const [formData, setFormData] = useState({
-    id: '', // Auto-generated system ID
     status: 'Active',
     type: '',
     incidentDate: '',
@@ -16,39 +15,52 @@ export const SuspensionEditorForm = ({
     description: '',
     daysWithoutTraining: '',
     daysBeforeCompeting: '',
-    indefiniteCheckbox: false,
-    suspendedPerson: '',
+    indefinite: false,
+    person: '',
   })
-
+  const { user } = useStore()
   const [errors, setErrors] = useState({})
+  const [people, setPeople] = useState([])
+  const [loading, setLoading] = useState(false)
 
-  // Initialize form data if editing existing suspension
-  useEffect(() => {
-    if (suspensionData) {
-      setFormData({
-        id: suspensionData.id || '',
-        status: suspensionData.status || 'Active',
-        type: suspensionData.type || '',
-        incidentDate: suspensionData.incidentDate || '',
-        sportingEventUID: suspensionData.sportingEventUID || '',
-        description: suspensionData.description || '',
-        daysWithoutTraining: suspensionData.daysWithoutTraining || '',
-        daysBeforeCompeting: suspensionData.daysBeforeCompeting || '',
-        indefiniteCheckbox: suspensionData.indefiniteCheckbox || false,
-        suspendedPerson: suspensionData.suspendedPerson || '',
-      })
-    }
-  }, [suspensionData])
+  const getPeople = async () => {
+    setLoading(true)
 
-  // Generate unique system ID for new suspensions
-  useEffect(() => {
-    if (!suspensionData && !formData.id) {
-      const timestamp = Date.now()
-      const randomNum = Math.floor(Math.random() * 1000)
-      const uniqueId = `SUS-${timestamp}-${randomNum}`
-      setFormData((prev) => ({ ...prev, id: uniqueId }))
+    try {
+      const queryParams = {
+        page: 1,
+        limit: 500,
+      }
+
+      const filteredParams = Object.fromEntries(
+        Object.entries(queryParams).filter(
+          ([_, value]) => value !== '' && value !== null && value !== undefined
+        )
+      )
+
+      const queryString = new URLSearchParams(filteredParams).toString()
+
+      const response = await axios.get(
+        `${API_BASE_URL}/people?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+
+      console.log('Response:', response.data)
+      setPeople(response.data.items)
+    } catch (error) {
+      console.log('Error fetching people:', error)
+    } finally {
+      setLoading(false)
     }
-  }, [suspensionData, formData.id])
+  }
+
+  useEffect(() => {
+    getPeople()
+  }, [])
 
   const validateField = (name, value) => {
     switch (name) {
@@ -77,7 +89,7 @@ export const SuspensionEditorForm = ({
           return 'Must be a non-negative number'
         }
         return ''
-      case 'suspendedPerson':
+      case 'person':
         return value.trim() === '' ? 'Suspended person is required' : ''
       default:
         return ''
@@ -93,7 +105,7 @@ export const SuspensionEditorForm = ({
         ...prev,
         [name]: checked,
         // If indefinite is checked, clear the days fields
-        ...(name === 'indefiniteCheckbox' &&
+        ...(name === 'indefinite' &&
           checked && {
             daysWithoutTraining: '',
             daysBeforeCompeting: '',
@@ -126,7 +138,7 @@ export const SuspensionEditorForm = ({
       'type',
       'incidentDate',
       'description',
-      'suspendedPerson',
+      'person',
     ]
 
     requiredFields.forEach((field) => {
@@ -158,7 +170,7 @@ export const SuspensionEditorForm = ({
 
     if (validateForm()) {
       try {
-        const submitData = {
+        let payload = {
           ...formData,
           // Convert string numbers to integers
           daysWithoutTraining: formData.daysWithoutTraining
@@ -169,24 +181,34 @@ export const SuspensionEditorForm = ({
             : null,
         }
 
-        const endpoint = suspensionData
-          ? `/api/suspensions/${formData.id}`
-          : '/api/suspensions'
-        const method = suspensionData ? 'put' : 'post'
+        if (formData.indefinite) {
+          delete payload.daysBeforeCompeting
+          delete payload.daysWithoutTraining
+        }
 
-        const response = await axios[method](endpoint, submitData)
+        const response = await axios.post(
+          `${API_BASE_URL}/suspensions`,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        )
 
-        if (response.status === 200 || response.status === 201) {
+        if (response.status === apiConstants.create) {
           enqueueSnackbar(
-            suspensionData
-              ? 'Suspension updated successfully'
-              : 'Suspension created successfully',
+            response.data.message || 'Suspension saved successfully',
             { variant: 'success' }
           )
-          setShowSuspensionForm(false)
+          setShowAddSuspensionForm(false)
+          if (onSuccess) onSuccess()
         }
       } catch (error) {
-        enqueueSnackbar('Failed to save suspension', { variant: 'error' })
+        enqueueSnackbar(
+          error.response.data.message || 'Failed to save suspension',
+          { variant: 'error' }
+        )
         console.error('Submission error:', error)
       }
     } else {
@@ -197,6 +219,8 @@ export const SuspensionEditorForm = ({
   const handleCancel = () => {
     setShowAddSuspensionForm(false)
   }
+
+  if (loading) return <Loader />
 
   return (
     <div className='min-h-screen text-white w-full'>
@@ -222,38 +246,12 @@ export const SuspensionEditorForm = ({
               />
             </svg>
           </button>
-          <h1 className='text-2xl font-bold'>
-            {suspensionData ? 'Edit Suspension' : 'Add New Suspension'}
-          </h1>
+          <h1 className='text-2xl font-bold'>Add New Suspension</h1>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className='space-y-6'>
-          {/* Header Section */}
           <div className=''>
-            <h2 className='text-lg font-semibold mb-3'>Header</h2>
-            <div className='bg-[#00000061] p-3 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Suspension ID
-              </label>
-              <input
-                type='text'
-                name='id'
-                value={formData.id}
-                disabled
-                className='w-full text-gray-400 py-1 rounded outline-none cursor-not-allowed'
-                placeholder='System generated'
-              />
-              <p className='text-xs text-gray-400 mt-1'>
-                Unique system ID for the suspension (automatically generated)
-              </p>
-            </div>
-          </div>
-
-          {/* Form Controls Section */}
-          <div className=''>
-            <h2 className='text-lg font-semibold mb-3'>Form Controls</h2>
-
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Status */}
               <div className='bg-[#00000061] p-3 rounded'>
@@ -270,8 +268,11 @@ export const SuspensionEditorForm = ({
                   <option value='Active' className='text-black'>
                     Active
                   </option>
-                  <option value='Inactive' className='text-black'>
-                    Inactive
+                  <option value='Pending' className='text-black'>
+                    Pending
+                  </option>
+                  <option value='Closed' className='text-black'>
+                    Closed
                   </option>
                 </select>
                 {errors.status && (
@@ -395,11 +396,9 @@ export const SuspensionEditorForm = ({
                   onChange={handleChange}
                   placeholder='Option'
                   min='0'
-                  disabled={formData.indefiniteCheckbox}
+                  disabled={formData.indefinite}
                   className={`w-full bg-transparent outline-none py-1 ${
-                    formData.indefiniteCheckbox
-                      ? 'opacity-50 cursor-not-allowed'
-                      : ''
+                    formData.indefinite ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 />
                 {errors.daysWithoutTraining && (
@@ -424,11 +423,9 @@ export const SuspensionEditorForm = ({
                   onChange={handleChange}
                   placeholder='Option'
                   min='0'
-                  disabled={formData.indefiniteCheckbox}
+                  disabled={formData.indefinite}
                   className={`w-full bg-transparent outline-none py-1  ${
-                    formData.indefiniteCheckbox
-                      ? 'opacity-50 cursor-not-allowed'
-                      : ''
+                    formData.indefinite ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 />
                 {errors.daysBeforeCompeting && (
@@ -447,8 +444,8 @@ export const SuspensionEditorForm = ({
               <div className='flex items-center'>
                 <input
                   type='checkbox'
-                  name='indefiniteCheckbox'
-                  checked={formData.indefiniteCheckbox}
+                  name='indefinite'
+                  checked={formData.indefinite}
                   onChange={handleChange}
                   className='mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded'
                 />
@@ -462,27 +459,53 @@ export const SuspensionEditorForm = ({
             </div>
 
             {/* Suspended Person */}
-            <div className='bg-[#00000061] p-3 rounded mt-4'>
+            {/* <div className='bg-[#00000061] p-3 rounded mt-4'>
               <label className='block text-sm font-medium mb-1'>
                 Suspended Person<span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
-                name='suspendedPerson'
-                value={formData.suspendedPerson}
+                name='person'
+                value={formData.person}
                 onChange={handleChange}
                 placeholder='Start typing person name...'
                 className='w-full bg-transparent outline-none py-2 '
                 required
               />
-              {errors.suspendedPerson && (
+              {errors.person && (
                 <p className='text-red-500 text-xs mt-1'>
-                  {errors.suspendedPerson}
+                  {errors.person}
                 </p>
               )}
               <p className='text-xs text-gray-400 mt-1'>
                 Person receiving the suspension (lookup validation)
               </p>
+            </div> */}
+
+            <div className='mb-6 bg-[#00000061] p-3 rounded  mt-4'>
+              <label className='block text-sm font-medium mb-1'>
+                Suspended Person<span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='person'
+                value={formData.person}
+                onChange={handleChange}
+                className='w-full outline-none'
+                required
+              >
+                <option value='' className='text-black'>
+                  Select person
+                </option>
+                {people.map((person) => (
+                  <option
+                    key={person._id}
+                    value={person._id}
+                    className='text-black'
+                  >
+                    {person.firstName + ' ' + person.lastName} ({person.email})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

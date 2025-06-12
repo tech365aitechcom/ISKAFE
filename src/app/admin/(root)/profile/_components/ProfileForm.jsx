@@ -1,72 +1,145 @@
 'use client'
-import { ChevronDown, Trash } from 'lucide-react'
-import React, { useState } from 'react'
+import { Trash } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { City, Country, State } from 'country-state-city'
+import axios from 'axios'
+import useStore from '../../../../../stores/useStore'
+import { enqueueSnackbar } from 'notistack'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 
-export const ProfileForm = ({ isEditable }) => {
+export const ProfileForm = ({
+  isEditable,
+  userDetails,
+  onSuccess,
+  setType,
+}) => {
+  const { user } = useStore()
   const [formData, setFormData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    mobile: '9876543210',
-    dateOfBirth: '1990-05-15',
-    gender: 'male',
-    role: 'Fighter',
-    profilePic: '/fighter.png',
-    country: 'USA',
-    city: 'New York',
-    governmentID: 'https://example.com/gov-id.jpg',
-    weightClass: 'Middleweight',
-    fightRecord: '10 Wins, 2 Losses, 1 Draw',
-    trainedFighters: 'Fighter A, Fighter B, Fighter C',
-    makeProfilePublic: true,
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    dateOfBirth: '',
+    gender: '',
+    country: '',
+    state: '',
+    city: '',
+    postalCode: '',
+    communicationPreferences: [],
   })
+
+  const countries = Country.getAllCountries()
+  const states = formData.country
+    ? State.getStatesOfCountry(formData.country)
+    : []
+  const cities =
+    formData.country && formData.state
+      ? City.getCitiesOfState(formData.country, formData.state)
+      : []
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: type === 'checkbox' ? checked : value,
-    }))
-  }
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      const previewURL = URL.createObjectURL(file)
-      setFormData((prevState) => ({
-        ...prevState,
-        profilePic: previewURL,
+    if (type === 'checkbox') {
+      if (checked) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: [...prev[name], value],
+        }))
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: prev[name].filter((item) => item !== value),
+        }))
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
       }))
     }
   }
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    if (userDetails?.dateOfBirth) {
+      const formattedDOB = new Date(userDetails.dateOfBirth)
+        .toISOString()
+        .split('T')[0]
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+        dateOfBirth: formattedDOB,
+      }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+      }))
+    }
+  }, [userDetails])
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setFormData((prevState) => ({
+        ...prevState,
+        profilePhoto: file,
+      }))
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Handle form submission logic here
-    console.log('Form submitted:', { ...formData, enabled })
+    try {
+      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
+        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+      }
+      const response = await axios.put(
+        `${API_BASE_URL}/auth/users/${user._id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar(response.data.message, { variant: 'success' })
+        onSuccess()
+        setType('View Profile')
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
 
   return (
     <div className='min-h-screen text-white bg-dark-blue-900 mt-4'>
-      <h3 className='text-2xl font-semibold py-4'>
-        {isEditable ? 'Edit Profile' : 'My Profile'}
-      </h3>
       <div className='w-full'>
         {/* Form */}
         <form onSubmit={handleSubmit}>
           {/* Profile Picture */}
           {isEditable ? (
             <div className='mb-8'>
-              {formData.profilePic ? (
+              {formData.profilePhoto ? (
                 <div className='relative w-72 h-64 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                   <img
-                    src={formData.profilePic}
+                    src={
+                      typeof formData.profilePhoto == 'string'
+                        ? formData.profilePhoto
+                        : URL.createObjectURL(formData.profilePhoto)
+                    }
                     alt='Selected image'
                     className='w-full h-full object-cover'
                   />
                   <button
                     type='button'
                     onClick={() =>
-                      setFormData((prev) => ({ ...prev, profilePic: null }))
+                      setFormData((prev) => ({ ...prev, profilePhoto: null }))
                     }
                     className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
                   >
@@ -113,12 +186,34 @@ export const ProfileForm = ({ isEditable }) => {
             </div>
           ) : (
             <div className='mb-8'>
-              <div className='relative w-72 h-64 rounded-lg overflow-hidden border border-[#D9E2F930]'>
-                <img
-                  src={formData.profilePic}
-                  alt='Profile photo'
-                  className='w-full h-full object-cover'
-                />
+              <div className='relative w-72 h-64 rounded-lg overflow-hidden border border-[#D9E2F930] bg-[#0B122A] flex items-center justify-center'>
+                {formData.profilePhoto ? (
+                  <img
+                    src={formData.profilePhoto}
+                    alt='Profile photo'
+                    className='w-full h-full object-cover'
+                  />
+                ) : (
+                  <div className='flex flex-col items-center text-[#AEB9E1]'>
+                    <svg
+                      xmlns='http://www.w3.org/2000/svg'
+                      className='h-10 w-10 mb-2 text-[#FEF200]'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      stroke='currentColor'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+                      />
+                    </svg>
+                    <p className='text-sm text-center'>
+                      No profile photo available
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -130,12 +225,27 @@ export const ProfileForm = ({ isEditable }) => {
             {/* First Name Field */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Full Name<span className='text-red-500'>*</span>
+                First Name<span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
-                name='name'
-                value={formData.name}
+                name='firstName'
+                value={formData.firstName}
+                onChange={handleChange}
+                className='w-full outline-none'
+                required
+                disabled={!isEditable}
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
+              <label className='block text-sm font-medium mb-1'>
+                Last Name<span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='text'
+                name='lastName'
+                value={formData.lastName}
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
@@ -164,16 +274,14 @@ export const ProfileForm = ({ isEditable }) => {
               </label>
               <input
                 type='text'
-                name='mobile'
-                value={formData.mobile}
+                name='phoneNumber'
+                value={formData.phoneNumber}
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
                 disabled={!isEditable}
               />
             </div>
-          </div>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
                 Date of Birth
@@ -188,225 +296,146 @@ export const ProfileForm = ({ isEditable }) => {
               />
             </div>
 
-            <div className='bg-[#00000061] p-2 h-auto rounded'>
-              <label className='block text-sm font-medium mb-1 text-white'>
-                Gender
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                Gender<span className='text-red-500'>*</span>
               </label>
-              <div className='flex gap-4 text-white'>
-                <label className='flex items-center gap-1'>
-                  <input
-                    type='radio'
-                    name='gender'
-                    value='male'
-                    checked={formData.gender === 'male'}
-                    onChange={handleChange}
-                    readOnly
-                    disabled={!isEditable}
-                  />
-                  Male
-                </label>
-                <label className='flex items-center gap-1'>
-                  <input
-                    type='radio'
-                    name='gender'
-                    value='female'
-                    checked={formData.gender === 'female'}
-                    onChange={handleChange}
-                    readOnly
-                    disabled={!isEditable}
-                  />
-                  Female
-                </label>
-                <label className='flex items-center gap-1'>
-                  <input
-                    type='radio'
-                    name='gender'
-                    value='other'
-                    checked={formData.gender === 'other'}
-                    onChange={handleChange}
-                    readOnly
-                    disabled={!isEditable}
-                  />
-                  Other
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <h2 className='font-bold mb-4 uppercase text-sm'>Profile Type</h2>
-
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 rounded-lg bg-[#081028]'>
               <select
-                id='role'
-                name='role'
-                value={formData.role}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                name='gender'
+                value={formData.gender}
+                onChange={handleChange}
+                className='w-full outline-none bg-transparent text-white'
+                required
                 disabled={!isEditable}
               >
-                <option value='Fighter' className='text-black'>
-                  Fighter
+                <option value='' className='text-black'>
+                  Select Gender
                 </option>
-                <option value='Trainer' className='text-black'>
-                  Trainer
+                <option value='Male' className='text-black'>
+                  Male
                 </option>
-                <option value='Official' className='text-black'>
-                  Official
+                <option value='Female' className='text-black'>
+                  Female
                 </option>
-                <option value='Admin' className='text-black'>
-                  Admin
+                <option value='Other' className='text-black'>
+                  Other
+                </option>
+                <option value='prefer_not_to_say' className='text-black'>
+                  Prefer not to say
                 </option>
               </select>
-              <ChevronDown
-                size={16}
-                className='absolute right-4 pointer-events-none'
-              />
             </div>
           </div>
 
           {/* Address Details */}
           <h2 className='font-bold mb-4 uppercase text-sm'>Address</h2>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-            {/* Country */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>Country</label>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>Country</label>
               <select
                 name='country'
                 value={formData.country}
                 onChange={handleChange}
-                className='w-full bg-transparent text-white outline-none'
+                className='w-full outline-none bg-transparent text-white'
                 disabled={!isEditable}
               >
                 <option value='' className='text-black'>
                   Select Country
                 </option>
-                <option value='USA' className='text-black'>
-                  USA
-                </option>
-                <option value='India' className='text-black'>
-                  India
-                </option>
-                <option value='UK' className='text-black'>
-                  UK
-                </option>
+                {countries.map((country) => (
+                  <option
+                    key={country.isoCode}
+                    value={country.isoCode}
+                    className='text-black'
+                  >
+                    {country.name}
+                  </option>
+                ))}
               </select>
             </div>
-
-            {/* City */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>City</label>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>State</label>
+              <select
+                name='state'
+                value={formData.state}
+                onChange={handleChange}
+                className='w-full outline-none bg-transparent text-white'
+                disabled={!isEditable}
+              >
+                <option value='' className='text-black'>
+                  Select State
+                </option>
+                {states.map((state) => (
+                  <option
+                    key={state.isoCode}
+                    value={state.isoCode}
+                    className='text-black'
+                  >
+                    {state.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='text-white font-medium'>ZIP Code</label>
               <input
                 type='text'
+                name='postalCode'
+                value={formData.postalCode}
+                onChange={handleChange}
+                placeholder='Enter ZIP Code'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={!isEditable}
+              />
+            </div>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='text-white font-medium'>City</label>
+              <select
                 name='city'
                 value={formData.city}
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent text-white'
                 disabled={!isEditable}
-              />
-            </div>
-          </div>
-
-          {/* ID Verification */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>ID Verification</h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-            <div className='bg-[#00000061] p-2 h-20 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Government ID Upload
-              </label>
-              <input
-                type='file'
-                name='governmentId'
-                accept='.pdf, .jpg, .jpeg, .png'
-                className='w-full text-white'
-                disabled={!isEditable}
-              />
-            </div>
-          </div>
-
-          {formData.role === 'Fighter' && (
-            <>
-              <h2 className='font-bold mb-4 uppercase text-sm'>Fighter Info</h2>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-                {/* Weight Class */}
-                <div className='bg-[#00000061] p-2 h-16 rounded'>
-                  <label className='block text-sm font-medium mb-1'>
-                    Weight Class
-                  </label>
-                  <select
-                    name='weightClass'
-                    value={formData.weightClass}
-                    onChange={handleChange}
-                    className='w-full bg-transparent text-white outline-none'
-                    disabled={!isEditable}
+              >
+                <option value=''>Select City</option>
+                {cities.map((city) => (
+                  <option
+                    key={city.name}
+                    value={city.name}
+                    className='text-black'
                   >
-                    <option value='' className='text-black'>
-                      Select Weight Class
-                    </option>
-                    <option value='Lightweight' className='text-black'>
-                      Lightweight
-                    </option>
-                    <option value='Middleweight' className='text-black'>
-                      Middleweight
-                    </option>
-                    <option value='Heavyweight' className='text-black'>
-                      Heavyweight
-                    </option>
-                  </select>
-                </div>
-              </div>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-              {/* Fight Record */}
-              <div className='bg-[#00000061] p-2 rounded mb-6'>
-                <label className='block text-sm font-medium mb-2'>
-                  Fight Record
-                </label>
-                <textarea
-                  name='fightRecord'
-                  value={formData.fightRecord}
+          {/* Preferences */}
+          <div className='flex items-center gap-2 mb-4'>
+            <h2 className='font-bold uppercase text-lg'>Preferences</h2>
+          </div>
+          <div className='mb-6 bg-[#00000061] p-4 rounded'>
+            <label className='block font-medium mb-2'>
+              Communication Preferences
+            </label>
+            {['email', 'sms', 'push'].map((method) => (
+              <div key={method} className='flex items-center gap-2 mb-2'>
+                <input
+                  type='checkbox'
+                  name='communicationPreferences'
+                  value={method}
+                  checked={formData.communicationPreferences.includes(method)}
                   onChange={handleChange}
-                  rows='1'
-                  className='w-full bg-transparent text-white outline-none'
-                  placeholder='Enter fight history or stats...'
+                  className='rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400'
                   disabled={!isEditable}
                 />
+                <label htmlFor={method}>{method.toUpperCase()}</label>
               </div>
-            </>
-          )}
-          {formData.role === 'Trainer' && (
-            <>
-              <h2 className='font-bold mb-4 uppercase text-sm'>Trainer Info</h2>
-              <div className='bg-[#00000061] p-2 rounded mb-6'>
-                <label className='block text-sm font-medium mb-2'>
-                  Trained Fighters
-                </label>
-                <textarea
-                  name='trainedFighters'
-                  value={formData.trainedFighters}
-                  onChange={handleChange}
-                  rows='4'
-                  className='w-full bg-transparent text-white outline-none'
-                  placeholder='List names or IDs of fighters you’ve trained...'
-                  disabled={!isEditable}
-                />
-              </div>
-            </>
-          )}
-          {/* Privacy Settings */}
-          <h2 className='font-bold uppercase text-sm'>Privacy Settings</h2>
-          <div className='h-16 rounded mb-6 flex items-center gap-2'>
-            <input
-              type='checkbox'
-              name='makeProfilePublic'
-              checked={formData.makeProfilePublic}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  makeProfilePublic: e.target.checked,
-                })
-              }
-              disabled={!isEditable}
-            />
-            <label className='text-sm font-medium'>Make Profile Public</label>
+            ))}
+            <p className='text-xs text-gray-400 mt-1'>
+              Choose how you'd like to receive updates
+            </p>
           </div>
 
           {/* Action Buttons */}

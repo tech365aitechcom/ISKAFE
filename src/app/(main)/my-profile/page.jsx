@@ -44,11 +44,20 @@ export default function MyProfile() {
   return (
     <div className='bg-transparent border-t border-[#D9E2F930]'>
       {role === roles.fighter ? (
-        <FighterProfileForm userDetails={userDetails} />
+        <FighterProfileForm
+          userDetails={userDetails}
+          onSuccess={getUserDetails}
+        />
       ) : role === roles.trainer ? (
-        <TrainerProfileForm userDetails={userDetails} />
+        <TrainerProfileForm
+          userDetails={userDetails}
+          onSuccess={getUserDetails}
+        />
       ) : (
-        <SpectatorProfileForm userDetails={userDetails} />
+        <SpectatorProfileForm
+          userDetails={userDetails}
+          onSuccess={getUserDetails}
+        />
       )}
     </div>
   )
