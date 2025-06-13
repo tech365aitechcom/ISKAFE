@@ -1,22 +1,11 @@
 'use client'
-import { Check, Facebook, Instagram, Youtube } from 'lucide-react'
+import { Facebook, Instagram, Phone, Twitter } from 'lucide-react'
 import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../../../constants'
 import axios from 'axios'
 import Link from 'next/link'
 import Loader from '../../_components/Loader'
-
-const points = [
-  'Event scheduling',
-  'Database of fighters, trainers, coaches, teams, camps, officials, venues, commissions, and more',
-  'Head-to-head fight cards',
-  'Single-elimination tournaments',
-  'Results (decisions, stoppages, DQs, etc)',
-  'Fighter profiles with fight history and results',
-  'Fighter suspensions',
-  'Single-elimination tournaments',
-]
 
 const AboutPage = () => {
   const [about, setAbout] = useState(null)
@@ -98,11 +87,11 @@ const AboutPage = () => {
             {about?.leadershipTeam.map((member, index) => (
               <div
                 key={index}
-                className=' bg-opacity-10 rounded-lg p-6 flex flex-col items-center'
+                className=' bg-opacity-10 rounded-lg p-6 flex flex-col justify-center'
               >
                 <div className='w-24 h-24 rounded-full overflow-hidden mb-4'>
                   <img
-                    src={member.photoUrl}
+                    src={member.profilePic}
                     alt={member.name}
                     className='w-full h-full object-cover bg-white'
                   />
@@ -112,24 +101,61 @@ const AboutPage = () => {
               </div>
             ))}
           </div>
-          <Link href={about?.contactLink || ''}>
-            <button className='border border-white rounded-lg px-4 py-2 mt-8'>
+          <Link href={about?.contactURL || ''}>
+            <button className='border border-white rounded px-4 py-2 mt-8 flex items-center'>
+              <Phone className='mr-2 w-5 h-5' />
               Contact Us
             </button>
           </Link>
           <div className='pt-8'>
             <h2 className='font-bold text-2xl'>Social</h2>
             <div className='flex gap-4 mt-2'>
-              <Link href={about?.socialLinks?.facebook || ''} target='_blank'>
+              <Link href={about?.facebookURL || ''} target='_blank'>
                 <Facebook />
               </Link>
-              <Link href={about?.socialLinks?.instagram || ''} target='_blank'>
+              <Link href={about?.instagramURL || ''} target='_blank'>
                 <Instagram />
               </Link>
-              <Link href={about?.socialLinks?.youtube || ''} target='_blank'>
-                <Youtube />
+              <Link href={about?.twitterURL || ''} target='_blank'>
+                <Twitter />
               </Link>
             </div>
+          </div>
+          <div className='py-8'>
+            <h2 className='font-bold text-2xl'>Footer Section</h2>
+            <div className='flex flex-col space-y-6 mt-4'>
+              <a
+                href={
+                  about?.copyrightNoticePDF ? about?.copyrightNoticePDF : '#'
+                }
+                target='_blank'
+                className='text-white text-lg md:text-2xl font-bold'
+              >
+                COPYRIGHT ©2024 COMPETITION TECHNOLOGY
+              </a>{' '}
+              <a
+                href={about?.privacyPolicyPDF ? about.privacyPolicyPDF : '#'}
+                target='_blank'
+                className='text-white hover:text-gray-300 text-xl md:text-2xl font-bold'
+              >
+                PRIVACY POLICY
+              </a>
+              <a
+                href={
+                  about?.termsConditionsPDF ? about.termsConditionsPDF : '#'
+                }
+                target='_blank'
+                className='text-white hover:text-gray-300 text-xl md:text-2xl font-bold'
+              >
+                TERMS AND CONDITIONS
+              </a>
+            </div>
+          </div>
+          <div className='pb-8'>
+            <h3 className='font-bold text-2xl'>Platform Version</h3>
+            <p className='text-white text-lg md:text-2xl font-bold'>
+              {about?.platformVersion}
+            </p>
           </div>
         </div>
       </div>

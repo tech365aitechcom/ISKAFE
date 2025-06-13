@@ -1,18 +1,14 @@
 'use client'
-import React, { useState } from 'react'
-import {
-  X,
-  Upload,
-  Plus,
-  Trash2,
-  Camera,
-  MapPin,
-  Users,
-  FileText,
-} from 'lucide-react'
-import Link from 'next/link'
+import React, { useEffect, useState } from 'react'
+import { X, Plus, Trash2, Camera, Users, Trash } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { City, Country, State } from 'country-state-city'
+import Autocomplete from '../../../_components/Autocomplete'
+import axios from 'axios'
+import { API_BASE_URL, apiConstants } from '../../../../constants'
+import { uploadToS3 } from '../../../../utils/uploadToS3'
+import useStore from '../../../../stores/useStore'
+import { enqueueSnackbar } from 'notistack'
 
 const steps = [
   { id: 1, label: 'Basic Info & Address' },
@@ -22,22 +18,23 @@ const steps = [
 ]
 
 const RegisterTrainingFacilityPage = () => {
+  const user = useStore((state) => state.user)
   const [currentStep, setCurrentStep] = useState(1)
-  const [isOpen, setIsOpen] = useState(true)
   const [formData, setFormData] = useState({
     // Basic Info
-    facilityName: '',
-    facilityLogo: null,
-    martialArts: [],
-
+    name: '',
+    logo: null,
+    martialArtsStyles: [],
+    email: '',
+    phoneNumber: '',
     // Address Info
-    addressLine1: '',
+    address: '',
     country: '',
     state: '',
     city: '',
 
     // Description & Branding
-    aboutFacility: '',
+    description: '',
     externalWebsite: '',
     imageGallery: [],
     videoIntroduction: '',
@@ -51,8 +48,11 @@ const RegisterTrainingFacilityPage = () => {
     termsAgreed: false,
   })
 
+  const [existingTrainers, setExistingTrainers] = useState([])
+  const [existingFighters, setExistingFighters] = useState([])
+
   const [currentTrainer, setCurrentTrainer] = useState({
-    type: 'new', // 'existing' or 'new'
+    type: 'existing', // 'existing' or 'new'
     existingId: '',
     name: '',
     role: '',
@@ -63,7 +63,7 @@ const RegisterTrainingFacilityPage = () => {
   })
 
   const [currentFighter, setCurrentFighter] = useState({
-    type: 'new', // 'existing' or 'new'
+    type: 'existing', // 'existing' or 'new'
     existingId: '',
     name: '',
     gender: '',
@@ -96,29 +96,38 @@ const RegisterTrainingFacilityPage = () => {
       ? City.getCitiesOfState(formData.country, formData.state)
       : []
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }))
+  const handleChange = (eOrName, value) => {
+    if (typeof eOrName === 'object' && eOrName?.target) {
+      const { name, value, type, checked } = eOrName.target
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      }))
+    } else {
+      const name = eOrName
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }))
+    }
   }
 
   const handleMartialArtsChange = (art) => {
     setFormData((prev) => ({
       ...prev,
-      martialArts: prev.martialArts.includes(art)
-        ? prev.martialArts.filter((a) => a !== art)
-        : [...prev.martialArts, art],
+      martialArtsStyles: prev.martialArtsStyles.includes(art)
+        ? prev.martialArtsStyles.filter((a) => a !== art)
+        : [...prev.martialArtsStyles, art],
     }))
   }
 
-  const handleFileUpload = (e, fieldName) => {
-    const file = e.target.files[0]
+  const handleFileUpload = (e) => {
+    const { name, files } = e.target
+    const file = files[0]
     if (file) {
       setFormData((prev) => ({
         ...prev,
-        [fieldName]: file,
+        [name]: file,
       }))
     }
   }
@@ -190,11 +199,158 @@ const RegisterTrainingFacilityPage = () => {
     }))
   }
 
-  const handleSubmit = (e, action) => {
+  console.log(formData.trainers, 'trainers')
+
+  useEffect(() => {
+    const getExistingTrainers = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/auth/trainer`)
+        const trainers = response.data.data
+        console.log('trainers', trainers)
+
+        setExistingTrainers(trainers)
+      } catch (error) {
+        console.error('Error fetching existing trainers:', error)
+      }
+    }
+    const getExistingFighters = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/auth/fighter`)
+        const fighters = response.data.data
+        console.log('fighters', fighters)
+
+        setExistingFighters(fighters)
+      } catch (error) {
+        console.error('Error fetching existing fighters:', error)
+      }
+    }
+    getExistingTrainers()
+    getExistingFighters()
+  }, [])
+
+  const handleSubmit = async (e, action) => {
     e.preventDefault()
     console.log('Form submitted with action:', action)
     console.log('Form data:', formData)
-    // Handle different submission types (draft, review, etc.)
+    try {
+      if (formData.logo) {
+        try {
+          const s3UploadedUrl = await uploadToS3(formData.logo)
+          formData.logo = s3UploadedUrl
+        } catch (error) {
+          console.error('Image upload failed:', error)
+          return
+        }
+      }
+      if (formData.imageGallery) {
+        const s3Urls = await Promise.all(
+          formData.imageGallery.map((file) => uploadToS3(file))
+        )
+        formData.imageGallery = s3Urls
+      }
+      if (formData.trainers?.length) {
+        await Promise.all(
+          formData.trainers.map(async (trainer) => {
+            if (trainer.image) {
+              try {
+                const s3UploadedUrl = await uploadToS3(trainer.image)
+                trainer.image = s3UploadedUrl
+              } catch (error) {
+                console.error('Trainer image upload failed:', error)
+              }
+            }
+          })
+        )
+      }
+
+      if (formData.fighters?.length) {
+        await Promise.all(
+          formData.fighters.map(async (fighter) => {
+            if (fighter.image) {
+              try {
+                const s3UploadedUrl = await uploadToS3(fighter.image)
+                fighter.image = s3UploadedUrl
+              } catch (error) {
+                console.error('Fighter image upload failed:', error)
+              }
+            }
+          })
+        )
+      }
+
+      let payload = {
+        ...formData,
+        trainers: formData.trainers.map((t) =>
+          t.value ? { existingTrainerId: t.value } : t
+        ),
+        fighters: formData.fighters.map((f) =>
+          f.value ? { existingFighterId: f.value } : f
+        ),
+      }
+
+      if (action === 'draft') {
+        payload = {
+          ...payload,
+          isDraft: true,
+        }
+      } else if (action === 'review') {
+        payload = {
+          ...payload,
+          isAdminApprovalRequired: true,
+        }
+      }
+
+      console.log('Payload:', payload)
+
+      const response = await axios.post(
+        `${API_BASE_URL}/training-facilities`,
+        {
+          ...payload,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+      console.log('Response:', response)
+
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(
+          response.data.message || 'Facility registered successfully',
+          {
+            variant: 'success',
+          }
+        )
+        setFormData({
+          // Basic Info
+          name: '',
+          logo: null,
+          martialArtsStyles: [],
+
+          // Address Info
+          address: '',
+          country: '',
+          state: '',
+          city: '',
+
+          // Description & Branding
+          description: '',
+          externalWebsite: '',
+          imageGallery: [],
+          videoIntroduction: '',
+
+          // Trainers & Fighters
+          trainers: [],
+          fighters: [],
+          sendInvites: false,
+
+          // Terms
+          termsAgreed: false,
+        })
+        setCurrentStep(1)
+      }
+    } catch (error) {}
   }
 
   const nextStep = () => {
@@ -208,18 +364,18 @@ const RegisterTrainingFacilityPage = () => {
   const handleCancel = () => {
     setFormData({
       // Basic Info
-      facilityName: '',
-      facilityLogo: null,
-      martialArts: [],
+      name: '',
+      logo: null,
+      martialArtsStyles: [],
 
       // Address Info
-      addressLine1: '',
+      address: '',
       country: '',
       state: '',
       city: '',
 
       // Description & Branding
-      aboutFacility: '',
+      description: '',
       externalWebsite: '',
       imageGallery: [],
       videoIntroduction: '',
@@ -237,10 +393,10 @@ const RegisterTrainingFacilityPage = () => {
 
   const isStep1Valid = () => {
     return (
-      formData.facilityName.length >= 3 &&
-      formData.facilityLogo &&
-      formData.martialArts.length > 0 &&
-      formData.addressLine1 &&
+      formData.name.length >= 3 &&
+      formData.logo &&
+      formData.martialArtsStyles.length > 0 &&
+      formData.address &&
       formData.country &&
       formData.state &&
       formData.city
@@ -248,25 +404,16 @@ const RegisterTrainingFacilityPage = () => {
   }
 
   const isStep2Valid = () => {
-    return formData.aboutFacility.length > 0
+    return formData.description.length > 0
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className='flex items-center justify-center'>
-      <div className='bg-[#160B25] p-6 rounded-lg w-full mx-4 my-8 relative'>
-        <div className='flex items-center justify-between'>
-          <h2 className='text-4xl font-bold mb-6 text-white'>
-            Register Training Facility
-          </h2>
-          <Link href='/training-facilities'>
-            <button className='absolute top-4 right-4 text-white text-2xl'>
-              <X size={24} />
-            </button>
-          </Link>
+    <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
+      <div className='w-full container mx-auto'>
+        <div className='mb-6'>
+          <h1 className='text-4xl font-bold'>Register Training Facility</h1>
+          <p>Fill the form below to register you training and gym facility</p>
         </div>
-
         <div className='mb-8'>
           {/* Dots + connectors */}
           <ol className='relative flex justify-between items-center'>
@@ -303,174 +450,203 @@ const RegisterTrainingFacilityPage = () => {
               </li>
             ))}
           </ol>
-
-          {/* Step label */}
-          <p className='mt-6 text-center text-lg font-medium text-gray-200'>
-            {steps.find((s) => s.id === currentStep)?.label}
-          </p>
         </div>
         <form className='space-y-6'>
           {/* Step 1: Basic Info & Address */}
           {currentStep === 1 && (
             <div className='space-y-6'>
               {/* Basic Info Section */}
-              <div className='bg-[#2e1b47] p-4 rounded-lg'>
-                <h3 className='text-lg font-semibold text-white mb-4 flex items-center'>
-                  <FileText className='mr-2' size={20} />
-                  Basic Information
-                </h3>
-
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div>
-                    <label className='text-white font-medium'>
-                      Facility Name *
-                    </label>
-                    <input
-                      type='text'
-                      name='facilityName'
-                      value={formData.facilityName}
-                      onChange={handleChange}
-                      placeholder='e.g., Arnett Sport Kung Fu'
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
-                      required
-                      minLength={3}
-                      maxLength={50}
-                    />
-                    <span className='text-xs text-gray-400'>
-                      3-50 characters, must be unique
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className='text-white font-medium'>
-                      Facility Logo *
-                    </label>
-                    <div className='mt-1'>
-                      <input
-                        type='file'
-                        accept='image/jpeg,image/png'
-                        onChange={(e) => handleFileUpload(e, 'facilityLogo')}
-                        className='hidden'
-                        id='logo-upload'
-                        required
-                      />
-                      <label
-                        htmlFor='logo-upload'
-                        className='flex items-center justify-center w-full h-10 px-4 bg-[#1b0c2e] border border-gray-600 border-dashed rounded cursor-pointer hover:border-yellow-500 transition-colors'
-                      >
-                        <Upload className='mr-2' size={16} />
-                        <span className='text-white'>
-                          {formData.facilityLogo
-                            ? formData.facilityLogo.name
-                            : 'Upload Logo'}
-                        </span>
-                      </label>
-                      <span className='text-xs text-gray-400'>
-                        JPG/PNG, square preferred
-                      </span>
-                    </div>
-                  </div>
+              <h3 className='text-xl font-semibold text-white mb-4'>
+                Basic Information
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='bg-[#00000061] p-2 rounded'>
+                  <label className='block font-medium mb-1'>
+                    Facility Name <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    type='text'
+                    name='name'
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder='e.g., Arnett Sport Kung Fu'
+                    className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                    required
+                    minLength={3}
+                    maxLength={50}
+                  />
+                  <span className='text-xs text-gray-400'>
+                    3-50 characters, must be unique
+                  </span>
                 </div>
 
-                <div className='mt-4'>
-                  <label className='text-white font-medium'>
-                    Martial Arts / Styles Taught *
+                <div>
+                  <label className='block font-medium mb-2'>
+                    Facility Logo <span className='text-red-400'>*</span>
                   </label>
-                  <div className='mt-2 grid grid-cols-2 md:grid-cols-5 gap-2'>
-                    {martialArtsOptions.map((art) => (
-                      <label
-                        key={art}
-                        className='flex items-center space-x-2 text-white cursor-pointer'
-                      >
-                        <input
-                          type='checkbox'
-                          checked={formData.martialArts.includes(art)}
-                          onChange={() => handleMartialArtsChange(art)}
-                          className='accent-yellow-500'
-                        />
-                        <span className='text-sm'>{art}</span>
-                      </label>
-                    ))}
+                  <div className='mt-1'>
+                    <input
+                      type='file'
+                      name='logo'
+                      onChange={handleFileUpload}
+                      accept='image/jpeg,image/jpg,image/png'
+                      className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                    />
+                    <p className='text-xs text-gray-400 mt-1'>JPG/PNG</p>
                   </div>
                 </div>
               </div>
 
+              <div className='mt-4'>
+                <label className='block font-medium mb-1'>
+                  Martial Arts / Styles Taught *
+                </label>
+                <div className='mt-2 grid grid-cols-2 md:grid-cols-5 gap-2'>
+                  {martialArtsOptions.map((art) => (
+                    <label
+                      key={art}
+                      className='flex items-center space-x-2 text-white cursor-pointer'
+                    >
+                      <input
+                        type='checkbox'
+                        checked={formData.martialArtsStyles.includes(art)}
+                        onChange={() => handleMartialArtsChange(art)}
+                        className='accent-yellow-500'
+                      />
+                      <span className='text-sm'>{art}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='bg-[#00000061] p-2 rounded'>
+                  <label className='block font-medium mb-1'>
+                    Email <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    type='email'
+                    name='email'
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder='Enter your email address'
+                    className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                    required
+                  />
+                </div>
+                <div className='bg-[#00000061] p-2 rounded'>
+                  <label className='block font-medium mb-1'>
+                    Phone Number <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    type='tel'
+                    name='phoneNumber'
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    placeholder='Enter your phone number'
+                    className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                    required
+                  />
+                </div>
+              </div>
+
               {/* Address Section */}
-              <div className='bg-[#2e1b47] p-4 rounded-lg'>
-                <h3 className='text-lg font-semibold text-white mb-4 flex items-center'>
-                  <MapPin className='mr-2' size={20} />
+              <div className=''>
+                <h3 className='text-lg font-semibold text-white mb-4'>
                   Address Information
                 </h3>
 
                 <div className='grid grid-cols-1 gap-4'>
-                  <div>
-                    <label className='text-white font-medium'>
-                      Address Line 1 *
+                  <div className='bg-[#00000061] p-2 rounded'>
+                    <label className='block font-medium mb-1'>
+                      Address <span className='text-red-500'>*</span>
                     </label>
                     <input
                       type='text'
-                      name='addressLine1'
-                      value={formData.addressLine1}
+                      name='address'
+                      value={formData.address}
                       onChange={handleChange}
                       placeholder='580 Ellis Rd S, Suite 122A'
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                      className='w-full outline-none bg-transparent text-white'
                       required
                     />
                   </div>
 
                   <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                    <div>
-                      <label className='text-white font-medium'>
-                        Country *
+                    <div className='bg-[#00000061] p-2 rounded'>
+                      <label className='block font-medium mb-1'>
+                        Country <span className='text-red-500'>*</span>
                       </label>
                       <select
                         name='country'
                         value={formData.country}
                         onChange={handleChange}
-                        className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                        className='w-full outline-none bg-transparent text-white'
                         required
                       >
-                        <option value=''>Select Country</option>
+                        <option value='' className='text-black'>
+                          Select Country
+                        </option>
                         {countries.map((country) => (
-                          <option key={country.isoCode} value={country.isoCode}>
+                          <option
+                            key={country.isoCode}
+                            value={country.isoCode}
+                            className='text-black'
+                          >
                             {country.name}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div>
-                      <label className='text-white font-medium'>State *</label>
+                    <div className='bg-[#00000061] p-2 rounded'>
+                      <label className='block font-medium mb-1'>
+                        State <span className='text-red-500'>*</span>
+                      </label>
                       <select
                         name='state'
                         value={formData.state}
                         onChange={handleChange}
-                        className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                        className='w-full outline-none bg-transparent text-white'
                         required
                         disabled={!formData.country}
                       >
-                        <option value=''>Select State</option>
+                        <option value='' className='text-black'>
+                          Select State
+                        </option>
                         {states.map((state) => (
-                          <option key={state.isoCode} value={state.isoCode}>
+                          <option
+                            key={state.isoCode}
+                            value={state.isoCode}
+                            className='text-black'
+                          >
                             {state.name}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div>
-                      <label className='text-white font-medium'>City *</label>
+                    <div className='bg-[#00000061] p-2 rounded'>
+                      <label className='block font-medium mb-1'>
+                        City<span className='text-red-500'>*</span>
+                      </label>
                       <select
                         name='city'
                         value={formData.city}
                         onChange={handleChange}
-                        className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                        className='w-full outline-none bg-transparent text-white'
                         required
                         disabled={!formData.state}
                       >
-                        <option value=''>Select City</option>
+                        <option value='' className='text-black'>
+                          Select City
+                        </option>
                         {cities.map((city) => (
-                          <option key={city.name} value={city.name}>
+                          <option
+                            key={city.name}
+                            value={city.name}
+                            className='text-black'
+                          >
                             {city.name}
                           </option>
                         ))}
@@ -485,47 +661,66 @@ const RegisterTrainingFacilityPage = () => {
           {/* Step 2: Description & Media */}
           {currentStep === 2 && (
             <div className='space-y-6'>
-              <div className='bg-[#2e1b47] p-4 rounded-lg'>
-                <h3 className='text-lg font-semibold text-white mb-4 flex items-center'>
-                  <FileText className='mr-2' size={20} />
+              <div className=''>
+                <h3 className='text-lg font-semibold text-white mb-4'>
                   Description & Branding
                 </h3>
 
                 <div className='space-y-4'>
-                  <div>
-                    <label className='text-white font-medium'>
-                      About the Facility *
+                  <div className='bg-[#00000061] p-2 rounded'>
+                    <label className='block font-medium mb-1'>
+                      About the Facility <span className='text-red-500'>*</span>
                     </label>
                     <textarea
-                      name='aboutFacility'
-                      value={formData.aboutFacility}
+                      name='description'
+                      value={formData.description}
                       onChange={handleChange}
                       placeholder="Share your gym's journey, mission, and values..."
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none h-32'
+                      className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                      rows={4}
                       required
                       maxLength={1000}
                     />
                     <span className='text-xs text-gray-400'>
-                      {formData.aboutFacility.length}/1000 characters
+                      {formData.description.length}/1000 characters
                     </span>
                   </div>
 
-                  <div>
-                    <label className='text-white font-medium'>
-                      External Website
-                    </label>
-                    <input
-                      type='url'
-                      name='externalWebsite'
-                      value={formData.externalWebsite}
-                      onChange={handleChange}
-                      placeholder='https://yourgym.com'
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
-                    />
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div className='bg-[#00000061] p-2 rounded'>
+                      <label className='block font-medium mb-1'>
+                        External Website
+                      </label>
+                      <input
+                        type='url'
+                        name='externalWebsite'
+                        value={formData.externalWebsite}
+                        onChange={handleChange}
+                        placeholder='https://yourgym.com'
+                        className='w-full outline-none bg-transparent'
+                      />
+                    </div>
+
+                    <div className='bg-[#00000061] p-2 rounded'>
+                      <label className='block font-medium mb-1'>
+                        Video Introduction
+                      </label>
+                      <input
+                        type='url'
+                        name='videoIntroduction'
+                        value={formData.videoIntroduction}
+                        onChange={handleChange}
+                        placeholder='https://youtube.com/...'
+                        className='w-full outline-none bg-transparent'
+                      />
+                      <span className='text-xs text-gray-400'>
+                        Must be an embeddable video URL
+                      </span>
+                    </div>
                   </div>
 
                   <div>
-                    <label className='text-white font-medium'>
+                    <label className='block font-medium mb-1'>
                       Image Gallery
                     </label>
                     <div className='mt-1'>
@@ -539,7 +734,7 @@ const RegisterTrainingFacilityPage = () => {
                       />
                       <label
                         htmlFor='gallery-upload'
-                        className='flex items-center justify-center w-full h-20 px-4 bg-[#1b0c2e] border border-gray-600 border-dashed rounded cursor-pointer hover:border-yellow-500 transition-colors'
+                        className='flex items-center justify-center w-full h-20 px-4 bg-[#00000061] border border-gray-600 border-dashed rounded cursor-pointer hover:border-yellow-500 transition-colors'
                       >
                         <Camera className='mr-2' size={24} />
                         <span className='text-white'>
@@ -547,41 +742,25 @@ const RegisterTrainingFacilityPage = () => {
                         </span>
                       </label>
                     </div>
-                    {formData.imageGallery.length > 0 && (
-                      <div className='mt-2 grid grid-cols-3 gap-2'>
-                        {formData.imageGallery.map((file, index) => (
-                          <div key={index} className='relative'>
-                            <div className='bg-[#1b0c2e] p-2 rounded text-white text-sm'>
-                              {file.name}
-                            </div>
-                            <button
-                              type='button'
-                              onClick={() => removeGalleryImage(index)}
-                              className='absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 flex items-center justify-center text-white hover:bg-red-600'
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    <div className='flex flex-wrap gap-2 mt-2'>
+                      {formData.imageGallery.map((file, index) => (
+                        <div key={index} className='relative'>
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className='w-full h-32 object-cover rounded'
+                          />
 
-                  <div>
-                    <label className='text-white font-medium'>
-                      Video Introduction
-                    </label>
-                    <input
-                      type='url'
-                      name='videoIntroduction'
-                      value={formData.videoIntroduction}
-                      onChange={handleChange}
-                      placeholder='https://youtube.com/...'
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
-                    />
-                    <span className='text-xs text-gray-400'>
-                      Must be an embeddable video URL
-                    </span>
+                          <button
+                            type='button'
+                            onClick={() => removeGalleryImage(index)}
+                            className='absolute -top-2 -right-2 bg-red-500 rounded-full w-6 h-6 flex items-center justify-center text-white hover:bg-red-600'
+                          >
+                            <Trash size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -592,7 +771,7 @@ const RegisterTrainingFacilityPage = () => {
           {currentStep === 3 && (
             <div className='space-y-6'>
               {/* Trainers Section */}
-              <div className='bg-[#2e1b47] p-4 rounded-lg'>
+              <div className=''>
                 <h3 className='text-lg font-semibold text-white mb-4 flex items-center'>
                   <Users className='mr-2' size={20} />
                   Trainers
@@ -600,8 +779,8 @@ const RegisterTrainingFacilityPage = () => {
 
                 <div className='space-y-4'>
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    <div>
-                      <label className='text-white font-medium'>
+                    <div className='col-span-2'>
+                      <label className='block font-medium mb-1'>
                         Trainer Type
                       </label>
                       <div className='flex space-x-4 mt-2'>
@@ -639,33 +818,30 @@ const RegisterTrainingFacilityPage = () => {
                     </div>
 
                     {currentTrainer.type === 'existing' ? (
-                      <div>
-                        <label className='text-white font-medium'>
-                          Search Existing Trainer
-                        </label>
-                        <select
-                          value={currentTrainer.existingId}
-                          onChange={(e) =>
-                            setCurrentTrainer((prev) => ({
-                              ...prev,
-                              existingId: e.target.value,
-                            }))
-                          }
-                          className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
-                        >
-                          <option value=''>Search name or email</option>
-                          <option value='trainer1'>
-                            John Doe (john@example.com)
-                          </option>
-                          <option value='trainer2'>
-                            Jane Smith (jane@example.com)
-                          </option>
-                        </select>
-                      </div>
+                      <Autocomplete
+                        label='Search Trainer'
+                        multiple
+                        selected={formData.trainers}
+                        onChange={(value) => handleChange('trainers', value)}
+                        options={[
+                          ...existingTrainers.map((trainer) => ({
+                            label:
+                              trainer.userId?.firstName +
+                              ' ' +
+                              trainer.userId?.lastName +
+                              ' (' +
+                              trainer.userId?.email +
+                              ' )',
+                            value: trainer._id,
+                          })),
+                        ]}
+                        placeholder='Search trainer name'
+                        required
+                      />
                     ) : (
                       <>
-                        <div>
-                          <label className='text-white font-medium'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
                             Trainer Name
                           </label>
                           <input
@@ -678,12 +854,12 @@ const RegisterTrainingFacilityPage = () => {
                               }))
                             }
                             placeholder='e.g., John Doe'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           />
                         </div>
 
-                        <div>
-                          <label className='text-white font-medium'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
                             Role / Title
                           </label>
                           <input
@@ -696,12 +872,12 @@ const RegisterTrainingFacilityPage = () => {
                               }))
                             }
                             placeholder='e.g., Head Coach'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           />
                         </div>
 
-                        <div>
-                          <label className='text-white font-medium'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
                             Email
                           </label>
                           <input
@@ -714,12 +890,12 @@ const RegisterTrainingFacilityPage = () => {
                               }))
                             }
                             placeholder='john@example.com'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           />
                         </div>
 
-                        <div>
-                          <label className='text-white font-medium'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
                             Phone
                           </label>
                           <input
@@ -732,42 +908,61 @@ const RegisterTrainingFacilityPage = () => {
                               }))
                             }
                             placeholder='+1 555-123-4567'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           />
                         </div>
 
                         <div className='md:col-span-2'>
-                          <label className='text-white font-medium'>
-                            Trainer Bio
-                          </label>
-                          <textarea
-                            value={currentTrainer.bio}
-                            onChange={(e) =>
-                              setCurrentTrainer((prev) => ({
-                                ...prev,
-                                bio: e.target.value,
-                              }))
-                            }
-                            placeholder='About the trainer...'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none h-20'
-                            maxLength={500}
-                          />
-                          <span className='text-xs text-gray-400'>
-                            {currentTrainer.bio.length}/500 characters
-                          </span>
+                          <div className='bg-[#00000061] p-2 rounded'>
+                            <label className='block font-medium mb-1'>
+                              Trainer Bio
+                            </label>
+                            <textarea
+                              value={currentTrainer.bio}
+                              onChange={(e) =>
+                                setCurrentTrainer((prev) => ({
+                                  ...prev,
+                                  bio: e.target.value,
+                                }))
+                              }
+                              placeholder='About the trainer...'
+                              className='w-full outline-none bg-transparent h-20'
+                              maxLength={500}
+                            />
+                            <span className='text-xs text-gray-400'>
+                              {currentTrainer.bio.length}/500 characters
+                            </span>
+                          </div>
                         </div>
+                        <div className='md:col-span-2'>
+                          <label className='block font-medium mb-2'>
+                            Upload Trainer Image
+                            <span className='text-red-400'>*</span>
+                          </label>
+                          <div className='mt-1'>
+                            <input
+                              type='file'
+                              name='image'
+                              onChange={handleFileUpload}
+                              accept='image/jpeg,image/jpg,image/png'
+                              className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                            />
+                            <p className='text-xs text-gray-400 mt-1'>
+                              JPG/PNG
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type='button'
+                          onClick={addTrainer}
+                          className='bg-yellow-500 text-black w-32 px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors flex items-center'
+                        >
+                          <Plus className='mr-2' size={16} />
+                          Add Trainer
+                        </button>
                       </>
                     )}
                   </div>
-
-                  <button
-                    type='button'
-                    onClick={addTrainer}
-                    className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors flex items-center'
-                  >
-                    <Plus className='mr-2' size={16} />
-                    Add Trainer
-                  </button>
 
                   {formData.trainers.length > 0 && (
                     <div>
@@ -775,15 +970,14 @@ const RegisterTrainingFacilityPage = () => {
                         Added Trainers:
                       </h4>
                       <div className='space-y-2'>
-                        {formData.trainers.map((trainer) => (
+                        {formData.trainers.map((trainer, index) => (
                           <div
-                            key={trainer.id}
-                            className='bg-[#1b0c2e] p-3 rounded flex justify-between items-center'
+                            key={trainer._id ?? index}
+                            className='bg-[#00000061] p-3 rounded flex justify-between items-center'
                           >
                             <div className='text-white'>
                               <div className='font-medium'>
-                                {trainer.name ||
-                                  `Trainer ID: ${trainer.existingId}`}
+                                {trainer.name ?? trainer.label}
                               </div>
                               {trainer.role && (
                                 <div className='text-sm text-gray-400'>
@@ -801,7 +995,7 @@ const RegisterTrainingFacilityPage = () => {
                               onClick={() => removeTrainer(trainer.id)}
                               className='text-red-400 hover:text-red-300'
                             >
-                              <Trash2 size={16} />
+                              <Trash size={16} />
                             </button>
                           </div>
                         ))}
@@ -812,7 +1006,7 @@ const RegisterTrainingFacilityPage = () => {
               </div>
 
               {/* Fighters Section */}
-              <div className='bg-[#2e1b47] p-4 rounded-lg'>
+              <div className=''>
                 <h3 className='text-lg font-semibold text-white mb-4 flex items-center'>
                   <Users className='mr-2' size={20} />
                   Fighters
@@ -820,8 +1014,8 @@ const RegisterTrainingFacilityPage = () => {
 
                 <div className='space-y-4'>
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    <div>
-                      <label className='text-white font-medium'>
+                    <div className='col-span-2'>
+                      <label className='block font-medium mb-1'>
                         Fighter Type
                       </label>
                       <div className='flex space-x-4 mt-2'>
@@ -859,33 +1053,30 @@ const RegisterTrainingFacilityPage = () => {
                     </div>
 
                     {currentFighter.type === 'existing' ? (
-                      <div>
-                        <label className='text-white font-medium'>
-                          Search Existing Fighter
-                        </label>
-                        <select
-                          value={currentFighter.existingId}
-                          onChange={(e) =>
-                            setCurrentFighter((prev) => ({
-                              ...prev,
-                              existingId: e.target.value,
-                            }))
-                          }
-                          className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
-                        >
-                          <option value=''>Search name or email</option>
-                          <option value='fighter1'>
-                            Mike Johnson (mike@example.com)
-                          </option>
-                          <option value='fighter2'>
-                            Sarah Williams (sarah@example.com)
-                          </option>
-                        </select>
-                      </div>
+                      <Autocomplete
+                        label='Search Fighter'
+                        multiple
+                        selected={formData.fighters}
+                        onChange={(value) => handleChange('fighters', value)}
+                        options={[
+                          ...existingFighters.map((fighter) => ({
+                            label:
+                              fighter.userId?.firstName +
+                              ' ' +
+                              fighter.userId?.lastName +
+                              ' (' +
+                              fighter.userId?.email +
+                              ' )',
+                            value: fighter._id,
+                          })),
+                        ]}
+                        placeholder='Search fighter name'
+                        required
+                      />
                     ) : (
                       <>
-                        <div>
-                          <label className='text-white font-medium'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
                             Fighter Name
                           </label>
                           <input
@@ -898,12 +1089,12 @@ const RegisterTrainingFacilityPage = () => {
                               }))
                             }
                             placeholder='e.g., Jane Smith'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           />
                         </div>
 
-                        <div>
-                          <label className='text-white font-medium'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
                             Gender
                           </label>
                           <select
@@ -914,7 +1105,7 @@ const RegisterTrainingFacilityPage = () => {
                                 gender: e.target.value,
                               }))
                             }
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           >
                             <option value=''>Select Gender</option>
                             <option value='Male'>Male</option>
@@ -923,8 +1114,8 @@ const RegisterTrainingFacilityPage = () => {
                           </select>
                         </div>
 
-                        <div>
-                          <label className='text-white font-medium'>Age</label>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>Age</label>
                           <input
                             type='number'
                             value={currentFighter.age}
@@ -936,12 +1127,12 @@ const RegisterTrainingFacilityPage = () => {
                             }
                             placeholder='e.g., 23'
                             min='18'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           />
                         </div>
 
-                        <div>
-                          <label className='text-white font-medium'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
                             Record
                           </label>
                           <input
@@ -955,7 +1146,7 @@ const RegisterTrainingFacilityPage = () => {
                             }
                             placeholder='e.g., 10-2-0'
                             pattern='\d+-\d+-\d+'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className='w-full outline-none bg-transparent'
                           />
                           <span className='text-xs text-gray-400'>
                             Format: Wins-Losses-Draws
@@ -963,37 +1154,58 @@ const RegisterTrainingFacilityPage = () => {
                         </div>
 
                         <div className='md:col-span-2'>
-                          <label className='text-white font-medium'>
-                            Fighter Bio
-                          </label>
-                          <textarea
-                            value={currentFighter.bio}
-                            onChange={(e) =>
-                              setCurrentFighter((prev) => ({
-                                ...prev,
-                                bio: e.target.value,
-                              }))
-                            }
-                            placeholder='About the fighter...'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none h-20'
-                            maxLength={500}
-                          />
-                          <span className='text-xs text-gray-400'>
-                            {currentFighter.bio.length}/500 characters
-                          </span>
+                          <div className='bg-[#00000061] p-2 rounded'>
+                            <label className='block font-medium mb-1'>
+                              Fighter Bio
+                            </label>
+                            <textarea
+                              value={currentFighter.bio}
+                              onChange={(e) =>
+                                setCurrentFighter((prev) => ({
+                                  ...prev,
+                                  bio: e.target.value,
+                                }))
+                              }
+                              placeholder='About the fighter...'
+                              className='w-full outline-none bg-transparent h-20'
+                              maxLength={500}
+                            />
+                            <span className='text-xs text-gray-400'>
+                              {currentFighter.bio.length}/500 characters
+                            </span>
+                          </div>
                         </div>
+
+                        <div className='md:col-span-2'>
+                          <label className='block font-medium mb-2'>
+                            Upload Fighter image
+                            <span className='text-red-400'>*</span>
+                          </label>
+                          <div className='mt-1'>
+                            <input
+                              type='file'
+                              name='image'
+                              onChange={handleFileUpload}
+                              accept='image/jpeg,image/jpg,image/png'
+                              className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                            />
+                            <p className='text-xs text-gray-400 mt-1'>
+                              JPG/PNG
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type='button'
+                          onClick={addFighter}
+                          className='bg-yellow-500 text-black w-32 px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors flex items-center'
+                        >
+                          <Plus className='mr-2' size={16} />
+                          Add Fighter
+                        </button>
                       </>
                     )}
                   </div>
-
-                  <button
-                    type='button'
-                    onClick={addFighter}
-                    className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors flex items-center'
-                  >
-                    <Plus className='mr-2' size={16} />
-                    Add Fighter
-                  </button>
 
                   {formData.fighters.length > 0 && (
                     <div>
@@ -1001,15 +1213,14 @@ const RegisterTrainingFacilityPage = () => {
                         Added Fighters:
                       </h4>
                       <div className='space-y-2'>
-                        {formData.fighters.map((fighter) => (
+                        {formData.fighters.map((fighter, index) => (
                           <div
-                            key={fighter.id}
-                            className='bg-[#1b0c2e] p-3 rounded flex justify-between items-center'
+                            key={fighter._id ?? index}
+                            className='bg-[#00000061] p-3 rounded flex justify-between items-center'
                           >
                             <div className='text-white'>
                               <div className='font-medium'>
-                                {fighter.name ||
-                                  `Fighter ID: ${fighter.existingId}`}
+                                {fighter.name || fighter.label}
                               </div>
                               {fighter.record && (
                                 <div className='text-sm text-gray-400'>
@@ -1038,7 +1249,7 @@ const RegisterTrainingFacilityPage = () => {
               </div>
 
               {/* Invite System */}
-              <div className='bg-[#2e1b47] p-4 rounded-lg'>
+              <div className='bg-[#00000061] p-4 rounded-lg'>
                 <h3 className='text-lg font-semibold text-white mb-4'>
                   Invite System
                 </h3>
@@ -1066,7 +1277,7 @@ const RegisterTrainingFacilityPage = () => {
           {/* Step 4: Review & Submit */}
           {currentStep === 4 && (
             <div className='space-y-6'>
-              <div className='bg-[#2e1b47] p-4 rounded-lg'>
+              <div className='bg-[#00000061] p-4 rounded-lg'>
                 <h3 className='text-lg font-semibold text-white mb-4'>
                   Review Your Submission
                 </h3>
@@ -1077,14 +1288,14 @@ const RegisterTrainingFacilityPage = () => {
                       Basic Information
                     </h4>
                     <p>
-                      <strong>Facility Name:</strong> {formData.facilityName}
+                      <strong>Facility Name:</strong> {formData.name}
                     </p>
                     <p>
                       <strong>Martial Arts:</strong>{' '}
-                      {formData.martialArts.join(', ')}
+                      {formData.martialArtsStyles.join(', ')}
                     </p>
                     <p>
-                      <strong>Address:</strong> {formData.addressLine1},{' '}
+                      <strong>Address:</strong> {formData.address},{' '}
                       {formData.city}, {formData.state}, {formData.country}
                     </p>
                   </div>
@@ -1093,7 +1304,7 @@ const RegisterTrainingFacilityPage = () => {
                     <h4 className='font-semibold text-yellow-500'>
                       Description
                     </h4>
-                    <p className='text-sm'>{formData.aboutFacility}</p>
+                    <p className='text-sm'>{formData.description}</p>
                     {formData.externalWebsite && (
                       <p>
                         <strong>Website:</strong> {formData.externalWebsite}
@@ -1119,7 +1330,7 @@ const RegisterTrainingFacilityPage = () => {
                     <h4 className='font-semibold text-yellow-500'>Media</h4>
                     <p>
                       <strong>Logo:</strong>{' '}
-                      {formData.facilityLogo ? 'Uploaded' : 'Not uploaded'}
+                      {formData.logo ? 'Uploaded' : 'Not uploaded'}
                     </p>
                     <p>
                       <strong>Gallery Images:</strong>{' '}
@@ -1210,16 +1421,6 @@ const RegisterTrainingFacilityPage = () => {
                   >
                     Submit for Review
                   </button>
-                  {formData.sendInvites &&
-                    formData.trainers.some((t) => t.email) && (
-                      <button
-                        type='button'
-                        onClick={(e) => handleSubmit(e, 'invite')}
-                        className='bg-blue-500 text-white px-4 py-2 rounded font-semibold hover:bg-blue-600 transition-colors'
-                      >
-                        Send Invite Links
-                      </button>
-                    )}
                 </>
               )}
             </div>

@@ -1,318 +1,277 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { User, MapPin, Bell, Save, ArrowLeft } from 'lucide-react'
-import FormField from '../../../_components/FormField'
-import FormSection from '../../../_components/FormSection'
+import { User, MapPin, Bell } from 'lucide-react'
+import { API_BASE_URL, apiConstants } from '../../../../constants'
+import useStore from '../../../../stores/useStore'
+import axios from 'axios'
+import { City, Country, State } from 'country-state-city'
+import { enqueueSnackbar } from 'notistack'
 
-const SpectatorProfileForm = () => {
+const SpectatorProfileForm = ({ userDetails }) => {
+  const { user } = useStore()
   const [formData, setFormData] = useState({
-    // Personal Info
     firstName: '',
     lastName: '',
     email: '',
     phoneNumber: '',
     dateOfBirth: '',
     gender: '',
-
-    // Address Info
     country: '',
-    stateProvince: '',
+    state: '',
     city: '',
-
-    // Preferences
-    communicationPreference: [],
+    communicationPreferences: [],
   })
 
-  // Dummy Data on mount
-  useEffect(() => {
-    const dummyData = {
-      firstName: 'John',
-      lastName: 'Smith',
-      email: 'john.smith@example.com',
-      phoneNumber: '+1 555-123-4567',
-      dateOfBirth: '1985-06-15',
-      gender: 'male',
-      country: 'United States',
-      stateProvince: 'California',
-      city: 'San Francisco',
-      communicationPreference: ['email'],
-    }
+  const countries = Country.getAllCountries()
+  const states = formData.country
+    ? State.getStatesOfCountry(formData.country)
+    : []
+  const cities =
+    formData.country && formData.state
+      ? City.getCitiesOfState(formData.country, formData.state)
+      : []
 
-    setFormData((prev) => ({ ...prev, ...dummyData }))
-  }, [])
+  useEffect(() => {
+    if (userDetails?.dateOfBirth) {
+      const formattedDOB = new Date(userDetails.dateOfBirth)
+        .toISOString()
+        .split('T')[0]
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+        dateOfBirth: formattedDOB,
+      }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+      }))
+    }
+  }, [userDetails])
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
 
     if (type === 'checkbox') {
       if (checked) {
-        setFormData({
-          ...formData,
-          [name]: [...formData[name], value],
-        })
+        setFormData((prev) => ({
+          ...prev,
+          [name]: [...prev[name], value],
+        }))
       } else {
-        setFormData({
-          ...formData,
-          [name]: formData[name].filter((item) => item !== value),
-        })
+        setFormData((prev) => ({
+          ...prev,
+          [name]: prev[name].filter((item) => item !== value),
+        }))
       }
     } else {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         [name]: value,
-      })
+      }))
     }
   }
 
-  const handleSubmit = () => {
-    // Create FormData object for submission
-    const submitFormData = new FormData()
-
-    // Append all form fields to FormData
-    Object.keys(formData).forEach((key) => {
-      if (formData[key] !== null) {
-        if (Array.isArray(formData[key])) {
-          submitFormData.append(key, JSON.stringify(formData[key]))
-        } else {
-          submitFormData.append(key, formData[key])
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/auth/users/${user._id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
         }
+      )
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar(response.data.message, { variant: 'success' })
+        onSuccess()
       }
-    })
-
-    // In a real application, you would send this FormData to your API
-    console.log('Submitting form data...', formData)
-
-    // Example of form submission (commented out)
-    // fetch('/api/spectator-profile', {
-    //   method: 'POST',
-    //   body: submitFormData,
-    // })
-    // .then(response => response.json())
-    // .then(data => console.log("Success:", data))
-    // .catch(error => console.error("Error:", error));
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
-
   return (
-    <div className='min-h-screen py-6 bg-black text-white flex flex-col items-center p-4'>
+    <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='w-full container mx-auto'>
-        <div className='text-center mb-8'>
-          <h1 className='text-4xl md:text-5xl font-bold text-white'>
-            My Profile
-          </h1>
+        <div className='flex items-center gap-4 mb-6'>
+          <h1 className='text-4xl font-bold'>Spectator Profile</h1>
         </div>
-        <div className='space-y-6'>
-          {/* Personal Info Section */}
-          <FormSection
-            title='Personal Information'
-            color='bg-blue-900'
-            icon={<User size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <FormField
-                label='First Name'
-                name='firstName'
-                type='text'
-                value={formData.firstName}
-                onChange={handleInputChange}
-                placeholder='Enter first name'
-                required={true}
-                validation='Alphabetic only'
-              />
 
-              <FormField
-                label='Last Name'
-                name='lastName'
-                type='text'
-                value={formData.lastName}
+        {/* Personal Info */}
+        <div className='flex items-center gap-2 mb-4'>
+          <User className='w-6 h-6 text-blue-400' />
+          <h2 className='font-bold uppercase text-lg'>Personal Information</h2>
+        </div>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+          {[
+            { label: 'First Name', name: 'firstName' },
+            { label: 'Last Name', name: 'lastName' },
+            { label: 'Email Address', name: 'email', type: 'email' },
+            { label: 'Phone Number', name: 'phoneNumber' },
+            { label: 'Date of Birth', name: 'dateOfBirth', type: 'date' },
+          ].map((field) => (
+            <div key={field.name} className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                {field.label}
+                <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type={field.type || 'text'}
+                name={field.name}
+                value={formData[field.name]}
                 onChange={handleInputChange}
-                placeholder='Enter last name'
-                required={true}
-                validation='Alphabetic only'
-              />
-
-              <FormField
-                label='Email Address'
-                name='email'
-                type='email'
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder='user@example.com'
-                required={true}
-                validation='Valid email format'
-              />
-
-              <FormField
-                label='Phone Number'
-                name='phoneNumber'
-                type='tel'
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                placeholder='Enter phone number'
-                required={true}
-                validation='10-15 digits'
-              />
-
-              <FormField
-                label='Date of Birth'
-                name='dateOfBirth'
-                type='date'
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                required={true}
-                validation='Ages 13+'
-              />
-
-              <FormField
-                label='Gender'
-                name='gender'
-                type='select'
-                value={formData.gender}
-                onChange={handleInputChange}
-                options={[
-                  { value: '', label: 'Select gender' },
-                  { value: 'male', label: 'Male' },
-                  { value: 'female', label: 'Female' },
-                  { value: 'other', label: 'Other' },
-                  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
-                ]}
+                placeholder={`Enter ${field.label.toLowerCase()}`}
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
               />
             </div>
-          </FormSection>
+          ))}
 
-          {/* Address Section */}
-          <FormSection
-            title='Address Information'
-            color='bg-green-900'
-            icon={<MapPin size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <FormField
-                label='Country'
-                name='country'
-                type='select'
-                value={formData.country}
-                onChange={handleInputChange}
-                required={true}
-                options={[
-                  { value: '', label: 'Select country' },
-                  { value: 'United States', label: 'United States' },
-                  { value: 'Canada', label: 'Canada' },
-                  { value: 'United Kingdom', label: 'United Kingdom' },
-                  { value: 'Australia', label: 'Australia' },
-                  { value: 'Germany', label: 'Germany' },
-                  { value: 'France', label: 'France' },
-                  { value: 'Japan', label: 'Japan' },
-                  { value: 'Brazil', label: 'Brazil' },
-                  { value: 'India', label: 'India' },
-                  { value: 'China', label: 'China' },
-                ]}
-              />
-
-              <FormField
-                label='State / Province'
-                name='stateProvince'
-                type='text'
-                value={formData.stateProvince}
-                onChange={handleInputChange}
-                placeholder='Enter state/province'
-                required={true}
-                validation='Alphanumeric'
-              />
-
-              <FormField
-                label='City'
-                name='city'
-                type='text'
-                value={formData.city}
-                onChange={handleInputChange}
-                placeholder='Enter city'
-                required={true}
-                validation='Alphabetic only'
-              />
-            </div>
-          </FormSection>
-
-          {/* Preferences Section */}
-          <FormSection
-            title='Preferences'
-            color='bg-purple-900'
-            icon={<Bell size={20} />}
-          >
-            <div className='grid grid-cols-1 gap-4'>
-              <div>
-                <label className='block text-sm font-medium mb-1'>
-                  Communication Preferences
-                </label>
-                <div className='space-y-2'>
-                  <div className='flex items-center space-x-2'>
-                    <input
-                      type='checkbox'
-                      id='comm-email'
-                      name='communicationPreference'
-                      value='email'
-                      checked={formData.communicationPreference.includes(
-                        'email'
-                      )}
-                      onChange={handleInputChange}
-                      className='rounded text-blue-500 focus:ring-blue-500 bg-gray-700 border-gray-600'
-                    />
-                    <label htmlFor='comm-email'>Email</label>
-                  </div>
-                  <div className='flex items-center space-x-2'>
-                    <input
-                      type='checkbox'
-                      id='comm-sms'
-                      name='communicationPreference'
-                      value='sms'
-                      checked={formData.communicationPreference.includes('sms')}
-                      onChange={handleInputChange}
-                      className='rounded text-blue-500 focus:ring-blue-500 bg-gray-700 border-gray-600'
-                    />
-                    <label htmlFor='comm-sms'>SMS</label>
-                  </div>
-                  <div className='flex items-center space-x-2'>
-                    <input
-                      type='checkbox'
-                      id='comm-push'
-                      name='communicationPreference'
-                      value='push'
-                      checked={formData.communicationPreference.includes(
-                        'push'
-                      )}
-                      onChange={handleInputChange}
-                      className='rounded text-blue-500 focus:ring-blue-500 bg-gray-700 border-gray-600'
-                    />
-                    <label htmlFor='comm-push'>Push Notifications</label>
-                  </div>
-                </div>
-                <p className='text-xs text-gray-400 mt-1'>
-                  Select how you'd like to receive updates, newsletters, etc.
-                </p>
-              </div>
-            </div>
-          </FormSection>
-
-          {/* Form Actions */}
-          <div className='bg-gray-800 p-4 rounded-lg'>
-            <div className='flex flex-wrap gap-4 justify-between'>
-              <button
-                type='button'
-                onClick={() => console.log('Canceling...')}
-                className='flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded'
-              >
-                <ArrowLeft size={18} />
-                Cancel / Back
-              </button>
-              <button
-                type='button'
-                onClick={handleSubmit}
-                className='flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded'
-              >
-                <Save size={18} />
-                Save Changes
-              </button>
-            </div>
+          {/* Gender Dropdown */}
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='block font-medium mb-1'>
+              Gender<span className='text-red-500'>*</span>
+            </label>
+            <select
+              name='gender'
+              value={formData.gender}
+              onChange={handleInputChange}
+              className='w-full outline-none bg-transparent text-white'
+              required
+            >
+              <option value='' className='text-black'>
+                Select Gender
+              </option>
+              <option value='Male' className='text-black'>
+                Male
+              </option>
+              <option value='Female' className='text-black'>
+                Female
+              </option>
+              <option value='Other' className='text-black'>
+                Other
+              </option>
+              <option value='prefer_not_to_say' className='text-black'>
+                Prefer not to say
+              </option>
+            </select>
           </div>
+        </div>
+
+        {/* Address Info */}
+        <div className='flex items-center gap-2 mb-4'>
+          <MapPin className='w-6 h-6 text-red-400' />
+          <h2 className='font-bold uppercase text-lg'>Address Information</h2>
+        </div>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='block font-medium mb-1'>Country</label>
+            <select
+              name='country'
+              value={formData.country}
+              onChange={handleInputChange}
+              className='w-full outline-none bg-transparent text-white'
+            >
+              <option value='' className='text-black'>
+                Select Country
+              </option>
+              {countries.map((country) => (
+                <option
+                  key={country.isoCode}
+                  value={country.isoCode}
+                  className='text-black'
+                >
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='block font-medium mb-1'>State</label>
+            <select
+              name='state'
+              value={formData.state}
+              onChange={handleInputChange}
+              className='w-full outline-none bg-transparent text-white'
+            >
+              <option value='' className='text-black'>
+                Select State
+              </option>
+              {states.map((state) => (
+                <option
+                  key={state.isoCode}
+                  value={state.isoCode}
+                  className='text-black'
+                >
+                  {state.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='text-white font-medium'>City</label>
+            <select
+              name='city'
+              value={formData.city}
+              onChange={handleInputChange}
+              className='w-full outline-none bg-transparent text-white'
+            >
+              <option value=''>Select City</option>
+              {cities.map((city) => (
+                <option
+                  key={city.name}
+                  value={city.name}
+                  className='text-black'
+                >
+                  {city.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Preferences */}
+        <div className='flex items-center gap-2 mb-4'>
+          <Bell className='w-6 h-6 text-yellow-400' />
+          <h2 className='font-bold uppercase text-lg'>Preferences</h2>
+        </div>
+        <div className='mb-6 bg-[#00000061] p-4 rounded'>
+          <label className='block font-medium mb-2'>
+            Communication Preferences
+          </label>
+          {['email', 'sms', 'push'].map((method) => (
+            <div key={method} className='flex items-center gap-2 mb-2'>
+              <input
+                type='checkbox'
+                name='communicationPreferences'
+                value={method}
+                checked={formData.communicationPreferences.includes(method)}
+                onChange={handleInputChange}
+                className='rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400'
+              />
+              <label htmlFor={method}>{method.toUpperCase()}</label>
+            </div>
+          ))}
+          <p className='text-xs text-gray-400 mt-1'>
+            Choose how you'd like to receive updates
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className='flex justify-center gap-4 mt-6'>
+          <button
+            type='button'
+            onClick={handleSubmit}
+            className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+          >
+            Save Profile
+          </button>
         </div>
       </div>
     </div>

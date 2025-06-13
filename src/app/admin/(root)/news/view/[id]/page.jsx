@@ -24,14 +24,6 @@ export default function ViewNewsPage({ params }) {
     fetchNewsDetails()
   }, [id])
 
-  const imageSrc =
-    newsDetails?.imageUrl && process.env.NEXT_PUBLIC_BASE_URL
-      ? new URL(
-          newsDetails.imageUrl,
-          process.env.NEXT_PUBLIC_BASE_URL
-        ).toString()
-      : null
-
   if (loading || !newsDetails) return <Loader />
 
   return (
@@ -68,10 +60,10 @@ export default function ViewNewsPage({ params }) {
           </div>
           {/* Image Display */}
           <div className='mb-8'>
-            {imageSrc ? (
+            {newsDetails.coverImage ? (
               <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                 <img
-                  src={imageSrc}
+                  src={newsDetails.coverImage}
                   alt='Selected'
                   className='w-full h-full object-cover'
                 />
@@ -109,7 +101,7 @@ export default function ViewNewsPage({ params }) {
             <label className='block text-sm font-medium mb-1'>Category</label>
             <input
               type='text'
-              value={newsDetails.category?.name || 'N/A'}
+              value={newsDetails.category || 'N/A'}
               readOnly
               className='w-full bg-transparent text-white outline-none'
             />
@@ -131,7 +123,7 @@ export default function ViewNewsPage({ params }) {
             </label>
             <input
               type='text'
-              value={newsDetails.videoLink || ''}
+              value={newsDetails.videoEmbedLink || ''}
               readOnly
               className='w-full bg-transparent text-white outline-none'
             />

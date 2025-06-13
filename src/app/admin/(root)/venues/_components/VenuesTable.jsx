@@ -1,12 +1,23 @@
 'use client'
-
-import { Search, Trash } from 'lucide-react'
-import { useState } from 'react'
+import { MapPin, Search } from 'lucide-react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import { useState } from 'react'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import axios from 'axios'
+import { enqueueSnackbar } from 'notistack'
+import ConfirmationModal from '../../../../_components/ConfirmationModal'
+import useStore from '../../../../../stores/useStore'
+import ActionButtons from '../../../../_components/ActionButtons'
 
 export function VenuesTable({
   venues,
+  searchQuery,
+  setSearchQuery,
+  selectedCity,
+  setSelectedCity,
+  selectedStatus,
+  setSelectedStatus,
   limit,
   setLimit,
   currentPage,
@@ -15,23 +26,32 @@ export function VenuesTable({
   totalItems,
   onSuccess,
 }) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCity, setSelectedCity] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('')
+  const [isDelete, setIsDelete] = useState(false)
+  const [selectedVenue, setSelectedVenue] = useState(null)
+  const user = useStore((state) => state.user)
 
-  const filteredVenues = venues.filter((venue) => {
-    const matchesSearch = venue.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-    const matchesCity = selectedCity ? venue.city === selectedCity : true
-    const matchesStatus = selectedStatus
-      ? venue.status === selectedStatus
-      : true
-    return matchesSearch && matchesCity && matchesStatus
-  })
+  const handleDeleteVenue = async (id) => {
+    console.log('Deleting news with ID:', id)
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/venues/${id}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
 
-  const handleDelete = (id) => {
-    console.log('Deleting venue with ID:', id)
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(res.data.message, {
+          variant: 'success',
+        })
+        setIsDelete(false)
+        onSuccess()
+      }
+    } catch (error) {
+      enqueueSnackbar('Failed to delete venue,try again', {
+        variant: 'error',
+      })
+      console.log('Failed to delete venue:', error)
+    }
   }
 
   const handleUpdate = (venue) => {
@@ -127,7 +147,7 @@ export function VenuesTable({
           totalItems={totalItems}
           label='venues'
         />
-        <div className='overflow-x-auto'>
+        <div className='overflow-x-auto custom-scrollbar'>
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
@@ -148,58 +168,72 @@ export function VenuesTable({
               </tr>
             </thead>
             <tbody>
-              {filteredVenues && filteredVenues.length > 0 ? (
-                filteredVenues.map((venue, index) => (
+              {venues && venues.length > 0 ? (
+                venues.map((venue, index) => (
                   <tr
                     key={index}
-                    className={`text-center ${
+                    className={`${
                       index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                     }`}
                   >
-                    <td className='p-4'>{venue.name}</td>
-                    <td className='p-4'>{venue.address}</td>
-                    <td className='p-4'>{venue.city}</td>
-                    <td className='p-4'>{venue.state}</td>
-                    <td className='p-4'>{venue.country}</td>
-                    <td className='p-4'>{venue.postalCode}</td>
-                    <td className='p-4'>{venue.person}</td>
-                    <td className='p-4'>{venue.email}</td>
-                    <td className='p-4'>{venue.contact}</td>
-                    <td className='p-4'>{venue.capacity}</td>
-                    <td className='p-4'>{venue.status}</td>
-                    <td className='p-4'>
-                      {venue.images?.map((img, idx) => (
+                    <td className='p-4 whitespace-nowrap'>{venue.name}</td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.address.street1}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.address.city}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.address.state}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.address.country}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.address.postalCode}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.contactName}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.contactEmail}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {venue.contactPhone}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>{venue.capacity}</td>
+                    <td className='p-4 whitespace-nowrap'>{venue.status}</td>
+                    <td className='p-4 flex items-center gap-2 whitespace-nowrap max-w-fit'>
+                      {venue.media?.map((img, idx) => (
                         <img
                           key={idx}
                           src={img}
                           alt='Venue'
-                          className='h-10 w-10 object-cover rounded mr-2 inline-block'
+                          className='h-20 w-20 object-cover rounded mr-2 inline-block'
                         />
                       ))}
                     </td>
-                    <td className='p-4'>
+                    <td className='p-4 text-center whitespace-nowrap'>
                       <a
-                        href={venue.mapLocation}
+                        href={venue.mapLink}
                         target='_blank'
                         rel='noopener noreferrer'
-                        className='text-blue-500 underline'
+                        className='text-center text-blue-500 hover:underline flex items-center justify-center gap-2'
+                        title='View on Map'
                       >
                         View Map
+                        <MapPin size={20} />
                       </a>
                     </td>
-                    <td className='p-4 py-8 flex items-center space-x-2'>
-                      <button
-                        onClick={() => handleUpdate(venue)}
-                        className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
-                      >
-                        Save/Update
-                      </button>
-                      <button
-                        onClick={() => handleDelete(venue)}
-                        className='text-red-600'
-                      >
-                        <Trash size={20} />
-                      </button>
+                    <td className='p-4 align-middle'>
+                      <ActionButtons
+                        viewUrl={`/admin/venues/view/${venue._id}`}
+                        editUrl={`/admin/venues/edit/${venue._id}`}
+                        onDelete={() => {
+                          setIsDelete(true)
+                          setSelectedVenue(venue._id)
+                        }}
+                      />
                     </td>
                   </tr>
                 ))
@@ -213,6 +247,14 @@ export function VenuesTable({
             </tbody>
           </table>
         </div>
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={isDelete}
+          onClose={() => setIsDelete(false)}
+          onConfirm={() => handleDeleteVenue(selectedVenue)}
+          title='Delete Venue'
+          message='Are you sure you want to delete this venue?'
+        />
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

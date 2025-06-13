@@ -3,20 +3,19 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import axios from 'axios'
 import { Eye, EyeOff } from 'lucide-react'
-import { API_BASE_URL, roles } from '../../../constants/index'
+import { API_BASE_URL, apiConstants, roles } from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
-import useUserStore from '../../../stores/userStore'
+import useStore from '../../../stores/useStore'
 import { useRouter } from 'next/navigation'
 
 const LoginPage = () => {
-  const { setUser } = useUserStore()
+  const { setUser } = useStore()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   })
 
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
@@ -31,28 +30,21 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
 
     try {
       console.log('Login data ready to be sent:', formData)
       const res = await axios.post(`${API_BASE_URL}/auth/login`, formData)
       console.log('Login response:', res.data)
-      if (res.status === 200) {
+      if (res.status === apiConstants.success) {
         setUser({ ...res.data.user, token: res.data.token })
         enqueueSnackbar(res.data.message, { variant: 'success' })
-        if (res.data.user.role === roles.admin) {
-          router.push('/admin/dashboard')
-        } else {
-          router.push('/')
-        }
+        router.push('/')
       }
     } catch (err) {
-      setError(err?.response?.data?.message || 'An error occurred during login')
       enqueueSnackbar(
         err?.response?.data?.message || 'An error occurred during login',
         { variant: 'error' }
       )
-      console.error('Login error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -74,11 +66,6 @@ const LoginPage = () => {
           <div className='w-full max-w-md'>
             <h1 className='text-3xl font-bold text-white mb-8'>Login</h1>
 
-            {error && (
-              <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
-                {error}
-              </div>
-            )}
             <form className='space-y-4' onSubmit={handleSubmit}>
               <div>
                 <input

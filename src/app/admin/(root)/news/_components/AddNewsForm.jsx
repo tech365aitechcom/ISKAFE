@@ -1,31 +1,27 @@
 'use client'
 import axios from 'axios'
-import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import { Trash } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
+import React, { useState } from 'react'
+import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 
 export const AddNewsForm = ({ setShowAddNewsForm }) => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     title: '',
     category: '',
     content: '',
-    coverImage: null,
-    videoLink: '',
+    videoEmbedLink: '',
     publishDate: '',
     status: 'Draft',
     isDeleted: false,
   })
+  const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
 
-  const [categories, setCategories] = useState([
-    'Announcement',
-    'Rule Update',
-    'Interview',
-    'Media',
-  ])
+  const { newsCategories } = useStore()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -36,44 +32,38 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
     const file = e.target.files[0]
     if (file) {
       setImagePreview(URL.createObjectURL(file))
-      setFormData((prev) => ({ ...prev, coverImage: file }))
+      setImage(file)
     }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const formPayload = new FormData()
-      formPayload.append('title', formData.title)
-      formPayload.append('category', formData.category)
-      formPayload.append('content', formData.content)
-      formPayload.append('videoEmbedLink', formData.videoLink)
-      formPayload.append('publishDate', formData.publishDate)
-      formPayload.append('createdBy', user?.id ?? '6824b6af47faa9de6eb81caa')
-      formPayload.append('updatedBy', user?.id ?? '6824b6af47faa9de6eb81caa')
-      formPayload.append('status', formData.isPublished)
-      formPayload.append('isDeleted', formData.isDeleted)
-
-      if (formData.coverImage) {
-        formPayload.append('coverImage', formData.coverImage)
+      let s3UploadedUrl = null
+      if (image !== null) {
+        s3UploadedUrl = await uploadToS3(image)
       }
-
-      const response = await axios.post(`${API_BASE_URL}/news`, formPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-
+      const response = await axios.post(
+        `${API_BASE_URL}/news`,
+        { ...formData, coverImage: s3UploadedUrl },
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
       if (response.status === apiConstants.create) {
         enqueueSnackbar(response.data.message, { variant: 'success' })
         setFormData({
           title: '',
           category: '',
           content: '',
-          coverImage: null,
-          videoLink: '',
+          videoEmbedLink: '',
           publishDate: '',
           status: 'Draft',
           isDeleted: false,
         })
+        setImage(null)
         setImagePreview(null)
       }
     } catch (error) {
@@ -93,12 +83,12 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
       title: '',
       category: '',
       content: '',
-      coverImage: null,
-      videoLink: '',
+      videoEmbedLink: '',
       publishDate: '',
       status: 'Draft',
       isDeleted: false,
     })
+    setImage(null)
     setShowAddNewsForm(false)
   }
 
@@ -142,7 +132,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                   type='button'
                   onClick={() => {
                     setImagePreview(null)
-                    setFormData((prev) => ({ ...prev, coverImage: null }))
+                    setImage(null)
                   }}
                   className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
                 >
@@ -236,9 +226,13 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
               <option value='' className='text-black'>
                 Select category
               </option>
-              {categories.map((category) => (
-                <option key={category} value={category} className='text-black'>
-                  {category}
+              {newsCategories.map((category) => (
+                <option
+                  key={category._id}
+                  value={category.label}
+                  className='text-black'
+                >
+                  {category.label}
                 </option>
               ))}
             </select>
@@ -267,8 +261,8 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
             </label>
             <input
               type='text'
-              name='videoLink'
-              value={formData.videoLink}
+              name='videoEmbedLink'
+              value={formData.videoEmbedLink}
               onChange={handleChange}
               className='w-full outline-none'
               placeholder='https://youtube.com/embed/...'

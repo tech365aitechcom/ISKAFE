@@ -1,11 +1,17 @@
 'use client'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
-import React, { useEffect, useState } from 'react'
-import { countries } from '../../../../../constants'
+import React, { useState } from 'react'
 import { Country, State } from 'country-state-city'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
+import useStore from '../../../../../stores/useStore'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
 
-export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
+export const AddVenuesForm = ({
+  setShowAddVenueForm,
+  showBackButton = true,
+}) => {
+  const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     name: '',
 
@@ -75,11 +81,7 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
           ? 'Enter a valid email address'
           : ''
       case 'contactPhone':
-        return value.trim() === ''
-          ? 'Phone number is required'
-          : !/^\+\d{1,3}-\d{3,}-\d{3,}$/.test(value)
-          ? 'Enter a valid phone number format'
-          : ''
+        return value.trim() === '' ? 'Phone number is required' : ''
       case 'capacity':
         return value.trim() === ''
           ? 'Capacity is required'
@@ -197,41 +199,19 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
     e.preventDefault()
 
     if (validateForm()) {
-      // Create FormData object for submission
-      const submitFormData = new FormData()
+      const uploadedMediaUrls = []
 
-      // Add main fields to FormData
-      submitFormData.append('name', formData.name)
-      submitFormData.append('contactName', formData.contactName)
-      submitFormData.append('contactPhone', formData.contactPhone)
-      submitFormData.append('contactEmail', formData.contactEmail)
-      submitFormData.append('capacity', formData.capacity)
-      submitFormData.append('mapLink', formData.mapLink)
-      submitFormData.append('status', formData.status)
-      submitFormData.append('autoStatusChange', formData.autoStatusChange)
-
-      // Add conditional fields
-      if (formData.autoStatusChange) {
-        submitFormData.append('scheduledStatus', formData.scheduledStatus)
-        submitFormData.append('statusChangeDate', formData.statusChangeDate)
+      for (const image of formData.media) {
+        const s3UploadedUrl = await uploadToS3(image)
+        uploadedMediaUrls.push(s3UploadedUrl)
       }
 
-      // Add address fields to FormData
-      Object.entries(formData.address).forEach(([key, value]) => {
-        submitFormData.append(`address[${key}]`, value)
-      })
+      formData.media = uploadedMediaUrls
 
-      // Add media files to FormData
-      formData.media.forEach((file, index) => {
-        submitFormData.append(`media[${index}]`, file)
-      })
-
-      // Log the FormData (for debugging)
-      console.log('Form submitted as FormData')
-
-      // Example of how you would send this to an API
-      const response = await axios.post('/api/venues/add', submitFormData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response = await axios.post(`${API_BASE_URL}/venues`, formData, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
       })
 
       if (response.status === apiConstants.create) {
@@ -285,7 +265,7 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
       scheduledStatus: '',
       statusChangeDate: '',
     })
-    setShowAddVenues(false)
+    setShowAddVenueForm(false)
   }
 
   const removeMedia = (index) => {
@@ -302,7 +282,7 @@ export const AddVenuesForm = ({ setShowAddVenues, showBackButton = true }) => {
           {showBackButton && (
             <button
               className='mr-2 text-white'
-              onClick={() => setShowAddVenues(false)}
+              onClick={() => setShowAddVenueForm(false)}
             >
               <svg
                 xmlns='http://www.w3.org/2000/svg'

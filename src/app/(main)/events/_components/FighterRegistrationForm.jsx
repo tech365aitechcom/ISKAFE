@@ -1,12 +1,12 @@
 'use client'
 import { API_BASE_URL, apiConstants } from '../../../../constants/index'
-import useUserStore from '../../../../stores/userStore'
+import useStore from '../../../../stores/useStore'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import React, { useState } from 'react'
 
 export default function FighterRegistrationForm({ setIsOpen, eventId }) {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     // Personal Info
@@ -1026,7 +1026,7 @@ export default function FighterRegistrationForm({ setIsOpen, eventId }) {
   }
 
   return (
-    <div className='bg-[#1b0c2e] p-6 rounded-lg max-h-[94vh] overflow-y-auto custom-scrollbar w-full relative'>
+    <div className='bg-white p-6 rounded-lg max-h-[94vh] overflow-y-auto custom-scrollbar w-full relative'>
       <div className=' mb-6'>
         <h2 className='text-2xl font-bold text-white'>
           Fighter Registration Form

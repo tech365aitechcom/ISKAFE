@@ -1,19 +1,18 @@
 'use client'
 
-import {
-  Search,
-  Eye,
-  Edit,
-  Check,
-  X,
-  Trash,
-  Mail,
-  RotateCcw,
-} from 'lucide-react'
-import { useState } from 'react'
+import { Search, Eye, Edit, Check, Trash, Mail } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import PaginationHeader from '../../../_components/PaginationHeader'
 import Pagination from '../../../_components/Pagination'
 import { City, Country, State } from 'country-state-city'
+import axios from 'axios'
+import { API_BASE_URL, apiConstants } from '../../../../constants'
+import moment from 'moment'
+import { enqueueSnackbar } from 'notistack'
+import Loader from '../../../_components/Loader'
+import useStore from '../../../../stores/useStore'
+import ConfirmationModal from '../../../_components/ConfirmationModal'
+import Link from 'next/link'
 
 export default function TrainingAndGymFacilities() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -21,67 +20,19 @@ export default function TrainingAndGymFacilities() {
   const [selectedState, setSelectedState] = useState('')
   const [selectedCity, setSelectedCity] = useState('')
   const [selectedStyles, setSelectedStyles] = useState([])
-  const [selectedStatus, setSelectedStatus] = useState('All')
-  const [selectedApprovalStatus, setSelectedApprovalStatus] = useState('All')
+  const [selectedStatus, setSelectedStatus] = useState('')
+  const [selectedApprovalStatus, setSelectedApprovalStatus] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(3)
   const [limit, setLimit] = useState(10)
+  const user = useStore((state) => state.user)
 
-  // Mock data for demonstration
-  const [facilities, setFacilities] = useState([
-    {
-      id: 1,
-      logo: '/api/placeholder/40/40',
-      name: 'Arnett Sport Kung Fu Association',
-      location: 'Jacksonville, FL, USA',
-      country: 'USA',
-      state: 'FL',
-      city: 'Jacksonville',
-      styles: ['Kung Fu', 'Kickboxing'],
-      status: 'Active',
-      approvalStatus: 'Pending',
-      createdOn: '2025-05-02',
-      addedBy: 'admin@ikfplatform.com',
-      isRegistered: true,
-      trainersCount: 2,
-      fightersCount: 12,
-    },
-    {
-      id: 2,
-      logo: '/api/placeholder/40/40',
-      name: 'Elite MMA Academy',
-      location: 'Miami, FL, USA',
-      country: 'USA',
-      state: 'FL',
-      city: 'Miami',
-      styles: ['MMA', 'Brazilian Jiu-Jitsu'],
-      status: 'Active',
-      approvalStatus: 'Approved',
-      createdOn: '2025-04-28',
-      addedBy: 'john.doe@email.com',
-      isRegistered: true,
-      trainersCount: 5,
-      fightersCount: 25,
-    },
-    {
-      id: 3,
-      logo: '/api/placeholder/40/40',
-      name: 'Champions Boxing Club',
-      location: 'Charlotte, NC, USA',
-      country: 'USA',
-      state: 'NC',
-      city: 'Charlotte',
-      styles: ['Boxing', 'Kickboxing'],
-      status: 'Suspended',
-      approvalStatus: 'Approved',
-      createdOn: '2025-04-15',
-      addedBy: 'trainer@champions.com',
-      isRegistered: false,
-      trainersCount: 3,
-      fightersCount: 18,
-    },
-  ])
+  const [loading, setLoading] = useState(false)
+  const [facilities, setFacilities] = useState([])
+
+  const [isDelete, setIsDelete] = useState(false)
+  const [selectedFacility, setSelectedFacility] = useState(null)
 
   const countries = Country.getAllCountries()
   const states = selectedCountry
@@ -103,42 +54,69 @@ export default function TrainingAndGymFacilities() {
     'Taekwondo',
   ]
 
-  // Filter facilities based on search criteria
-  const filteredFacilities = facilities.filter((facility) => {
-    const matchesSearch = facility.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-    const matchesCountry = selectedCountry
-      ? facility.country === selectedCountry
-      : true
-    const matchesState = selectedState ? facility.state === selectedState : true
-    const matchesCity = selectedCity ? facility.city === selectedCity : true
-    const matchesStyles =
-      selectedStyles.length > 0
-        ? selectedStyles.some((style) => facility.styles.includes(style))
-        : true
-    const matchesStatus =
-      selectedStatus !== 'All' ? facility.status === selectedStatus : true
-    const matchesApproval =
-      selectedApprovalStatus !== 'All'
-        ? facility.approvalStatus === selectedApprovalStatus
-        : true
+  const getTrainingFacilities = async () => {
+    setLoading(true)
 
-    return (
-      matchesSearch &&
-      matchesCountry &&
-      matchesState &&
-      matchesCity &&
-      matchesStyles &&
-      matchesStatus &&
-      matchesApproval
-    )
-  })
+    try {
+      const queryParams = {
+        status: 'adminApproved',
+        page: currentPage,
+        limit,
+        search: searchQuery,
+        country: selectedCountry,
+        state: selectedState,
+        city: selectedCity,
+        facilityStatus: selectedStatus,
+        approvalStatus: selectedApprovalStatus,
+        martialArtsStyle: selectedStyles,
+      }
 
-  const handleSearch = () => {
-    console.log('Searching with filters...')
-    // Implement API call here
+      const filteredParams = Object.fromEntries(
+        Object.entries(queryParams).filter(([key, value]) => {
+          // Skip if value is:
+          // - empty string
+          // - null or undefined
+          // - an empty array
+          if (value === '' || value === null || value === undefined)
+            return false
+          if (Array.isArray(value) && value.length === 0) return false
+          return true
+        })
+      )
+
+      const queryString = new URLSearchParams(filteredParams).toString()
+      const response = await axios.get(
+        `${API_BASE_URL}/training-facilities?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      )
+
+      setFacilities(response.data.data.items)
+      setTotalPages(response.data.data.pagination.totalPages)
+      setTotalItems(response.data.data.pagination.totalItems)
+    } catch (error) {
+      console.error('Error fetching training facilities:', error)
+    } finally {
+      setLoading(false)
+    }
   }
+
+  useEffect(() => {
+    getTrainingFacilities()
+  }, [
+    currentPage,
+    limit,
+    searchQuery,
+    selectedCountry,
+    selectedState,
+    selectedCity,
+    selectedStyles,
+    selectedStatus,
+    selectedApprovalStatus,
+  ])
 
   const handleResetFilters = () => {
     setSearchQuery('')
@@ -146,52 +124,71 @@ export default function TrainingAndGymFacilities() {
     setSelectedState('')
     setSelectedCity('')
     setSelectedStyles([])
-    setSelectedStatus('All')
-    setSelectedApprovalStatus('All')
+    setSelectedStatus('')
+    setSelectedApprovalStatus('')
   }
 
-  const handleViewProfile = (facility) => {
-    console.log('Viewing profile for:', facility.name)
-    // Route to public facility detail page
-  }
-
-  const handleEdit = (facility) => {
-    console.log('Editing facility:', facility.name)
-    // Open edit form with prefilled data
-  }
-
-  const handleApprove = (facilityId) => {
-    setFacilities((prev) =>
-      prev.map((facility) =>
-        facility.id === facilityId
-          ? { ...facility, approvalStatus: 'Approved' }
-          : facility
+  const handleApprove = async (facilityId) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/training-facilities/${facilityId}`,
+        {
+          adminApproveStatus: 'Approved',
+        }
       )
-    )
+      console.log(response)
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar('Approved successfully', { variant: 'success' })
+        getTrainingFacilities()
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
 
-  const handleToggleStatus = (facilityId) => {
-    setFacilities((prev) =>
-      prev.map((facility) =>
-        facility.id === facilityId
-          ? {
-              ...facility,
-              status: facility.status === 'Active' ? 'Suspended' : 'Active',
-            }
-          : facility
+  const handleToggleStatus = async (facility) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/training-facilities/${facility._id}`,
+        {
+          facilityStatus:
+            facility.facilityStatus === 'Active' ? 'Suspended' : 'Active',
+        }
       )
-    )
+      console.log(response)
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar('Status updated successfully', { variant: 'success' })
+        getTrainingFacilities()
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
 
-  const handleDelete = (facilityId) => {
-    if (
-      confirm(
-        'Are you sure you want to delete this facility? This action cannot be undone.'
+  const handleDelete = async (id) => {
+    try {
+      const res = await axios.delete(
+        `${API_BASE_URL}/training-facilities/${id}`
       )
-    ) {
-      setFacilities((prev) =>
-        prev.filter((facility) => facility.id !== facilityId)
-      )
+
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(res.data.message, {
+          variant: 'success',
+        })
+        setIsDelete(false)
+        getTrainingFacilities()
+      }
+    } catch (error) {
+      enqueueSnackbar('Failed to delete training facility,try again', {
+        variant: 'error',
+      })
+      console.log('Failed to delete training facility:', error)
     }
   }
 
@@ -353,7 +350,7 @@ export default function TrainingAndGymFacilities() {
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
-                <option value='All' className='text-black'>
+                <option value='' className='text-black'>
                   All
                 </option>
                 <option value='Active' className='text-black'>
@@ -375,7 +372,7 @@ export default function TrainingAndGymFacilities() {
                 value={selectedApprovalStatus}
                 onChange={(e) => setSelectedApprovalStatus(e.target.value)}
               >
-                <option value='All' className='text-black'>
+                <option value='' className='text-black'>
                   All
                 </option>
                 <option value='Approved' className='text-black'>
@@ -418,8 +415,8 @@ export default function TrainingAndGymFacilities() {
               selectedCountry ||
               selectedState ||
               selectedCity ||
-              (selectedStatus && selectedStatus !== 'All') ||
-              (selectedApprovalStatus && selectedApprovalStatus !== 'All') ||
+              selectedStatus ||
+              selectedApprovalStatus ||
               selectedStyles.length > 0) && (
               <button
                 className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
@@ -440,165 +437,191 @@ export default function TrainingAndGymFacilities() {
             totalItems={totalItems}
             label='Training and Gym Facilities'
           />
-          <div className='overflow-x-auto custom-scrollbar'>
-            <table className='w-full text-sm text-left'>
-              <thead>
-                <tr className='text-gray-400 text-sm'>
-                  {renderHeader('SR No', 'srno')}
-                  {renderHeader('Logo', 'logo')}
-                  {renderHeader('Facility Name', 'name')}
-                  {renderHeader('Location', 'location')}
-                  {renderHeader('Styles Taught', 'styles')}
-                  {renderHeader('Status', 'status')}
-                  {renderHeader('Approval', 'approval')}
-                  {renderHeader('Created On', 'createdAt')}
-                  {renderHeader('Added By', 'addedBy')}
-                  {renderHeader('Trainers', 'trainers')}
-                  {renderHeader('Fighters', 'fighters')}
-                  {renderHeader('Actions', 'actions')}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredFacilities && filteredFacilities.length > 0 ? (
-                  filteredFacilities.map((facility, index) => (
-                    <tr
-                      key={facility.id}
-                      className={`${
-                        index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
-                      }`}
-                    >
-                      <td className='px-4 py-3'>
-                        {(currentPage - 1) * limit + index + 1}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <img
-                          src={facility.logo}
-                          alt={`${facility.name} logo`}
-                          className='h-10 w-10 object-cover rounded'
-                        />
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                        <button
-                          onClick={() => handleViewProfile(facility)}
-                          className='text-blue-400 hover:text-blue-300 underline'
-                        >
+          {loading ? (
+            <Loader />
+          ) : (
+            <div className='overflow-x-auto custom-scrollbar'>
+              <table className='w-full text-sm text-left'>
+                <thead>
+                  <tr className='text-gray-400 text-sm'>
+                    {renderHeader('SR No', 'srno')}
+                    {renderHeader('Logo', 'logo')}
+                    {renderHeader('Facility Name', 'name')}
+                    {renderHeader('Location', 'location')}
+                    {renderHeader('Styles Taught', 'styles')}
+                    {renderHeader('Status', 'status')}
+                    {renderHeader('Approval', 'approval')}
+                    {renderHeader('Created On', 'createdAt')}
+                    {renderHeader('Added By', 'addedBy')}
+                    {renderHeader('Trainers', 'trainers')}
+                    {renderHeader('Fighters', 'fighters')}
+                    {renderHeader('Actions', 'actions')}
+                  </tr>
+                </thead>
+                <tbody>
+                  {facilities && facilities.length > 0 ? (
+                    facilities.map((facility, index) => (
+                      <tr
+                        key={facility._id}
+                        className={`${
+                          index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
+                        }`}
+                      >
+                        <td className='px-4 py-3'>
+                          {(currentPage - 1) * limit + index + 1}
+                        </td>
+                        <td className='px-4 py-3'>
+                          <img
+                            src={facility.logo}
+                            alt={`${facility.name} logo`}
+                            className='h-10 w-10 object-cover rounded'
+                          />
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
                           {facility.name}
-                        </button>
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                        {facility.location}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                        {facility.styles.join(', ')}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                        <span className={getStatusBadge(facility.status)}>
-                          {facility.status}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                        <span
-                          className={getApprovalBadge(facility.approvalStatus)}
-                        >
-                          {facility.approvalStatus}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap'>
-                        {facility.createdOn}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap'>
-                        {facility.addedBy}
-                      </td>
-                      <td className='px-4 py-3 text-center'>
-                        {facility.trainersCount}
-                      </td>
-                      <td className='px-4 py-3 text-center'>
-                        {facility.fightersCount}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <div className='flex items-center gap-2'>
-                          <button
-                            onClick={() => handleViewProfile(facility)}
-                            className='text-blue-400 hover:text-blue-300'
-                            title='View Profile'
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                          {facility.address}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                          {facility.martialArtsStyles?.join(', ')}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                          <span
+                            className={getStatusBadge(facility.facilityStatus)}
                           >
-                            <Eye size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(facility)}
-                            className='text-green-400 hover:text-green-300'
-                            title='Edit'
+                            {facility.facilityStatus}
+                          </span>
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                          <span
+                            className={getApprovalBadge(
+                              facility.adminApproveStatus
+                            )}
                           >
-                            <Edit size={18} />
-                          </button>
-                          {facility.approvalStatus === 'Pending' && (
-                            <button
-                              onClick={() => handleApprove(facility.id)}
-                              className='text-blue-400 hover:text-blue-300'
-                              title='Approve'
+                            {facility.adminApproveStatus}
+                          </span>
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap'>
+                          {moment(facility.createdAt).format('DD-MM-YYYY')}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap'>
+                          {facility.createdBy?.firstName}{' '}
+                          {facility.createdBy?.middleName ?? ''}{' '}
+                          {facility.createdBy?.lastName}
+                        </td>
+                        <td className='px-4 py-3 text-center'>
+                          {facility.trainers?.length ?? 0}
+                        </td>
+                        <td className='px-4 py-3 text-center'>
+                          {facility.fighters?.length ?? 0}
+                        </td>
+                        <td className='p-4 align-middle'>
+                          <div className='flex items-center justify-start space-x-4'>
+                            <Link
+                              href={`/admin/training-and-gym-facilities/view/${facility._id}`}
                             >
-                              <Check size={18} />
-                            </button>
-                          )}
-                          {/* status toggle */}
-                          <button
-                            onClick={() => handleToggleStatus(facility.id)}
-                            className='relative inline-flex h-4 w-8 rounded-full transition-colors
+                              <button
+                                className='text-gray-400 hover:text-gray-200 transition flex items-center justify-center'
+                                title='View Profile'
+                              >
+                                <Eye size={18} />
+                              </button>
+                            </Link>
+                            <Link
+                              href={`/admin/training-and-gym-facilities/edit/${facility._id}`}
+                            >
+                              <button
+                                className='text-green-400 hover:text-green-300'
+                                title='Edit'
+                              >
+                                <Edit size={18} />
+                              </button>
+                            </Link>
+                            {facility.adminApproveStatus === 'Pending' && (
+                              <button
+                                onClick={() => handleApprove(facility._id)}
+                                className='text-blue-400 hover:text-blue-300'
+                                title='Approve'
+                              >
+                                <Check size={18} />
+                              </button>
+                            )}
+                            {/* status toggle */}
+                            <button
+                              onClick={() => handleToggleStatus(facility)}
+                              className='relative inline-flex h-4 w-8 rounded-full transition-colors
              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                            aria-label={
-                              facility.status === 'Active'
-                                ? 'Suspend'
-                                : 'Activate'
-                            }
-                          >
-                            {/* track */}
-                            <span
-                              className={`absolute inset-0 rounded-full
-                ${facility.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}
+                              aria-label={
+                                facility.facilityStatus === 'Active'
+                                  ? 'Suspend'
+                                  : 'Activate'
+                              }
+                            >
+                              {/* track */}
+                              <span
+                                className={`absolute inset-0 rounded-full
+                ${
+                  facility.facilityStatus === 'Active'
+                    ? 'bg-green-500'
+                    : 'bg-red-500'
+                }
                 transition-colors`}
-                            />
+                              />
 
-                            {/* thumb */}
-                            <span
-                              className={`inline-block h-4 w-4 bg-white rounded-full shadow transform
+                              {/* thumb */}
+                              <span
+                                className={`inline-block h-4 w-4 bg-white rounded-full shadow transform
                 transition-transform duration-200
                 ${
-                  facility.status === 'Active'
+                  facility.facilityStatus === 'Active'
                     ? 'translate-x-5'
                     : 'translate-x-0'
                 }`}
-                            />
-                          </button>
-                          {!facility.isRegistered && (
-                            <button
-                              onClick={() => handleSendInvites(facility)}
-                              className='text-purple-400 hover:text-purple-300'
-                              title='Send Invites'
-                            >
-                              <Mail size={18} />
+                              />
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleDelete(facility.id)}
-                            className='text-red-400 hover:text-red-300'
-                            title='Delete'
-                          >
-                            <Trash size={18} />
-                          </button>
-                        </div>
+                            {facility.sendInvites && (
+                              <button
+                                onClick={() => handleSendInvites(facility)}
+                                className='text-purple-400 hover:text-purple-300'
+                                title='Send Invites'
+                              >
+                                <Mail size={18} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setIsDelete(true)
+                                setSelectedFacility(facility._id)
+                              }}
+                              className='text-red-400 hover:text-red-300'
+                              title='Delete'
+                            >
+                              <Trash size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr className='text-center bg-[#0A1330]'>
+                      <td colSpan='12' className='px-4 py-8 text-gray-400'>
+                        No training facilities found.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr className='text-center bg-[#0A1330]'>
-                    <td colSpan='12' className='px-4 py-8 text-gray-400'>
-                      No training facilities found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {/* Confirmation Modal */}
+          <ConfirmationModal
+            isOpen={isDelete}
+            onClose={() => setIsDelete(false)}
+            onConfirm={() => handleDelete(selectedFacility)}
+            title='Delete Facility'
+            message='Are you sure you want to delete this training facility?'
+          />
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

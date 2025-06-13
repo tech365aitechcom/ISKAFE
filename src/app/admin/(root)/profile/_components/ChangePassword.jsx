@@ -1,12 +1,12 @@
 'use client'
 import axios from 'axios'
 import React, { useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import { enqueueSnackbar } from 'notistack'
 
 export default function ChangePassword() {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -26,8 +26,6 @@ export default function ChangePassword() {
     try {
       e.preventDefault()
 
-      console.log('Form submitted:', formData)
-
       const response = await axios.post(
         `${API_BASE_URL}/auth/change-password`,
         formData,
@@ -38,7 +36,6 @@ export default function ChangePassword() {
         }
       )
 
-      console.log('Response:', response)
       if (response.status === apiConstants.success) {
         enqueueSnackbar(response.data.message, {
           variant: 'success',
@@ -56,14 +53,12 @@ export default function ChangePassword() {
           variant: 'error',
         }
       )
-      console.log('Error:', error)
     }
   }
 
   return (
-    <div className='min-h-screen text-white bg-dark-blue-900 mt-4'>
-      <h3 className='text-2xl font-semibold py-4'>Change Password</h3>
-      <div className='w-full'>
+    <div className='min-h-screen text-white bg-dark-blue-900 my-12'>
+      <div className='mx-auto max-w-screen-sm px-4 md:px-8'>
         {/* Form */}
         <form onSubmit={handleSubmit} className='flex flex-col space-y-4'>
           <div className='bg-[#00000061] p-2 h-16 rounded'>

@@ -1,9 +1,15 @@
 'use client'
 
-import { Search, Trash, Plus, RefreshCw } from 'lucide-react'
+import { Search, Check, X } from 'lucide-react'
 import { useState } from 'react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import moment from 'moment'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import { enqueueSnackbar } from 'notistack'
+import axios from 'axios'
+import ActionButtons from '../../../../_components/ActionButtons'
+import ConfirmationModal from '../../../../_components/ConfirmationModal'
 
 export function SuspensionTable({
   suspensions,
@@ -14,44 +20,44 @@ export function SuspensionTable({
   totalPages,
   totalItems,
   onSuccess,
+  searchQuery,
+  setSearchQuery,
+  selectedStatus,
+  setSelectedStatus,
+  selectedType,
+  setSelectedType,
 }) {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('')
-  const [selectedType, setSelectedType] = useState('')
+  const [isDelete, setIsDelete] = useState(false)
+  const [selectedSuspension, setSelectedSuspension] = useState(null)
 
-  const filteredSuspensions = suspensions.filter((suspension) => {
-    const matchesSearch = suspension.person
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-    const matchesStatus = selectedStatus
-      ? suspension.status === selectedStatus
-      : true
-    const matchesType = selectedType ? suspension.type === selectedType : true
-    return matchesSearch && matchesStatus && matchesType
-  })
+  const handleDelete = async (id) => {
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/suspensions/${id}`)
 
-  const handleDelete = (id) => {
-    console.log('Deleting suspension with ID:', id)
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(res.data.message, {
+          variant: 'success',
+        })
+        setIsDelete(false)
+        onSuccess()
+      }
+    } catch (error) {
+      enqueueSnackbar('Failed to delete news,try again', {
+        variant: 'error',
+      })
+      console.log('Failed to delete news:', error)
+    }
   }
 
-  const handleUpdate = (suspension) => {
-    console.log('Editing suspension:', suspension)
+  const handleSearch = () => {
+    onSuccess()
   }
 
   const handleResetFilter = () => {
     setSelectedStatus('')
     setSelectedType('')
     setSearchQuery('')
-  }
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    })
+    onSuccess()
   }
 
   const renderHeader = (label) => (
@@ -94,8 +100,11 @@ export function SuspensionTable({
               <option value='Active' className='text-black'>
                 Active
               </option>
-              <option value='Inactive' className='text-black'>
-                Inactive
+              <option value='Pending' className='text-black'>
+                Pending
+              </option>
+              <option value='Closed' className='text-black'>
+                Closed
               </option>
             </select>
           </div>
@@ -125,8 +134,14 @@ export function SuspensionTable({
       </div>
 
       {/* Reset Filters */}
-      {(selectedStatus || selectedType) && (
-        <div className='flex justify-end mb-6'>
+      {(selectedStatus || selectedType || searchQuery) && (
+        <div className='flex gap-2 justify-end mb-6'>
+          <button
+            className='bg-blue-500 text-white rounded-lg px-4 py-2 hover:bg-blue-600 transition'
+            onClick={handleSearch}
+          >
+            Search
+          </button>
           <button
             className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
             onClick={handleResetFilter}
@@ -145,7 +160,7 @@ export function SuspensionTable({
           totalItems={totalItems}
           label='suspensions'
         />
-        <div className='overflow-x-auto'>
+        <div className='overflow-x-auto custom-scrollbar'>
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
@@ -161,80 +176,57 @@ export function SuspensionTable({
               </tr>
             </thead>
             <tbody>
-              {filteredSuspensions && filteredSuspensions.length > 0 ? (
-                filteredSuspensions.map((suspension, index) => (
+              {suspensions && suspensions.length > 0 ? (
+                suspensions.map((suspension, index) => (
                   <tr
-                    key={suspension.id || index}
+                    key={suspension._id}
                     className={`${
                       index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                     }`}
                   >
+                    <td className='p-4'>{suspension._id}</td>
+                    <td className='p-4'>{suspension.status}</td>
+                    <td className='p-4'>{suspension.type}</td>
                     <td className='p-4'>
-                      {suspension.id || `SUS-${index + 1}`}
+                      {moment(suspension.incidentDate).format('MM/DD/YYYY')}
                     </td>
                     <td className='p-4'>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          suspension.status === 'Active'
-                            ? 'bg-green-800 text-green-200'
-                            : 'bg-red-800 text-red-200'
-                        }`}
-                      >
-                        {suspension.status}
-                      </span>
+                      {moment(suspension.incidentDate)
+                        .add(suspension.daysWithoutTraining, 'days')
+                        .format('MM/DD/YYYY')}
                     </td>
                     <td className='p-4'>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          suspension.type === 'Disciplinary'
-                            ? 'bg-orange-800 text-orange-200'
-                            : 'bg-blue-800 text-blue-200'
-                        }`}
-                      >
-                        {suspension.type}
-                      </span>
-                    </td>
-                    <td className='p-4'>{formatDate(suspension.occurred)}</td>
-                    <td className='p-4'>{formatDate(suspension.okToTrain)}</td>
-                    <td className='p-4'>
-                      {formatDate(suspension.okToCompete)}
+                      {moment(suspension.incidentDate)
+                        .add(suspension.daysBeforeCompeting, 'days')
+                        .format('MM/DD/YYYY')}
                     </td>
                     <td className='p-4'>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          suspension.indefinite
-                            ? 'bg-red-800 text-red-200'
-                            : 'bg-gray-800 text-gray-200'
-                        }`}
-                      >
-                        {suspension.indefinite ? 'Yes' : 'No'}
-                      </span>
+                      {suspension.indefinite ? <Check /> : <X />}
                     </td>
                     <td className='p-4'>
                       {suspension.person ? (
-                        <a
-                          href={`#`}
-                          className='text-blue-400 hover:text-blue-300 underline'
-                        >
-                          {suspension.person}
+                        <a href={`#`} className=''>
+                          {[
+                            suspension.person?.firstName,
+                            suspension.person?.middleName,
+                            suspension.person?.lastName,
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
                         </a>
                       ) : (
                         'N/A'
                       )}
                     </td>
-                    <td className='p-4 py-8 flex items-center space-x-2'>
-                      <button
-                        onClick={() => handleUpdate(suspension)}
-                        className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
-                      >
-                        Save/Update
-                      </button>
-                      <button
-                        onClick={() => handleDelete(suspension.id)}
-                        className='text-red-600 hover:text-red-400'
-                      >
-                        <Trash size={20} />
-                      </button>
+                    <td className='p-4 align-middle'>
+                      <ActionButtons
+                        viewUrl={`/admin/suspensions/view/${suspension._id}`}
+                        editUrl={`/admin/suspensions/edit/${suspension._id}`}
+                        onDelete={() => {
+                          setIsDelete(true)
+                          setSelectedSuspension(suspension._id)
+                        }}
+                      />
                     </td>
                   </tr>
                 ))
@@ -248,12 +240,21 @@ export function SuspensionTable({
             </tbody>
           </table>
         </div>
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={isDelete}
+          onClose={() => setIsDelete(false)}
+          onConfirm={() => handleDelete(selectedSuspension)}
+          title='Delete Suspension'
+          message='Are you sure you want to delete suspension?'
         />
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
     </>
   )
 }

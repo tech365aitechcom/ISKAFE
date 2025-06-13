@@ -3,9 +3,10 @@ import React, { Suspense, useState } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { API_BASE_URL } from '../../../../constants/index'
+import { API_BASE_URL, apiConstants } from '../../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Loader from '../../../_components/Loader'
 
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,6 @@ const ResetPassword = () => {
   })
 
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const searchParams = useSearchParams()
@@ -32,7 +32,6 @@ const ResetPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
 
     try {
       if (!token) {
@@ -47,21 +46,24 @@ const ResetPassword = () => {
         })
         return
       }
-      console.log('Reset Password data ready to be sent:', formData)
+      console.log('Reset Password data ready to be sent:', {
+        newPassword: formData.password,
+        confirmNewPassword: formData.confirmPassword,
+      })
       const res = await axios.post(
         `${API_BASE_URL}/auth/reset-password?token=${token}`,
-        formData
+        {
+          newPassword: formData.password,
+          confirmNewPassword: formData.confirmPassword,
+        }
       )
       console.log('Reset Password response:', res.data)
-      if (res.status === 200) {
+      if (res.status === apiConstants.success) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
         router.push('/login')
       }
     } catch (err) {
-      setError(
-        err?.response?.data?.message || 'An error occurred during registration'
-      )
-      console.error('Reset Password error:', err)
+      console.log('Reset Password error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -90,11 +92,7 @@ const ResetPassword = () => {
                   *Indicates Mandatory Fields
                 </span>
               </div>
-              {error && (
-                <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
-                  {error}
-                </div>
-              )}
+
               <form className='space-y-4' onSubmit={handleSubmit}>
                 <div className='relative'>
                   <input
@@ -140,7 +138,7 @@ const ResetPassword = () => {
                   className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center mt-4 disabled:cursor-not-allowed disabled:bg-red-400'
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Resetting...' : 'Reset'}
+                  {isLoading ? <Loader /> : 'Reset'}
                 </button>
                 <div className='text-center text-white mt-4'>
                   Already have an account?{' '}

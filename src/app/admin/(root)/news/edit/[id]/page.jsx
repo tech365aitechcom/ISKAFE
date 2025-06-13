@@ -4,43 +4,29 @@ import axios from 'axios'
 import Loader from '../../../../../_components/Loader'
 import { API_BASE_URL, apiConstants } from '../../../../../../constants'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Trash } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
+import useStore from '../../../../../../stores/useStore'
+import { uploadToS3 } from '../../../../../../utils/uploadToS3'
 
 export default function EditNewsPage({ params }) {
   const { id } = use(params)
-  const [categories, setCategories] = useState([])
+  const { user, newsCategories } = useStore()
+
   const [loading, setLoading] = useState(true)
   const [newsDetails, setNewsDetails] = useState({
     title: '',
     publishDate: '',
     category: '',
     content: '',
-    videoLink: '',
+    videoEmbedLink: '',
     isPublished: false,
-    imageUrl: '',
+    coverImage: '',
   })
   const [imagePreview, setImagePreview] = useState(null)
 
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/news-category`)
-      console.log('Response:', response.data)
-      setCategories(response.data.data)
-    } catch (error) {
-      console.log('Error fetching events:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
 
   const fetchNewsDetails = async () => {
     try {
@@ -49,14 +35,14 @@ export default function EditNewsPage({ params }) {
       setNewsDetails({
         title: data.title || '',
         publishDate: data.publishDate?.split('T')[0] || '',
-        category: data.category?._id || '',
+        category: data.category || '',
         content: data.content || '',
-        videoLink: data.videoUrl || '',
-        isPublished: data.isPublished || false,
-        imageUrl: data.imageUrl || '',
+        videoEmbedLink: data.videoEmbedLink || '',
+        isPublished: data.status == 'Published' ? true : false,
+        coverImage: data.coverImage || '',
       })
       setImagePreview(
-        new URL(data.imageUrl, process.env.NEXT_PUBLIC_BASE_URL).toString() ||
+        new URL(data.coverImage, process.env.NEXT_PUBLIC_BASE_URL).toString() ||
           null
       )
     } catch (err) {
@@ -80,9 +66,11 @@ export default function EditNewsPage({ params }) {
     const file = e.target.files[0]
     if (file) {
       setImagePreview(URL.createObjectURL(file))
-      setNewsDetails((prev) => ({ ...prev, image: file }))
+      setNewsDetails((prev) => ({ ...prev, coverImage: file }))
     }
   }
+
+  console.log('News Details:', newsDetails)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -90,19 +78,25 @@ export default function EditNewsPage({ params }) {
     setError('')
 
     try {
-      const formPayload = new FormData()
-      formPayload.append('title', newsDetails.title)
-      formPayload.append('category', newsDetails.category)
-      formPayload.append('content', newsDetails.content)
-      formPayload.append('videoUrl', newsDetails.videoLink)
-      formPayload.append('publishDate', newsDetails.publishDate)
-      formPayload.append('isPublished', newsDetails.isPublished)
-
-      if (newsDetails.image) {
-        formPayload.append('image', newsDetails.image)
+      if (
+        newsDetails.coverImage &&
+        typeof newsDetails.coverImage !== 'string'
+      ) {
+        try {
+          const s3UploadedUrl = await uploadToS3(newsDetails.coverImage)
+          newsDetails.coverImage = s3UploadedUrl
+        } catch (error) {
+          console.error('Image upload failed:', error)
+          return
+        }
       }
+      console.log('Submitting news details:', newsDetails)
 
-      const res = await axios.put(`${API_BASE_URL}/news/${id}`, formPayload)
+      const res = await axios.put(`${API_BASE_URL}/news/${id}`, newsDetails, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
       if (res.status == apiConstants.success) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
         fetchNewsDetails()
@@ -127,29 +121,28 @@ export default function EditNewsPage({ params }) {
         }}
       ></div>
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
+        <div className='flex items-center gap-4 mb-6'>
+          <Link href='/admin/news'>
+            <button className='mr-2 text-white'>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                className='h-6 w-6'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M10 19l-7-7m0 0l7-7m-7 7h18'
+                />
+              </svg>
+            </button>
+          </Link>
+          <h1 className='text-2xl font-bold'>News Editor</h1>
+        </div>
         <form onSubmit={handleSubmit}>
-          <div className='flex items-center gap-4 mb-6'>
-            <Link href='/admin/news'>
-              <button type='button' className='mr-2 text-white'>
-                <svg
-                  xmlns='http://www.w3.org/2000/svg'
-                  className='h-6 w-6'
-                  fill='none'
-                  viewBox='0 0 24 24'
-                  stroke='currentColor'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M10 19l-7-7m0 0l7-7m-7 7h18'
-                  />
-                </svg>
-              </button>
-            </Link>
-            <h1 className='text-2xl font-bold'>Edit News Post</h1>
-          </div>
-
           {error && <p className='text-red-500 mb-4'>{error}</p>}
 
           {/* Image Display */}
@@ -165,7 +158,7 @@ export default function EditNewsPage({ params }) {
                   type='button'
                   onClick={() => {
                     setImagePreview(null)
-                    setNewsDetails((prev) => ({ ...prev, imageUrl: null }))
+                    setNewsDetails((prev) => ({ ...prev, coverImage: null }))
                   }}
                   className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1]'
                 >
@@ -249,13 +242,13 @@ export default function EditNewsPage({ params }) {
               <option value='' className='text-black'>
                 Select category
               </option>
-              {categories.map((category) => (
+              {newsCategories.map((category) => (
                 <option
                   key={category._id}
-                  value={category._id}
+                  value={category.label}
                   className='text-black'
                 >
-                  {category.name}
+                  {category.label}
                 </option>
               ))}
             </select>
@@ -278,8 +271,8 @@ export default function EditNewsPage({ params }) {
             </label>
             <input
               type='text'
-              name='videoLink'
-              value={newsDetails.videoLink}
+              name='videoEmbedLink'
+              value={newsDetails.videoEmbedLink}
               onChange={handleChange}
               className='w-full bg-transparent text-white outline-none'
             />
@@ -291,12 +284,19 @@ export default function EditNewsPage({ params }) {
               name='isPublished'
               value={newsDetails.isPublished}
               onChange={(e) =>
-                setFormData({ ...newsDetails, isPublished: e.target.value })
+                setNewsDetails({
+                  ...newsDetails,
+                  isPublished: e.target.value === 'true',
+                })
               }
               className='w-full bg-transparent text-white outline-none'
             >
-              <option value={true}>Published</option>
-              <option value={false}>Draft</option>
+              <option value='true' className='text-black'>
+                Published
+              </option>
+              <option value='false' className='text-black'>
+                Draft
+              </option>
             </select>
           </div>
 

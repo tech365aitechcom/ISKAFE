@@ -1,77 +1,86 @@
 'use client'
-import { ChevronDown } from 'lucide-react'
+import axios from 'axios'
+import useStore from '../../../stores/useStore'
+import { ChevronDown, Edit, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
-
-const trainingFacilities = [
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-  {
-    name: 'Arnett Sport Kung Fu Association',
-    slug: 'arnett-sport-kung-fu-association',
-    logo: '/sportskungfu.png',
-    location: 'Jacksonville, FL, USA',
-  },
-]
-
-const countryStates = {
-  usa: ['California', 'Texas', 'New York', 'Florida', 'Illinois'],
-  uk: ['England', 'Scotland', 'Wales', 'Northern Ireland'],
-  japan: ['Tokyo', 'Osaka', 'Kyoto', 'Hokkaido'],
-  korea: ['Seoul', 'Busan', 'Incheon', 'Daegu'],
-}
+import { API_BASE_URL } from '../../../constants'
+import { Country, State } from 'country-state-city'
+import Pagination from '../../_components/Pagination'
+import Flag from 'react-world-flags'
 
 const TrainingFacilitiesPage = () => {
+  const user = useStore((state) => state.user)
+
   const [facilityName, setFacilityName] = useState('')
   const [country, setCountry] = useState('')
   const [state, setState] = useState('')
   const [bgImage, setBgImage] = useState('/Cover.png')
   const [topPosition, setTopPosition] = useState('90%')
-  const [isShowForm, setIsShowForm] = useState(false)
+  const [limit, setLimit] = useState(8)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
+  const countries = Country.getAllCountries()
+  const states = country ? State.getStatesOfCountry(country) : []
+
+  const [loading, setLoading] = useState(false)
+  const [facilities, setFacilities] = useState([])
+
+  const getTrainingFacilities = async ({ search, country, state }) => {
+    setLoading(true)
+
+    try {
+      const queryParams = {
+        status: 'adminApprovedAndUserDraft',
+        page: currentPage,
+        limit: limit,
+        search: search?.trim(),
+        country,
+        state,
+      }
+
+      const filteredParams = Object.fromEntries(
+        Object.entries(queryParams).filter(([_, value]) => {
+          if (value === '' || value === null || value === undefined)
+            return false
+          if (Array.isArray(value) && value.length === 0) return false
+          return true
+        })
+      )
+
+      const queryString = new URLSearchParams(filteredParams).toString()
+      const response = await axios.get(
+        `${API_BASE_URL}/training-facilities?${queryString}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      )
+
+      setFacilities(response.data.data.items)
+      setTotalPages(response.data.data.pagination.totalPages)
+    } catch (error) {
+      console.error('Error fetching training facilities:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    getTrainingFacilities({ search: '', country: '', state: '' })
+  }, [])
 
   const handleSearch = () => {
-    console.log('Searching for:', { facilityName, country, state })
-    // Implement actual search functionality here
+    getTrainingFacilities({ search: facilityName, country, state })
+  }
+
+  const handleReset = () => {
+    setFacilityName('')
+    setCountry('')
+    setState('')
+    getTrainingFacilities({ search: '', country: '', state: '' })
   }
 
   useEffect(() => {
@@ -138,18 +147,15 @@ const TrainingFacilitiesPage = () => {
                       <option value='' className='bg-purple-900'>
                         Select
                       </option>
-                      <option value='usa' className='bg-purple-900'>
-                        USA
-                      </option>
-                      <option value='uk' className='bg-purple-900'>
-                        UK
-                      </option>
-                      <option value='japan' className='bg-purple-900'>
-                        Japan
-                      </option>
-                      <option value='korea' className='bg-purple-900'>
-                        South Korea
-                      </option>
+                      {countries.map((country) => (
+                        <option
+                          key={country.isoCode}
+                          value={country.isoCode}
+                          className='bg-purple-900'
+                        >
+                          {country.name}
+                        </option>
+                      ))}
                     </select>
                     <div className='absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none'>
                       <ChevronDown className='h-5 w-5 text-white' />
@@ -168,13 +174,13 @@ const TrainingFacilitiesPage = () => {
                       <option value='' className='bg-purple-900'>
                         Select
                       </option>
-                      {countryStates[country]?.map((stateOption) => (
+                      {states.map((state) => (
                         <option
-                          key={stateOption}
-                          value={stateOption.toLowerCase()}
+                          key={state.isoCode}
+                          value={state.isoCode}
                           className='bg-purple-900'
                         >
-                          {stateOption}
+                          {state.name}
                         </option>
                       ))}
                     </select>
@@ -191,6 +197,14 @@ const TrainingFacilitiesPage = () => {
                 >
                   Search
                 </button>
+                {(country || state || facilityName) && (
+                  <button
+                    onClick={handleReset}
+                    className='ml-4 bg-gray-500 text-white px-12 py-3 rounded font-medium hover:bg-gray-600 transition-colors'
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -198,20 +212,30 @@ const TrainingFacilitiesPage = () => {
       </section>
       <section className='mt-72 mb-12 md:my-56 mx-4'>
         <div className='container mx-auto'>
-          <div className='flex justify-end mb-4'>
-            <Link href='/training-facilities/register'>
-              <button className='bg-yellow-500 text-white px-4 py-2 rounded font-bold hover:bg-yellow-600 transition-colors'>
-                Register Your Training Facility
-              </button>
-            </Link>
-          </div>
+          {user && (
+            <div className='flex justify-end mb-4'>
+              <Link href='/training-facilities/register'>
+                <button className='bg-yellow-500 text-white px-4 py-2 rounded font-bold hover:bg-yellow-600 transition-colors'>
+                  Register Your Training Facility
+                </button>
+              </Link>
+            </div>
+          )}
           <div className='grid grid-cols-1 md:grid-cols-4 gap-8'>
-            {trainingFacilities.map((facility, index) => (
-              <Link key={index} href={`/training-facilities/${facility.slug}`}>
-                <div
-                  key={index}
-                  className='bg-black border border-gray-600 shadow-lg pt-4 flex flex-col hover:scale-105 transition-transform'
-                >
+            {facilities.map((facility, index) => (
+              <div
+                key={index}
+                className='relative bg-black border border-gray-600 shadow-lg pt-4 flex flex-col hover:scale-105 transition-transform'
+              >
+                {/* Edit Icon */}
+                {facility?.createdBy?._id === user?._id && (
+                  <Link href={`/training-facilities/edit/${facility._id}`}>
+                    <div className='absolute top-2 right-2 p-1  hover:bg-gray-700 cursor-pointer z-10'>
+                      <Edit size={18} className='text-blue-500' />
+                    </div>
+                  </Link>
+                )}
+                <Link href={`/training-facilities/${facility._id}`}>
                   <div className='mb-4 flex justify-center'>
                     <img
                       src={facility.logo}
@@ -219,21 +243,28 @@ const TrainingFacilitiesPage = () => {
                       className='w-36 h-36 object-contain'
                     />
                   </div>
-                  <div className='flex items-center text-gray-400 py-2 px-4'>
-                    <img
-                      src='/Flag.png'
-                      alt='USA Flag'
-                      className='w-5 h-3 mr-2'
+
+                  <div className='flex items-center gap-2 text-gray-400 py-2 px-4'>
+                    <Flag
+                      code={facility.country}
+                      style={{ width: '24px', height: '16px' }}
                     />
-                    <span className=''>{facility.location}</span>
+                    <span>{facility.address}</span>
                   </div>
+
                   <h3 className='text-white font-bold text-left mb-2 text-2xl border-t border-gray-600 pt-2 px-4'>
                     {facility.name}
                   </h3>
-                </div>
-              </Link>
+                </Link>
+              </div>
             ))}
           </div>
+          {/* Pagination Controls */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </section>
     </div>

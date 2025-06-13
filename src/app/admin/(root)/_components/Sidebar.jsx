@@ -14,7 +14,6 @@ import {
   Newspaper,
   Info,
   SquareUser,
-  Trophy,
   Scale,
   Ban,
   Crown,
@@ -24,15 +23,16 @@ import {
   ClipboardList,
   PhoneCall,
   ShieldCheck,
+  Globe,
 } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import useUserStore from '../../../../stores/userStore'
+import useStore from '../../../../stores/useStore'
 import { useState } from 'react'
 
 export function Sidebar() {
   const pathname = usePathname()
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [search, setSearch] = useState('')
   const [reportsOpen, setReportsOpen] = useState(false)
 
@@ -76,7 +76,7 @@ export function Sidebar() {
       highlight: true,
     },
     {
-      href: '/admin/suspension-list',
+      href: '/admin/suspensions',
       icon: <Ban size={18} />,
       title: 'Suspensions List',
     },
@@ -162,10 +162,20 @@ export function Sidebar() {
               href={item.href}
               icon={item.icon}
               title={item.title}
-              isActive={pathname === item.href}
+              isActive={pathname.startsWith(item.href)}
               highlight={item.highlight}
             />
           ))}
+
+        <Link href={'/'} className={`flex items-center p-4 text-sm`}>
+          <span className='mr-3'>
+            <Globe size={18} />
+          </span>
+          Public Site
+          <span className='ml-auto'>
+            <ChevronRight size={14} />
+          </span>
+        </Link>
 
         <div className='flex flex-col'>
           <button
@@ -226,15 +236,25 @@ export function Sidebar() {
           <div className='flex items-center p-4'>
             <div className='flex items-center'>
               <div className='relative w-10 h-10 mr-3'>
-                <Image
-                  src='/john.png'
-                  alt='Profile'
-                  layout='fill'
-                  className='rounded-full bg-violet-700'
-                />
+                {user?.profilePhoto ? (
+                  <Image
+                    src={user.profilePhoto}
+                    alt='Profile'
+                    layout='fill'
+                    className='rounded-full bg-violet-700 object-cover'
+                  />
+                ) : (
+                  <div className='w-full h-full rounded-full bg-violet-700 flex items-center justify-center text-white text-sm font-semibold'>
+                    {user?.firstName?.charAt(0) + user?.lastName?.charAt(0) ||
+                      'U'}
+                  </div>
+                )}
               </div>
+
               <div>
-                <p className='text-sm font-medium'>{user?.fullName}</p>
+                <p className='text-sm font-medium'>
+                  {user?.firstName + ' ' + user?.lastName}
+                </p>
                 <p
                   className={`text-sm ${
                     pathname === '/admin/profile'

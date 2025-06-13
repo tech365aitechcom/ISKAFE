@@ -1,14 +1,15 @@
 'use client'
 
 import axios from 'axios'
-import { Eye, SquarePen, Trash, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
 import { useState } from 'react'
 import { API_BASE_URL } from '../../../../../constants'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import useStore from '../../../../../stores/useStore'
+import { Country } from 'country-state-city'
+import ActionButtons from '../../../../_components/ActionButtons'
 
 export function PeopleTable({
   people,
@@ -19,33 +20,20 @@ export function PeopleTable({
   totalPages,
   totalItems,
   onSuccess,
+  id,
+  setId,
+  name,
+  setName,
+  gender,
+  setGender,
+  role,
+  setRole,
 }) {
-  // Search and filter states
-  const [idQuery, setIdQuery] = useState('')
-  const [nameQuery, setNameQuery] = useState('')
-  const [selectedGender, setSelectedGender] = useState(null)
-  const [selectedUserType, setSelectedUserType] = useState(null)
+  const { roles } = useStore()
 
   // Delete confirmation state
   const [isDelete, setIsDelete] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState(null)
-
-  // Filter the people based on search criteria
-  const filteredPeople = people?.filter((person) => {
-    const matchesId = idQuery ? person._id === idQuery : true
-    const matchesName = nameQuery
-      ? person.fullName?.toLowerCase().includes(nameQuery.toLowerCase())
-      : true
-    const matchesGender = selectedGender
-      ? person.gender === selectedGender
-      : true
-    const matchesUserType = selectedUserType
-      ? person.role === selectedUserType
-      : true
-    console.log(matchesId, 'matchesId')
-
-    return matchesId && matchesName && matchesGender && matchesUserType
-  })
 
   // Handle deletion of a person
   const handleDeletePerson = async (personId) => {
@@ -61,10 +49,10 @@ export function PeopleTable({
 
   // Reset all filters
   const handleResetFilter = () => {
-    setIdQuery('')
-    setNameQuery('')
-    setSelectedGender(null)
-    setSelectedUserType(null)
+    setId('')
+    setName('')
+    setGender('')
+    setRole('')
   }
 
   // Create column header
@@ -87,8 +75,8 @@ export function PeopleTable({
             type='text'
             className='bg-transparent border border-gray-700 text-white rounded-md px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
             placeholder='e.g., 11358'
-            value={idQuery}
-            onChange={(e) => setIdQuery(e.target.value)}
+            value={id}
+            onChange={(e) => setId(e.target.value)}
           />
         </div>
 
@@ -101,8 +89,8 @@ export function PeopleTable({
             type='text'
             className='bg-transparent border border-gray-700 text-white rounded-md px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
             placeholder='e.g., Barry'
-            value={nameQuery}
-            onChange={(e) => setNameQuery(e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
         </div>
 
@@ -114,8 +102,8 @@ export function PeopleTable({
           <div className='relative'>
             <select
               className='w-full px-4 py-2 bg-transparent border border-gray-700 rounded-lg text-white appearance-none outline-none'
-              value={selectedGender || ''}
-              onChange={(e) => setSelectedGender(e.target.value || null)}
+              value={gender || ''}
+              onChange={(e) => setGender(e.target.value || null)}
             >
               <option value='' className='text-black'>
                 All
@@ -141,31 +129,28 @@ export function PeopleTable({
           <div className='relative'>
             <select
               className='w-full px-4 py-2 bg-transparent border border-gray-700 rounded-lg text-white appearance-none outline-none'
-              value={selectedUserType || ''}
-              onChange={(e) => setSelectedUserType(e.target.value || null)}
+              value={role || ''}
+              onChange={(e) => setRole(e.target.value || null)}
             >
               <option value='' className='text-black'>
                 All
               </option>
-              <option value='Fighter' className='text-black'>
-                Fighter
-              </option>
-              <option value='Trainer' className='text-black'>
-                Trainer
-              </option>
-              <option value='Coach' className='text-black'>
-                Coach
-              </option>
-              <option value='User' className='text-black'>
-                User
-              </option>
+              {roles.map((role) => (
+                <option
+                  key={role?._id}
+                  value={role.value}
+                  className='text-black'
+                >
+                  {role.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
       {/* Reset Filters Button */}
-      {(idQuery || nameQuery || selectedGender || selectedUserType) && (
+      {(id || name || gender || role) && (
         <div className='flex justify-end mb-6'>
           <button
             className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
@@ -209,8 +194,8 @@ export function PeopleTable({
               </tr>
             </thead>
             <tbody>
-              {filteredPeople && filteredPeople.length > 0 ? (
-                filteredPeople.map((person, index) => (
+              {people && people.length > 0 ? (
+                people.map((person, index) => (
                   <tr
                     key={person._id}
                     className={`cursor-pointer ${
@@ -221,46 +206,42 @@ export function PeopleTable({
                       {(currentPage - 1) * limit + index + 1}
                     </td>
                     <td className='p-4'>{person._id}</td>
-                    <td className='p-4'>{person.fullName}</td>
+                    <td className='p-4'>
+                      {person.firstName + ' ' + person.lastName}
+                    </td>
                     <td className='p-4'>
                       {(() => {
+                        if (!person.dateOfBirth) return 'Unknown'
+
                         const dob = new Date(person.dateOfBirth)
+                        if (isNaN(dob.getTime())) return 'Invalid Date'
+
                         const today = new Date()
                         let age = today.getFullYear() - dob.getFullYear()
                         const monthDiff = today.getMonth() - dob.getMonth()
                         const dayDiff = today.getDate() - dob.getDate()
+
                         if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0))
                           age--
-                        return age
+
+                        return age.toString()
                       })()}
                     </td>
-                    <td className='p-4'>{person.gender}</td>
+                    <td className='p-4'>{person.gender || 'Unspecified'}</td>
                     <td className='p-4'>
-                      {person.address || 'No Address On File'}
+                      {Country.getCountryByCode(person.country).name ||
+                        'No Address On File'}
                     </td>
-                    <td className='p-4'>{person.role}</td>
-                    <td className='p-4'>
-                      <div className='flex space-x-4 items-center'>
-                        <Link href={`/admin/people/view/${person._id}`}>
-                          <button className='text-gray-400 hover:text-gray-200 transition'>
-                            <Eye size={20} />
-                          </button>
-                        </Link>
-                        <Link href={`/admin/people/edit/${person._id}`}>
-                          <button className='text-blue-500 hover:underline'>
-                            <SquarePen size={20} />
-                          </button>
-                        </Link>
-                        <button
-                          onClick={() => {
-                            setIsDelete(true)
-                            setSelectedPerson(person._id)
-                          }}
-                          className='text-red-600 hover:text-red-400 transition'
-                        >
-                          <Trash size={20} />
-                        </button>
-                      </div>
+                    <td className='p-4 capitalize'>{person.role}</td>
+                    <td className='p-4 align-middle'>
+                      <ActionButtons
+                        viewUrl={`/admin/people/view/${person._id}`}
+                        editUrl={`/admin/people/edit/${person._id}`}
+                        onDelete={() => {
+                          setIsDelete(true)
+                          setSelectedPerson(person._id)
+                        }}
+                      />
                     </td>
                   </tr>
                 ))

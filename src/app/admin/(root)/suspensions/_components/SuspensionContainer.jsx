@@ -1,24 +1,39 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-import { API_BASE_URL, suspensionsData } from '../../../../../constants'
+import { API_BASE_URL } from '../../../../../constants'
 import Loader from '../../../../_components/Loader'
 import { SuspensionTable } from './SuspensionTable'
-import { SuspensionEditorForm } from './SuspensionEditorForm'
+import { AddSuspensionForm } from './AddSuspensionForm'
 
 export const SuspensionContainer = () => {
   const [showAddSuspensionForm, setShowAddSuspensionForm] = useState(false)
-  const [suspensions, setSuspensions] = useState(suspensionsData)
-  const [loading, setLoading] = useState(true)
+  const [suspensions, setSuspensions] = useState([])
+  const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('')
+  const [selectedType, setSelectedType] = useState('')
 
   const getSuspensions = async () => {
+    setLoading(true)
     try {
+      let queryParams = `?page=${currentPage}&limit=${limit}`
+
+      if (searchQuery) {
+        queryParams += `&search=${searchQuery}`
+      }
+      if (selectedStatus) {
+        queryParams += `&status=${selectedStatus}`
+      }
+      if (selectedType) {
+        queryParams += `&type=${selectedType}`
+      }
       const response = await axios.get(
-        `${API_BASE_URL}/suspension/find-all?page=${currentPage}&limit=${limit}`
+        `${API_BASE_URL}/suspensions${queryParams}`
       )
       console.log('Response:', response.data)
 
@@ -34,12 +49,12 @@ export const SuspensionContainer = () => {
 
   useEffect(() => {
     getSuspensions()
-  }, [showAddSuspensionForm, limit, currentPage])
+  }, [showAddSuspensionForm, limit, currentPage, selectedStatus, selectedType])
 
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
       {showAddSuspensionForm ? (
-        <SuspensionEditorForm
+        <AddSuspensionForm
           setShowAddSuspensionForm={setShowAddSuspensionForm}
         />
       ) : (
@@ -70,6 +85,12 @@ export const SuspensionContainer = () => {
               totalPages={totalPages}
               totalItems={totalItems}
               onSuccess={getSuspensions}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+              selectedType={selectedType}
+              setSelectedType={setSelectedType}
             />
           )}
         </>

@@ -5,20 +5,42 @@ import axios from 'axios'
 import Loader from '../../../../_components/Loader'
 import { API_BASE_URL } from '../../../../../constants'
 import { NewsTable } from './NewsTable'
+import useStore from '../../../../../stores/useStore'
 
 export const NewsContainer = () => {
   const [showAddNewsForm, setShowAddNewsForm] = useState(false)
   const [news, setNews] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
 
+  useEffect(() => {
+    const getCategories = async () => {
+      setLoading(true)
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/master/newsCategories`
+        )
+        console.log('Response:', response.data)
+        useStore.getState().setNewsCategories(response.data.result)
+      } catch (error) {
+        console.log('Error fetching news:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    getCategories()
+  }, [])
+
   const getNews = async () => {
+    setLoading(true)
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/news?page=${currentPage}&limit=${limit}`
+        `${API_BASE_URL}/news?category=${selectedCategory}&search=${searchQuery}&page=${currentPage}&limit=${limit}`
       )
       console.log('Response:', response.data)
 
@@ -34,7 +56,7 @@ export const NewsContainer = () => {
 
   useEffect(() => {
     getNews()
-  }, [showAddNewsForm, limit, currentPage])
+  }, [showAddNewsForm, limit, currentPage, selectedCategory, searchQuery])
 
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
@@ -61,6 +83,10 @@ export const NewsContainer = () => {
           ) : (
             <NewsTable
               news={news}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
               limit={limit}
               setLimit={setLimit}
               currentPage={currentPage}

@@ -14,11 +14,12 @@ export const PromoterContainer = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const getPromoters = async () => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/promoters?page=${currentPage}&limit=${limit}`
+        `${API_BASE_URL}/promoter?search=${searchQuery}&page=${currentPage}&limit=${limit}`
       )
       console.log('Response:', response.data)
 
@@ -34,7 +35,7 @@ export const PromoterContainer = () => {
 
   useEffect(() => {
     getPromoters()
-  }, [showAddPromoterForm, limit, currentPage])
+  }, [showAddPromoterForm, limit, searchQuery, currentPage])
 
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
@@ -61,6 +62,8 @@ export const PromoterContainer = () => {
           ) : (
             <PromoterTable
               promoters={promoters}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
               limit={limit}
               setLimit={setLimit}
               currentPage={currentPage}

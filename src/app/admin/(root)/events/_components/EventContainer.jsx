@@ -9,16 +9,26 @@ import { API_BASE_URL } from '../../../../../constants'
 export const EventContainer = () => {
   const [showAddEventForm, setShowAddEvent] = useState(false)
   const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(1)
+  const [limit, setLimit] = useState(10)
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedType, setSelectedType] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('')
 
   const getEvents = async () => {
+    setLoading(true)
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/events/find-all?page=1&limit=10`
+        `${API_BASE_URL}/events?sportType=${selectedType}&search=${searchQuery}&page=${currentPage}&limit=${limit}`
       )
-      console.log('Response:', response.data)
-
-      setEvents(response.data.data.events)
+      console.log('Response:', response.data.data.items)
+      setEvents(response.data.data.items)
+      setTotalPages(response.data.data.pagination.totalPages)
+      setTotalItems(response.data.data.pagination.totalItems)
     } catch (error) {
       console.log('Error fetching events:', error)
     } finally {
@@ -28,7 +38,7 @@ export const EventContainer = () => {
 
   useEffect(() => {
     getEvents()
-  }, [showAddEventForm])
+  }, [showAddEventForm, currentPage, limit, searchQuery, selectedType])
 
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
@@ -53,7 +63,22 @@ export const EventContainer = () => {
           {loading ? (
             <Loader />
           ) : (
-            <EventTable events={events} onSuccess={getEvents} />
+            <EventTable
+              events={events}
+              onSuccess={getEvents}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedType={selectedType}
+              setSelectedType={setSelectedType}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+              limit={limit}
+              setLimit={setLimit}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+            />
           )}
         </>
       )}

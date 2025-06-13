@@ -1,28 +1,12 @@
-'use client'
 import React, { useEffect, useState } from 'react'
-import {
-  Instagram,
-  Youtube,
-  Facebook,
-  Upload,
-  User,
-  Phone,
-  Mail,
-  Award,
-  Dumbbell,
-  FileText,
-  Save,
-  Send,
-} from 'lucide-react'
-import FormField from '../../../_components/FormField'
-import FormSection from '../../../_components/FormSection'
+import { User, Dumbbell, Phone, Camera, Trophy } from 'lucide-react'
 
-const FighterProfileForm = () => {
+const FightProfileForm = ({ userDetails }) => {
   const [formData, setFormData] = useState({
     // Basic Info
     fullName: '',
-    nickname: '',
-    username: '',
+    nickName: '',
+    userName: '',
     profilePhoto: null,
     gender: '',
     dateOfBirth: '',
@@ -60,535 +44,597 @@ const FighterProfileForm = () => {
     medicalCertificate: null,
     licenseDocument: null,
   })
+
   const [previewImages, setPreviewImages] = useState({
-    profilePhoto: '',
-    mediaGallery: '',
-    medicalCertificate: '',
-    licenseDocument: '',
+    profilePhoto: null,
+    mediaGallery: null,
   })
 
-  // Dummy Data on mount
   useEffect(() => {
-    const dummyData = {
-      fullName: 'John Doe',
-      nickname: 'The Crusher',
-      username: 'crusher99',
-      gender: 'male',
-      dateOfBirth: '1990-01-01',
-      height: `5'10"`,
-      weight: '170',
-      weightClass: 'welterweight',
-      location: 'New York, NY, USA',
-      phoneNumber: '+1 123-456-7890',
-      email: 'johndoe@example.com',
-      instagram: 'https://instagram.com/johndoe',
-      youtube: 'https://youtube.com/@johndoe',
-      facebook: 'https://facebook.com/johndoe',
-      bio: 'Former amateur boxing champion turned MMA fighter.',
-      gymInfo: 'XYZ MMA Gym',
-      coachName: 'Coach Mike',
-      affiliations: 'XYZ Fight Club',
-      trainingExperience: '10 years',
-      credentials: 'Black belt in BJJ, Golden Gloves Winner',
-      nationalRank: '3',
-      globalRank: '25',
-      achievements: 'Golden Gloves Champion, UFC Top 30',
-      recordString: '10-2-0',
-      videoHighlight: 'https://youtube.com/watch?v=example',
+    if (userDetails?.dateOfBirth) {
+      const formattedDOB = new Date(userDetails.dateOfBirth)
+        .toISOString()
+        .split('T')[0]
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+        dateOfBirth: formattedDOB,
+      }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        ...userDetails,
+      }))
     }
+  }, [userDetails])
 
-    setFormData((prev) => ({ ...prev, ...dummyData }))
-  }, [])
+  const weightClasses = [
+    'Strawweight (115 lbs)',
+    'Flyweight (125 lbs)',
+    'Bantamweight (135 lbs)',
+    'Featherweight (145 lbs)',
+    'Lightweight (155 lbs)',
+    'Welterweight (170 lbs)',
+    'Middleweight (185 lbs)',
+    'Light Heavyweight (205 lbs)',
+    'Heavyweight (265 lbs)',
+    'Super Heavyweight (265+ lbs)',
+  ]
+
+  const experienceLevels = [
+    'Beginner (0-2 years)',
+    'Intermediate (3-5 years)',
+    'Advanced (6-10 years)',
+    'Expert (10+ years)',
+    'Professional',
+  ]
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData({
-      ...formData,
+    const { name, value, type } = e.target
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
-    })
+    }))
   }
 
   const handleFileChange = (e) => {
     const { name, files } = e.target
-    if (files && files[0]) {
-      const file = files[0]
+    const file = files[0]
+
+    if (file) {
       setFormData((prev) => ({
         ...prev,
         [name]: file,
       }))
 
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setPreviewImages((prev) => ({
-          ...prev,
-          [name]: reader.result,
-        }))
+      // Create preview for images
+      if (
+        file.type.startsWith('image/') &&
+        (name === 'profilePhoto' || name === 'mediaGallery')
+      ) {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          setPreviewImages((prev) => ({
+            ...prev,
+            [name]: event.target.result,
+          }))
+        }
+        reader.readAsDataURL(file)
       }
-      reader.readAsDataURL(file)
     }
   }
 
   const handleSubmit = () => {
-    // Create FormData object for submission
-    const submitFormData = new FormData()
-
-    // Append all form fields to FormData
-    Object.keys(formData).forEach((key) => {
-      if (formData[key] !== null) {
-        submitFormData.append(key, formData[key])
-      }
-    })
-
-    // In a real application, you would send this FormData to your API
-    console.log('Submitting form data...')
-
-    // Example of form submission (commented out)
-    // fetch('/api/fighter-profile', {
-    //   method: 'POST',
-    //   body: submitFormData,
-    // })
-    // .then(response => response.json())
-    // .then(data => console.log("Success:", data))
-    // .catch(error => console.error("Error:", error));
+    console.log('Form Data:', formData)
+    alert('Profile saved successfully!')
   }
 
   return (
-    <div className='min-h-screen py-6 text-white flex flex-col items-center p-4'>
-      <div className='w-full container mx-auto'>
-        <div className='text-center mb-8'>
-          <h1 className='text-4xl md:text-5xl font-bold text-white'>
-            My Fighter Profile
-          </h1>
+    <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
+      <div className='container mx-auto'>
+        <div className='flex items-center gap-4 mb-6'>
+          <h1 className='text-4xl font-bold'>My Fighter Profile</h1>
         </div>
-        <div className='space-y-6'>
-          {/* Basic Info Section */}
-          <FormSection
-            title='Basic Info'
-            color='bg-blue-900'
-            icon={<User size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <FormField
-                label='Full Name'
-                name='fullName'
+
+        {/* Basic Information */}
+        <div className='mb-8'>
+          <div className='flex items-center gap-3 mb-6'>
+            <User className='w-6 h-6 text-blue-400' />
+            <h2 className='text-2xl font-bold uppercase tracking-wide'>
+              Basic Information
+            </h2>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+            {/* Profile Photo */}
+            <div className=''>
+              <label className='block font-medium mb-2'>
+                Profile Photo <span className='text-red-400'>*</span>
+              </label>
+              {previewImages.profilePhoto && (
+                <div className='my-4 flex'>
+                  <img
+                    src={previewImages.profilePhoto}
+                    alt='Profile Preview'
+                    className='w-32 h-32 object-cover rounded-full border-4 border-purple-500'
+                  />
+                </div>
+              )}
+              <input
+                type='file'
+                name='profilePhoto'
+                onChange={handleFileChange}
+                accept='image/jpeg,image/jpg,image/png'
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+              />
+              <p className='text-xs text-gray-400 mt-1'>JPG/PNG, Max 2MB</p>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+            {/* Basic Info Fields */}
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Full Name <span className='text-red-400'>*</span>
+              </label>
+              <input
                 type='text'
+                name='fullName'
                 value={formData.fullName}
                 onChange={handleInputChange}
                 placeholder='Enter full name'
-                required={true}
-                validation='No special characters'
-              />
-
-              <FormField
-                label='Nickname'
-                name='nickname'
-                type='text'
-                value={formData.nickname}
-                onChange={handleInputChange}
-                placeholder='e.g., Destroyer'
-                validation='Alphanumeric or quote text'
-              />
-
-              <FormField
-                label='Username'
-                name='username'
-                type='text'
-                value={formData.username}
-                onChange={handleInputChange}
-                placeholder='e.g., fighter123'
-                validation='Alphanumeric'
-              />
-              <div>
-                <FormField
-                  label='Profile Photo'
-                  name='profilePhoto'
-                  type='file'
-                  value={formData.profilePhoto}
-                  placeholder='Upload profile image'
-                  required={true}
-                  validation='JPG, PNG, Max 2MB'
-                  handleFileChange={handleFileChange}
-                />
-                {previewImages.profilePhoto && (
-                  <img
-                    src={previewImages.profilePhoto}
-                    alt='Preview'
-                    className='mt-2 w-32 h-32 object-cover rounded'
-                  />
-                )}
-              </div>
-              <FormField
-                label='Gender'
-                name='gender'
-                type='radio'
-                value={formData.gender}
-                onChange={handleInputChange}
-                required={true}
-                options={[
-                  { value: 'male', label: 'Male' },
-                  { value: 'female', label: 'Female' },
-                  { value: 'other', label: 'Other' },
-                ]}
-              />
-
-              <FormField
-                label='Date of Birth'
-                name='dateOfBirth'
-                type='date'
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                required={true}
-                validation='Must be 18+'
-              />
-
-              <FormField
-                label='Height'
-                name='height'
-                type='text'
-                value={formData.height}
-                onChange={handleInputChange}
-                placeholder="e.g., 5'9"
-                required={true}
-                validation='Feet & Inches or CM'
-              />
-
-              <FormField
-                label='Weight'
-                name='weight'
-                type='number'
-                value={formData.weight}
-                onChange={handleInputChange}
-                placeholder='e.g., 145'
-                required={true}
-                validation='LBS or KG'
-              />
-
-              <FormField
-                label='Weight Class'
-                name='weightClass'
-                type='select'
-                value={formData.weightClass}
-                onChange={handleInputChange}
-                required={true}
-                options={[
-                  { value: 'flyweight', label: 'Flyweight' },
-                  { value: 'bantamweight', label: 'Bantamweight' },
-                  { value: 'featherweight', label: 'Featherweight' },
-                  { value: 'lightweight', label: 'Lightweight' },
-                  { value: 'welterweight', label: 'Welterweight' },
-                  { value: 'middleweight', label: 'Middleweight' },
-                  { value: 'lightheavyweight', label: 'Light Heavyweight' },
-                  { value: 'heavyweight', label: 'Heavyweight' },
-                ]}
-              />
-
-              <FormField
-                label='Location'
-                name='location'
-                type='text'
-                value={formData.location}
-                onChange={handleInputChange}
-                placeholder='e.g., Gilroy, CA, USA'
-                required={true}
-                validation='City, state, country'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
               />
             </div>
-          </FormSection>
 
-          {/* Contact & Social Info */}
-          <FormSection
-            title='Contact & Social Info'
-            color='bg-purple-900'
-            icon={<Phone size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <FormField
-                label='Phone Number'
-                name='phoneNumber'
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Nick name</label>
+              <input
+                type='text'
+                name='nickName'
+                value={formData.nickName}
+                onChange={handleInputChange}
+                placeholder='e.g., The Destroyer'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                User name <span className='text-red-400'>*</span>
+              </label>
+              <input
+                type='text'
+                name='userName'
+                value={formData.userName}
+                onChange={handleInputChange}
+                placeholder='Enter User Name'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Gender</label>
+              <select
+                name='gender'
+                value={formData.gender}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+              >
+                <option value='' className='text-black'>
+                  Select Gender
+                </option>
+                <option value='male' className='text-black'>
+                  Male
+                </option>
+                <option value='female' className='text-black'>
+                  Female
+                </option>
+                <option value='other' className='text-black'>
+                  Other
+                </option>
+              </select>
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Date of Birth</label>
+              <input
+                type='date'
+                name='dateOfBirth'
+                value={formData.dateOfBirth}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Location</label>
+              <input
+                type='text'
+                name='location'
+                value={formData.location}
+                onChange={handleInputChange}
+                placeholder='City, Country'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+          </div>
+
+          {/* Physical Stats */}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-6'>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Height</label>
+              <input
+                type='text'
+                name='height'
+                value={formData.height}
+                onChange={handleInputChange}
+                placeholder="e.g., 5'10 or 178 cm"
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Weight</label>
+              <input
+                type='text'
+                name='weight'
+                value={formData.weight}
+                onChange={handleInputChange}
+                placeholder='e.g., 170 lbs or 77 kg'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Weight Class</label>
+              <select
+                name='weightClass'
+                value={formData.weightClass}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+              >
+                <option value='' className='text-black'>
+                  Select Weight Class
+                </option>
+                {weightClasses.map((weightClass) => (
+                  <option
+                    key={weightClass}
+                    value={weightClass}
+                    className='text-black'
+                  >
+                    {weightClass}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact & Social Information */}
+        <div className='mb-8'>
+          <div className='flex items-center gap-3 mb-6'>
+            <Phone className='w-6 h-6 text-green-400' />
+            <h2 className='text-2xl font-bold uppercase tracking-wide'>
+              Contact & Social Media
+            </h2>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Phone Number</label>
+              <input
                 type='tel'
+                name='phoneNumber'
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 placeholder='+1 555-123-4567'
-                validation='Must be valid mobile number'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               />
+            </div>
 
-              <FormField
-                label='Email Address'
-                name='email'
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Email Address</label>
+              <input
                 type='email'
+                name='email'
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder='name@example.com'
-                validation='Must be valid email'
+                placeholder='fighter@example.com'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               />
+            </div>
 
-              <FormField
-                label='Instagram'
-                name='instagram'
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Instagram URL</label>
+              <input
                 type='url'
+                name='instagram'
                 value={formData.instagram}
                 onChange={handleInputChange}
-                placeholder='https://instagram.com/username'
-                validation='Valid URL'
-              >
-                <div className='flex'>
-                  <div className='bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-500 p-2 rounded-l-md'>
-                    <Instagram size={24} />
-                  </div>
-                  <input
-                    type='url'
-                    name='instagram'
-                    value={formData.instagram}
-                    onChange={handleInputChange}
-                    placeholder='https://instagram.com/username'
-                    className='flex-1 bg-gray-700 border border-gray-600 rounded-r-md p-2 text-white'
-                  />
-                </div>
-              </FormField>
+                placeholder='https://instagram.com/userName'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
 
-              <FormField
-                label='YouTube Channel'
-                name='youtube'
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>YouTube URL</label>
+              <input
                 type='url'
+                name='youtube'
                 value={formData.youtube}
                 onChange={handleInputChange}
                 placeholder='https://youtube.com/channel'
-                validation='Valid URL'
-              >
-                <div className='flex'>
-                  <div className='bg-red-600 p-2 rounded-l-md'>
-                    <Youtube size={24} />
-                  </div>
-                  <input
-                    type='url'
-                    name='youtube'
-                    value={formData.youtube}
-                    onChange={handleInputChange}
-                    placeholder='https://youtube.com/channel'
-                    className='flex-1 bg-gray-700 border border-gray-600 rounded-r-md p-2 text-white'
-                  />
-                </div>
-              </FormField>
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
 
-              <FormField
-                label='Facebook Profile'
-                name='facebook'
+            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
+              <label className='block font-medium mb-2'>Facebook URL</label>
+              <input
                 type='url'
+                name='facebook'
                 value={formData.facebook}
                 onChange={handleInputChange}
-                placeholder='https://facebook.com/profile'
-                validation='Valid URL'
-              >
-                <div className='flex'>
-                  <div className='bg-blue-600 p-2 rounded-l-md'>
-                    <Facebook size={24} />
-                  </div>
-                  <input
-                    type='url'
-                    name='facebook'
-                    value={formData.facebook}
-                    onChange={handleInputChange}
-                    placeholder='https://facebook.com/profile'
-                    className='flex-1 bg-gray-700 border border-gray-600 rounded-r-md p-2 text-white'
-                  />
-                </div>
-              </FormField>
-            </div>
-          </FormSection>
-
-          {/* Fight Profile & Background */}
-          <FormSection
-            title='Fight Profile & Background'
-            color='bg-green-900'
-            icon={<Dumbbell size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <div className='md:col-span-3'>
-                <FormField
-                  label='Bio / Fighter History'
-                  name='bio'
-                  type='textarea'
-                  value={formData.bio}
-                  onChange={handleInputChange}
-                  placeholder='Write about your journey'
-                  validation='Max 1000 characters'
-                />
-              </div>
-
-              <FormField
-                label='Primary Gym / Club'
-                name='gymInfo'
-                type='text'
-                value={formData.gymInfo}
-                onChange={handleInputChange}
-                placeholder='e.g., Top Strike MMA Club'
-                required={true}
+                placeholder='https://facebook.com/userName'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               />
-
-              <FormField
-                label='Coach Name'
-                name='coachName'
-                type='text'
-                value={formData.coachName}
-                onChange={handleInputChange}
-                placeholder='e.g., Mike Sanderson'
-              />
-
-              <FormField
-                label='Affiliations'
-                name='affiliations'
-                type='text'
-                value={formData.affiliations}
-                onChange={handleInputChange}
-                placeholder='e.g., WeCanKickULLC'
-              />
-
-              <FormField
-                label='Training Experience'
-                name='trainingExperience'
-                type='text'
-                value={formData.trainingExperience}
-                onChange={handleInputChange}
-                placeholder='e.g., 12 years in boxing'
-              />
-
-              <FormField
-                label='Credentials'
-                name='credentials'
-                type='text'
-                value={formData.credentials}
-                onChange={handleInputChange}
-                placeholder='e.g., Red belt in Muay Thai'
-              />
-            </div>
-          </FormSection>
-
-          {/* Achievements & Career Milestones */}
-          <FormSection
-            title='Achievements & Career Milestones'
-            color='bg-yellow-900'
-            icon={<Award size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <FormField
-                label='National Ranking'
-                name='nationalRank'
-                type='number'
-                value={formData.nationalRank}
-                onChange={handleInputChange}
-                placeholder='e.g., 4'
-                validation='Numeric or blank'
-              />
-
-              <FormField
-                label='Global Rank'
-                name='globalRank'
-                type='number'
-                value={formData.globalRank}
-                onChange={handleInputChange}
-                placeholder='e.g., 18'
-                validation='Numeric or blank'
-              />
-
-              <FormField
-                label='Achievements'
-                name='achievements'
-                type='text'
-                value={formData.achievements}
-                onChange={handleInputChange}
-                placeholder='e.g., Lightweight 2023'
-              />
-
-              <FormField
-                label='Record String Highlights'
-                name='recordString'
-                type='text'
-                value={formData.recordString}
-                onChange={handleInputChange}
-                placeholder='e.g., Fastest KO - 0:23'
-              />
-            </div>
-          </FormSection>
-
-          {/* Media Uploads */}
-          <FormSection
-            title='Media Uploads'
-            color='bg-red-900'
-            icon={<Upload size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <FormField
-                label='Media Gallery'
-                name='mediaGallery'
-                type='file'
-                value={formData.mediaGallery}
-                validation='JPG, PNG, Max 5MB per file'
-              />
-
-              <FormField
-                label='Video Highlight (YouTube URL)'
-                name='videoHighlight'
-                type='url'
-                value={formData.videoHighlight}
-                onChange={handleInputChange}
-                placeholder='https://youtube.com/watch?v='
-                validation='Must be valid YouTube URL'
-              />
-            </div>
-          </FormSection>
-
-          {/* Compliance Uploads */}
-          <FormSection
-            title='Compliance Uploads'
-            color='bg-orange-900'
-            icon={<FileText size={20} />}
-          >
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <FormField
-                label='Medical Certificate'
-                name='medicalCertificate'
-                type='file'
-                value={formData.medicalCertificate}
-                required={true}
-                validation='PDF, JPG, PNG'
-              />
-
-              <FormField
-                label='License Document'
-                name='licenseDocument'
-                type='file'
-                value={formData.licenseDocument}
-                required={true}
-                validation='PDF or Image'
-              />
-            </div>
-          </FormSection>
-
-          {/* Form Actions */}
-          <div className='bg-gray-800 p-4 rounded-lg'>
-            <div className='flex flex-wrap gap-4 justify-end'>
-              <button
-                type='button'
-                onClick={() => console.log('Saving draft...')}
-                className='flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded'
-              >
-                <Save size={18} />
-                Save Draft
-              </button>
-              <button
-                type='button'
-                onClick={handleSubmit}
-                className='flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded'
-              >
-                <Send size={18} />
-                Submit Profile
-              </button>
             </div>
           </div>
+        </div>
+
+        {/* Fight Profile & Background */}
+        <div className='mb-8'>
+          <div className='flex items-center gap-3 mb-6'>
+            <Dumbbell className='w-6 h-6 text-orange-400' />
+            <h2 className='text-2xl font-bold uppercase tracking-wide'>
+              Fight Profile & Background
+            </h2>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Fighter Bio</label>
+              <textarea
+                name='bio'
+                value={formData.bio}
+                onChange={handleInputChange}
+                placeholder='Tell your story, fighting style, and what drives you...'
+                rows='4'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
+              />
+              <p className='text-xs text-gray-400 mt-1'>Max 500 characters</p>
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Gym Information</label>
+              <textarea
+                name='gymInfo'
+                value={formData.gymInfo}
+                onChange={handleInputChange}
+                placeholder='Gym name, location, facilities...'
+                rows='4'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Coach Name</label>
+              <input
+                type='text'
+                name='coachName'
+                value={formData.coachName}
+                onChange={handleInputChange}
+                placeholder='Primary coach or trainer'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Training Experience
+              </label>
+              <select
+                name='trainingExperience'
+                value={formData.trainingExperience}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+              >
+                <option value='' className='text-black'>
+                  Select Experience Level
+                </option>
+                {experienceLevels.map((level) => (
+                  <option key={level} value={level} className='text-black'>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
+              <label className='block font-medium mb-2'>Affiliations</label>
+              <input
+                type='text'
+                name='affiliations'
+                value={formData.affiliations}
+                onChange={handleInputChange}
+                placeholder='Teams, organizations, sponsors...'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
+              <label className='block font-medium mb-2'>Credentials</label>
+              <textarea
+                name='credentials'
+                value={formData.credentials}
+                onChange={handleInputChange}
+                placeholder='Certifications, belts, rankings, special training...'
+                rows='3'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Achievements & Rankings */}
+        <div className='mb-8'>
+          <div className='flex items-center gap-3 mb-6'>
+            <Trophy className='w-6 h-6 text-yellow-400' />
+            <h2 className='text-2xl font-bold uppercase tracking-wide'>
+              Achievements & Rankings
+            </h2>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>National Ranking</label>
+              <input
+                type='text'
+                name='nationalRank'
+                value={formData.nationalRank}
+                onChange={handleInputChange}
+                placeholder='e.g., #5 in Lightweight Division'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Global Ranking</label>
+              <input
+                type='text'
+                name='globalRank'
+                value={formData.globalRank}
+                onChange={handleInputChange}
+                placeholder='e.g., #15 Worldwide'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Fight Record</label>
+              <input
+                type='text'
+                name='recordString'
+                value={formData.recordString}
+                onChange={handleInputChange}
+                placeholder='e.g., 15-3-1 (W-L-D)'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Video Highlight URL
+              </label>
+              <input
+                type='url'
+                name='videoHighlight'
+                value={formData.videoHighlight}
+                onChange={handleInputChange}
+                placeholder='https://youtube.com/watch?v=...'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
+              <label className='block font-medium mb-2'>
+                Major Achievements
+              </label>
+              <textarea
+                name='achievements'
+                value={formData.achievements}
+                onChange={handleInputChange}
+                placeholder='Championships, tournaments won, notable victories...'
+                rows='3'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Media & Documentation */}
+        <div className='mb-8'>
+          <div className='flex items-center gap-3 mb-6'>
+            <Camera className='w-6 h-6 text-pink-400' />
+            <h2 className='text-2xl font-bold uppercase tracking-wide'>
+              Media & Documentation
+            </h2>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Media Gallery</label>
+              <input
+                type='file'
+                name='mediaGallery'
+                onChange={handleFileChange}
+                accept='image/*'
+                multiple
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+              />
+              <p className='text-xs text-gray-400 mt-1'>
+                Images only, Max 5MB each
+              </p>
+              {previewImages.mediaGallery && (
+                <img
+                  src={previewImages.mediaGallery}
+                  alt='Media Preview'
+                  className='mt-2 w-full h-32 object-cover rounded-lg'
+                />
+              )}
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Medical Certificate
+              </label>
+              <input
+                type='file'
+                name='medicalCertificate'
+                onChange={handleFileChange}
+                accept='.pdf,.jpg,.jpeg,.png'
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+              />
+              <p className='text-xs text-gray-400 mt-1'>PDF/Image, Max 5MB</p>
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>License Document</label>
+              <input
+                type='file'
+                name='licenseDocument'
+                onChange={handleFileChange}
+                accept='.pdf,.jpg,.jpeg,.png'
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+              />
+              <p className='text-xs text-gray-400 mt-1'>PDF/Image, Max 5MB</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className='flex justify-center gap-4 mt-8'>
+          <button
+            type='button'
+            onClick={() => console.log('Cancel')}
+            className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105'
+          >
+            Cancel
+          </button>
+          <button
+            type='button'
+            onClick={handleSubmit}
+            className='bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105 shadow-lg'
+          >
+            Save Profile
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-export default FighterProfileForm
+export default FightProfileForm

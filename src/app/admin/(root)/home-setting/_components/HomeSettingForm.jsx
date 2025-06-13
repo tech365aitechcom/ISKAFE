@@ -1,66 +1,56 @@
 'use client'
 import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
-import { Send, X, Pencil, Trash2, EyeOff, Eye } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import Loader from '../../../../_components/Loader'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 
 export const HomeSettingsForm = () => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     logo: null,
     menuItems: [],
     platformName: '',
-    platformTagline: '',
-    heroBanner: {
-      image: null,
-      ctaText: '',
-      ctaLink: '',
+    tagline: '',
+    heroImage: null,
+    cta: {
+      text: '',
+      link: '',
     },
-    topFighters: [],
-    upcomingEvents: [],
-    latestMedia: [],
   })
 
-  // State for managing form interactions
   const [newMenuItem, setNewMenuItem] = useState({
     label: '',
-    linkType: 'internal',
-    destinationLink: '',
+    linkType: 'route',
+    destination: '',
     openInNewTab: false,
     visibilityRole: 'everyone',
     sortOrder: 0,
     status: true,
   })
-  const [editingMenuItem, setEditingMenuItem] = useState(null)
-  const [newFighter, setNewFighter] = useState({
-    name: '',
-    rank: '',
-    image: '',
-  })
-
-  // Fetch home page settings
-  const fetchHomeSettings = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/home-settings`)
-      if (response.data.data) {
-        setFormData(response.data.data)
-      }
-    } catch (error) {
-      console.log('Error fetching home settings:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [existingId, setExistingId] = useState('')
 
   useEffect(() => {
+    const fetchHomeSettings = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/home-config`)
+        if (response.data.data) {
+          setFormData(response.data.data)
+          setExistingId(response.data.data._id)
+        }
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchHomeSettings()
   }, [])
 
-  // Generic change handler for form inputs
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData((prev) => ({
@@ -69,679 +59,294 @@ export const HomeSettingsForm = () => {
     }))
   }
 
-  // Handle file uploads
-  const handleFileUpload = (e, section) => {
-    const file = e.target.files[0]
+  const handleFileUpload = (e) => {
+    const { name, files } = e.target
+    const file = files[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          [section]: {
-            ...prev[section],
-            image: reader.result,
-          },
-        }))
-      }
-      reader.readAsDataURL(file)
+      setFormData((prev) => ({
+        ...prev,
+        [name]: file,
+      }))
     }
   }
 
-  // Menu Item Management
+  const handleHeroCtaChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, cta: { ...prev.cta, [name]: value } }))
+  }
+
   const handleAddMenuItem = () => {
-    // Validate menu item
-    if (!newMenuItem.label.trim()) {
-      enqueueSnackbar('Menu label is required', { variant: 'error' })
-      return
-    }
-
-    if (!newMenuItem.destinationLink.trim()) {
-      enqueueSnackbar('Destination link is required', { variant: 'error' })
-      return
-    }
-
-    // Check for duplicate menu items
-    const exists = formData.menuItems.some(
-      (item) =>
-        item.label.toLowerCase() === newMenuItem.label.trim().toLowerCase()
-    )
-
-    if (exists) {
-      enqueueSnackbar('This menu item already exists', { variant: 'error' })
-      return
-    }
-
-    // Add new menu item
-    setFormData((prev) => ({
-      ...prev,
-      menuItems: [...prev.menuItems, { ...newMenuItem }],
-    }))
-
-    // Reset new menu item state
-    setNewMenuItem({
-      label: '',
-      linkType: 'internal',
-      destinationLink: '',
-      openInNewTab: false,
-      visibilityRole: 'everyone',
-      sortOrder: 0,
-      status: true,
-    })
-  }
-
-  // Edit menu item
-  const handleEditMenuItem = (index) => {
-    setEditingMenuItem(formData.menuItems[index])
-    setNewMenuItem(formData.menuItems[index])
-  }
-
-  // Update menu item
-  const handleUpdateMenuItem = () => {
-    if (!newMenuItem.label.trim() || !newMenuItem.destinationLink.trim()) {
-      enqueueSnackbar('Label and destination link are required', {
+    const { label, destination } = newMenuItem
+    if (!label.trim() || !destination.trim()) {
+      enqueueSnackbar('Label and destination are required', {
         variant: 'error',
       })
       return
     }
-
     setFormData((prev) => ({
       ...prev,
-      menuItems: prev.menuItems.map((item, index) =>
-        index === formData.menuItems.findIndex((i) => i === editingMenuItem)
-          ? newMenuItem
-          : item
-      ),
+      menuItems: [...prev.menuItems, newMenuItem],
     }))
-
-    // Reset editing states
     setNewMenuItem({
       label: '',
-      linkType: 'internal',
-      destinationLink: '',
+      linkType: 'route',
+      destination: '',
       openInNewTab: false,
       visibilityRole: 'everyone',
       sortOrder: 0,
       status: true,
     })
-    setEditingMenuItem(null)
   }
 
-  // Remove menu item
-  const handleRemoveMenuItem = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      menuItems: prev.menuItems.filter((_, i) => i !== index),
-    }))
-  }
-
-  // Handle Hero Banner CTA changes
-  const handleHeroBannerCtaChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      heroBanner: {
-        ...prev.heroBanner,
-        [name]: value,
-      },
-    }))
-  }
-
-  const handleLatestMediaUpload = (e) => {
-    const files = Array.from(e.target.files)
-    const newMedia = files.map((file) => {
-      const reader = new FileReader()
-      reader.readAsDataURL(file)
-      return new Promise((resolve) => {
-        reader.onloadend = () => {
-          resolve({
-            type: file.type.startsWith('image/') ? 'image' : 'video',
-            url: reader.result,
-            name: file.name,
-          })
-        }
-      })
-    })
-
-    Promise.all(newMedia).then((media) => {
-      setFormData((prev) => ({
-        ...prev,
-        latestMedia: [...prev.latestMedia, ...media].slice(0, 5), // Limit to 5 media items
-      }))
-    })
-  }
-
-  // Remove Media Item
-  const handleRemoveMediaItem = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      latestMedia: prev.latestMedia.filter((_, i) => i !== index),
-    }))
-  }
-
-  const handleFighterChange = (index, e) => {
-    const { name, value } = e.target
-    setFormData((prev) => {
-      const updated = [...prev.topFighters]
-      updated[index][name] = value
-      return { ...prev, topFighters: updated }
-    })
-  }
-
-  const handleAddTopFighter = () => {
-    if (!newFighter.name.trim()) {
-      enqueueSnackbar('Fighter name is required', { variant: 'error' })
-      return
-    }
-    setFormData((prev) => ({
-      ...prev,
-      topFighters: [...prev.topFighters, newFighter],
-    }))
-    setNewFighter({ name: '', rank: '', image: '' })
-  }
-
-  const handleRemoveTopFighter = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      topFighters: prev.topFighters.filter((_, i) => i !== index),
-    }))
-  }
-
-  // Form submission
   const handleSubmit = async (e) => {
+    e.preventDefault()
+    const validations = [
+      {
+        condition: !formData.platformName.trim(),
+        message: 'Platform Name is required',
+      },
+      { condition: !formData.tagline.trim(), message: 'Tagline is required' },
+      {
+        condition: formData.menuItems.length === 0,
+        message: 'At least one menu item required',
+      },
+      { condition: !formData.heroImage, message: 'Hero image is required' },
+      { condition: !formData.cta.text.trim(), message: 'CTA text is required' },
+      { condition: !formData.cta.link.trim(), message: 'CTA link is required' },
+    ]
+    for (const { condition, message } of validations) {
+      if (condition) {
+        enqueueSnackbar(message, { variant: 'error' })
+        return
+      }
+    }
     try {
-      e.preventDefault()
-
-      // Comprehensive validation
-      const validations = [
-        {
-          condition: !formData.platformName.trim(),
-          message: 'Platform Name is required',
-        },
-        {
-          condition: !formData.platformTagline.trim(),
-          message: 'Platform Tagline is required',
-        },
-        {
-          condition: formData.menuItems.length === 0,
-          message: 'At least one menu item is required',
-        },
-        {
-          condition: !formData.heroBanner.image,
-          message: 'Hero Banner Image is required',
-        },
-        {
-          condition: !formData.heroBanner.ctaText.trim(),
-          message: 'Hero Banner CTA Text is required',
-        },
-        {
-          condition: !formData.heroBanner.ctaLink.trim(),
-          message: 'Hero Banner CTA Link is required',
-        },
-      ]
-
-      // Check validations
-      for (const validation of validations) {
-        if (validation.condition) {
-          enqueueSnackbar(validation.message, { variant: 'error' })
+      if (formData.logo && typeof formData.logo !== 'string') {
+        try {
+          const s3UploadedUrl = await uploadToS3(formData.logo)
+          formData.logo = s3UploadedUrl
+        } catch (error) {
+          console.error('Image upload failed:', error)
           return
         }
       }
+      if (formData.heroImage && typeof formData.heroImage !== 'string') {
+        try {
+          const s3UploadedUrl = await uploadToS3(formData.heroImage)
+          formData.heroImage = s3UploadedUrl
+        } catch (error) {
+          console.error('Image upload failed:', error)
+          return
+        }
+      }
+      console.log('Form submitted:', formData)
 
-      const payload = {
-        ...formData,
-        updatedBy: user?.id,
+      let response = null
+      if (existingId) {
+        response = await axios.put(
+          `${API_BASE_URL}/home-config/${existingId}`,
+          formData
+        )
+      } else {
+        response = await axios.post(`${API_BASE_URL}/home-config`, formData, {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        })
       }
 
-      const response = await axios.put(`${API_BASE_URL}/home-settings`, payload)
-
-      if (response.status === apiConstants.success) {
+      if (
+        response.status === apiConstants.success ||
+        response.status === apiConstants.create
+      ) {
         enqueueSnackbar(
-          response.data.message || 'Home settings updated successfully',
+          response.data.message || 'Settings updated successfully',
           { variant: 'success' }
         )
       }
     } catch (error) {
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
-        { variant: 'error' }
+        {
+          variant: 'error',
+        }
       )
     }
   }
 
-  if (loading) {
+  if (loading)
     return (
       <div className='min-h-screen text-white bg-dark-blue-900 flex justify-center items-center'>
         <Loader />
       </div>
     )
-  }
 
   return (
     <div className='min-h-screen text-white bg-dark-blue-900'>
-      <div className='w-full'>
-        <div className='flex items-center gap-4 mb-6'>
-          <h1 className='text-2xl font-bold'>Manage Home Page Settings</h1>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          {/* Header Section */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>Header</h2>{' '}
-          {/* Logo Upload */}
-          <div className='mb-6'>
-            <label className='block text-sm font-medium mb-2'>
-              Logo<span className='text-red-500'>*</span>
-            </label>
-            <div className='flex items-center gap-4'>
-              <div className='w-32 h-32 bg-[#00000061] rounded flex items-center justify-center'>
-                {formData.logo ? (
-                  <img
-                    src={formData.logo}
-                    alt='Uploaded Logo'
-                    className='max-w-full max-h-full object-contain'
-                  />
-                ) : (
-                  <span className='text-gray-500'>No logo</span>
-                )}
-              </div>
+      <div className='w-full p-6'>
+        <h1 className='text-2xl font-bold mb-6'>Manage Home Page Settings</h1>
+        <form onSubmit={handleSubmit} className='space-y-6'>
+          <div>
+            <label className='block font-medium mb-2'>Logo</label>
+            <div className='py-4'>
+              {formData.logo && typeof formData.logo === 'string' && (
+                <img
+                  src={formData.logo}
+                  alt='Logo'
+                  className='w-32 h-32 object-cover rounded-full'
+                />
+              )}
+            </div>
+            <input
+              type='file'
+              name='logo'
+              accept='image/*'
+              onChange={handleFileUpload}
+              className='w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+            />
+          </div>
+          <div>
+            <label className='block font-medium mb-2'>Platform Name</label>
+            <input
+              name='platformName'
+              type='text'
+              value={formData.platformName}
+              onChange={handleChange}
+              className='w-full p-2 bg-[#00000061] rounded outline-none'
+            />
+          </div>
+          <div>
+            <label className='block font-medium mb-2'>Tagline</label>
+            <input
+              name='tagline'
+              type='text'
+              value={formData.tagline}
+              onChange={handleChange}
+              className='w-full p-2 bg-[#00000061] rounded outline-none'
+            />
+          </div>
+          <div>
+            <label className='block font-medium mb-2'>Hero Image</label>
+            <div className='py-4'>
+              {formData.heroImage && typeof formData.heroImage === 'string' && (
+                <img
+                  src={formData.heroImage}
+                  alt='Hero Image'
+                  className='w-52 h-52 object-cover'
+                />
+              )}
+            </div>{' '}
+            <input
+              type='file'
+              name='heroImage'
+              accept='image/*'
+              onChange={handleFileUpload}
+              className='w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+            />
+          </div>
+          <div className='grid grid-cols-2 gap-4'>
+            <div>
+              <label className='block font-medium mb-2'>CTA Text</label>
               <input
-                type='file'
-                accept='image/jpeg,image/png,image/svg+xml,image/gif'
-                onChange={(e) => handleFileUpload(e, 'logo')}
-                className='hidden'
-                id='logoUpload'
+                name='text'
+                type='text'
+                value={formData.cta.text}
+                onChange={handleHeroCtaChange}
+                className='w-full p-2 bg-[#00000061] rounded outline-none'
               />
-              <label
-                htmlFor='logoUpload'
-                className='bg-[#7F25FB] px-4 py-2 rounded cursor-pointer'
-              >
-                Upload Logo
-              </label>
+            </div>
+            <div>
+              <label className='block font-medium mb-2'>CTA Link</label>
+              <input
+                name='link'
+                type='text'
+                value={formData.cta.link}
+                onChange={handleHeroCtaChange}
+                className='w-full p-2 bg-[#00000061] rounded outline-none'
+              />
             </div>
           </div>
-          {/* Menu Items */}
-          <div className='mb-6'>
-            <label className='block text-sm font-medium mb-2'>
-              Menu Items<span className='text-red-500'>*</span>
-            </label>
-
-            {/* Menu Item Input */}
-            <div className='flex flex-col gap-4 mb-4'>
-              <div className='grid grid-cols-2 gap-2'>
-                <input
-                  type='text'
-                  placeholder='Menu Label'
-                  value={newMenuItem.label}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
+          <div>
+            <label className='block font-medium mb-2'>Menu Items</label>
+            {formData.menuItems.map((item, idx) => (
+              <div
+                key={idx}
+                className='flex justify-between items-center bg-[#14255D] p-2 rounded mb-2'
+              >
+                <span>
+                  {item.label} - {item.destination}
+                </span>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setFormData((prev) => ({
                       ...prev,
-                      label: e.target.value,
+                      menuItems: prev.menuItems.filter((_, i) => i !== idx),
                     }))
                   }
-                  className='bg-[#00000061] p-2 rounded outline-none'
-                />
-                <select
-                  value={newMenuItem.linkType}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      linkType: e.target.value,
-                    }))
-                  }
-                  className='bg-[#00000061] p-2 rounded'
                 >
-                  <option value='internal'>Internal</option>
-                  <option value='external'>External</option>
-                  <option value='modal'>Modal</option>
-                </select>
+                  <Trash2 className='w-4 h-4 text-red-400' />
+                </button>
               </div>
-              <div className='grid grid-cols-2 gap-2'>
-                <input
-                  type='text'
-                  placeholder='Destination Link'
-                  value={newMenuItem.destinationLink}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      destinationLink: e.target.value,
-                    }))
-                  }
-                  className='bg-[#00000061] p-2 rounded outline-none'
-                />
-                <select
-                  value={newMenuItem.visibilityRole}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      visibilityRole: e.target.value,
-                    }))
-                  }
-                  className='bg-[#00000061] p-2 rounded'
-                >
-                  <option value='everyone'>Everyone</option>
-                  <option value='admins'>Admins Only</option>
-                  <option value='logged-in'>Logged In</option>
-                </select>
-              </div>
-              <div className='flex items-center gap-2'>
-                <input
-                  type='checkbox'
-                  id='openInNewTab'
-                  checked={newMenuItem.openInNewTab}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      openInNewTab: e.target.checked,
-                    }))
-                  }
-                  className='mr-2 h-5 w-5 accent-[#7F25FB]'
-                />
-                <label htmlFor='openInNewTab' className='text-sm'>
-                  Open in New Tab
-                </label>
-                <input
-                  type='number'
-                  placeholder='Sort Order'
-                  value={newMenuItem.sortOrder}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      sortOrder: Number(e.target.value),
-                    }))
-                  }
-                  className='ml-auto bg-[#00000061] p-2 rounded w-20 outline-none'
-                />
-              </div>
-            </div>
-
-            {/* Add/Update Button */}
-            <div className='flex'>
-              <button
-                type='button'
-                onClick={
-                  editingMenuItem ? handleUpdateMenuItem : handleAddMenuItem
+            ))}
+            <div className='grid grid-cols-2 gap-2'>
+              <input
+                placeholder='Label'
+                value={newMenuItem.label}
+                onChange={(e) =>
+                  setNewMenuItem((prev) => ({ ...prev, label: e.target.value }))
                 }
-                className='bg-[#7F25FB] px-4 py-2 rounded flex items-center justify-center w-full'
-              >
-                {editingMenuItem ? 'Update Menu Item' : 'Add Menu Item'}
-              </button>
-            </div>
-
-            {/* Existing Menu Items */}
-            <div className='mt-4 space-y-2'>
-              {formData.menuItems.map((item, index) => (
-                <div
-                  key={index}
-                  className='bg-[#14255D] px-3 py-2 rounded-lg flex items-center justify-between'
-                >
-                  <div className='flex-grow'>
-                    <div className='font-medium'>{item.label}</div>
-                    <div className='text-xs text-gray-400'>
-                      {item.destinationLink} | {item.linkType}
-                    </div>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <button
-                      type='button'
-                      onClick={() => handleEditMenuItem(index)}
-                      className='text-[#AEB9E1] hover:text-white'
-                    >
-                      <Pencil className='w-4 h-4' />
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => handleRemoveMenuItem(index)}
-                      className='text-[#AEB9E1] hover:text-white'
-                    >
-                      <Trash2 className='w-4 h-4' />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Platform Name and Tagline */}
-          <div className='mb-6'>
-            <div className='mb-4 bg-[#00000061] p-2 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Platform Name<span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                name='platformName'
-                value={formData.platformName}
-                onChange={handleChange}
-                className='w-full outline-none'
-                placeholder='Platform Name (Max 50 characters)'
-                maxLength={50}
+                className='p-2 bg-[#00000061] rounded outline-none'
               />
-            </div>
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Platform Tagline<span className='text-red-500'>*</span>
-              </label>
               <input
-                type='text'
-                name='platformTagline'
-                value={formData.platformTagline}
-                onChange={handleChange}
-                className='w-full outline-none'
-                placeholder='Platform Tagline (Max 100 characters)'
-                maxLength={100}
+                placeholder='Destination'
+                value={newMenuItem.destination}
+                onChange={(e) =>
+                  setNewMenuItem((prev) => ({
+                    ...prev,
+                    destination: e.target.value,
+                  }))
+                }
+                className='p-2 bg-[#00000061] rounded outline-none'
               />
-            </div>
-          </div>
-          <div className='mb-6'>
-            {/* Hero Banner Image */}
-            <div className='mb-4'>
-              <label className='block text-sm font-medium mb-2'>
-                Hero Banner Image<span className='text-red-500'>*</span>
-              </label>
-              <div className='flex items-center gap-4'>
-                <div className='w-64 h-36 bg-[#00000061] rounded flex items-center justify-center'>
-                  {formData.heroBanner.image ? (
-                    <img
-                      src={formData.heroBanner.image}
-                      alt='Hero Banner'
-                      className='max-w-full max-h-full object-cover'
-                    />
-                  ) : (
-                    <span className='text-gray-500'>No image</span>
-                  )}
-                </div>
-                <input
-                  type='file'
-                  accept='image/jpeg,image/png,image/svg+xml,image/gif'
-                  onChange={(e) => handleFileUpload(e, 'heroBanner')}
-                  className='hidden'
-                  id='heroBannerUpload'
-                />
-                <label
-                  htmlFor='heroBannerUpload'
-                  className='bg-[#7F25FB] px-4 py-2 rounded cursor-pointer'
-                >
-                  Upload Image
-                </label>
-              </div>
-            </div>
-
-            {/* Hero Banner CTA */}
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='bg-[#00000061] p-2 rounded'>
-                <label className='block text-sm font-medium mb-1'>
-                  CTA Text<span className='text-red-500'>*</span>
-                </label>
-                <input
-                  type='text'
-                  name='ctaText'
-                  value={formData.heroBanner.ctaText}
-                  onChange={handleHeroBannerCtaChange}
-                  className='w-full outline-none'
-                  placeholder='Register Now'
-                  maxLength={30}
-                />
-              </div>
-              <div className='bg-[#00000061] p-2 rounded'>
-                <label className='block text-sm font-medium mb-1'>
-                  CTA Link<span className='text-red-500'>*</span>
-                </label>
-                <input
-                  type='text'
-                  name='ctaLink'
-                  value={formData.heroBanner.ctaLink}
-                  onChange={handleHeroBannerCtaChange}
-                  className='w-full outline-none'
-                  placeholder='/register'
-                />
-              </div>
-            </div>
-          </div>
-          {/* Top Fighters Section */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>Top Fighters</h2>
-          <div className='mb-6'>
-            <div className='flex gap-4'>
-              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
-                <input
-                  type='text'
-                  value={newFighter.name}
-                  onChange={(e) =>
-                    setNewFighter({ ...newFighter, name: e.target.value })
-                  }
-                  placeholder='New Fighter Name'
-                />
-              </div>
-              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
-                <input
-                  type='text'
-                  value={newFighter.rank}
-                  onChange={(e) =>
-                    setNewFighter({ ...newFighter, rank: e.target.value })
-                  }
-                  placeholder='Rank'
-                />
-              </div>
-              <button
-                type='button'
-                className='bg-[#7F25FB] px-4 rounded-r flex items-center justify-center'
-                onClick={handleAddTopFighter}
+              <select
+                value={newMenuItem.linkType}
+                onChange={(e) =>
+                  setNewMenuItem((prev) => ({
+                    ...prev,
+                    linkType: e.target.value,
+                  }))
+                }
+                className='p-2 bg-[#00000061] rounded'
               >
-                <Send className='w-5 h-5' />
-              </button>
-            </div>
-            {/* Display added fighters */}
-            <div className='mt-4 space-y-2'>
-              {formData.topFighters.map((fighter, index) => (
-                <div key={index}>
-                  <input
-                    type='text'
-                    name='name'
-                    value={fighter.name}
-                    onChange={(e) => handleFighterChange(index, e)}
-                    placeholder='Name'
-                  />
-                  <input
-                    type='text'
-                    name='rank'
-                    value={fighter.rank}
-                    onChange={(e) => handleFighterChange(index, e)}
-                    placeholder='Rank'
-                  />
-                  <button onClick={() => handleRemoveTopFighter(index)}>
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Upcoming Events Section */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>Upcoming Events</h2>
-          <div className='mb-6'>
-            <div className='flex'>
-              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
-                <input
-                  type='text'
-                  placeholder='Add event title'
-                  className='w-full outline-none'
-                />
-              </div>
-              <button
-                type='button'
-                className='bg-[#7F25FB] px-4 rounded-r flex items-center justify-center'
+                <option value='route'>Route</option>
+                <option value='url'>URL</option>
+                <option value='modal'>Modal</option>
+              </select>
+              <select
+                value={newMenuItem.visibilityRole}
+                onChange={(e) =>
+                  setNewMenuItem((prev) => ({
+                    ...prev,
+                    visibilityRole: e.target.value,
+                  }))
+                }
+                className='p-2 bg-[#00000061] rounded'
               >
-                <Send className='w-5 h-5' />
-              </button>
+                <option value='everyone'>Everyone</option>
+                <option value='loggedIn'>Logged In</option>
+                <option value='admin'>Admin</option>
+              </select>
             </div>
-            {/* Display added events */}
-            <div className='mt-4 space-y-2'>
-              {formData.upcomingEvents.map((event, index) => (
-                <div
-                  key={index}
-                  className='bg-[#14255D] px-3 py-2 rounded-lg flex items-center justify-between'
-                >
-                  <div className='flex-grow'>
-                    <div className='font-medium'>{event.title}</div>
-                    <div className='text-xs text-gray-400'>{event.date}</div>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <button
-                      type='button'
-                      className='text-[#AEB9E1] hover:text-white'
-                    >
-                      <Trash2 className='w-4 h-4' />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <button
+              type='button'
+              onClick={handleAddMenuItem}
+              className='mt-2 bg-purple-600 px-4 py-2 rounded'
+            >
+              Add Menu Item
+            </button>
           </div>
-          {/* Latest Media Section */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>Latest Media</h2>
-          <div className='mb-6'>
-            <div className='flex'>
-              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
-                <input
-                  type='file'
-                  accept='image/jpeg,image/png,image/gif,video/mp4'
-                  multiple
-                  onChange={handleLatestMediaUpload}
-                  className='w-full outline-none'
-                />
-              </div>
-            </div>
-            {/* Display added media */}
-            <div className='mt-4 grid grid-cols-3 gap-4'>
-              {formData.latestMedia.map((media, index) => (
-                <div
-                  key={index}
-                  className='bg-[#14255D] rounded-lg overflow-hidden relative'
-                >
-                  {media.type === 'image' ? (
-                    <img
-                      src={media.url}
-                      alt={`Media ${index + 1}`}
-                      className='w-full h-32 object-cover'
-                    />
-                  ) : (
-                    <video
-                      src={media.url}
-                      className='w-full h-32 object-cover'
-                    />
-                  )}
-                  <button
-                    type='button'
-                    onClick={() => handleRemoveMediaItem(index)}
-                    className='absolute top-2 right-2 bg-red-500 rounded-full p-1'
-                  >
-                    <X className='w-4 h-4 text-white' />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <p className='text-xs text-gray-400 mt-2'>
-              Max 5 media items. Supports images and videos.
-            </p>
-          </div>
-          {/* Submission Section */}
-          <div className='flex justify-center mt-8 mb-6'>
+          <div className='text-center'>
             <button
               type='submit'
               className='text-white font-medium py-2 px-6 rounded'

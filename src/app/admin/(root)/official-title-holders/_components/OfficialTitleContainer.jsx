@@ -9,6 +9,7 @@ import { OfficialTitleTable } from './OfficialTitleTable'
 export const OfficialTitleContainer = () => {
   const [showAddTitleForm, setShowAddTitleForm] = useState(false)
   const [officialTitles, setOfficialTitles] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -20,7 +21,7 @@ export const OfficialTitleContainer = () => {
     setOfficialTitles([])
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/officialTitles?page=${currentPage}&limit=${limit}`
+        `${API_BASE_URL}/official-title-holders?page=${currentPage}&limit=${limit}&search=${searchQuery}`
       )
       console.log('Response:', response.data)
       setOfficialTitles(response.data.data.items)
@@ -71,6 +72,8 @@ export const OfficialTitleContainer = () => {
               totalPages={totalPages}
               totalItems={totalItems}
               onSuccess={getTitles}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
           )}
         </>

@@ -3,14 +3,14 @@ import { enqueueSnackbar } from 'notistack'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
-import useUserStore from '../../../../../stores/userStore'
+import useStore from '../../../../../stores/useStore'
 import { CustomMultiSelect } from '../../../../_components/CustomMultiSelect'
 import MarkdownEditor from '../../../../_components/MarkdownEditor'
 import { AddVenuesForm } from '../../venues/_components/AddVenuesForm'
-import Modal from '../../../../_components/Modal'
+import Autocomplete from '../../../../_components/Autocomplete'
 
 export const AddEventForm = ({ setShowAddEvent }) => {
-  const user = useUserStore((state) => state.user)
+  const user = useStore((state) => state.user)
 
   // Mock data for dropdown lists - replace with actual data from your API
   const ageCategories = [
@@ -26,13 +26,19 @@ export const AddEventForm = ({ setShowAddEvent }) => {
     { _id: 'heavyweight', fullName: 'Heavyweight' },
   ]
 
+  const venues = [
+    { value: 'venue1', label: 'Venue 1' },
+    { value: 'venue2', label: 'Venue 2' },
+    { value: 'venue3', label: 'Venue 3' },
+  ]
+
   const [formData, setFormData] = useState({
     // Basic Info
-    eventName: '',
-    eventFormat: 'Semi Contact',
+    name: '',
+    format: 'Semi Contact',
     koPolicy: 'Not Allowed',
     sportType: 'Kickboxing',
-    eventPoster: null,
+    poster: null,
 
     // Dates & Schedule
     startDate: '',
@@ -45,14 +51,10 @@ export const AddEventForm = ({ setShowAddEvent }) => {
     fightStartTime: '',
 
     // Venue
-    venueName: '',
-    addNewVenue: false,
+    venue: '',
 
-    // Promoter Info
-    promoterName: '',
-    promoterPhone: '',
-    iskaRepName: '',
-    iskaRepPhone: '',
+    // Promoter
+    promoter: '',
 
     // Descriptions
     briefDescription: '',
@@ -63,37 +65,53 @@ export const AddEventForm = ({ setShowAddEvent }) => {
     ageCategories: [],
     weightClasses: [],
 
+    // Sectioning Body Info
+    sectioningBodyName: '',
+    sectioningBodyDescription: '',
+    sectioningBodyImage: null,
+
     // Publishing options
     isDraft: true,
     showBrackets: false,
   })
 
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target
+  const [addNewVenue, setAddNewVenue] = useState(false)
+  const [addNewPromoter, setAddNewPromoter] = useState(false)
 
-    if (type === 'file') {
-      setFormData((prevState) => ({
-        ...prevState,
-        [name]: files[0],
-      }))
-    } else if (type === 'checkbox') {
-      setFormData((prevState) => ({
-        ...prevState,
-        [name]: checked,
-      }))
-    } else if (type === 'select-multiple') {
-      const selectedOptions = Array.from(e.target.selectedOptions).map(
-        (option) => option.value
-      )
-      setFormData((prevState) => ({
-        ...prevState,
-        [name]: selectedOptions,
-      }))
-    } else {
+  const handleChange = (eOrName, value) => {
+    if (typeof eOrName === 'string') {
+      const name = eOrName
       setFormData((prevState) => ({
         ...prevState,
         [name]: value,
       }))
+    } else if (eOrName?.target) {
+      const { name, value, type, checked, files } = eOrName.target
+
+      if (type === 'file') {
+        setFormData((prevState) => ({
+          ...prevState,
+          [name]: files[0],
+        }))
+      } else if (type === 'checkbox') {
+        setFormData((prevState) => ({
+          ...prevState,
+          [name]: checked,
+        }))
+      } else if (type === 'select-multiple') {
+        const selectedOptions = Array.from(eOrName.target.selectedOptions).map(
+          (option) => option.value
+        )
+        setFormData((prevState) => ({
+          ...prevState,
+          [name]: selectedOptions,
+        }))
+      } else {
+        setFormData((prevState) => ({
+          ...prevState,
+          [name]: value,
+        }))
+      }
     }
   }
 
@@ -104,7 +122,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
       // Append all form data to FormData object
       Object.keys(formData).forEach((key) => {
-        if (key === 'eventPoster' && formData[key]) {
+        if (key === 'poster' && formData[key]) {
           payload.append(key, formData[key])
         } else if (Array.isArray(formData[key])) {
           // Handle arrays (for multi-select fields)
@@ -137,11 +155,11 @@ export const AddEventForm = ({ setShowAddEvent }) => {
         // Reset form
         setFormData({
           // Basic Info
-          eventName: '',
-          eventFormat: 'Semi Contact',
+          name: '',
+          format: 'Semi Contact',
           koPolicy: 'Not Allowed',
           sportType: 'Kickboxing',
-          eventPoster: null,
+          poster: null,
 
           // Dates & Schedule
           startDate: '',
@@ -154,14 +172,10 @@ export const AddEventForm = ({ setShowAddEvent }) => {
           fightStartTime: '',
 
           // Venue
-          venueName: '',
-          addNewVenue: false,
+          venue: '',
 
-          // Promoter Info
-          promoterName: '',
-          promoterPhone: '',
-          iskaRepName: '',
-          iskaRepPhone: '',
+          // Promoter
+          promoter: '',
 
           // Descriptions
           briefDescription: '',
@@ -234,12 +248,12 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             {/* Event Name Field */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Event Name<span className='text-red-500'>*</span>
+                Name<span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
-                name='eventName'
-                value={formData.eventName}
+                name='name'
+                value={formData.name}
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent'
                 required
@@ -250,12 +264,12 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             {/* Event Format */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Event Format<span className='text-red-500'>*</span>
+                Format<span className='text-red-500'>*</span>
               </label>
               <div className='relative'>
                 <select
-                  name='eventFormat'
-                  value={formData.eventFormat}
+                  name='format'
+                  value={formData.format}
                   onChange={handleChange}
                   className='w-full outline-none appearance-none bg-transparent'
                   required
@@ -354,12 +368,10 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
             {/* Event Poster */}
             <div className='bg-[#00000061] p-2 rounded col-span-2'>
-              <label className='block text-sm font-medium mb-1'>
-                Event Poster
-              </label>
+              <label className='block text-sm font-medium mb-1'>Poster</label>
               <input
                 type='file'
-                name='eventPoster'
+                name='poster'
                 onChange={handleChange}
                 accept='image/jpeg,image/png'
                 className='w-full outline-none bg-transparent'
@@ -501,42 +513,32 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
             {/* Venue Search/Select */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Venue Search/Select<span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                name='venueName'
-                value={formData.venueName}
-                onChange={handleChange}
-                className='w-full outline-none bg-transparent'
-                placeholder='Search venue name'
-                required
-              />
-            </div>
+
+            <Autocomplete
+              label={'Search or select venue'}
+              options={venues}
+              selected={formData.venue}
+              onChange={(value) => handleChange('venue', value)}
+              placeholder='Search venue name'
+              required={true}
+            />
 
             {/* Add New Venue */}
-            <div className='p-2'>
+            <div className=''>
               <button
                 type='button'
-                onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    addNewVenue: !prev.addNewVenue,
-                  }))
-                }
+                onClick={() => setAddNewVenue(!addNewVenue)}
                 className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
-                  formData.addNewVenue
+                  addNewVenue
                     ? 'bg-red-600 text-white hover:bg-red-700'
                     : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
                 }`}
               >
-                {formData.addNewVenue ? 'Cancel Add Venue' : 'Add New Venue'}
+                {addNewVenue ? 'Cancel Add Venue' : 'Add New Venue'}
               </button>
             </div>
           </div>
-          {formData.addNewVenue && (
+          {addNewVenue && (
             <AddVenuesForm
               setShowAddVenues={() =>
                 setFormData((prev) => ({
@@ -553,37 +555,41 @@ export const AddEventForm = ({ setShowAddEvent }) => {
           </h2>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
-            {/* Promoter Name */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Promoter Name<span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                name='promoterName'
-                value={formData.promoterName}
-                onChange={handleChange}
-                className='w-full outline-none bg-transparent'
-                required
-                placeholder='Select or enter promoter'
-              />
-            </div>
+            {/* Promoter */}
+            <Autocomplete
+              label={'Search or select promoter'}
+              options={venues}
+              selected={formData.promoter}
+              onChange={(value) => handleChange('promoter', value)}
+              placeholder='Search promoter name'
+              required={true}
+            />
 
-            {/* Promoter Phone */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Promoter Phone
-              </label>
-              <input
-                type='tel'
-                name='promoterPhone'
-                value={formData.promoterPhone}
-                onChange={handleChange}
-                className='w-full outline-none bg-transparent'
-                placeholder='Enter phone number'
-              />
+            {/* Add New promoter */}
+            <div className=''>
+              <button
+                type='button'
+                onClick={() => setAddNewPromoter(!addNewPromoter)}
+                className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+                  addNewPromoter
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                }`}
+              >
+                {addNewPromoter ? 'Cancel Add Promoter' : 'Add New Promoter'}
+              </button>
             </div>
-
+            {addNewVenue && (
+              <AddVenuesForm
+                setShowAddVenues={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    addNewVenue: false,
+                  }))
+                }
+                showBackButton={false}
+              />
+            )}
             {/* ISKA Rep Name */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
@@ -650,7 +656,9 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                 }))
               }
             />
+          </div>
 
+          <div className='grid grid-cols-1 md:grid-cols-5 gap-4'>
             {/* Rules Info URL */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
@@ -715,7 +723,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             </div>
 
             {/* Age Categories */}
-            <div className='bg-[#00000061] p-2 rounded py-3'>
+            <div className='bg-[#00000061] py-1 px-2 rounded '>
               <label className='block text-sm font-medium mb-2'>
                 Age Categories
               </label>
@@ -732,7 +740,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             </div>
 
             {/* Weight Classes */}
-            <div className='bg-[#00000061] p-2 rounded py-3'>
+            <div className='bg-[#00000061] py-1 px-2 rounded'>
               <label className='block text-sm font-medium mb-2'>
                 Weight Classes
               </label>
@@ -749,19 +757,63 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             </div>
           </div>
 
-          {/* SUMMARY & REVIEW SECTION */}
+          {/* Sectioning SECTION */}
           <h2 className='font-bold mb-4 uppercase text-sm border-b border-gray-700 pb-2 mt-8'>
-            Summary & Review
+            Sectioning Body Info
           </h2>
 
-          <div className='bg-[#00000061] p-4 rounded mb-6'>
-            <div className='flex justify-between items-center mb-4'>
-              <div>
-                <p className='text-sm font-medium'>
-                  Total Fighters Registered:
-                </p>
-                <p className='text-xl font-bold'>0</p>
-              </div>
+          <div className='my-4 grid grid-cols-1  gap-4'>
+            {/* Name*/}
+            <div className='bg-[#00000061] p-2 h-16 rounded'>
+              <label className='block text-sm font-medium mb-1'>
+                Sanctioning Body
+                <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='text'
+                name='sectioningBodyName'
+                value={formData.sectioningBodyName}
+                onChange={handleChange}
+                required
+                className='w-full outline-none bg-transparent'
+                placeholder='Enter Sectioning Body Name'
+              />
+            </div>
+            {/* Image */}
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block text-sm font-medium mb-1'>
+                Sectioning body image
+                <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='file'
+                name='poster'
+                required
+                onChange={handleChange}
+                accept='image/jpeg,image/png'
+                className='w-full outline-none bg-transparent'
+              />
+              <p className='text-xs text-gray-400 mt-1'>
+                JPG, PNG formats only
+              </p>
+            </div>
+            {/* description */}
+            <div className='bg-[#00000061] p-2 rounded '>
+              <label className='block text-sm font-medium mb-1'>
+                Sectioning Body Description
+                <span className='text-red-500'>*</span>
+              </label>
+              <textarea
+                name='sectioningBodyDescription'
+                value={formData.sectioningBodyDescription}
+                onChange={handleChange}
+                rows='3'
+                className='w-full outline-none resize-none bg-transparent'
+                maxLength='255'
+                required
+                placeholder='Enter content...'
+              />
+              <p className='text-xs text-gray-400 mt-1'>Max 255 characters</p>
             </div>
           </div>
           <div className=' space-y-2'>
@@ -801,11 +853,11 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                 setShowAddEvent(false)
                 setFormData({
                   // Basic Info
-                  eventName: '',
-                  eventFormat: 'Semi Contact',
+                  name: '',
+                  format: 'Semi Contact',
                   koPolicy: 'Not Allowed',
                   sportType: 'Kickboxing',
-                  eventPoster: null,
+                  poster: null,
 
                   // Dates & Schedule
                   startDate: '',
@@ -818,7 +870,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                   fightStartTime: '',
 
                   // Venue
-                  venueName: '',
+                  venue: '',
                   addNewVenue: false,
 
                   // Promoter Info

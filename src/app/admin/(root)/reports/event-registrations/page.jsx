@@ -12,127 +12,42 @@ import {
   X,
   Mail,
   Phone,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import axios from 'axios'
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import moment from 'moment'
+import ConfirmationModal from '../../../../_components/ConfirmationModal'
+import { enqueueSnackbar } from 'notistack'
+import Loader from '../../../../_components/Loader'
+import Link from 'next/link'
 
 export default function EventRegistrationListing() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRegistrationType, setSelectedRegistrationType] =
-    useState('All')
+  const [selectedRegistrationType, setSelectedRegistrationType] = useState('')
   const [regStartDate, setRegStartDate] = useState('')
   const [regEndDate, setRegEndDate] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [selectedEvent, setSelectedEvent] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalItems, setTotalItems] = useState(3)
+  const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
   const [sortField, setSortField] = useState('regDate')
   const [sortDirection, setSortDirection] = useState('desc')
-  const eventNames = ['Championship 2025', 'Qualifier 1', 'Summer Slam']
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(false)
 
-  // Mock data for demonstration
-  const [registrations, setRegistrations] = useState([
-    {
-      id: 1,
-      regDate: '2025/05/11 17:12:39',
-      eventDate: '06/08/2025',
-      eventName: 'Ft. Wayne Point Sparring Tournament',
-      fighterName: 'Don A Stevens Chavez',
-      registrationType: 'Fighter',
-      email: 'don.stevens@example.com',
-      mobile: '123-456-7890',
-      ageOrDOB: '17',
-      weightClass: 'Lightweight',
-      discipline: 'Muay Thai',
-      verified: true,
-    },
-    {
-      id: 2,
-      regDate: '2025/05/10 09:45:21',
-      eventDate: '06/08/2025',
-      eventName: 'Ft. Wayne Point Sparring Tournament',
-      fighterName: 'Maria Rodriguez',
-      registrationType: 'Fighter',
-      email: 'maria.r@example.com',
-      mobile: '234-567-8901',
-      ageOrDOB: '03-01-2007',
-      weightClass: 'Featherweight',
-      discipline: 'Kickboxing',
-      verified: false,
-    },
-    {
-      id: 3,
-      regDate: '2025/05/09 14:30:05',
-      eventDate: '06/08/2025',
-      eventName: 'Ft. Wayne Point Sparring Tournament',
-      fighterName: 'John Williams',
-      registrationType: 'Trainer',
-      email: 'j.williams@example.com',
-      mobile: '345-678-9012',
-      ageOrDOB: '32',
-      weightClass: 'N/A',
-      discipline: 'Muay Thai, Boxing',
-      verified: true,
-    },
-  ])
-
-  const formatISODateTime = (dateTimeString) => {
-    try {
-      // For string in format "2025/05/11 17:12:39"
-      const [datePart, timePart] = dateTimeString.split(' ')
-      const [year, month, day] = datePart.split('/')
-      const [hour, minute, second] = timePart.split(':')
-
-      const date = new Date(year, month - 1, day, hour, minute, second)
-
-      return date.toISOString()
-    } catch (error) {
-      return dateTimeString
-    }
-  }
-
-  // Filter registrations based on search criteria
-  const filteredRegistrations = registrations.filter((registration) => {
-    const matchesSearch =
-      registration.fighterName
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      registration.eventName.toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesType =
-      selectedRegistrationType === 'All' ||
-      registration.registrationType === selectedRegistrationType
-
-    const matchesEvent =
-      !selectedEvent || registration.eventName === selectedEvent
-
-    const matchesEventDate = !eventDate || registration.eventDate === eventDate
-
-    const matchesRegStartDate =
-      !regStartDate ||
-      formatISODateTime(registration.regDate) >=
-        new Date(regStartDate).toISOString()
-
-    const matchesRegEndDate =
-      !regEndDate ||
-      formatISODateTime(registration.regDate) <=
-        new Date(regEndDate).toISOString()
-
-    return (
-      matchesSearch &&
-      matchesType &&
-      matchesEvent &&
-      matchesEventDate &&
-      matchesRegStartDate &&
-      matchesRegEndDate
-    )
-  })
+  const [registrations, setRegistrations] = useState([])
+  const [isDelete, setIsDelete] = useState(false)
+  const [selectedRegistration, setSelectedRegistration] = useState(null)
 
   // Sort registrations based on sortField and sortDirection
-  const sortedRegistrations = [...filteredRegistrations].sort((a, b) => {
+  const sortedRegistrations = [...registrations].sort((a, b) => {
     if (sortDirection === 'asc') {
       return a[sortField] > b[sortField] ? 1 : -1
     } else {
@@ -149,53 +64,165 @@ export default function EventRegistrationListing() {
     }
   }
 
+  const getEvents = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/events?page=1&limit=500`
+      )
+      console.log('Response:', response.data.data.items)
+      setEvents(response.data.data.items)
+    } catch (error) {
+      console.log('Error fetching events:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getAllRegistrations = async ({
+    searchQuery,
+    selectedRegistrationType,
+    regStartDate,
+    regEndDate,
+    selectedEvent,
+    eventDate,
+  }) => {
+    setLoading(true)
+    try {
+      let queryParams = `?page=${currentPage}&limit=${limit}`
+      if (searchQuery) queryParams += `&search=${searchQuery}`
+      if (selectedRegistrationType)
+        queryParams += `&registrationType=${selectedRegistrationType}`
+      if (regStartDate) queryParams += `&regStartDate=${regStartDate}`
+      if (regEndDate) queryParams += `&regEndDate=${regEndDate}`
+      if (selectedEvent) queryParams += `&eventId=${selectedEvent}`
+      if (eventDate) queryParams += `&eventDate=${eventDate}`
+
+      const response = await axios.get(
+        `${API_BASE_URL}/registrations${queryParams}`
+      )
+      setRegistrations(response.data.data.items)
+      setTotalPages(response.data.data.pagination.totalPages)
+      setTotalItems(response.data.data.pagination.totalItems)
+    } catch (error) {
+      console.log(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    getAllRegistrations({
+      searchQuery: '',
+      selectedRegistrationType: '',
+      regStartDate: '',
+      regEndDate: '',
+      selectedEvent: '',
+      eventDate: '',
+    })
+  }, [currentPage, limit])
+
+  useEffect(() => {
+    getEvents()
+  }, [])
+
+  const handleGetForms = () => {
+    getAllRegistrations({
+      searchQuery,
+      selectedRegistrationType,
+      regStartDate,
+      regEndDate,
+      selectedEvent,
+      eventDate,
+    })
+  }
+
   const handleResetFilters = () => {
     setSearchQuery('')
-    setSelectedRegistrationType('All')
+    setSelectedRegistrationType('')
     setSelectedEvent('')
     setEventDate('')
     setRegStartDate('')
     setRegEndDate('')
+    getAllRegistrations({
+      searchQuery: '',
+      selectedRegistrationType: '',
+      regStartDate: '',
+      regEndDate: '',
+      selectedEvent: '',
+      eventDate: '',
+    })
   }
 
-  const handleGetForms = () => {
-    console.log('Fetching latest registration forms...')
-    // Implement API call to refresh data
-  }
-
-  const handleViewRegistration = (registration) => {
-    console.log('Viewing registration:', registration.id)
-    // Navigate to registration detail view
-  }
-
-  const handleEditRegistration = (registration) => {
-    console.log('Editing registration:', registration.id)
-    // Open edit form
-  }
-
-  const handleDeleteRegistration = (registrationId) => {
-    if (confirm('Are you sure you want to delete this registration?')) {
-      setRegistrations((prev) =>
-        prev.filter((registration) => registration.id !== registrationId)
+  const handleDeleteRegistration = async () => {
+    try {
+      const res = await axios.delete(
+        `${API_BASE_URL}/registrations/${selectedRegistration}`
       )
+
+      if (res.status == apiConstants.success) {
+        enqueueSnackbar(res.data.message, {
+          variant: 'success',
+        })
+        setIsDelete(false)
+        getAllRegistrations({
+          searchQuery: '',
+          selectedRegistrationType: '',
+          regStartDate: '',
+          regEndDate: '',
+          selectedEvent: '',
+          eventDate: '',
+        })
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message ??
+          'Failed to delete registrations,try again',
+        {
+          variant: 'error',
+        }
+      )
+      console.log('Failed to delete training facility:', error)
     }
   }
 
-  const handleToggleVerification = (registrationId) => {
-    setRegistrations((prev) =>
-      prev.map((registration) =>
-        registration.id === registrationId
-          ? { ...registration, verified: !registration.verified }
-          : registration
+  const handleToggleVerification = async (registration, status) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/registrations/${registration._id}`,
+        {
+          status: status,
+        }
       )
-    )
+
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar('Verification status updated successfully', {
+          variant: 'success',
+        })
+        getAllRegistrations({
+          searchQuery: '',
+          selectedRegistrationType: '',
+          regStartDate: '',
+          regEndDate: '',
+          selectedEvent: '',
+          eventDate: '',
+        })
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
 
   const getVerificationBadge = (verified) => {
     const baseClasses =
       'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap'
-    return verified
+    return verified === 'Verified'
       ? `${baseClasses} bg-green-100 text-green-800`
+      : verified === 'Rejected'
+      ? `${baseClasses} bg-red-100 text-red-800`
       : `${baseClasses} bg-yellow-100 text-yellow-800`
   }
 
@@ -219,6 +246,8 @@ export default function EventRegistrationListing() {
     </th>
   )
 
+  if (loading) return <Loader />
+
   return (
     <div className='text-white p-8 flex justify-center relative overflow-hidden'>
       <div
@@ -231,7 +260,7 @@ export default function EventRegistrationListing() {
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex justify-between items-center mb-6'>
           <h2 className='text-2xl font-semibold leading-8'>
-            Fighter Registration Forms
+            Registration Forms
           </h2>
           {/* Get Forms Button */}
           <div className='mb-6'>
@@ -314,9 +343,13 @@ export default function EventRegistrationListing() {
                 <option value='' className='text-black'>
                   Select Event
                 </option>
-                {eventNames.map((event) => (
-                  <option key={event} value={event} className='text-black'>
-                    {event}
+                {events.map((event) => (
+                  <option
+                    key={event._id}
+                    value={event._id}
+                    className='text-black'
+                  >
+                    {event.name}
                   </option>
                 ))}
               </select>
@@ -332,13 +365,13 @@ export default function EventRegistrationListing() {
                 value={selectedRegistrationType}
                 onChange={(e) => setSelectedRegistrationType(e.target.value)}
               >
-                <option value='All' className='text-black'>
+                <option value='' className='text-black'>
                   All Types
                 </option>
-                <option value='Fighter' className='text-black'>
+                <option value='fighter' className='text-black'>
                   Fighter
                 </option>
-                <option value='Trainer' className='text-black'>
+                <option value='trainer' className='text-black'>
                   Trainer
                 </option>
               </select>
@@ -349,11 +382,11 @@ export default function EventRegistrationListing() {
           <div className='flex justify-end mb-6'>
             {/* Reset Filters Button */}
             {(searchQuery ||
-              selectedRegistrationType !== 'All' ||
               regStartDate ||
               regEndDate ||
               eventDate ||
-              selectedEvent) && (
+              selectedEvent ||
+              selectedRegistrationType) && (
               <button
                 className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
                 onClick={handleResetFilters}
@@ -395,38 +428,28 @@ export default function EventRegistrationListing() {
                 {sortedRegistrations.length > 0 ? (
                   sortedRegistrations.map((registration, index) => (
                     <tr
-                      key={registration.id}
+                      key={registration._id}
                       className={`${
                         index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                       }`}
                     >
-                      <td
-                        className='px-4 py-3 whitespace-nowrap'
-                        title={formatISODateTime(registration.regDate)}
-                      >
-                        {registration.regDate}
+                      <td className='px-4 py-3 whitespace-nowrap'>
+                        {moment(
+                          registration.event?.registrationStartDate
+                        ).format('DD-MM-YYYY')}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        {registration.eventDate}
+                        {moment(registration.event?.createdAt).format(
+                          'DD-MM-YYYY'
+                        )}
                       </td>
-                      <td
-                        className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'
-                        title={registration.eventName}
-                      >
-                        {registration.eventName}
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                        {registration.event?.name}
                       </td>
-                      <td
-                        className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'
-                        title={registration.fighterName}
-                      >
-                        <button
-                          onClick={() => handleViewRegistration(registration)}
-                          className='text-blue-400 hover:text-blue-300 underline'
-                        >
-                          {registration.fighterName}
-                        </button>
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                        {registration.firstName + ' ' + registration.lastName}
                       </td>
-                      <td className='px-4 py-3 whitespace-nowrap'>
+                      <td className='px-4 py-3 whitespace-nowrap capitalize'>
                         {registration.registrationType}
                       </td>
                       <td
@@ -435,84 +458,83 @@ export default function EventRegistrationListing() {
                       >
                         <a
                           href={`mailto:${registration.email}`}
-                          className='text-blue-400 hover:text-blue-300 flex items-center gap-1'
+                          className='flex items-center gap-1'
                         >
                           <Mail size={14} />
                           <span className='truncate'>{registration.email}</span>
                         </a>
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        {registration.mobile ? (
+                        {registration.phoneNumber ? (
                           <a
-                            href={`tel:${registration.mobile}`}
-                            className='text-blue-400 hover:text-blue-300 flex items-center gap-1'
+                            href={`tel:${registration.phoneNumber}`}
+                            className='flex items-center gap-1'
                           >
-                            <Phone size={14} /> {registration.mobile}
+                            <Phone size={14} /> {registration.phoneNumber}
                           </a>
                         ) : (
                           '-'
                         )}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        {registration.ageOrDOB}
+                        {moment(registration.dateOfBirth).format('DD-MM-YYYY')}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
                         {registration.weightClass || 'N/A'}
                       </td>
-                      <td
-                        className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'
-                        title={registration.discipline}
-                      >
-                        {registration.discipline}
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                        {registration.event?.sportType}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
                         <span
-                          className={getVerificationBadge(
-                            registration.verified
-                          )}
+                          className={getVerificationBadge(registration.status)}
                         >
-                          {registration.verified ? 'Verified' : 'Pending'}
+                          {registration.status}
                         </span>
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        <div className='flex items-center gap-2'>
-                          <button
-                            onClick={() => handleViewRegistration(registration)}
-                            className='text-blue-400 hover:text-blue-300'
-                            title='View Registration'
+                        <div className='flex items-center justify-center gap-2'>
+                          <Link
+                            href={`/admin/event-registrations/view/${registration._id}`}
                           >
-                            <Eye size={18} />
-                          </button>
+                            <button
+                              className='text-blue-400 hover:text-blue-300'
+                              title='View Registration'
+                            >
+                              <Eye size={18} />
+                            </button>
+                          </Link>
+                          <Link
+                            href={`/admin/event-registrations/edit${registration._id}`}
+                          >
+                            <button
+                              className='text-green-400 hover:text-green-300'
+                              title='Edit Registration'
+                            >
+                              <Edit size={18} />
+                            </button>
+                          </Link>
                           <button
-                            onClick={() => handleEditRegistration(registration)}
+                            onClick={() =>
+                              handleToggleVerification(registration, 'Verified')
+                            }
                             className='text-green-400 hover:text-green-300'
-                            title='Edit Registration'
                           >
-                            <Edit size={18} />
+                            <CheckCircle size={18} />
                           </button>
                           <button
                             onClick={() =>
-                              handleToggleVerification(registration.id)
+                              handleToggleVerification(registration, 'Rejected')
                             }
-                            className={`${
-                              registration.verified
-                                ? 'text-yellow-400 hover:text-yellow-300'
-                                : 'text-green-400 hover:text-green-300'
-                            }`}
-                            title={
-                              registration.verified ? 'Unverify' : 'Verify'
-                            }
+                            className='text-red-400 hover:text-red-300'
                           >
-                            {registration.verified ? (
-                              <X size={18} />
-                            ) : (
-                              <Check size={18} />
-                            )}
+                            <XCircle size={18} />
                           </button>
                           <button
-                            onClick={() =>
-                              handleDeleteRegistration(registration.id)
-                            }
+                            onClick={() => {
+                              setIsDelete(true)
+                              setSelectedRegistration(registration._id)
+                            }}
                             className='text-red-400 hover:text-red-300'
                             title='Delete Registration'
                           >
@@ -532,6 +554,15 @@ export default function EventRegistrationListing() {
               </tbody>
             </table>
           </div>
+
+          {/* Confirmation Modal */}
+          <ConfirmationModal
+            isOpen={isDelete}
+            onClose={() => setIsDelete(false)}
+            onConfirm={() => handleDeleteRegistration(selectedRegistration)}
+            title='Delete Registration'
+            message='Are you sure you want to delete this registration?'
+          />
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

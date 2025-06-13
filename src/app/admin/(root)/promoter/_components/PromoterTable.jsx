@@ -1,26 +1,19 @@
 'use client'
 
 import axios from 'axios'
-import {
-  Eye,
-  Search,
-  SquarePen,
-  Trash,
-  ExternalLink,
-  Mail,
-  Phone,
-} from 'lucide-react'
-import moment from 'moment'
-import Link from 'next/link'
+import { Search, ExternalLink, Mail, Phone } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
-import { useEffect, useState } from 'react'
-import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import { useState } from 'react'
+import { API_BASE_URL } from '../../../../../constants'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import PaginationHeader from '../../../../_components/PaginationHeader'
 import Pagination from '../../../../_components/Pagination'
+import ActionButtons from '../../../../_components/ActionButtons'
 
 export function PromoterTable({
   promoters,
+  searchQuery,
+  setSearchQuery,
   limit,
   setLimit,
   currentPage,
@@ -29,22 +22,12 @@ export function PromoterTable({
   totalItems,
   onSuccess,
 }) {
-  const [searchQuery, setSearchQuery] = useState('')
   const [isDelete, setIsDelete] = useState(false)
   const [selectedPromoter, setSelectedPromoter] = useState(null)
 
-  const filteredPromoters = promoters?.filter((promoter) => {
-    // Match by name, email or abbreviation
-    const matchesSearch =
-      promoter?.name?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-      promoter?.email?.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-      promoter?.abbreviation?.toLowerCase().includes(searchQuery?.toLowerCase())
-    return matchesSearch
-  })
-
   const handleDeletePromoter = async (promoterId) => {
     try {
-      await axios.delete(`${API_BASE_URL}/promoters/${promoterId}`)
+      await axios.delete(`${API_BASE_URL}/promoter/${promoterId}`)
       enqueueSnackbar('Promoter deleted successfully', { variant: 'success' })
       setIsDelete(false)
       if (onSuccess) onSuccess()
@@ -82,7 +65,7 @@ export function PromoterTable({
           totalItems={totalItems}
           label='promoters'
         />
-        <div className='overflow-x-auto'>
+        <div className='overflow-x-auto custom-scrollbar'>
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
@@ -98,8 +81,8 @@ export function PromoterTable({
               </tr>
             </thead>
             <tbody>
-              {filteredPromoters && filteredPromoters.length > 0 ? (
-                filteredPromoters.map((promoter, index) => {
+              {promoters && promoters.length > 0 ? (
+                promoters.map((promoter, index) => {
                   return (
                     <tr
                       key={promoter._id}
@@ -108,34 +91,37 @@ export function PromoterTable({
                       }`}
                     >
                       <td className='p-4'>{promoter._id}</td>
-                      <td className='p-4'>{promoter.name}</td>
+                      <td className='p-4'>
+                        {promoter.user?.firstName} {promoter.user?.middleName}{' '}
+                        {promoter.user?.lastName}
+                      </td>
                       <td className='p-4'>{promoter.abbreviation}</td>
                       <td className='p-4'>
                         <a
-                          href={promoter.websiteUrl}
+                          href={promoter.websiteURL}
                           target='_blank'
                           rel='noopener noreferrer'
-                          className='text-blue-500 hover:underline flex items-center'
+                          className='flex items-center'
                         >
-                          {promoter.websiteUrl}
+                          {promoter.websiteURL}
                           <ExternalLink size={14} className='ml-1' />
                         </a>
                       </td>
                       <td className='p-4'>
                         <a
-                          href={`mailto:${promoter.email}`}
-                          className='text-blue-500 hover:underline flex items-center'
+                          href={`mailto:${promoter.user.email}`}
+                          className='flex items-center'
                         >
-                          {promoter.email}
+                          {promoter.user.email}
                           <Mail size={14} className='ml-1' />
                         </a>
                       </td>
                       <td className='p-4'>
                         <a
-                          href={`tel:${promoter.contactNumber}`}
+                          href={`tel:${promoter.user.phoneNumber}`}
                           className='flex items-center'
                         >
-                          {promoter.contactNumber}
+                          {promoter.user.phoneNumber}
                           <Phone size={14} className='ml-1' />
                         </a>
                       </td>
@@ -143,41 +129,23 @@ export function PromoterTable({
                       <td className='p-4'>
                         <span
                           className={`px-2 py-1 rounded ${
-                            promoter.status === 'Active'
+                            promoter.accountStatus === 'Active'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {promoter.status}
+                          {promoter.accountStatus}
                         </span>
                       </td>
-                      <td className='p-4'>
-                        <div className='flex space-x-4 items-center'>
-                          {/* View */}
-                          <Link href={`/admin/promoter/view/${promoter._id}`}>
-                            <button className='text-gray-400 hover:text-gray-200 transition'>
-                              <Eye size={20} />
-                            </button>
-                          </Link>
-
-                          {/* Edit */}
-                          <Link href={`/admin/promoter/edit/${promoter._id}`}>
-                            <button className='text-blue-500 hover:underline'>
-                              <SquarePen size={20} />
-                            </button>
-                          </Link>
-
-                          {/* Delete */}
-                          <button
-                            onClick={() => {
-                              setIsDelete(true)
-                              setSelectedPromoter(promoter._id)
-                            }}
-                            className='text-red-600 hover:text-red-400 transition'
-                          >
-                            <Trash size={20} />
-                          </button>
-                        </div>
+                      <td className='p-4 align-middle'>
+                        <ActionButtons
+                          viewUrl={`/admin/promoter/view/${promoter._id}`}
+                          editUrl={`/admin/promoter/edit/${promoter._id}`}
+                          onDelete={() => {
+                            setIsDelete(true)
+                            setSelectedPromoter(promoter._id)
+                          }}
+                        />
                       </td>
                     </tr>
                   )

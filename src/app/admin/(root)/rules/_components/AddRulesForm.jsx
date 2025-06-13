@@ -1,15 +1,20 @@
 'use client'
+import { API_BASE_URL, apiConstants } from '.././../../../../constants'
+import useStore from '../../../../../stores/useStore'
 import React, { useState } from 'react'
+import axios from 'axios'
+import { enqueueSnackbar } from 'notistack'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 
 export const AddRulesForm = ({ setShowAddRuleForm }) => {
+  const { user } = useStore()
   const [formData, setFormData] = useState({
-    // Basic Info
-    ruleCategory: '',
-    subTabName: '',
+    category: '',
+    subTab: '',
     subTabRuleDescription: '',
     ruleTitle: '',
     ruleDescription: '',
-    uploadPDF: null,
+    rule: null,
     videoLink: '',
     sortOrder: '',
     status: 'Active',
@@ -19,9 +24,9 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
 
   const validateField = (name, value) => {
     switch (name) {
-      case 'ruleCategory':
+      case 'category':
         return value.trim() === '' ? 'Rule category is required' : ''
-      case 'subTabName':
+      case 'subTab':
         return value.trim() === '' ? 'Sub-tab name is required' : ''
       case 'subTabRuleDescription':
         return value.trim() === ''
@@ -41,7 +46,7 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
           : value.length > 2000
           ? 'Maximum 2000 characters allowed'
           : ''
-      case 'uploadPDF':
+      case 'rule':
         if (value && !value.name.endsWith('.pdf')) {
           return 'Only PDF files are allowed'
         }
@@ -80,11 +85,10 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
       [name]: newValue,
     }))
 
-    // Validate field if it's required
     if (
       [
-        'ruleCategory',
-        'subTabName',
+        'category',
+        'subTab',
         'subTabRuleDescription',
         'ruleTitle',
         'ruleDescription',
@@ -108,8 +112,8 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
     Object.keys(formData).forEach((field) => {
       if (
         [
-          'ruleCategory',
-          'subTabName',
+          'category',
+          'subTab',
           'subTabRuleDescription',
           'ruleTitle',
           'ruleDescription',
@@ -126,10 +130,10 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
     })
 
     // Validate optional fields with content
-    if (formData.uploadPDF) {
-      const error = validateField('uploadPDF', formData.uploadPDF)
+    if (formData.rule) {
+      const error = validateField('rule', formData.rule)
       if (error) {
-        newErrors.uploadPDF = error
+        newErrors.rule = error
         isValid = false
       }
     }
@@ -146,26 +150,43 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
     return isValid
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (validateForm()) {
-      // Handle form submission logic here
-      console.log('Form submitted:', formData)
-      // You would typically send this data to an API endpoint
-    } else {
-      console.log('Form has errors')
+    try {
+      if (validateForm()) {
+        console.log('Form submitted:', formData)
+        if (formData.rule && formData.rule.name.endsWith('.pdf')) {
+          formData.rule = await uploadToS3(formData.rule)
+        }
+        const response = await axios.post(`${API_BASE_URL}/rules`, formData, {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        })
+
+        if (response.status === apiConstants.create) {
+          enqueueSnackbar(response.data.message || 'Rule added successfully', {
+            variant: 'success',
+          })
+          handleCancel()
+        }
+      } else {
+        enqueueSnackbar('Fill all the required fields', { variant: 'error' })
+      }
+    } catch (error) {
+      enqueueSnackbar(error.response.data.message, { variant: 'error' })
     }
   }
 
   const handleCancel = () => {
     setFormData({
-      ruleCategory: '',
-      subTabName: '',
+      category: '',
+      subTab: '',
       subTabRuleDescription: '',
       ruleTitle: '',
       ruleDescription: '',
-      uploadPDF: null,
+      rule: null,
       videoLink: '',
       sortOrder: '',
       status: 'Active',
@@ -204,105 +225,79 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
         <form onSubmit={handleSubmit}>
           {/* Rule Category Section */}
           <div className='mb-6'>
-            <h2 className='text-lg font-semibold mb-3'>
+            <h2 className='text-lg font-semibold mb-2'>
               Rule Category Information
             </h2>
-            {/* Rule Category Field */}
-            <div className='bg-[#00000061] p-2 rounded mb-4'>
-              <label className='block text-sm font-medium mb-1'>
-                Rule Category Tab Name<span className='text-red-500'>*</span>
-              </label>
-              <div className='flex space-x-2'>
-                <select
-                  name='ruleCategory'
-                  value={formData.ruleCategory}
-                  onChange={handleChange}
-                  className='w-2/3 bg-transparent outline-none'
-                  required
-                >
-                  <option value='' className='text-black'>
-                    Select Category
-                  </option>
-                  <option value='Kickboxing' className='text-black'>
-                    Kickboxing
-                  </option>
-                  <option value='Muay Thai' className='text-black'>
-                    Muay Thai
-                  </option>
-                  <option value='Boxing' className='text-black'>
-                    Boxing
-                  </option>
-                  <option value='MMA' className='text-black'>
-                    MMA
-                  </option>
-                </select>
-                <input
-                  type='text'
-                  name='ruleCategory'
-                  value={
-                    formData.ruleCategory === 'custom'
-                      ? formData.ruleCategoryCustom
-                      : ''
-                  }
-                  onChange={handleChange}
-                  placeholder='Or enter custom category'
-                  className='w-1/3 bg-transparent outline-none'
-                  disabled={formData.ruleCategory !== 'custom'}
-                />
+            <div className='grid grid-cols-2 gap-4'>
+              {/* Rule Category Field */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  Rule Category Tab Name<span className='text-red-500'>*</span>
+                </label>
+                <div className='flex space-x-2'>
+                  <select
+                    name='category'
+                    value={formData.category}
+                    onChange={handleChange}
+                    className='w-full bg-transparent outline-none'
+                    required
+                  >
+                    <option value='' className='text-black'>
+                      Select Category
+                    </option>
+                    <option value='Kickboxing' className='text-black'>
+                      Kickboxing
+                    </option>
+                    <option value='Muay Thai' className='text-black'>
+                      Muay Thai
+                    </option>
+                    <option value='Boxing' className='text-black'>
+                      Boxing
+                    </option>
+                    <option value='MMA' className='text-black'>
+                      MMA
+                    </option>
+                  </select>
+                </div>
+                {errors.category && (
+                  <p className='text-red-500 text-xs mt-1'>{errors.category}</p>
+                )}
               </div>
-              {errors.ruleCategory && (
-                <p className='text-red-500 text-xs mt-1'>
-                  {errors.ruleCategory}
-                </p>
-              )}
-            </div>
 
-            {/* Sub-Tab Name */}
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block text-sm font-medium mb-1'>
-                Sub-Tab Name<span className='text-red-500'>*</span>
-              </label>
-              <div className='flex space-x-2'>
-                <select
-                  name='subTabName'
-                  value={formData.subTabName}
-                  onChange={handleChange}
-                  className='w-2/3 bg-transparent outline-none'
-                  required
-                >
-                  <option value='' className='text-black'>
-                    Select Sub-Tab
-                  </option>
-                  <option value='General' className='text-black'>
-                    General
-                  </option>
-                  <option value='Equipment' className='text-black'>
-                    Equipment
-                  </option>
-                  <option value='Judging' className='text-black'>
-                    Judging
-                  </option>
-                  <option value='Other' className='text-black'>
-                    Other
-                  </option>
-                </select>
-                <input
-                  type='text'
-                  name='subTabName'
-                  value={
-                    formData.subTabName === 'custom'
-                      ? formData.subTabNameCustom
-                      : ''
-                  }
-                  onChange={handleChange}
-                  placeholder='Or enter custom sub-tab'
-                  className='w-1/3 bg-transparent outline-none'
-                  disabled={formData.subTabName !== 'custom'}
-                />
+              {/* Sub-Tab Name */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  Sub-Tab Name<span className='text-red-500'>*</span>
+                </label>
+                <div className='flex space-x-2'>
+                  <select
+                    name='subTab'
+                    value={formData.subTab}
+                    onChange={handleChange}
+                    className='w-full bg-transparent outline-none'
+                    required
+                  >
+                    <option value='' className='text-black'>
+                      Select Sub-Tab
+                    </option>
+                    <option value='General' className='text-black'>
+                      General
+                    </option>
+                    <option value='Equipment' className='text-black'>
+                      Equipment
+                    </option>
+                    <option value='Judging' className='text-black'>
+                      Judging
+                    </option>
+                    <option value='Other' className='text-black'>
+                      Other
+                    </option>
+                  </select>
+                </div>
+                {errors.subTab && (
+                  <p className='text-red-500 text-xs mt-1'>{errors.subTab}</p>
+                )}
               </div>
-              {errors.subTabName && (
-                <p className='text-red-500 text-xs mt-1'>{errors.subTabName}</p>
-              )}
             </div>
           </div>
 
@@ -399,7 +394,7 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
               </label>
               <input
                 type='file'
-                name='uploadPDF'
+                name='rule'
                 onChange={handleChange}
                 accept='.pdf'
                 className='w-full bg-transparent outline-none'
@@ -407,8 +402,8 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
               <p className='text-xs text-gray-400 mt-1'>
                 Only PDF files are allowed
               </p>
-              {errors.uploadPDF && (
-                <p className='text-red-500 text-xs mt-1'>{errors.uploadPDF}</p>
+              {errors.rule && (
+                <p className='text-red-500 text-xs mt-1'>{errors.rule}</p>
               )}
             </div>
 

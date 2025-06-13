@@ -2,16 +2,20 @@
 import React, { useState } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
-import { API_BASE_URL } from '../../../constants/index'
+import {
+  API_BASE_URL,
+  apiConstants,
+  APP_BASE_URL,
+} from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
 
 const ForgotPasswordPage = () => {
   const [formData, setFormData] = useState({
     email: '',
+    redirectUrl: `${APP_BASE_URL}/admin/reset-password`,
   })
 
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -24,7 +28,6 @@ const ForgotPasswordPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
     try {
       console.log('Forgot Password data ready to be sent:', formData)
       const res = await axios.post(
@@ -32,14 +35,11 @@ const ForgotPasswordPage = () => {
         formData
       )
       console.log('Forgot Password response:', res.data)
-      if (res.status === 200) {
+      if (res.status === apiConstants.success) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message || 'An error occurred during reset password'
-      )
-      console.error('Reset Password error:', err)
+      console.log('Reset Password error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -48,26 +48,12 @@ const ForgotPasswordPage = () => {
   return (
     <div className='flex h-screen w-full bg-transparent px-28 py-6'>
       <div className='flex w-full'>
-        <div className='hidden md:flex md:w-1/2 bg-gradient-to-b from-purple-900 to-black items-center justify-center'>
-          <div className='p-12'>
-            <img
-              src='/gloves.png'
-              alt='Red boxing glove'
-              className='max-w-full h-auto transform -rotate-12'
-            />
-          </div>
-        </div>
-        <div className='w-full md:w-1/2 flex items-start justify-center p-8'>
+        <div className='w-full flex md:items-center justify-center p-8'>
           <div className='w-full max-w-md'>
             <h1 className='text-3xl font-bold text-white mb-8'>
               Forgot Password
             </h1>
 
-            {error && (
-              <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
-                {error}
-              </div>
-            )}
             <form className='space-y-4' onSubmit={handleSubmit}>
               <div>
                 <input

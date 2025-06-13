@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { API_BASE_URL, roles } from '../../../constants/index'
+import { API_BASE_URL, apiConstants, roles } from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
-import { useRouter } from 'next/navigation'
+import useStore from '../../../stores/useStore'
+import { Country } from 'country-state-city'
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -17,23 +18,19 @@ const SignUpPage = () => {
     dobDay: '',
     dobMonth: '',
     dobYear: '',
-    country: '',
-    mobileNumber: '',
+    countryName: '',
+    countryCode: '',
+    phoneNumber: '',
     termsAgreed: false,
-    // role: roles.user,
+    role: '',
   })
-
-  console.log('Form Data:', formData)
+  const { roles } = useStore()
 
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [countryList, setCountryList] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-
-  const router = useRouter()
 
   // Generate days, months, years for DOB
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -59,221 +56,7 @@ const SignUpPage = () => {
     (_, i) => currentYear - i
   ).filter((year) => year <= currentYear - 18)
 
-  // Load countries list (example)
-  useEffect(() => {
-    const countries = [
-      'Afghanistan',
-      'Albania',
-      'Algeria',
-      'Andorra',
-      'Angola',
-      'Antigua and Barbuda',
-      'Argentina',
-      'Armenia',
-      'Australia',
-      'Austria',
-      'Azerbaijan',
-      'Bahamas',
-      'Bahrain',
-      'Bangladesh',
-      'Barbados',
-      'Belarus',
-      'Belgium',
-      'Belize',
-      'Benin',
-      'Bhutan',
-      'Bolivia',
-      'Bosnia and Herzegovina',
-      'Botswana',
-      'Brazil',
-      'Brunei',
-      'Bulgaria',
-      'Burkina Faso',
-      'Burundi',
-      'Cabo Verde',
-      'Cambodia',
-      'Cameroon',
-      'Canada',
-      'Central African Republic',
-      'Chad',
-      'Chile',
-      'China',
-      'Colombia',
-      'Comoros',
-      'Congo',
-      'Costa Rica',
-      'Croatia',
-      'Cuba',
-      'Cyprus',
-      'Czech Republic',
-      'Denmark',
-      'Djibouti',
-      'Dominica',
-      'Dominican Republic',
-      'Ecuador',
-      'Egypt',
-      'El Salvador',
-      'Equatorial Guinea',
-      'Eritrea',
-      'Estonia',
-      'Eswatini',
-      'Ethiopia',
-      'Fiji',
-      'Finland',
-      'France',
-      'Gabon',
-      'Gambia',
-      'Georgia',
-      'Germany',
-      'Ghana',
-      'Greece',
-      'Grenada',
-      'Guatemala',
-      'Guinea',
-      'Guinea-Bissau',
-      'Guyana',
-      'Haiti',
-      'Honduras',
-      'Hungary',
-      'Iceland',
-      'India',
-      'Indonesia',
-      'Iran',
-      'Iraq',
-      'Ireland',
-      'Israel',
-      'Italy',
-      'Jamaica',
-      'Japan',
-      'Jordan',
-      'Kazakhstan',
-      'Kenya',
-      'Kiribati',
-      'Kosovo',
-      'Kuwait',
-      'Kyrgyzstan',
-      'Laos',
-      'Latvia',
-      'Lebanon',
-      'Lesotho',
-      'Liberia',
-      'Libya',
-      'Liechtenstein',
-      'Lithuania',
-      'Luxembourg',
-      'Madagascar',
-      'Malawi',
-      'Malaysia',
-      'Maldives',
-      'Mali',
-      'Malta',
-      'Marshall Islands',
-      'Mauritania',
-      'Mauritius',
-      'Mexico',
-      'Micronesia',
-      'Moldova',
-      'Monaco',
-      'Mongolia',
-      'Montenegro',
-      'Morocco',
-      'Mozambique',
-      'Myanmar',
-      'Namibia',
-      'Nauru',
-      'Nepal',
-      'Netherlands',
-      'New Zealand',
-      'Nicaragua',
-      'Niger',
-      'Nigeria',
-      'North Korea',
-      'North Macedonia',
-      'Norway',
-      'Oman',
-      'Pakistan',
-      'Palau',
-      'Palestine',
-      'Panama',
-      'Papua New Guinea',
-      'Paraguay',
-      'Peru',
-      'Philippines',
-      'Poland',
-      'Portugal',
-      'Qatar',
-      'Romania',
-      'Russia',
-      'Rwanda',
-      'Saint Kitts and Nevis',
-      'Saint Lucia',
-      'Saint Vincent and the Grenadines',
-      'Samoa',
-      'San Marino',
-      'Sao Tome and Principe',
-      'Saudi Arabia',
-      'Senegal',
-      'Serbia',
-      'Seychelles',
-      'Sierra Leone',
-      'Singapore',
-      'Slovakia',
-      'Slovenia',
-      'Solomon Islands',
-      'Somalia',
-      'South Africa',
-      'South Korea',
-      'South Sudan',
-      'Spain',
-      'Sri Lanka',
-      'Sudan',
-      'Suriname',
-      'Sweden',
-      'Switzerland',
-      'Syria',
-      'Taiwan',
-      'Tajikistan',
-      'Tanzania',
-      'Thailand',
-      'Timor-Leste',
-      'Togo',
-      'Tonga',
-      'Trinidad and Tobago',
-      'Tunisia',
-      'Turkey',
-      'Turkmenistan',
-      'Tuvalu',
-      'Uganda',
-      'Ukraine',
-      'United Arab Emirates',
-      'United Kingdom',
-      'United States',
-      'Uruguay',
-      'Uzbekistan',
-      'Vanuatu',
-      'Vatican City',
-      'Venezuela',
-      'Vietnam',
-      'Yemen',
-      'Zambia',
-      'Zimbabwe',
-    ]
-    setCountryList(countries)
-  }, [])
-
-  // Country code mapping
-  const countryCodeMap = {
-    'United States': '+1',
-    'United Kingdom': '+44',
-    India: '+91',
-    Australia: '+61',
-    Canada: '+1',
-    Germany: '+49',
-    France: '+33',
-    China: '+86',
-    Japan: '+81',
-    // Add more countries as needed
-  }
+  const countries = Country.getAllCountries()
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -281,21 +64,13 @@ const SignUpPage = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     })
-
-    // Handle country suggestions
-    if (name === 'country') {
-      const filtered = countryList.filter((country) =>
-        country.toLowerCase().includes(value.toLowerCase())
-      )
-      setSuggestions(filtered.slice(0, 5))
-      setShowSuggestions(filtered.length > 0 && value !== '')
-    }
   }
 
-  const selectCountry = (country) => {
+  const selectCountry = (countryObj) => {
     setFormData({
       ...formData,
-      country,
+      countryName: countryObj.name,
+      countryCode: countryObj.isoCode,
     })
     setShowSuggestions(false)
   }
@@ -333,10 +108,11 @@ const SignUpPage = () => {
     return /^\d+$/.test(number)
   }
 
+  console.log('Form data:', formData)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
 
     try {
       // Validate first and last name
@@ -387,29 +163,45 @@ const SignUpPage = () => {
       }
 
       // Validate mobile number
-      if (!validateMobileNumber(formData.mobileNumber)) {
-        enqueueSnackbar('Mobile number should contain only digits', {
+      if (!validateMobileNumber(formData.phoneNumber)) {
+        enqueueSnackbar('Phone number should contain only digits', {
           variant: 'warning',
         })
         setIsLoading(false)
         return
       }
 
-      console.log('Registration data ready to be sent:', formData)
-      const res = await axios.post(`${API_BASE_URL}/auth/signup`, formData)
+      const payload = {
+        ...formData,
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verify-email`,
+        country: formData.countryCode,
+      }
+      delete payload.countryCode
+      delete payload.countryName
+
+      console.log('Registration data ready to be sent:', payload)
+      const res = await axios.post(`${API_BASE_URL}/auth/signup`, payload)
       console.log('Registration response:', res)
-      if (res.status === 201) {
-        enqueueSnackbar(
-          'Account Created! Please check your inbox and verify your email.',
-          { variant: 'success' }
-        )
-        router.push('/login')
+      if (res.status === apiConstants.create) {
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          dobDay: '',
+          dobMonth: '',
+          dobYear: '',
+          countryName: '',
+          countryCode: '',
+          phoneNumber: '',
+          termsAgreed: false,
+          role: '',
+        })
       }
     } catch (err) {
-      console.error('Registration error:', err)
-      setError(
-        err?.response?.data?.message || 'An error occurred during registration'
-      )
+      console.log('Registration error:', err)
       enqueueSnackbar(
         err?.response?.data?.message || 'An error occurred during registration',
         { variant: 'error' }
@@ -439,11 +231,6 @@ const SignUpPage = () => {
                 *Indicates Mandatory Fields
               </span>
             </div>
-            {error && (
-              <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
-                {error}
-              </div>
-            )}
             <form className='space-y-4' onSubmit={handleSubmit}>
               {/* First Name */}
               <div>
@@ -482,6 +269,29 @@ const SignUpPage = () => {
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
                 />
+              </div>
+
+              <div>
+                <select
+                  name='role'
+                  value={formData.role}
+                  onChange={handleChange}
+                  className='w-full px-2 py-3 rounded border border-gray-700 bg-transparent text-white'
+                  required
+                >
+                  <option value='' className='text-black'>
+                    Select Role
+                  </option>
+                  {roles.map((role) => (
+                    <option
+                      key={role?._id}
+                      value={role.value}
+                      className='text-black'
+                    >
+                      {role.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Password */}
@@ -595,26 +405,48 @@ const SignUpPage = () => {
               <div className='relative'>
                 <input
                   type='text'
-                  name='country'
+                  name='countryName'
                   placeholder='Enter Country*'
-                  value={formData.country}
-                  onChange={handleChange}
-                  onFocus={() =>
-                    formData.country &&
-                    setSuggestions(
-                      countryList
-                        .filter((c) =>
-                          c
-                            .toLowerCase()
-                            .includes(formData.country.toLowerCase())
-                        )
-                        .slice(0, 5)
-                    )
-                  }
+                  value={formData.countryName}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setFormData({
+                      ...formData,
+                      countryName: value,
+                      countryCode: '',
+                    })
+
+                    if (value.trim() !== '') {
+                      setSuggestions(
+                        countries
+                          .filter((c) =>
+                            c.name.toLowerCase().includes(value.toLowerCase())
+                          )
+                          .slice(0, 5)
+                      )
+                      setShowSuggestions(true)
+                    } else {
+                      setShowSuggestions(false)
+                    }
+                  }}
+                  onFocus={() => {
+                    if (formData.countryName.trim() !== '') {
+                      setSuggestions(
+                        countries
+                          .filter((c) =>
+                            c.name
+                              .toLowerCase()
+                              .includes(formData.countryName.toLowerCase())
+                          )
+                          .slice(0, 5)
+                      )
+                      setShowSuggestions(true)
+                    }
+                  }}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
                 />
-                {showSuggestions && (
+                {showSuggestions && suggestions.length > 0 && (
                   <div className='absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded max-h-60 overflow-auto'>
                     {suggestions.map((country, index) => (
                       <div
@@ -622,7 +454,7 @@ const SignUpPage = () => {
                         className='px-4 py-2 text-white hover:bg-gray-700 cursor-pointer'
                         onClick={() => selectCountry(country)}
                       >
-                        {country}
+                        {country.name}
                       </div>
                     ))}
                   </div>
@@ -633,13 +465,15 @@ const SignUpPage = () => {
               <div>
                 <div className='flex'>
                   <div className='w-1/4 px-4 py-3 rounded-l border border-gray-700 bg-gray-800 text-white flex items-center justify-center'>
-                    {countryCodeMap[formData.country] || '+0'}
+                    +
+                    {countries.find((c) => c.isoCode === formData.countryCode)
+                      ?.phonecode || '0'}
                   </div>
                   <input
                     type='tel'
-                    name='mobileNumber'
+                    name='phoneNumber'
                     placeholder='Enter Mobile Number*'
-                    value={formData.mobileNumber}
+                    value={formData.phoneNumber}
                     onChange={handleChange}
                     className='w-3/4 px-4 py-3 rounded-r border border-gray-700 bg-transparent text-white'
                     required

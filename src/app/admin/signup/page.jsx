@@ -3,10 +3,9 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { API_BASE_URL, countries } from '../../../constants/index'
+import { API_BASE_URL, apiConstants } from '../../../constants/index'
 import { enqueueSnackbar } from 'notistack'
-import { useRouter } from 'next/navigation'
-import { roles } from '../../../constants/index'
+import { Country } from 'country-state-city'
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -18,23 +17,20 @@ const SignUpPage = () => {
     dobDay: '',
     dobMonth: '',
     dobYear: '',
-    country: 'United States',
-    mobileNumber: '',
+    countryName: '',
+    countryCode: '',
+    phoneNumber: '',
     termsAgreed: false,
-    // role: roles.admin,
+    role: 'superAdmin',
   })
 
   console.log('Form Data:', formData)
 
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [countryList, setCountryList] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-
-  const router = useRouter()
 
   // Generate days, months, years for DOB
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -60,24 +56,7 @@ const SignUpPage = () => {
     (_, i) => currentYear - i
   ).filter((year) => year <= currentYear - 18)
 
-  // Load countries list
-  useEffect(() => {
-    setCountryList(countries)
-  }, [])
-
-  // Country code mapping
-  const countryCodeMap = {
-    'United States': '+1',
-    'United Kingdom': '+44',
-    India: '+91',
-    Australia: '+61',
-    Canada: '+1',
-    Germany: '+49',
-    France: '+33',
-    China: '+86',
-    Japan: '+81',
-    // Add more countries as needed
-  }
+  const countries = Country.getAllCountries()
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -96,10 +75,11 @@ const SignUpPage = () => {
     }
   }
 
-  const selectCountry = (country) => {
+  const selectCountry = (countryObj) => {
     setFormData({
       ...formData,
-      country,
+      countryName: countryObj.name,
+      countryCode: countryObj.isoCode,
     })
     setShowSuggestions(false)
   }
@@ -140,7 +120,6 @@ const SignUpPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
 
     try {
       // Validate first and last name
@@ -191,30 +170,46 @@ const SignUpPage = () => {
       }
 
       // Validate mobile number
-      if (!validateMobileNumber(formData.mobileNumber)) {
-        enqueueSnackbar('Mobile number should contain only digits', {
+      if (!validateMobileNumber(formData.phoneNumber)) {
+        enqueueSnackbar('Phone number should contain only digits', {
           variant: 'warning',
         })
         setIsLoading(false)
         return
       }
 
+      const payload = {
+        ...formData,
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/verify-email`,
+        country: formData.countryCode,
+      }
+      delete payload.countryCode
+      delete payload.countryName
+
       console.log('Registration data ready to be sent:', formData)
 
-      const res = await axios.post(`${API_BASE_URL}/auth/signup`, formData)
+      const res = await axios.post(`${API_BASE_URL}/auth/signup`, payload)
       console.log('Registration response:', res)
-      if (res.status === 201) {
-        enqueueSnackbar(
-          'Account Created! Please check your inbox and verify your email.',
-          { variant: 'success' }
-        )
-        router.push('/login')
+      if (res.status === apiConstants.create) {
+        enqueueSnackbar(res.data.message, { variant: 'success' })
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          dobDay: '',
+          dobMonth: '',
+          dobYear: '',
+          countryName: '',
+          countryCode: '',
+          phoneNumber: '',
+          termsAgreed: false,
+          role: 'superAdmin',
+        })
       }
     } catch (err) {
-      console.error('Registration error:', err)
-      setError(
-        err?.response?.data?.message || 'An error occurred during registration'
-      )
+      console.log('Registration error:', err)
       enqueueSnackbar(
         err?.response?.data?.message || 'An error occurred during registration',
         { variant: 'error' }
@@ -235,11 +230,6 @@ const SignUpPage = () => {
                 *Indicates Mandatory Fields
               </span>
             </div>
-            {error && (
-              <div className='border border-red-500 text-red-500 px-4 py-2 rounded mb-4'>
-                {error}
-              </div>
-            )}
             <form className='space-y-4' onSubmit={handleSubmit}>
               {/* First Name */}
               <div>
@@ -391,26 +381,48 @@ const SignUpPage = () => {
               <div className='relative'>
                 <input
                   type='text'
-                  name='country'
+                  name='countryName'
                   placeholder='Enter Country*'
-                  value={formData.country}
-                  onChange={handleChange}
-                  onFocus={() =>
-                    formData.country &&
-                    setSuggestions(
-                      countryList
-                        .filter((c) =>
-                          c
-                            .toLowerCase()
-                            .includes(formData.country.toLowerCase())
-                        )
-                        .slice(0, 5)
-                    )
-                  }
+                  value={formData.countryName}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setFormData({
+                      ...formData,
+                      countryName: value,
+                      countryCode: '',
+                    })
+
+                    if (value.trim() !== '') {
+                      setSuggestions(
+                        countries
+                          .filter((c) =>
+                            c.name.toLowerCase().includes(value.toLowerCase())
+                          )
+                          .slice(0, 5)
+                      )
+                      setShowSuggestions(true)
+                    } else {
+                      setShowSuggestions(false)
+                    }
+                  }}
+                  onFocus={() => {
+                    if (formData.countryName.trim() !== '') {
+                      setSuggestions(
+                        countries
+                          .filter((c) =>
+                            c.name
+                              .toLowerCase()
+                              .includes(formData.countryName.toLowerCase())
+                          )
+                          .slice(0, 5)
+                      )
+                      setShowSuggestions(true)
+                    }
+                  }}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
                 />
-                {showSuggestions && (
+                {showSuggestions && suggestions.length > 0 && (
                   <div className='absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded max-h-60 overflow-auto'>
                     {suggestions.map((country, index) => (
                       <div
@@ -418,7 +430,7 @@ const SignUpPage = () => {
                         className='px-4 py-2 text-white hover:bg-gray-700 cursor-pointer'
                         onClick={() => selectCountry(country)}
                       >
-                        {country}
+                        {country.name}
                       </div>
                     ))}
                   </div>
@@ -429,13 +441,15 @@ const SignUpPage = () => {
               <div>
                 <div className='flex'>
                   <div className='w-1/4 px-4 py-3 rounded-l border border-gray-700 bg-gray-800 text-white flex items-center justify-center'>
-                    {countryCodeMap[formData.country] || '+0'}
+                    +
+                    {countries.find((c) => c.isoCode === formData.countryCode)
+                      ?.phonecode || '0'}
                   </div>
                   <input
                     type='tel'
-                    name='mobileNumber'
+                    name='phoneNumber'
                     placeholder='Enter Mobile Number*'
-                    value={formData.mobileNumber}
+                    value={formData.phoneNumber}
                     onChange={handleChange}
                     className='w-3/4 px-4 py-3 rounded-r border border-gray-700 bg-transparent text-white'
                     required
