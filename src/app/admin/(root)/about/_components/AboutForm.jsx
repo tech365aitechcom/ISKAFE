@@ -688,9 +688,13 @@ export const AboutForm = () => {
                 </label>
                 {termsAndConditionsFileName ? (
                   <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
-                    <span className='text-sm truncate'>
+                    <a
+                      href={formData.termsConditionsPDF}
+                      target='_blank'
+                      className='text-sm truncate'
+                    >
                       {termsAndConditionsFileName}
-                    </span>
+                    </a>
                     <button
                       type='button'
                       onClick={() => handleRemoveLegalDoc('termsConditionsPDF')}
@@ -730,9 +734,13 @@ export const AboutForm = () => {
                 </label>
                 {privacyPolicyFileName ? (
                   <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
-                    <span className='text-sm truncate'>
+                    <a
+                      href={formData.privacyPolicyPDF}
+                      target='_blank'
+                      className='text-sm truncate'
+                    >
                       {privacyPolicyFileName}
-                    </span>
+                    </a>
                     <button
                       type='button'
                       onClick={() => handleRemoveLegalDoc('privacyPolicyPDF')}
@@ -772,9 +780,13 @@ export const AboutForm = () => {
                 </label>
                 {copyrightNoticeFileName ? (
                   <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
-                    <span className='text-sm truncate'>
+                    <a
+                      href={formData.copyrightNoticePDF}
+                      target='_blank'
+                      className='text-sm truncate'
+                    >
                       {copyrightNoticeFileName}
-                    </span>
+                    </a>
                     <button
                       type='button'
                       onClick={() => handleRemoveLegalDoc('copyrightNoticePDF')}

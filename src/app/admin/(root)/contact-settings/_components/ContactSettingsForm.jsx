@@ -1,7 +1,7 @@
 'use client'
 import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
-import { Send, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
@@ -213,7 +213,7 @@ export const ContactSettingsForm = () => {
                 onClick={handleAddEmailRecipient}
                 className='bg-[#7F25FB] px-4 rounded-r flex items-center justify-center'
               >
-                <Send className='w-5 h-5' />
+                <Plus className='w-5 h-5' />
               </button>
             </div>
             {emailError && (

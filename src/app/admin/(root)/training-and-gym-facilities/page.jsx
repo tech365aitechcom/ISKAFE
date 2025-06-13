@@ -12,6 +12,7 @@ import { enqueueSnackbar } from 'notistack'
 import Loader from '../../../_components/Loader'
 import useStore from '../../../../stores/useStore'
 import ConfirmationModal from '../../../_components/ConfirmationModal'
+import Link from 'next/link'
 
 export default function TrainingAndGymFacilities() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -125,16 +126,6 @@ export default function TrainingAndGymFacilities() {
     setSelectedStyles([])
     setSelectedStatus('')
     setSelectedApprovalStatus('')
-  }
-
-  const handleViewProfile = (facility) => {
-    console.log('Viewing profile for:', facility.name)
-    // Route to public facility detail page
-  }
-
-  const handleEdit = (facility) => {
-    console.log('Editing facility:', facility.name)
-    // Open edit form with prefilled data
   }
 
   const handleApprove = async (facilityId) => {
@@ -527,20 +518,26 @@ export default function TrainingAndGymFacilities() {
                         </td>
                         <td className='p-4 align-middle'>
                           <div className='flex items-center justify-start space-x-4'>
-                            <button
-                              onClick={() => handleViewProfile(facility)}
-                              className='text-gray-400 hover:text-gray-200 transition flex items-center justify-center'
-                              title='View Profile'
+                            <Link
+                              href={`/admin/training-and-gym-facilities/view/${facility._id}`}
                             >
-                              <Eye size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleEdit(facility)}
-                              className='text-green-400 hover:text-green-300'
-                              title='Edit'
+                              <button
+                                className='text-gray-400 hover:text-gray-200 transition flex items-center justify-center'
+                                title='View Profile'
+                              >
+                                <Eye size={18} />
+                              </button>
+                            </Link>
+                            <Link
+                              href={`/admin/training-and-gym-facilities/edit/${facility._id}`}
                             >
-                              <Edit size={18} />
-                            </button>
+                              <button
+                                className='text-green-400 hover:text-green-300'
+                                title='Edit'
+                              >
+                                <Edit size={18} />
+                              </button>
+                            </Link>
                             {facility.adminApproveStatus === 'Pending' && (
                               <button
                                 onClick={() => handleApprove(facility._id)}

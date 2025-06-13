@@ -13,6 +13,8 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import { countries } from '../../../../../constants'
+import { City, Country, State } from 'country-state-city'
+import Link from 'next/link'
 
 const TrainerRegistrationPage = ({ params }) => {
   const { id } = use(params)
@@ -48,6 +50,15 @@ const TrainerRegistrationPage = ({ params }) => {
     cvv: '',
     cashCode: '',
   })
+
+  const countries = Country.getAllCountries()
+  const states = formData.country
+    ? State.getStatesOfCountry(formData.country)
+    : []
+  const cities =
+    formData.country && formData.state
+      ? City.getCitiesOfState(formData.country, formData.state)
+      : []
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -106,7 +117,6 @@ const TrainerRegistrationPage = ({ params }) => {
       // Handle form submission
       console.log('Form submitted:', formData)
       alert('Registration completed successfully!')
-      setIsOpen(false)
     }
   }
 
@@ -168,20 +178,35 @@ const TrainerRegistrationPage = ({ params }) => {
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
         {[
-          { label: 'Date of Birth', name: 'dateOfBirth', type: 'date' },
-          { label: 'Phone Number', name: 'phoneNumber', type: 'tel' },
-          { label: 'Email Address', name: 'email', type: 'email' },
-          { label: 'Street Address1', name: 'street1' },
           {
-            label: 'Street Address2',
-            name: 'street2',
+            label: 'Date of Birth',
+            name: 'dateOfBirth',
+            type: 'date',
+            required: true,
           },
-          { label: 'City', name: 'city' },
+          {
+            label: 'Phone Number',
+            name: 'phoneNumber',
+            type: 'tel',
+            required: true,
+          },
+          {
+            label: 'Email Address',
+            name: 'email',
+            type: 'email',
+            required: true,
+          },
+          { label: 'Street 1', name: 'street1', required: true },
+          {
+            label: 'Street 2',
+            name: 'street2',
+            required: false,
+          },
         ].map((field) => (
           <div key={field.name} className='bg-[#00000061] p-2 rounded'>
             <label className='block font-medium mb-1'>
               {field.label}
-              <span className='text-red-500'>*</span>
+              <span className='text-red-500'>{field.required ? '*' : ''}</span>
             </label>
             <input
               type={field.type || 'text'}
@@ -197,35 +222,78 @@ const TrainerRegistrationPage = ({ params }) => {
             />
           </div>
         ))}
-      </div>
-
-      <div className='grid grid-cols-3 gap-4'>
-        <div className='bg-[#00000030] p-2 rounded'>
-          <label className='block font-medium mb-1'>State</label>
+        <div className='bg-[#00000061] p-2 rounded'>
+          <label className='block font-medium mb-1'>
+            Country <span className='text-red-500'>*</span>
+          </label>
+          <select
+            name='country'
+            value={formData.country}
+            onChange={handleChange}
+            className='w-full outline-none bg-transparent text-white'
+            required
+          >
+            <option value='' className='text-black'>
+              Select Country
+            </option>
+            {countries.map((country) => (
+              <option
+                key={country.isoCode}
+                value={country.isoCode}
+                className='text-black'
+              >
+                {country.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className='bg-[#00000061] p-2 rounded'>
+          <label className='block font-medium mb-1'>
+            State <span className='text-red-500'>*</span>
+          </label>
           <select
             name='state'
             value={formData.state}
             onChange={handleChange}
             className='w-full outline-none bg-transparent text-white'
+            required
+            disabled={!formData.country}
           >
             <option value='' className='text-black'>
               Select State
             </option>
-            <option value='AL' className='text-black'>
-              Alabama
+            {states.map((state) => (
+              <option
+                key={state.isoCode}
+                value={state.isoCode}
+                className='text-black'
+              >
+                {state.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className='bg-[#00000061] p-2 rounded'>
+          <label className='block font-medium mb-1'>
+            City<span className='text-red-500'>*</span>
+          </label>
+          <select
+            name='city'
+            value={formData.city}
+            onChange={handleChange}
+            className='w-full outline-none bg-transparent text-white'
+            required
+            disabled={!formData.state}
+          >
+            <option value='' className='text-black'>
+              Select City
             </option>
-            <option value='CA' className='text-black'>
-              California
-            </option>
-            <option value='FL' className='text-black'>
-              Florida
-            </option>
-            <option value='NY' className='text-black'>
-              New York
-            </option>
-            <option value='TX' className='text-black'>
-              Texas
-            </option>
+            {cities.map((city) => (
+              <option key={city.name} value={city.name} className='text-black'>
+                {city.name}
+              </option>
+            ))}
           </select>
         </div>
         <div className='bg-[#00000061] p-2 rounded'>
@@ -238,32 +306,6 @@ const TrainerRegistrationPage = ({ params }) => {
             placeholder='Enter ZIP Code'
             className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
           />
-        </div>
-
-        <div className='bg-[#00000030] p-2 rounded'>
-          <label className='block font-medium mb-1'>Country</label>
-          <select
-            name='country'
-            value={formData.country}
-            onChange={handleChange}
-            className='w-full outline-none bg-transparent text-white'
-          >
-            <option value='' className='text-black'>
-              Select Country
-            </option>
-            <option value='USA' className='text-black'>
-              United States
-            </option>
-            <option value='Canada' className='text-black'>
-              Canada
-            </option>
-            <option value='UK' className='text-black'>
-              United Kingdom
-            </option>
-            <option value='Other' className='text-black'>
-              Other
-            </option>
-          </select>
         </div>
       </div>
     </div>
@@ -543,13 +585,14 @@ const TrainerRegistrationPage = ({ params }) => {
           {renderStepContent()}
 
           <div className='flex justify-between mt-8'>
-            <button
-              type='button'
-              onClick={() => setIsOpen(false)}
-              className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
-            >
-              Cancel
-            </button>
+            <Link href={`/events/${id}`}>
+              <button
+                type='button'
+                className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
+              >
+                Go back to event details
+              </button>
+            </Link>
 
             <div className='flex space-x-4'>
               {currentStep > 1 && (
@@ -559,7 +602,7 @@ const TrainerRegistrationPage = ({ params }) => {
                   className='flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded font-semibold hover:bg-gray-700 transition-colors'
                 >
                   <ChevronLeft className='w-4 h-4' />
-                  <span>Back</span>
+                  <span>Previous</span>
                 </button>
               )}
 

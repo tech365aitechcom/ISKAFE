@@ -1,4 +1,11 @@
+'use client'
+import axios from 'axios'
 import { Button } from '../../../components/ui/button'
+import { API_BASE_URL } from '../../constants'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import Loader from '../_components/Loader'
+import moment from 'moment'
 
 const fighters = [
   { name: 'Tugruk Smith', record: '16–2', image: '/fighter.png' },
@@ -40,48 +47,82 @@ const media = [
 ]
 
 export default function Home() {
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(null)
+  const [latestNews, setLatestNews] = useState(null)
+
+  useEffect(() => {
+    const fetchHomeSettings = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/home-config`)
+        setData(response.data.data)
+        setLatestNews(response.data.latestNews)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchHomeSettings()
+  }, [])
+
+  console.log('data', data)
+
+  if (loading) {
+    return (
+      <div className='flex items-center justify-center h-screen w-full bg-[#07091D]'>
+        <Loader />
+      </div>
+    )
+  }
+
   return (
     <main>
       {/* Hero Section */}
-      <section className='bg-transparent w-full flex flex-col md:flex-row lg:px-40'>
-        <div className='flex-1 p-8 pt-16 pb-16 flex flex-col justify-center'>
-          <h1 className='text-white font-bold text-4xl md:text-5xl uppercase tracking-wide'>
-            COMBAT SPORTS
-          </h1>
-          <h2 className='text-red-500 font-bold text-4xl md:text-5xl uppercase tracking-wide mt-2'>
-            CIRCUIT
-          </h2>
-          <p className='text-white text-xl mt-4 max-w-lg leading-relaxed'>
-            Where Kickboxing, Muey Thai, and boxing champions are forged
+      <section className='bg-transparent w-full flex flex-col lg:flex-row px-4 md:px-10 lg:px-40 py-12 gap-10'>
+        <div className='flex-1 flex flex-col justify-center text-center lg:text-left'>
+          {(() => {
+            const name = data?.platformName || ''
+            const words = name.trim().split(' ')
+            const firstLine = words.slice(0, -1).join(' ')
+            const lastWord = words[words.length - 1]
+
+            return (
+              <>
+                <h1 className='text-white font-bold text-3xl sm:text-4xl md:text-5xl uppercase tracking-wide'>
+                  {firstLine}
+                </h1>
+                <h2 className='text-red-500 font-bold text-3xl sm:text-4xl md:text-5xl uppercase tracking-wide mt-2'>
+                  {lastWord}
+                </h2>
+              </>
+            )
+          })()}
+
+          <p className='text-white text-lg sm:text-xl mt-4 max-w-xl mx-auto lg:mx-0 leading-relaxed'>
+            {data?.tagline}
           </p>
 
-          <div className='mt-6 flex justify-between w-full'>
-            <Button
-              variant='destructive'
-              size='lg'
-              className='py-6 text-xl rounded'
-            >
-              Register Now
-            </Button>
+          <div className='mt-6 flex justify-center lg:justify-start'>
+            <Link href={data?.cta?.link || '#'}>
+              <Button
+                variant='destructive'
+                size='lg'
+                className='py-4 px-8 text-lg rounded'
+              >
+                {data?.cta?.text}
+              </Button>
+            </Link>
           </div>
         </div>
-        <div className='flex-1 border-4 border-red-600 relative overflow-hidden w-[530px] h-[600px]'>
+
+        <div className='flex-1 relative overflow-hidden border-4 border-red-600 w-full h-[400px] sm:h-[500px] md:h-[600px]'>
           <img
-            src='/hero.png'
-            alt='Kickboxer in white gloves'
+            src={data?.heroImage}
+            alt={data?.platformName}
             className='w-full h-full object-cover'
           />
           <div className='absolute inset-0 bg-gradient-to-r from-blue-900/30 to-red-600/30'></div>
-          <div className='absolute bottom-6 left-0 right-0 flex justify-center space-x-2'>
-            {[0, 1, 2, 3, 4].map((_, i) => (
-              <div
-                key={i}
-                className={`h-2 w-2 rounded-full ${
-                  i === 0 ? 'bg-white' : 'bg-gray-500'
-                }`}
-              />
-            ))}
-          </div>
         </div>
       </section>
 
@@ -153,7 +194,7 @@ export default function Home() {
         <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
           Recent Event Results
         </h2>
-        <div className='flex justify-evenly w-full'>
+        <div className='flex flex-wrap gap-4 justify-evenly w-full'>
           <img
             src='/fighter.png'
             alt='Tugruk Smith'
@@ -182,24 +223,40 @@ export default function Home() {
         <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
           News Post
         </h2>
-        <div className='flex justify-evenly w-full'>
-          <div className='flex flex-col gap-4 justify-center text-white text-right '>
-            <h2 className='text-5xl'>Kickboxing Championship</h2>
-            <p className='text-2xl'>April 19,2025</p>
+        <div className='flex flex-wrap md:justify-evenly w-full'>
+          <div className='flex flex-col gap-4 justify-center text-white md:text-right '>
+            {(() => {
+              const words = latestNews?.title?.split(' ') || []
+              const firstLine = words.slice(0, 4).join(' ')
+              const secondLine = words.slice(4).join(' ')
+              return (
+                <h2 className='text-3xl md:text-5xl font-bold mb-4 leading-tight'>
+                  {firstLine}
+                  <br />
+                  <span className='text-red-500'>{secondLine}</span>
+                </h2>
+              )
+            })()}
+
+            <p className='text-2xl'>
+              {moment(latestNews?.publishDate).format('LL')}
+            </p>
             <div className='w-full flex items-center justify-end mt-10'>
-              <Button
-                variant='destructive'
-                size='lg'
-                className='py-6 text-xl rounded '
-              >
-                Read More
-              </Button>
+              <Link href='/news'>
+                <Button
+                  variant='destructive'
+                  size='lg'
+                  className='py-6 text-xl rounded '
+                >
+                  Read More
+                </Button>
+              </Link>
             </div>
           </div>
           <img
-            src='/fighter.png'
-            alt='Tugruk Smith'
-            className=' h-[300px] object-contain rounded-md'
+            src={latestNews?.coverImage}
+            alt={latestNews?.title}
+            className=' h-[400px] w-[600px] object-contain rounded-md'
           />
         </div>
       </section>

@@ -260,7 +260,7 @@ export default function EventRegistrationListing() {
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex justify-between items-center mb-6'>
           <h2 className='text-2xl font-semibold leading-8'>
-            Fighter Registration Forms
+            Registration Forms
           </h2>
           {/* Get Forms Button */}
           <div className='mb-6'>

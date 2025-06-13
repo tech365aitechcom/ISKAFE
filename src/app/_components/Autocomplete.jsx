@@ -9,6 +9,7 @@ const Autocomplete = ({
   multiple = false,
   required = false,
   placeholder = 'Search...',
+  readOnly = false,
 }) => {
   const [inputValue, setInputValue] = useState('')
   const [isFocused, setIsFocused] = useState(false)
@@ -125,6 +126,7 @@ const Autocomplete = ({
           onFocus={() => setIsFocused(true)}
           className='flex-1 bg-transparent text-sm text-white placeholder-gray-400 outline-none min-w-[100px]'
           required={required}
+          readOnly={readOnly}
         />
       </div>
 

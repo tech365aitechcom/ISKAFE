@@ -6,20 +6,32 @@ import ChangePassword from './_components/ChangePassword'
 import useStore from '../../../../stores/useStore'
 import axios from 'axios'
 import { API_BASE_URL } from '../../../../constants'
+import Loader from '../../../_components/Loader'
 
 export default function MyProfile() {
   const [type, setType] = useState('View Profile')
   const { user, setUser } = useStore()
+  const [loading, setLoading] = useState(false)
   const [userDetails, setUserDetails] = useState(null)
 
   const getUserDetails = async () => {
-    const response = await axios.get(`${API_BASE_URL}/auth/users/${user._id}`, {
-      headers: {
-        Authorization: `Bearer ${user.token}`,
-      },
-    })
-    console.log('User details:', response.data)
-    setUserDetails(response.data.data)
+    setLoading(true)
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/auth/users/${user._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      )
+      console.log('User details:', response.data)
+      setUserDetails(response.data.data)
+    } catch (error) {
+      console.log('Error fetching user details:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -27,6 +39,10 @@ export default function MyProfile() {
       getUserDetails()
     }
   }, [user])
+
+  if (loading) {
+    return <Loader />
+  }
 
   return (
     <div className=' text-white p-8 flex justify-center relative overflow-hidden'>

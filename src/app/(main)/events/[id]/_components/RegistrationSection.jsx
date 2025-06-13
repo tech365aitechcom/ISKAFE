@@ -30,10 +30,7 @@ export default function RegistrationSection({ eventId, padding }) {
 
         <div className='mt-6 w-full'>
           <Link href={`/events/trainer-registration/${eventId}`}>
-            <Button
-              onClick={() => handleOpenModal('trainer')}
-              className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl font-semibold'
-            >
+            <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl font-semibold'>
               Register As Trainer
             </Button>
           </Link>

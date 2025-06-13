@@ -6,9 +6,9 @@ import moment from 'moment'
 import FightCard from './_components/FightCard'
 import Loader from '../../../_components/Loader'
 import RegistrationSection from './_components/RegistrationSection'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ArrowLeftIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const page = ({ params }) => {
   const { id } = use(params)
@@ -138,6 +138,10 @@ const page = ({ params }) => {
                   className='w-full rounded-lg mb-6'
                 />
                 <RegistrationSection eventId={id} />
+
+                <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 my-2 w-full rounded-sm text-xl font-semibold'>
+                  Buy Tickets
+                </Button>
                 {eventDetails?.externalURL && (
                   <a
                     href={eventDetails.externalURL}

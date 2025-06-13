@@ -341,12 +341,25 @@ export default function ContactUsReports() {
                         )}
                       </td>
                       <td className='px-4 py-3'>
-                        <button
-                          onClick={() => handleSendResponse(report._id)}
-                          className='text-purple-400 hover:text-purple-300 flex items-center gap-1'
+                        <a
+                          href={`mailto:${
+                            report.createdBy?.email
+                          }?subject=${encodeURIComponent(
+                            `IKF Fight Platform Support - We got your message`
+                          )}&body=${encodeURIComponent(
+                            `Hi ${
+                              report.createdBy?.firstName +
+                              ' ' +
+                              report.createdBy?.lastName
+                            },\n\nYou wrote: \n\n ${report.topic},${
+                              report.subIssue
+                            } -  ${report.message}.\n\nI added ${
+                              report.assignedAdmin
+                            } (IKF official) who can help you with this issue.\n\nIKF Fight Platform Support`
+                          )}`}
                         >
-                          <Mail size={16} />
-                        </button>
+                          <Mail size={18} />
+                        </a>
                       </td>
                       <td className='px-4 py-3'>
                         {report.state !== 'Closed' ? (

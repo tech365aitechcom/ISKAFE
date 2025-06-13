@@ -17,6 +17,7 @@ import useStore from '../../../../../stores/useStore'
 import React, { use, useState } from 'react'
 import Link from 'next/link'
 import { City, Country, State } from 'country-state-city'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 
 const steps = [
   'Personal Info',
@@ -250,6 +251,10 @@ const FighterRegistrationPage = ({ params }) => {
     }
 
     try {
+      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
+        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+      }
+
       const payload = {
         ...formData,
         createdBy: user?.id,
