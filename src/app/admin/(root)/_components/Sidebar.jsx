@@ -84,7 +84,7 @@ export function Sidebar() {
     { href: '/admin/news', icon: <Newspaper size={18} />, title: 'News' },
     { href: '/admin/rules', icon: <Scale size={18} />, title: 'Rules' },
     {
-      href: '/admin/promoters',
+      href: '/admin/promoter',
       icon: <User size={18} />,
       title: 'Promoters',
     },

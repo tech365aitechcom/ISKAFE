@@ -10,7 +10,7 @@ export function ExportButton() {
       pathname === '/cash-payments-codes' ||
       pathname === '/spectator-ticket-redemption' ||
       pathname === '/event-bout-list' ||
-      pathname === '/promoters' ||
+      pathname === '/promoter' ||
       pathname === '/admin-news' ||
       pathname === '/people' ||
       pathname === '/fighter-trainer-checkin'
