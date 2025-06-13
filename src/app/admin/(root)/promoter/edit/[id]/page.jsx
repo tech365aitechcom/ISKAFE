@@ -182,7 +182,7 @@ export default function EditPromoterPage({ params }) {
       ></div>
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex items-center gap-4 mb-6'>
-          <Link href='/admin/people'>
+          <Link href='/admin/promoter'>
             <button className='mr-2 text-white'>
               <svg
                 xmlns='http://www.w3.org/2000/svg'
@@ -888,7 +888,7 @@ export default function EditPromoterPage({ params }) {
 
           {/* Form Controls */}
           <div className='flex justify-center gap-4 mb-8'>
-            <Link href={`/admin/promoters`}>
+            <Link href={`/admin/promoter`}>
               <button
                 type='button'
                 className='bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-6 rounded transition duration-200'
