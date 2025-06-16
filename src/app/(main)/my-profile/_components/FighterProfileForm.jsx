@@ -1,11 +1,24 @@
-import React, { useEffect, useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import { User, Dumbbell, Phone, Camera, Trophy } from 'lucide-react'
+import { City, Country, State } from 'country-state-city'
+import {
+  API_BASE_URL,
+  apiConstants,
+  experienceLevels,
+  sportTypes,
+  weightClasses,
+} from '../../../../constants'
+import axios from 'axios'
+import useStore from '../../../../stores/useStore'
+import { enqueueSnackbar } from 'notistack'
+import { uploadToS3 } from '../../../../utils/uploadToS3'
 
-const FightProfileForm = ({ userDetails }) => {
+const FightProfileForm = ({ userDetails, onSuccess }) => {
+  const { user } = useStore()
   const [formData, setFormData] = useState({
     // Basic Info
-    fullName: '',
-    nickName: '',
+    firstName: '',
+    lastName: '',
     userName: '',
     profilePhoto: null,
     gender: '',
@@ -13,7 +26,9 @@ const FightProfileForm = ({ userDetails }) => {
     height: '',
     weight: '',
     weightClass: '',
-    location: '',
+    country: '',
+    state: '',
+    city: '',
 
     // Contact & Social Info
     phoneNumber: '',
@@ -24,20 +39,21 @@ const FightProfileForm = ({ userDetails }) => {
 
     // Fight Profile & Background
     bio: '',
-    gymInfo: '',
+    primaryGym: '',
     coachName: '',
     affiliations: '',
     trainingExperience: '',
+    trainingStyle: '',
     credentials: '',
 
     // Achievements
     nationalRank: '',
     globalRank: '',
     achievements: '',
-    recordString: '',
+    recordHighlight: '',
 
     // Media
-    mediaGallery: null,
+    imageGallery: [],
     videoHighlight: '',
 
     // Compliance
@@ -45,88 +61,108 @@ const FightProfileForm = ({ userDetails }) => {
     licenseDocument: null,
   })
 
-  const [previewImages, setPreviewImages] = useState({
-    profilePhoto: null,
-    mediaGallery: null,
-  })
+  const countries = Country.getAllCountries()
+  const states = formData.country
+    ? State.getStatesOfCountry(formData.country)
+    : []
+  const cities =
+    formData.country && formData.state
+      ? City.getCitiesOfState(formData.country, formData.state)
+      : []
+
+  console.log(userDetails, 'userDetails in fighter profile form')
 
   useEffect(() => {
-    if (userDetails?.dateOfBirth) {
-      const formattedDOB = new Date(userDetails.dateOfBirth)
-        .toISOString()
-        .split('T')[0]
+    if (userDetails) {
+      const { fighterProfile = {}, dateOfBirth, ...rest } = userDetails
+
+      const formattedDOB = dateOfBirth
+        ? new Date(dateOfBirth).toISOString().split('T')[0]
+        : ''
+
       setFormData((prev) => ({
         ...prev,
-        ...userDetails,
+        ...rest,
+        ...fighterProfile,
         dateOfBirth: formattedDOB,
-      }))
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        ...userDetails,
       }))
     }
   }, [userDetails])
-
-  const weightClasses = [
-    'Strawweight (115 lbs)',
-    'Flyweight (125 lbs)',
-    'Bantamweight (135 lbs)',
-    'Featherweight (145 lbs)',
-    'Lightweight (155 lbs)',
-    'Welterweight (170 lbs)',
-    'Middleweight (185 lbs)',
-    'Light Heavyweight (205 lbs)',
-    'Heavyweight (265 lbs)',
-    'Super Heavyweight (265+ lbs)',
-  ]
-
-  const experienceLevels = [
-    'Beginner (0-2 years)',
-    'Intermediate (3-5 years)',
-    'Advanced (6-10 years)',
-    'Expert (10+ years)',
-    'Professional',
-  ]
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value ?? '',
     }))
   }
 
   const handleFileChange = (e) => {
-    const { name, files } = e.target
-    const file = files[0]
-
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: file,
-      }))
-
-      // Create preview for images
-      if (
-        file.type.startsWith('image/') &&
-        (name === 'profilePhoto' || name === 'mediaGallery')
-      ) {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          setPreviewImages((prev) => ({
-            ...prev,
-            [name]: event.target.result,
-          }))
-        }
-        reader.readAsDataURL(file)
+    const { name, files, multiple } = e.target
+    if (files && files.length > 0) {
+      if (multiple) {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: Array.from(files),
+        }))
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: files[0],
+        }))
       }
     }
   }
 
-  const handleSubmit = () => {
-    console.log('Form Data:', formData)
-    alert('Profile saved successfully!')
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
+        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+      }
+      if (
+        formData.imageGallery &&
+        formData.imageGallery.length > 0 &&
+        formData.imageGallery[0] &&
+        typeof formData.imageGallery[0] !== 'string'
+      ) {
+        formData.imageGallery = await Promise.all(
+          formData.imageGallery.map((file) => uploadToS3(file))
+        )
+      }
+      if (
+        formData.medicalCertificate &&
+        typeof formData.medicalCertificate !== 'string'
+      ) {
+        formData.medicalCertificate = await uploadToS3(
+          formData.medicalCertificate
+        )
+      }
+      if (
+        formData.licenseDocument &&
+        typeof formData.licenseDocument !== 'string'
+      ) {
+        formData.licenseDocument = await uploadToS3(formData.licenseDocument)
+      }
+      const response = await axios.put(
+        `${API_BASE_URL}/fighters/${user._id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar(response.data.message, { variant: 'success' })
+        onSuccess()
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
 
   return (
@@ -151,10 +187,14 @@ const FightProfileForm = ({ userDetails }) => {
               <label className='block font-medium mb-2'>
                 Profile Photo <span className='text-red-400'>*</span>
               </label>
-              {previewImages.profilePhoto && (
+              {formData.profilePhoto && (
                 <div className='my-4 flex'>
                   <img
-                    src={previewImages.profilePhoto}
+                    src={
+                      typeof formData.profilePhoto == 'string'
+                        ? formData.profilePhoto
+                        : URL.createObjectURL(formData.profilePhoto)
+                    }
                     alt='Profile Preview'
                     className='w-32 h-32 object-cover rounded-full border-4 border-purple-500'
                   />
@@ -175,27 +215,40 @@ const FightProfileForm = ({ userDetails }) => {
             {/* Basic Info Fields */}
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>
-                Full Name <span className='text-red-400'>*</span>
+                First Name <span className='text-red-400'>*</span>
               </label>
               <input
                 type='text'
-                name='fullName'
-                value={formData.fullName}
+                name='firstName'
+                value={formData.firstName ?? ''}
                 onChange={handleInputChange}
                 placeholder='Enter full name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 required
               />
             </div>
-
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Last Name <span className='text-red-400'>*</span>
+              </label>
+              <input
+                type='text'
+                name='lastName'
+                value={formData.lastName ?? ''}
+                onChange={handleInputChange}
+                placeholder='Enter full name'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
+              />
+            </div>
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>Nick name</label>
               <input
                 type='text'
                 name='nickName'
-                value={formData.nickName}
+                value={formData.nickName ?? ''}
                 onChange={handleInputChange}
-                placeholder='e.g., The Destroyer'
+                placeholder='Enter Nick Name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               />
             </div>
@@ -207,7 +260,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='text'
                 name='userName'
-                value={formData.userName}
+                value={formData.userName ?? ''}
                 onChange={handleInputChange}
                 placeholder='Enter User Name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -226,13 +279,13 @@ const FightProfileForm = ({ userDetails }) => {
                 <option value='' className='text-black'>
                   Select Gender
                 </option>
-                <option value='male' className='text-black'>
+                <option value='Male' className='text-black'>
                   Male
                 </option>
-                <option value='female' className='text-black'>
+                <option value='Female' className='text-black'>
                   Female
                 </option>
-                <option value='other' className='text-black'>
+                <option value='Other' className='text-black'>
                   Other
                 </option>
               </select>
@@ -250,15 +303,83 @@ const FightProfileForm = ({ userDetails }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Location</label>
-              <input
-                type='text'
-                name='location'
-                value={formData.location}
+              <label className='block font-medium mb-1'>
+                Country <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='country'
+                value={formData.country}
                 onChange={handleInputChange}
-                placeholder='City, Country'
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-              />
+                className='w-full outline-none bg-transparent text-white'
+                required
+              >
+                <option value='' className='text-black'>
+                  Select Country
+                </option>
+                {countries.map((country) => (
+                  <option
+                    key={country.isoCode}
+                    value={country.isoCode}
+                    className='text-black'
+                  >
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                State <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='state'
+                value={formData.state}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+                required
+                disabled={!formData.country}
+              >
+                <option value='' className='text-black'>
+                  Select State
+                </option>
+                {states.map((state) => (
+                  <option
+                    key={state.isoCode}
+                    value={state.isoCode}
+                    className='text-black'
+                  >
+                    {state.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                City<span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='city'
+                value={formData.city}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+                required
+                disabled={!formData.state}
+              >
+                <option value='' className='text-black'>
+                  Select City
+                </option>
+                {cities.map((city) => (
+                  <option
+                    key={city.name}
+                    value={city.name}
+                    className='text-black'
+                  >
+                    {city.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -269,7 +390,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='text'
                 name='height'
-                value={formData.height}
+                value={formData.height ?? ''}
                 onChange={handleInputChange}
                 placeholder="e.g., 5'10 or 178 cm"
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -281,7 +402,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='text'
                 name='weight'
-                value={formData.weight}
+                value={formData.weight ?? ''}
                 onChange={handleInputChange}
                 placeholder='e.g., 170 lbs or 77 kg'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -301,11 +422,11 @@ const FightProfileForm = ({ userDetails }) => {
                 </option>
                 {weightClasses.map((weightClass) => (
                   <option
-                    key={weightClass}
-                    value={weightClass}
+                    key={weightClass._id}
+                    value={weightClass._id}
                     className='text-black'
                   >
-                    {weightClass}
+                    {weightClass.fullName}
                   </option>
                 ))}
               </select>
@@ -328,7 +449,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='tel'
                 name='phoneNumber'
-                value={formData.phoneNumber}
+                value={formData.phoneNumber ?? ''}
                 onChange={handleInputChange}
                 placeholder='+1 555-123-4567'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -340,7 +461,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='email'
                 name='email'
-                value={formData.email}
+                value={formData.email ?? ''}
                 onChange={handleInputChange}
                 placeholder='fighter@example.com'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -352,7 +473,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='url'
                 name='instagram'
-                value={formData.instagram}
+                value={formData.instagram ?? ''}
                 onChange={handleInputChange}
                 placeholder='https://instagram.com/userName'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -364,7 +485,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='url'
                 name='youtube'
-                value={formData.youtube}
+                value={formData.youtube ?? ''}
                 onChange={handleInputChange}
                 placeholder='https://youtube.com/channel'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -376,7 +497,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='url'
                 name='facebook'
-                value={formData.facebook}
+                value={formData.facebook ?? ''}
                 onChange={handleInputChange}
                 placeholder='https://facebook.com/userName'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -395,11 +516,11 @@ const FightProfileForm = ({ userDetails }) => {
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='bg-[#00000061] p-2 rounded'>
+            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
               <label className='block font-medium mb-2'>Fighter Bio</label>
               <textarea
                 name='bio'
-                value={formData.bio}
+                value={formData.bio ?? ''}
                 onChange={handleInputChange}
                 placeholder='Tell your story, fighting style, and what drives you...'
                 rows='4'
@@ -409,13 +530,15 @@ const FightProfileForm = ({ userDetails }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Gym Information</label>
-              <textarea
-                name='gymInfo'
-                value={formData.gymInfo}
+              <label className='block font-medium mb-2'>
+                Primary Gym / Club
+              </label>
+              <input
+                type='text'
+                name='primaryGym'
+                value={formData.primaryGym ?? ''}
                 onChange={handleInputChange}
-                placeholder='Gym name, location, facilities...'
-                rows='4'
+                placeholder='Primary Gym / Club Name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
               />
             </div>
@@ -425,7 +548,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='text'
                 name='coachName'
-                value={formData.coachName}
+                value={formData.coachName ?? ''}
                 onChange={handleInputChange}
                 placeholder='Primary coach or trainer'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -453,12 +576,31 @@ const FightProfileForm = ({ userDetails }) => {
               </select>
             </div>
 
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>Training Style</label>
+              <select
+                name='trainingStyle'
+                value={formData.trainingStyle}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+              >
+                <option value='' className='text-black'>
+                  Select Training Style
+                </option>
+                {sportTypes.map((level) => (
+                  <option key={level} value={level} className='text-black'>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
               <label className='block font-medium mb-2'>Affiliations</label>
               <input
                 type='text'
                 name='affiliations'
-                value={formData.affiliations}
+                value={formData.affiliations ?? ''}
                 onChange={handleInputChange}
                 placeholder='Teams, organizations, sponsors...'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -469,7 +611,7 @@ const FightProfileForm = ({ userDetails }) => {
               <label className='block font-medium mb-2'>Credentials</label>
               <textarea
                 name='credentials'
-                value={formData.credentials}
+                value={formData.credentials ?? ''}
                 onChange={handleInputChange}
                 placeholder='Certifications, belts, rankings, special training...'
                 rows='3'
@@ -494,7 +636,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='text'
                 name='nationalRank'
-                value={formData.nationalRank}
+                value={formData.nationalRank ?? ''}
                 onChange={handleInputChange}
                 placeholder='e.g., #5 in Lightweight Division'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -506,7 +648,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='text'
                 name='globalRank'
-                value={formData.globalRank}
+                value={formData.globalRank ?? ''}
                 onChange={handleInputChange}
                 placeholder='e.g., #15 Worldwide'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -517,8 +659,8 @@ const FightProfileForm = ({ userDetails }) => {
               <label className='block font-medium mb-2'>Fight Record</label>
               <input
                 type='text'
-                name='recordString'
-                value={formData.recordString}
+                name='recordHighlight'
+                value={formData.recordHighlight ?? ''}
                 onChange={handleInputChange}
                 placeholder='e.g., 15-3-1 (W-L-D)'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -532,7 +674,7 @@ const FightProfileForm = ({ userDetails }) => {
               <input
                 type='url'
                 name='videoHighlight'
-                value={formData.videoHighlight}
+                value={formData.videoHighlight ?? ''}
                 onChange={handleInputChange}
                 placeholder='https://youtube.com/watch?v=...'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
@@ -545,7 +687,7 @@ const FightProfileForm = ({ userDetails }) => {
               </label>
               <textarea
                 name='achievements'
-                value={formData.achievements}
+                value={formData.achievements ?? ''}
                 onChange={handleInputChange}
                 placeholder='Championships, tournaments won, notable victories...'
                 rows='3'
@@ -569,7 +711,7 @@ const FightProfileForm = ({ userDetails }) => {
               <label className='block font-medium mb-2'>Media Gallery</label>
               <input
                 type='file'
-                name='mediaGallery'
+                name='imageGallery'
                 onChange={handleFileChange}
                 accept='image/*'
                 multiple
@@ -578,13 +720,20 @@ const FightProfileForm = ({ userDetails }) => {
               <p className='text-xs text-gray-400 mt-1'>
                 Images only, Max 5MB each
               </p>
-              {previewImages.mediaGallery && (
-                <img
-                  src={previewImages.mediaGallery}
-                  alt='Media Preview'
-                  className='mt-2 w-full h-32 object-cover rounded-lg'
-                />
-              )}
+              <div className='flex flex-wrap gap-2 mt-2'>
+                {formData.imageGallery?.map((file, idx) => (
+                  <img
+                    key={idx}
+                    src={
+                      typeof file === 'string'
+                        ? file
+                        : URL.createObjectURL(file)
+                    }
+                    alt={`Preview ${idx}`}
+                    className='w-24 h-24 object-cover'
+                  />
+                ))}
+              </div>
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
@@ -599,6 +748,14 @@ const FightProfileForm = ({ userDetails }) => {
                 className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
               />
               <p className='text-xs text-gray-400 mt-1'>PDF/Image, Max 5MB</p>
+
+              {formData.medicalCertificate && (
+                <div className='mt-2'>
+                  <a href={formData.medicalCertificate} target='_blank'>
+                    View Medical Certificate
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
@@ -611,6 +768,13 @@ const FightProfileForm = ({ userDetails }) => {
                 className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
               />
               <p className='text-xs text-gray-400 mt-1'>PDF/Image, Max 5MB</p>
+              {formData.licenseDocument && (
+                <div className='mt-2'>
+                  <a href={formData.licenseDocument} target='_blank'>
+                    View License Document
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

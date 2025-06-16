@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Loader from '../_components/Loader'
 import moment from 'moment'
+import useStore from '../../stores/useStore'
 
 const fighters = [
   { name: 'Tugruk Smith', record: '16–2', image: '/fighter.png' },
@@ -13,43 +14,14 @@ const fighters = [
   { name: 'Alex Warner', record: '12–1', image: '/fighter.png' },
 ]
 
-const events = [
-  {
-    title: 'Summer Showdown',
-    date: 'June 14, 2025',
-    image: '/fighter.png',
-  },
-  {
-    title: 'Kickboxing Championship',
-    date: 'August 14, 2025',
-    image: '/fighter.png',
-  },
-  {
-    title: 'Alex Warner',
-    date: 'September, 2025',
-    image: '/fighter.png',
-  },
-]
-
-const media = [
-  {
-    title: 'Highlight Reel 2024',
-    image: '/fighter.png',
-  },
-  {
-    title: 'Behind the Gloves',
-    image: '/fighter.png',
-  },
-  {
-    title: 'Training Camp Secrets',
-    image: '/fighter.png',
-  },
-]
-
 export default function Home() {
+  const user = useStore((state) => state.user)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [latestNews, setLatestNews] = useState(null)
+  const [events, setEvents] = useState([])
+  const [latestMedia, setLatestMedia] = useState([])
+  const isLoggedIn = user ? true : false
 
   useEffect(() => {
     const fetchHomeSettings = async () => {
@@ -57,6 +29,8 @@ export default function Home() {
         const response = await axios.get(`${API_BASE_URL}/home-config`)
         setData(response.data.data)
         setLatestNews(response.data.latestNews)
+        setEvents(response.data.upcomingEvents)
+        setLatestMedia(response.data.data.latestMedia)
       } catch (err) {
         console.error(err)
       } finally {
@@ -66,7 +40,7 @@ export default function Home() {
     fetchHomeSettings()
   }, [])
 
-  console.log('data', data)
+  const sortedMedia = [...latestMedia].sort((a, b) => a.sortOrder - b.sortOrder)
 
   if (loading) {
     return (
@@ -102,18 +76,19 @@ export default function Home() {
           <p className='text-white text-lg sm:text-xl mt-4 max-w-xl mx-auto lg:mx-0 leading-relaxed'>
             {data?.tagline}
           </p>
-
-          <div className='mt-6 flex justify-center lg:justify-start'>
-            <Link href={data?.cta?.link || '#'}>
-              <Button
-                variant='destructive'
-                size='lg'
-                className='py-4 px-8 text-lg rounded'
-              >
-                {data?.cta?.text}
-              </Button>
-            </Link>
-          </div>
+          {!isLoggedIn && (
+            <div className='mt-6 flex justify-center lg:justify-start'>
+              <Link href={data?.cta?.link || '#'}>
+                <Button
+                  variant='destructive'
+                  size='lg'
+                  className='py-4 px-8 text-lg rounded'
+                >
+                  {data?.cta?.text}
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className='flex-1 relative overflow-hidden border-4 border-red-600 w-full h-[400px] sm:h-[500px] md:h-[600px]'>
@@ -156,14 +131,19 @@ export default function Home() {
         </h2>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-10 text-white'>
           {events.map((event, i) => (
-            <div key={i} className='flex flex-col items-center text-center'>
+            <div
+              key={event._id}
+              className='flex flex-col items-center text-center'
+            >
               <img
-                src={event.image}
-                alt={event.title}
+                src={event.poster}
+                alt={event.name}
                 className='w-full h-[300px] object-contain rounded-md'
               />
-              <p className='text-xl font-semibold mt-4'>{event.title}</p>
-              <p className='font-bold'>{event.date}</p>
+              <p className='text-xl font-semibold mt-4'>{event.name}</p>
+              <p className='font-bold'>
+                {moment(event.startDate).format('LL')}
+              </p>
               <Button variant='destructive' size='sm' className='mt-2 rounded'>
                 BUY TICKETS
               </Button>
@@ -178,8 +158,8 @@ export default function Home() {
           Latest Media
         </h2>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-10 text-white'>
-          {media.map((item, i) => (
-            <div key={i} className='flex flex-col items-center'>
+          {sortedMedia.map((item) => (
+            <div key={item._id} className='flex flex-col items-center'>
               <img
                 src={item.image}
                 alt={item.title}

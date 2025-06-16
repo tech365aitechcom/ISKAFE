@@ -851,7 +851,7 @@ export const AboutForm = () => {
               }}
               disabled={isSubmitting}
             >
-              {isSubmitting ? <Loader /> : 'Save & Publish'}
+              {isSubmitting ? <Loader /> : 'Save Changes'}
             </button>
           </div>
         </form>

@@ -2272,6 +2272,139 @@ export const suspensionsData = [
   },
 ]
 
+export const ageCategories = [
+  { _id: 'Boys', fullName: 'Boys' },
+  { _id: 'Men', fullName: 'Men' },
+  { _id: 'Senior Men', fullName: 'Senior Men' },
+  { _id: 'Girls', fullName: 'Girls' },
+  { _id: 'Women', fullName: 'Women' },
+  { _id: 'Senior Women', fullName: 'Senior Women' },
+]
+
+export const weightClasses = [
+  {
+    _id: 'Junior Junior Atomweight (50.1–55)',
+    fullName: 'Junior Junior Atomweight (50.1–55)',
+  },
+  {
+    _id: 'Junior Junior Lightweight (70.1–75)',
+    fullName: 'Junior Junior Lightweight (70.1–75)',
+  },
+  {
+    _id: 'Junior Junior Welterweight (75.1–80)',
+    fullName: 'Junior Junior Welterweight (75.1–80)',
+  },
+  {
+    _id: 'Junior Junior Middleweight (80.1–85)',
+    fullName: 'Junior Junior Middleweight (80.1–85)',
+  },
+  {
+    _id: 'Junior Junior Cruiserweight (90.1–95)',
+    fullName: 'Junior Junior Cruiserweight (90.1–95)',
+  },
+  {
+    _id: 'Junior Junior Heavyweight (95.1–100)',
+    fullName: 'Junior Junior Heavyweight (95.1–100)',
+  },
+  {
+    _id: 'Junior Strawweight (104.1–108)',
+    fullName: 'Junior Strawweight (104.1–108)',
+  },
+  {
+    _id: 'Junior Atomweight (108.1–112)',
+    fullName: 'Junior Atomweight (108.1–112)',
+  },
+  {
+    _id: 'Junior Flyweight (112.1–117)',
+    fullName: 'Junior Flyweight (112.1–117)',
+  },
+  {
+    _id: 'Junior Bantamweight (117.1–122)',
+    fullName: 'Junior Bantamweight (117.1–122)',
+  },
+  {
+    _id: 'Junior Featherweight (122.1–127)',
+    fullName: 'Junior Featherweight (122.1–127)',
+  },
+  {
+    _id: 'Junior Lightweight (127.1–132)',
+    fullName: 'Junior Lightweight (127.1–132)',
+  },
+  {
+    _id: 'Junior Super Lightweight (132.1–137)',
+    fullName: 'Junior Super Lightweight (132.1–137)',
+  },
+  {
+    _id: 'Junior Light Welterweight (137.1–142)',
+    fullName: 'Junior Light Welterweight (137.1–142)',
+  },
+  {
+    _id: 'Adult Strawweight (35.1–108)',
+    fullName: 'Adult Strawweight (35.1–108)',
+  },
+  {
+    _id: 'Adult Atomweight (108.1–112)',
+    fullName: 'Adult Atomweight (108.1–112)',
+  },
+  {
+    _id: 'Adult Flyweight (112.1–117)',
+    fullName: 'Adult Flyweight (112.1–117)',
+  },
+  {
+    _id: 'Adult Bantamweight (117.1–122)',
+    fullName: 'Adult Bantamweight (117.1–122)',
+  },
+  {
+    _id: 'Adult Featherweight (122.1–127)',
+    fullName: 'Adult Featherweight (122.1–127)',
+  },
+  {
+    _id: 'Adult Lightweight (127.1–132)',
+    fullName: 'Adult Lightweight (127.1–132)',
+  },
+  {
+    _id: 'Adult Super Lightweight (132.1–137)',
+    fullName: 'Adult Super Lightweight (132.1–137)',
+  },
+  {
+    _id: 'Adult Light Welterweight (137.1–142)',
+    fullName: 'Adult Light Welterweight (137.1–142)',
+  },
+  {
+    _id: 'Adult Light Middleweight (153.1–159)',
+    fullName: 'Adult Light Middleweight (153.1–159)',
+  },
+  {
+    _id: 'Adult Middleweight (159.1–165)',
+    fullName: 'Adult Middleweight (159.1–165)',
+  },
+  {
+    _id: 'Adult Cruiserweight (172.1–185)',
+    fullName: 'Adult Cruiserweight (172.1–185)',
+  },
+]
+
+export const experienceLevels = [
+  'Beginner (0-2 years)',
+  'Intermediate (3-5 years)',
+  'Advanced (6-10 years)',
+  'Expert (10+ years)',
+  'Professional',
+]
+
+export const sportTypes = [
+  'Kickboxing',
+  'MMA',
+  'Muay Thai',
+  'BJJ',
+  'Boxing',
+  'Karate',
+  'Taekwondo',
+  'Judo',
+  'Wrestling',
+  'Kung Fu',
+]
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 export const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL
 export const CLOUD_NAME = process.env.NEXT_CLOUDINARY_CLOUD_NAME || 'dzreoypvy'

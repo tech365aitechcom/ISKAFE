@@ -80,12 +80,12 @@ const Autocomplete = ({
   )
 
   return (
-    <div className='w-full' ref={containerRef}>
+    <div className='w-full bg-[#00000061] p-2 rounded' ref={containerRef}>
       {label && (
         <label className='block font-medium mb-1 text-white'>{label}</label>
       )}
       <div
-        className='flex flex-wrap items-center gap-2 bg-[#00000061] px-3 py-2 rounded cursor-text min-h-[50px]'
+        className='flex flex-wrap items-center gap-2 px-3 py-2 rounded cursor-text min-h-[50px]'
         onClick={() => {
           inputRef.current?.focus()
           setIsFocused(true)
@@ -124,7 +124,7 @@ const Autocomplete = ({
           onChange={handleInputChange}
           placeholder={placeholder}
           onFocus={() => setIsFocused(true)}
-          className='flex-1 bg-transparent text-sm text-white placeholder-gray-400 outline-none min-w-[100px]'
+          className='flex-1  text-sm text-white placeholder-gray-400 outline-none min-w-[100px]'
           required={required}
           readOnly={readOnly}
         />

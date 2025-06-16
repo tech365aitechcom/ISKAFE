@@ -75,7 +75,7 @@ export default function EditOfficialTitleHolderPage({ params }) {
     ageClass: ageClassOptions,
     weightClass: weightClassOptions,
     fighter: fighters.map((f) => ({
-      label: getFullName(f.userId),
+      label: getFullName(f.user),
       value: f._id,
     })),
   }
@@ -93,8 +93,8 @@ export default function EditOfficialTitleHolderPage({ params }) {
 
   const fetchFighters = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/fighter`)
-      setFighters(response.data.data)
+      const response = await axios.get(`${API_BASE_URL}/fighters`)
+      setFighters(response.data.data.items)
     } catch (err) {
       console.error('Failed to fetch fighters:', err)
     }

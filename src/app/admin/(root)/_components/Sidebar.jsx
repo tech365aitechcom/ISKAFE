@@ -101,6 +101,12 @@ export function Sidebar() {
       highlight: true,
     },
     {
+      href: '/admin/ranked-fighter-search',
+      icon: <Search size={18} />,
+      title: 'Ranked Fighter Search',
+      highlight: true,
+    },
+    {
       href: '/admin/contact-settings',
       icon: <SquareUser size={18} />,
       title: 'Contact Settings',

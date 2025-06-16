@@ -10,9 +10,8 @@ const Footer = () => {
   useEffect(() => {
     const getAboutDetails = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/about-us`)
+        const response = await axios.get(`${API_BASE_URL}/about-us/footer`)
         console.log('Response:', response.data)
-
         setData(response.data.data)
       } catch (error) {
         console.log('Error fetching about details:', error)
