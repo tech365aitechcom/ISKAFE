@@ -5,7 +5,9 @@ import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import useStore from '../../../stores/useStore'
 import Image from 'next/image'
-import { roles } from '../../../constants'
+import { API_BASE_URL, roles } from '../../../constants'
+import axios from 'axios'
+import Loader from '../../_components/Loader'
 
 const Navbar = () => {
   const user = useStore((state) => state.user)
@@ -14,37 +16,39 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
   const isLoggedIn = user ? true : false
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  console.log('User in Navbar:', user)
-  console.log('Is user logged in:', isLoggedIn)
+  useEffect(() => {
+    const fetchNavbarConfig = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/home-config/navbar`)
+        setData(response.data.data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchNavbarConfig()
+  }, [])
 
-  const mainMenuItems = [
-    { name: 'Home', path: '/' },
-    { name: 'Events', path: '/events' },
-    { name: 'Fighters', path: '/fighters' },
-    { name: 'Rules', path: '/rules' },
-  ]
+  const filteredMenuItems = (data?.menuItems || [])
+    .filter((item) => {
+      if (!item.status) return false
+      if (item.visibilityRole === 'everyone') return true
+      if (item.visibilityRole === 'loggedIn') return isLoggedIn
+      if (item.visibilityRole === 'admin')
+        return user?.role === roles.superAdmin
+      return false
+    })
+    .sort((a, b) => a.sortOrder - b.sortOrder)
 
-  let moreMenuItems = [
-    { name: 'Training Facilities', path: '/training-facilities' },
-    { name: 'News', path: '/news' },
-    { name: 'About', path: '/about' },
-    { name: 'Contact Us', path: '/contact-us' },
-    { name: 'Rankings', path: '/ranking' },
-  ]
+  const mainMenuItems = filteredMenuItems.slice(0, 4)
+  let moreMenuItems = filteredMenuItems.slice(4)
 
   if (isLoggedIn) {
-    moreMenuItems = [
-      ...moreMenuItems,
-      { name: 'My Purchases', path: '/my-purchases' },
-      // { name: 'My Fight Family', path: '/my-fight-family' },
-      { name: 'My Profile', path: '/my-profile' },
-      ...(user?.role === roles.superAdmin
-        ? [{ name: 'Admin Site', path: '/admin/dashboard' }]
-        : []),
-      { name: 'Change Password', path: '/change-password' },
-      { name: 'Logout', action: 'logout' },
-    ]
+    moreMenuItems = [...moreMenuItems, { label: 'Logout', action: 'logout' }]
   }
 
   const isMoreMenuActive = moreMenuItems.some((item) =>
@@ -57,7 +61,6 @@ const Navbar = () => {
       : 'text-white'
   }
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -78,13 +81,21 @@ const Navbar = () => {
     setMobileMenuOpen(false)
   }
 
+  if (loading) {
+    return (
+      <div className='flex items-center justify-center h-screen w-full bg-[#07091D]'>
+        <Loader />
+      </div>
+    )
+  }
+
   return (
     <nav className='flex items-center justify-between container mx-auto px-4 h-fit w-full py-4 relative'>
       {/* Logo */}
       <Link href='/' className='flex'>
         <div className='hidden lg:block relative w-30 h-30'>
           <Image
-            src='/logo1.png'
+            src={data.logo}
             alt='Global Sports Federation Logo'
             layout='fill'
             className='rounded-full'
@@ -92,7 +103,7 @@ const Navbar = () => {
         </div>
         <div className='md:hidden relative w-18 h-18'>
           <Image
-            src='/logo1.png'
+            src={data.logo}
             alt='Global Sports Federation Logo'
             layout='fill'
             className='rounded-full'
@@ -103,17 +114,18 @@ const Navbar = () => {
       {/* Desktop Navigation */}
       <ul className='hidden lg:flex items-center space-x-6'>
         {mainMenuItems.map((item) => (
-          <li key={item.path}>
+          <li key={item.destination}>
             <Link
-              href={item.path}
-              className={`font-bold uppercase text-2xl tracking-wide ${
-                pathname === item.path ? 'text-yellow-500' : 'text-white'
-              }`}
+              href={item.destination}
+              className={`font-bold uppercase text-2xl tracking-wide ${getMenuItemClass(
+                item.destination
+              )}`}
             >
-              {item.name}
+              {item.label}
             </Link>
           </li>
         ))}
+
         <li className='relative' ref={dropdownRef}>
           <button
             className={`${
@@ -144,17 +156,17 @@ const Navbar = () => {
                     </button>
                   ) : (
                     <Link
-                      href={item.path}
+                      href={item.destination}
                       onClick={() => setDropdownOpen(false)}
                       className={`block py-2 ${getMenuItemClass(
-                        item.path
+                        item.destination
                       )} hover:bg-gray-900 uppercase text-left font-semibold ${
                         index !== array.length - 1
                           ? 'border-b border-[#6C6C6C] mx-2'
                           : 'mx-2'
                       }`}
                     >
-                      {item.name}
+                      {item.label}
                     </Link>
                   )}
                 </li>
@@ -209,19 +221,34 @@ const Navbar = () => {
             <div className='overflow-y-auto'>
               <ul className='py-4'>
                 <ul className='py-4'>
-                  {[...mainMenuItems, ...moreMenuItems].map((item) => (
-                    <li key={item.path}>
-                      <Link
-                        href={item.path}
-                        onClick={closeMobileMenu}
-                        className={`block px-2 py-3 text-xl border-b border-[#6C6C6C] mx-2 ${getMenuItemClass(
-                          item.path
-                        )} uppercase font-semibold`}
-                      >
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
+                  {[...mainMenuItems, ...moreMenuItems].map(
+                    (item, index, array) => (
+                      <li key={index}>
+                        {item.action === 'logout' ? (
+                          <button
+                            onClick={() => {
+                              useStore.getState().clearUser()
+                              setDropdownOpen(false)
+                              window.location.href = '/'
+                            }}
+                            className='block px-4 py-3 text-white uppercase font-semibold text-xl'
+                          >
+                            Logout
+                          </button>
+                        ) : (
+                          <Link
+                            href={item.destination}
+                            onClick={closeMobileMenu}
+                            className={`block px-2 py-3 text-xl border-b border-[#6C6C6C] mx-2 ${getMenuItemClass(
+                              item.path
+                            )} uppercase font-semibold`}
+                          >
+                            {item.label}
+                          </Link>
+                        )}
+                      </li>
+                    )
+                  )}
                 </ul>
               </ul>
             </div>

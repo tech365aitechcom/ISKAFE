@@ -95,6 +95,7 @@ const SpectatorProfileForm = ({ userDetails }) => {
       )
     }
   }
+
   return (
     <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='w-full container mx-auto'>

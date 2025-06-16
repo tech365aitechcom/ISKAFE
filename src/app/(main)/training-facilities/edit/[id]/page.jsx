@@ -174,7 +174,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
   useEffect(() => {
     const getExistingTrainers = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/auth/trainer`)
+        const response = await axios.get(`${API_BASE_URL}/trainers`)
         const trainers = response.data.data
         setExistingTrainers(trainers)
       } catch (error) {
@@ -184,7 +184,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
 
     const getExistingFighters = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/auth/fighter`)
+        const response = await axios.get(`${API_BASE_URL}/fighters`)
         const fighters = response.data.data
         setExistingFighters(fighters)
       } catch (error) {

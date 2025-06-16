@@ -108,7 +108,6 @@ const AboutPage = () => {
             </button>
           </Link>
           <div className='pt-8'>
-            <h2 className='font-bold text-2xl'>Social</h2>
             <div className='flex gap-4 mt-2'>
               <Link href={about?.facebookURL || ''} target='_blank'>
                 <Facebook />
@@ -122,7 +121,6 @@ const AboutPage = () => {
             </div>
           </div>
           <div className='py-8'>
-            <h2 className='font-bold text-2xl'>Footer Section</h2>
             <div className='flex flex-col space-y-6 mt-4'>
               <a
                 href={
