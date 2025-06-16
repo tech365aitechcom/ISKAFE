@@ -2,35 +2,23 @@
 import { enqueueSnackbar } from 'notistack'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import {
+  ageCategories,
+  API_BASE_URL,
+  apiConstants,
+  sportTypes,
+  weightClasses,
+} from '../../../../../constants'
 import useStore from '../../../../../stores/useStore'
 import { CustomMultiSelect } from '../../../../_components/CustomMultiSelect'
 import MarkdownEditor from '../../../../_components/MarkdownEditor'
 import { AddVenuesForm } from '../../venues/_components/AddVenuesForm'
 import Autocomplete from '../../../../_components/Autocomplete'
+import { Country } from 'country-state-city'
+import { uploadToS3 } from '../../../../../utils/uploadToS3'
 
 export const AddEventForm = ({ setShowAddEvent }) => {
   const user = useStore((state) => state.user)
-
-  // Mock data for dropdown lists - replace with actual data from your API
-  const ageCategories = [
-    { _id: 'juniors', fullName: 'Juniors' },
-    { _id: 'adults', fullName: 'Adults' },
-    { _id: 'seniors', fullName: 'Seniors' },
-  ]
-
-  const weightClasses = [
-    { _id: 'featherweight', fullName: 'Featherweight' },
-    { _id: 'lightweight', fullName: 'Lightweight' },
-    { _id: 'middleweight', fullName: 'Middleweight' },
-    { _id: 'heavyweight', fullName: 'Heavyweight' },
-  ]
-
-  const venues = [
-    { value: 'venue1', label: 'Venue 1' },
-    { value: 'venue2', label: 'Venue 2' },
-    { value: 'venue3', label: 'Venue 3' },
-  ]
 
   const [formData, setFormData] = useState({
     // Basic Info
@@ -55,11 +43,13 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
     // Promoter
     promoter: '',
+    iskaRepName: '',
+    iskaRepPhone: '',
 
     // Descriptions
     briefDescription: '',
     fullDescription: '',
-    rulesInfoUrl: '',
+    rules: '',
     matchingMethod: 'On-site',
     externalUrl: '',
     ageCategories: [],
@@ -72,11 +62,49 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
     // Publishing options
     isDraft: true,
-    showBrackets: false,
+    publishBrackets: false,
   })
 
+  const [venues, setVenues] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [promoters, setPromoters] = useState([])
   const [addNewVenue, setAddNewVenue] = useState(false)
   const [addNewPromoter, setAddNewPromoter] = useState(false)
+
+  const getVenues = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/venues?page=1&limit=200`
+      )
+      console.log('Response:', response.data)
+
+      setVenues(response.data.data.items)
+    } catch (error) {
+      console.log('Error fetching venues:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getPromoters = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/promoter?page=1&limit=200`
+      )
+      console.log('Response:', response.data)
+
+      setPromoters(response.data.data.items)
+    } catch (error) {
+      console.log('Error fetching promoter:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    getVenues()
+    getPromoters()
+  }, [])
 
   const handleChange = (eOrName, value) => {
     if (typeof eOrName === 'string') {
@@ -118,33 +146,34 @@ export const AddEventForm = ({ setShowAddEvent }) => {
   const handleSubmit = async (e) => {
     try {
       e.preventDefault()
-      const payload = new FormData()
+      console.log('Form submitted:', formData)
 
-      // Append all form data to FormData object
-      Object.keys(formData).forEach((key) => {
-        if (key === 'poster' && formData[key]) {
-          payload.append(key, formData[key])
-        } else if (Array.isArray(formData[key])) {
-          // Handle arrays (for multi-select fields)
-          if (formData[key].length > 0) {
-            formData[key].forEach((value) => {
-              payload.append(`${key}[]`, value)
-            })
-          } else {
-            payload.append(key, '')
-          }
-        } else {
-          payload.append(key, formData[key] || '')
-        }
-      })
+      if (formData.poster && typeof formData.poster !== 'string') {
+        formData.poster = await uploadToS3(formData.poster)
+      }
+      if (formData.rules && typeof formData.rules !== 'string') {
+        formData.rules = await uploadToS3(formData.rules)
+      }
+      if (
+        formData.sectioningBodyImage &&
+        typeof formData.sectioningBodyImage !== 'string'
+      ) {
+        formData.sectioningBodyImage = await uploadToS3(
+          formData.sectioningBodyImage
+        )
+      }
 
-      // Add creator ID
-      payload.append('createdBy', user?.id)
+      if (formData.venue) {
+        formData.venue = formData.venue?.value ?? ''
+      }
+      if (formData.promoter) {
+        formData.promoter = formData.promoter?.value ?? ''
+      }
 
-      console.log('Form submitted:', Object.fromEntries(payload))
-      const response = await axios.post(`${API_BASE_URL}/events/add`, payload, {
+      console.log('Form submitted:', formData)
+      const response = await axios.post(`${API_BASE_URL}/events`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${user?.token}`,
         },
       })
 
@@ -153,44 +182,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
           variant: 'success',
         })
         // Reset form
-        setFormData({
-          // Basic Info
-          name: '',
-          format: 'Semi Contact',
-          koPolicy: 'Not Allowed',
-          sportType: 'Kickboxing',
-          poster: null,
-
-          // Dates & Schedule
-          startDate: '',
-          endDate: '',
-          registrationStartDate: '',
-          registrationDeadline: '',
-          weighInDateTime: '',
-          rulesMeetingTime: '',
-          spectatorDoorsOpenTime: '',
-          fightStartTime: '',
-
-          // Venue
-          venue: '',
-
-          // Promoter
-          promoter: '',
-
-          // Descriptions
-          briefDescription: '',
-          fullDescription: '',
-          rulesInfoUrl: '',
-          matchingMethod: 'On-site',
-          externalUrl: '',
-          ageCategories: [],
-          weightClasses: [],
-
-          // Publishing options
-          isPublished: false,
-          isDraft: true,
-          showBrackets: false,
-        })
+        handleCancel()
       }
     } catch (error) {
       enqueueSnackbar(
@@ -200,6 +192,48 @@ export const AddEventForm = ({ setShowAddEvent }) => {
         }
       )
     }
+  }
+
+  const handleCancel = () => {
+    setFormData({
+      // Basic Info
+      name: '',
+      format: 'Semi Contact',
+      koPolicy: 'Not Allowed',
+      sportType: 'Kickboxing',
+      poster: null,
+
+      // Dates & Schedule
+      startDate: '',
+      endDate: '',
+      registrationStartDate: '',
+      registrationDeadline: '',
+      weighInDateTime: '',
+      rulesMeetingTime: '',
+      spectatorDoorsOpenTime: '',
+      fightStartTime: '',
+
+      // Venue
+      venue: '',
+
+      // Promoter
+      promoter: '',
+      iskaRepName: '',
+      iskaRepPhone: '',
+
+      // Descriptions
+      briefDescription: '',
+      fullDescription: '',
+      rules: '',
+      matchingMethod: 'On-site',
+      externalUrl: '',
+      ageCategories: [],
+      weightClasses: [],
+
+      // Publishing options
+      isDraft: true,
+      publishBrackets: false,
+    })
   }
 
   useEffect(() => {
@@ -341,18 +375,11 @@ export const AddEventForm = ({ setShowAddEvent }) => {
                   className='w-full outline-none appearance-none bg-transparent'
                   required
                 >
-                  <option value='Kickboxing' className='text-black'>
-                    Kickboxing
-                  </option>
-                  <option value='Muay Thai' className='text-black'>
-                    Muay Thai
-                  </option>
-                  <option value='Boxing' className='text-black'>
-                    Boxing
-                  </option>
-                  <option value='MMA' className='text-black'>
-                    MMA
-                  </option>
+                  {sportTypes.map((level) => (
+                    <option key={level} value={level} className='text-black'>
+                      {level}
+                    </option>
+                  ))}
                 </select>
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white'>
                   <svg
@@ -516,7 +543,18 @@ export const AddEventForm = ({ setShowAddEvent }) => {
 
             <Autocomplete
               label={'Search or select venue'}
-              options={venues}
+              options={venues.map((venue) => {
+                return {
+                  label: `${venue.name} (${
+                    venue.address.street1 +
+                      ', ' +
+                      venue.address.city +
+                      ', ' +
+                      Country.getCountryByCode(venue.address.country).name || ''
+                  })`,
+                  value: venue._id,
+                }
+              })}
               selected={formData.venue}
               onChange={(value) => handleChange('venue', value)}
               placeholder='Search venue name'
@@ -558,7 +596,16 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             {/* Promoter */}
             <Autocomplete
               label={'Search or select promoter'}
-              options={venues}
+              options={promoters.map((promoter) => {
+                return {
+                  label: `${promoter.user?.firstName || ''} ${
+                    promoter.user?.middleName || ''
+                  } ${promoter.user?.lastName || ''} (${
+                    promoter.user?.email || ''
+                  })`,
+                  value: promoter._id,
+                }
+              })}
               selected={formData.promoter}
               onChange={(value) => handleChange('promoter', value)}
               placeholder='Search promoter name'
@@ -662,15 +709,14 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             {/* Rules Info URL */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Rules Info URL
+                Rules Info
               </label>
               <input
-                type='url'
-                name='rulesInfoUrl'
-                value={formData.rulesInfoUrl}
+                type='file'
+                name='rules'
+                accept='application/pdf'
                 onChange={handleChange}
-                className='w-full outline-none bg-transparent'
-                placeholder='https://link-to-rules.pdf'
+                className='w-full text-sm text-white file:mr-4 file:py-1 file:px-3 file:border-0 file:text-sm file:font-semibold file:bg-yellow-500 file:text-black hover:file:bg-yellow-400'
               />
             </div>
 
@@ -787,7 +833,7 @@ export const AddEventForm = ({ setShowAddEvent }) => {
               </label>
               <input
                 type='file'
-                name='poster'
+                name='sectioningBodyImage'
                 required
                 onChange={handleChange}
                 accept='image/jpeg,image/png'
@@ -834,8 +880,8 @@ export const AddEventForm = ({ setShowAddEvent }) => {
               <label className='inline-flex items-center cursor-pointer'>
                 <input
                   type='checkbox'
-                  name='showBrackets'
-                  checked={formData.showBrackets}
+                  name='publishBrackets'
+                  checked={formData.publishBrackets}
                   onChange={handleChange}
                   className='form-checkbox h-5 w-5'
                 />
@@ -850,49 +896,8 @@ export const AddEventForm = ({ setShowAddEvent }) => {
               type='button'
               className='text-white font-medium py-2 px-6 rounded transition duration-200 bg-gray-600'
               onClick={() => {
+                handleCancel()
                 setShowAddEvent(false)
-                setFormData({
-                  // Basic Info
-                  name: '',
-                  format: 'Semi Contact',
-                  koPolicy: 'Not Allowed',
-                  sportType: 'Kickboxing',
-                  poster: null,
-
-                  // Dates & Schedule
-                  startDate: '',
-                  endDate: '',
-                  registrationStartDate: '',
-                  registrationDeadline: '',
-                  weighInDateTime: '',
-                  rulesMeetingTime: '',
-                  spectatorDoorsOpenTime: '',
-                  fightStartTime: '',
-
-                  // Venue
-                  venue: '',
-                  addNewVenue: false,
-
-                  // Promoter Info
-                  promoterName: '',
-                  promoterPhone: '',
-                  iskaRepName: '',
-                  iskaRepPhone: '',
-
-                  // Descriptions
-                  briefDescription: '',
-                  fullDescription: '',
-                  rulesInfoUrl: '',
-                  matchingMethod: 'On-site',
-                  externalUrl: '',
-                  ageCategories: [],
-                  weightClasses: [],
-
-                  // Publishing options
-                  isPublished: false,
-                  isDraft: true,
-                  showBrackets: false,
-                })
               }}
             >
               Cancel
@@ -906,38 +911,6 @@ export const AddEventForm = ({ setShowAddEvent }) => {
               }}
             >
               Save
-            </button>
-            <button
-              type='button'
-              className='text-white font-medium py-2 px-6 rounded transition duration-200 bg-blue-600'
-              onClick={() => {
-                // Update form state for publishing and submit
-                setFormData((prev) => ({
-                  ...prev,
-                  isPublished: true,
-                  isDraft: false,
-                }))
-                // Then submit the form
-                document.forms[0].requestSubmit()
-              }}
-            >
-              Publish
-            </button>
-            <button
-              type='button'
-              className='text-white font-medium py-2 px-6 rounded transition duration-200 bg-yellow-500'
-              onClick={() => {
-                // Update form state for draft and submit
-                setFormData((prev) => ({
-                  ...prev,
-                  isPublished: false,
-                  isDraft: true,
-                }))
-                // Then submit the form
-                document.forms[0].requestSubmit()
-              }}
-            >
-              Draft
             </button>
           </div>
         </form>
