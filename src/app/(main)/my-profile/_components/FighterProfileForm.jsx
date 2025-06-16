@@ -1,7 +1,13 @@
 import React, { use, useEffect, useState } from 'react'
 import { User, Dumbbell, Phone, Camera, Trophy } from 'lucide-react'
 import { City, Country, State } from 'country-state-city'
-import { API_BASE_URL, apiConstants } from '../../../../constants'
+import {
+  API_BASE_URL,
+  apiConstants,
+  experienceLevels,
+  sportTypes,
+  weightClasses,
+} from '../../../../constants'
 import axios from 'axios'
 import useStore from '../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
@@ -82,40 +88,6 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       }))
     }
   }, [userDetails])
-
-  const weightClasses = [
-    'Strawweight (115 lbs)',
-    'Flyweight (125 lbs)',
-    'Bantamweight (135 lbs)',
-    'Featherweight (145 lbs)',
-    'Lightweight (155 lbs)',
-    'Welterweight (170 lbs)',
-    'Middleweight (185 lbs)',
-    'Light Heavyweight (205 lbs)',
-    'Heavyweight (265 lbs)',
-    'Super Heavyweight (265+ lbs)',
-  ]
-
-  const experienceLevels = [
-    'Beginner (0-2 years)',
-    'Intermediate (3-5 years)',
-    'Advanced (6-10 years)',
-    'Expert (10+ years)',
-    'Professional',
-  ]
-
-  const styles = [
-    'Kickboxing',
-    'MMA',
-    'Muay Thai',
-    'BJJ',
-    'Boxing',
-    'Karate',
-    'Taekwondo',
-    'Judo',
-    'Wrestling',
-    'Kung Fu',
-  ]
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target
@@ -450,11 +422,11 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 </option>
                 {weightClasses.map((weightClass) => (
                   <option
-                    key={weightClass}
-                    value={weightClass}
+                    key={weightClass._id}
+                    value={weightClass._id}
                     className='text-black'
                   >
-                    {weightClass}
+                    {weightClass.fullName}
                   </option>
                 ))}
               </select>
@@ -615,7 +587,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 <option value='' className='text-black'>
                   Select Training Style
                 </option>
-                {styles.map((level) => (
+                {sportTypes.map((level) => (
                   <option key={level} value={level} className='text-black'>
                     {level}
                   </option>

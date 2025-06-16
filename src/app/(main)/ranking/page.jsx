@@ -1,11 +1,11 @@
 'use client'
 import { API_BASE_URL } from '../../../constants'
 import axios from 'axios'
-import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { enqueueSnackbar } from 'notistack'
 import React, { useEffect, useState } from 'react'
 import Loader from '../../_components/Loader'
+import { Country } from 'country-state-city'
 
 const RankingPage = () => {
   const [bgImage, setBgImage] = useState('/Cover.png')
@@ -263,11 +263,17 @@ const RankingPage = () => {
                               />
                               <div>
                                 <h5 className='text-white text-sm sm:text-base font-medium'>
-                                  {ranking.fighter.userId.firstName}
+                                  {ranking.fighter.userId.firstName +
+                                    ' ' +
+                                    ranking.fighter.userId.lastName}
                                 </h5>
                                 <p className='text-gray-400 text-xs sm:text-sm capitalize'>
-                                  {ranking.fighter.userId.country} •{' '}
-                                  {ranking.fighter.primaryGym}
+                                  {
+                                    Country.getCountryByCode(
+                                      ranking.fighter.userId.country
+                                    ).name
+                                  }
+                                  • {ranking.fighter.primaryGym}
                                 </p>
                               </div>
                             </div>

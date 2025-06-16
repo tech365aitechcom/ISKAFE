@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import FighterCard from '../_components/FighterCard'
-import { API_BASE_URL } from '../../../constants'
+import { API_BASE_URL, sportTypes } from '../../../constants'
 import axios from 'axios'
 import { City, Country, State } from 'country-state-city'
 import Pagination from '../../_components/Pagination'
@@ -24,19 +24,6 @@ const page = () => {
   const countries = Country.getAllCountries()
   const states = country ? State.getStatesOfCountry(country) : []
   const cities = country && state ? City.getCitiesOfState(country, state) : []
-
-  const styles = [
-    'Kickboxing',
-    'MMA',
-    'Muay Thai',
-    'BJJ',
-    'Boxing',
-    'Karate',
-    'Taekwondo',
-    'Judo',
-    'Wrestling',
-    'Kung Fu',
-  ]
 
   const getFighters = async (search, country, state, city, trainingStyle) => {
     setLoading(true)
@@ -201,7 +188,7 @@ const page = () => {
                       <option value='' className='bg-purple-900'>
                         Select
                       </option>
-                      {styles.map((level) => (
+                      {sportTypes.map((level) => (
                         <option
                           key={level}
                           value={level}
