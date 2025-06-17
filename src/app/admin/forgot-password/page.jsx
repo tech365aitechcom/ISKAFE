@@ -46,7 +46,7 @@ const ForgotPasswordPage = () => {
   }
 
   return (
-    <div className='flex h-screen w-full bg-transparent px-28 py-6'>
+    <div className='flex h-screen w-full bg-transparent md:px-28 py-6'>
       <div className='flex w-full'>
         <div className='w-full flex md:items-center justify-center p-8'>
           <div className='w-full max-w-md'>

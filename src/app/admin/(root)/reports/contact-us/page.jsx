@@ -28,7 +28,7 @@ export default function ContactUsReports() {
   const [limit, setLimit] = useState(10)
   const [sortField, setSortField] = useState('submissionTime')
   const [sortDirection, setSortDirection] = useState('desc')
-  const [selectedStatus, setSelectedStatus] = useState('All')
+  const [selectedStatus, setSelectedStatus] = useState('')
 
   const [reports, setReports] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -36,7 +36,9 @@ export default function ContactUsReports() {
   const getContactReports = async () => {
     setLoading(true)
     try {
-      const response = await axios.get(`${API_BASE_URL}/contact-us`)
+      const response = await axios.get(
+        `${API_BASE_URL}/contact-us?search=${searchQuery}&state=${selectedStatus}&page=${currentPage}&limit=${limit}`
+      )
       console.log('Response:', response.data)
 
       setReports(response.data.data.items)
@@ -51,7 +53,7 @@ export default function ContactUsReports() {
 
   useEffect(() => {
     getContactReports()
-  }, [])
+  }, [currentPage, limit, searchQuery, selectedStatus])
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -64,7 +66,7 @@ export default function ContactUsReports() {
 
   const handleResetFilters = () => {
     setSearchQuery('')
-    setSelectedStatus('All')
+    setSelectedStatus('')
   }
 
   const handleGetReports = () => {
@@ -73,7 +75,7 @@ export default function ContactUsReports() {
     setSortField('submissionTime')
     setSortDirection('desc')
     setSearchQuery('')
-    setSelectedStatus('All')
+    setSelectedStatus('')
   }
 
   const handleSendResponse = async (reportId) => {
@@ -141,8 +143,6 @@ export default function ContactUsReports() {
     </th>
   )
 
-  if (loading) return <Loader />
-
   return (
     <div className='text-white p-8 flex justify-center relative overflow-hidden'>
       <div
@@ -200,7 +200,7 @@ export default function ContactUsReports() {
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
               >
-                <option value='All' className='text-black'>
+                <option value='' className='text-black'>
                   All
                 </option>
                 <option value='New' className='text-black'>
@@ -219,7 +219,7 @@ export default function ContactUsReports() {
           {/* Action Buttons */}
           <div className='flex justify-end mb-6'>
             {/* Reset Filters Button */}
-            {(searchQuery || (selectedStatus && selectedStatus !== 'All')) && (
+            {(searchQuery || selectedStatus) && (
               <button
                 className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
                 onClick={handleResetFilters}
@@ -240,155 +240,164 @@ export default function ContactUsReports() {
             label='Contact Us Reports'
           />
           <div className='overflow-x-auto custom-scrollbar'>
-            <table className='w-full text-sm text-left'>
-              <thead>
-                <tr className='text-gray-400 text-sm'>
-                  {renderHeader('Date', 'date')}
-                  {renderHeader('Submission Time', 'submissionTime')}
-                  {renderHeader('Topic', 'topic')}
-                  {renderHeader('Subject', 'subject')}
-                  {renderHeader('Submitted By', 'submittedBy')}
-                  {renderHeader('DB', 'db')}
-                  {renderHeader('Event ID', 'eventId')}
-                  {renderHeader('State', 'state')}
-                  {renderHeader('Assigned Admin', 'assignedAdmin')}
-                  {renderHeader('User Role', 'userRole')}
-                  {renderHeader('Response Sent', 'responseSent')}
-                  {renderHeader('Response Date', 'responseDate')}
-                  {renderHeader('Last Updated', 'lastUpdated')}
-                  {renderHeader('Attachment', 'attachment')}
-                  {renderHeader('Email', 'email')}
-                  {renderHeader('Close', 'close')}
-                </tr>
-              </thead>
-              <tbody>
-                {reports && reports.length > 0 ? (
-                  reports.map((report, index) => (
-                    <tr
-                      key={report._id}
-                      className={`${
-                        index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
-                      }`}
-                    >
-                      <td className='px-4 py-3'>
-                        {moment(report.date).format('DD/MM/YYYY')}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {moment(report.date).format('DD/MM/YYYY')}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report.topic}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report.subIssue}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report.createdBy?.email}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report?._id}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {report?.eventId ? (
-                          <a
-                            href={`/admin/event-${report.eventId}`}
-                            className='text-blue-400 hover:text-blue-300 flex items-center gap-1 '
+            {loading ? (
+              <Loader />
+            ) : (
+              <table className='w-full text-sm text-left'>
+                <thead>
+                  <tr className='text-gray-400 text-sm'>
+                    {renderHeader('Date', 'date')}
+                    {renderHeader('Submission Time', 'submissionTime')}
+                    {renderHeader('Topic', 'topic')}
+                    {renderHeader('Subject', 'subject')}
+                    {renderHeader('Submitted By', 'submittedBy')}
+                    {renderHeader('DB', 'db')}
+                    {renderHeader('Event ID', 'eventId')}
+                    {renderHeader('State', 'state')}
+                    {renderHeader('Assigned Admin', 'assignedAdmin')}
+                    {renderHeader('User Role', 'userRole')}
+                    {renderHeader('Response Sent', 'responseSent')}
+                    {renderHeader('Response Date', 'responseDate')}
+                    {renderHeader('Last Updated', 'lastUpdated')}
+                    {renderHeader('Attachment', 'attachment')}
+                    {renderHeader('Email', 'email')}
+                    {renderHeader('Close', 'close')}
+                  </tr>
+                </thead>
+                <tbody>
+                  {reports && reports.length > 0 ? (
+                    reports.map((report, index) => (
+                      <tr
+                        key={report._id}
+                        className={`${
+                          index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
+                        }`}
+                      >
+                        <td className='px-4 py-3'>
+                          {moment(report.date).format('DD/MM/YYYY')}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {moment(report.date).format('DD/MM/YYYY')}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {report.topic}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {report.subIssue}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {report.createdBy?.email}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {report?._id}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {report?.eventId ? (
+                            <a
+                              href={`/admin/event-${report.eventId}`}
+                              className='text-blue-400 hover:text-blue-300 flex items-center gap-1 '
+                            >
+                              {report.eventId} <ExternalLink size={14} />
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          <span className={getStatusBadge(report.state)}>
+                            {report.state}
+                          </span>
+                        </td>
+                        <td className='px-4 py-3'>
+                          {report.assignedAdmin || 'Unassigned'}
+                        </td>
+                        <td className='px-4 py-3 uppercase'>
+                          {report.createdBy?.role}
+                        </td>
+                        <td className='px-4 py-3'>
+                          <span
+                            className={getResponseBadge(report.responseSent)}
                           >
-                            {report.eventId} <ExternalLink size={14} />
-                          </a>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        <span className={getStatusBadge(report.state)}>
-                          {report.state}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3'>
-                        {report.assignedAdmin || 'Unassigned'}
-                      </td>
-                      <td className='px-4 py-3 uppercase'>
-                        {report.createdBy?.role}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <span className={getResponseBadge(report.responseSent)}>
-                          {report.responseSent}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {(report.responseDate &&
-                          moment(report.responseDate).format(
+                            {report.responseSent}
+                          </span>
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {(report.responseDate &&
+                            moment(report.responseDate).format(
+                              'DD/MM/YYYY HH:mm:ss'
+                            )) ||
+                            '-'}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
+                          {moment(report.updatedAt).format(
                             'DD/MM/YYYY HH:mm:ss'
-                          )) ||
-                          '-'}
-                      </td>
-                      <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                        {moment(report.updatedAt).format('DD/MM/YYYY HH:mm:ss')}
-                      </td>
-                      <td className='px-4 py-3'>
-                        {report.attachment ? (
-                          <button
-                            onClick={() =>
-                              handleDownloadAttachment(report.attachment)
-                            }
-                            className='text-blue-400 hover:text-blue-300 flex items-center gap-1'
+                          )}
+                        </td>
+                        <td className='px-4 py-3'>
+                          {report.attachment ? (
+                            <button
+                              onClick={() =>
+                                handleDownloadAttachment(report.attachment)
+                              }
+                              className='text-blue-400 hover:text-blue-300 flex items-center gap-1'
+                            >
+                              <Download size={16} />
+                            </button>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className='px-4 py-3'>
+                          <a
+                            href={`mailto:${
+                              report.createdBy?.email
+                            }?subject=${encodeURIComponent(
+                              `IKF Fight Platform Support - We got your message`
+                            )}&body=${encodeURIComponent(
+                              `Hi ${
+                                report.createdBy?.firstName +
+                                ' ' +
+                                report.createdBy?.lastName
+                              },\n\nYou wrote: \n\n ${report.topic},${
+                                report.subIssue
+                              } -  ${report.message}.\n\nI added ${
+                                report.assignedAdmin
+                              } (IKF official) who can help you with this issue.\n\nIKF Fight Platform Support`
+                            )}`}
+                            onClick={() => handleSendResponse(report._id)}
                           >
-                            <Download size={16} />
-                          </button>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <a
-                          href={`mailto:${
-                            report.createdBy?.email
-                          }?subject=${encodeURIComponent(
-                            `IKF Fight Platform Support - We got your message`
-                          )}&body=${encodeURIComponent(
-                            `Hi ${
-                              report.createdBy?.firstName +
-                              ' ' +
-                              report.createdBy?.lastName
-                            },\n\nYou wrote: \n\n ${report.topic},${
-                              report.subIssue
-                            } -  ${report.message}.\n\nI added ${
-                              report.assignedAdmin
-                            } (IKF official) who can help you with this issue.\n\nIKF Fight Platform Support`
-                          )}`}
-                        >
-                          <Mail size={18} />
-                        </a>
-                      </td>
-                      <td className='px-4 py-3'>
-                        {report.state !== 'Closed' ? (
-                          <button
-                            onClick={() => handleCloseReport(report._id)}
-                            className='text-red-400 hover:text-red-300 flex items-center gap-1'
-                            title='Close Report'
-                          >
-                            <X size={16} />
-                          </button>
-                        ) : (
-                          <Check
-                            size={16}
-                            className='text-green-400'
-                            title='Report Closed'
-                          />
-                        )}
+                            <Mail size={18} />
+                          </a>
+                        </td>
+                        <td className='px-4 py-3'>
+                          {report.state !== 'Closed' ? (
+                            <button
+                              onClick={() => handleCloseReport(report._id)}
+                              className='text-red-400 hover:text-red-300 flex items-center gap-1'
+                              title='Close Report'
+                            >
+                              <X size={16} />
+                            </button>
+                          ) : (
+                            <Check
+                              size={16}
+                              className='text-green-400'
+                              title='Report Closed'
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr className='text-center bg-[#0A1330]'>
+                      <td colSpan='16' className='px-4 py-8 text-gray-400'>
+                        No contact reports found.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr className='text-center bg-[#0A1330]'>
-                    <td colSpan='16' className='px-4 py-8 text-gray-400'>
-                      No contact reports found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
           <Pagination
             currentPage={currentPage}

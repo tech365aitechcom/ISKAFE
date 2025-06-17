@@ -102,7 +102,7 @@ export default function Home() {
       </section>
 
       {/* Top Fighters Section */}
-      <section className='bg-transparent w-full py-12 px-4 md:px-20'>
+      {/* <section className='bg-transparent w-full py-12 px-4 md:px-20'>
         <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
           Top Fighters
         </h2>
@@ -119,7 +119,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* Upcoming Events Section */}
       <section
@@ -170,7 +170,7 @@ export default function Home() {
           ))}
         </div>
       </section>
-      <section className='bg-transparent w-full py-12 px-4 md:px-20'>
+      {/* <section className='bg-transparent w-full py-12 px-4 md:px-20'>
         <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
           Recent Event Results
         </h2>
@@ -198,7 +198,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
       <section className='bg-transparent w-full py-12 px-4 md:px-20'>
         <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
           News Post
