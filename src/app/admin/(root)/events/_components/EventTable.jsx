@@ -285,18 +285,18 @@ export function EventTable({
                       </td>
                       <td className='p-4 flex space-x-4 items-center'>
                         {/* View */}
-                        <Link href={`/admin/events/view/${event._id}`}>
+                        {/* <Link href={`/admin/events/view/${event._id}`}>
                           <button className='text-gray-400 hover:text-gray-200 transition'>
                             <Eye size={20} />
                           </button>
-                        </Link>
+                        </Link> */}
 
                         {/* Edit */}
-                        <Link href={`/admin/events/edit/${event._id}`}>
+                        {/* <Link href={`/admin/events/edit/${event._id}`}>
                           <button className='text-blue-500 hover:underline'>
                             <SquarePen size={20} />
                           </button>
-                        </Link>
+                        </Link> */}
 
                         {/* Publish Toggle */}
                         <div className='flex items-center gap-2 whitespace-nowrap'>
@@ -304,12 +304,12 @@ export function EventTable({
                           <button
                             onClick={() => togglePublishStatus(event._id)}
                             className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out ${
-                              isPublic ? 'bg-violet-500' : 'bg-gray-300'
+                              !isPublic ? 'bg-violet-500' : 'bg-gray-300'
                             }`}
                           >
                             <div
                               className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
-                                isPublic ? 'translate-x-5' : 'translate-x-0'
+                                !isPublic ? 'translate-x-5' : 'translate-x-0'
                               }`}
                             />
                           </button>

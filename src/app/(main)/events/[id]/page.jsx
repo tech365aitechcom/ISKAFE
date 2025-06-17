@@ -9,6 +9,7 @@ import RegistrationSection from './_components/RegistrationSection'
 import Link from 'next/link'
 import { ArrowLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import ReactMarkdown from 'react-markdown'
 
 const page = ({ params }) => {
   const { id } = use(params)
@@ -16,8 +17,8 @@ const page = ({ params }) => {
   const tabNames = [
     'Details',
     'Registration',
-    'Tournaments',
-    'Fight Card',
+    // 'Tournaments',
+    // 'Fight Card',
     'Sanctioning Body',
     'Rules',
   ]
@@ -55,6 +56,11 @@ const page = ({ params }) => {
       image: '/fighter2.png',
     },
   ]
+
+  const cleanDescription = eventDetails?.fullDescription?.replace(
+    /^\*+\s*|\s*\*+$/g,
+    ''
+  )
 
   if (loading) {
     return (
@@ -188,8 +194,8 @@ const page = ({ params }) => {
                       Fights Begin
                     </h3>
                     <p className='text-white font-semibold'>
-                      {moment(eventDetails?.fightStartTime).format(
-                        'ddd, MMM DD • h:mm A'
+                      {moment(eventDetails?.fightStartTime, 'HH:mm').format(
+                        'h:mm A'
                       )}
                     </p>
                   </div>
@@ -198,9 +204,10 @@ const page = ({ params }) => {
                       Doors Open
                     </h3>
                     <p className='text-white font-semibold'>
-                      {moment(eventDetails?.spectatorDoorsOpenTime).format(
-                        'ddd, MMM DD • h:mm A'
-                      )}
+                      {moment(
+                        eventDetails?.spectatorDoorsOpenTime,
+                        'HH:mm'
+                      ).format('h:mm A')}
                     </p>
                   </div>
                   <div>
@@ -218,8 +225,8 @@ const page = ({ params }) => {
                       Rules Meeting
                     </h3>
                     <p className='text-white font-semibold'>
-                      {moment(eventDetails?.rulesMeetingTime).format(
-                        'ddd, MMM DD • h:mm A'
+                      {moment(eventDetails?.rulesMeetingTime, 'HH:mm').format(
+                        'h:mm A'
                       )}
                     </p>
                   </div>
@@ -416,30 +423,11 @@ const page = ({ params }) => {
                 <h2 className='text-xl font-bold text-yellow-500 mb-4 border-b border-gray-700 pb-2'>
                   About This Event
                 </h2>
-                <p className='text-gray-300 leading-relaxed mb-4'>
-                  {eventDetails?.fullDescription}
-                </p>
-                {eventDetails?.rules && (
-                  <div>
-                    <h3 className='text-white font-semibold mb-2'>
-                      Rules & Regulations
-                    </h3>
-                    <p className='text-gray-300 leading-relaxed'>
-                      {eventDetails.rules}
-                    </p>
-                  </div>
-                )}
+                <div className='text-gray-300 leading-relaxed mb-4 prose prose-invert'>
+                  <ReactMarkdown>{cleanDescription}</ReactMarkdown>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'Teams' && (
-          <div className='bg-[#1b0c2e] rounded-lg p-12 text-center'>
-            <h2 className='text-2xl font-bold text-gray-400 mb-4'>Teams</h2>
-            <p className='text-gray-500'>
-              Team information will be available soon.
-            </p>
           </div>
         )}
 
@@ -450,33 +438,44 @@ const page = ({ params }) => {
         {activeTab === 'Fight Card' && <FightCard fighters={fighters} />}
 
         {activeTab === 'Sanctioning Body' && (
-          <div className='bg-[#1b0c2e] rounded-lg p-8'>
-            <h2 className='text-2xl font-bold text-yellow-500 mb-6 text-center'>
+          <div className='bg-[#1b0c2e] rounded-xl p-6 md:p-8 shadow-lg'>
+            <h2 className='text-3xl font-bold text-yellow-500 mb-6 border-b border-yellow-700 pb-2'>
               Sanctioning Body
             </h2>
-            <div className='text-center max-w-2xl mx-auto'>
-              <h3 className='text-xl font-bold text-white mb-4'>
-                {eventDetails?.sectioningBodyName ||
-                  eventDetails?.promoter?.sanctioningBody}
-              </h3>
-              <p className='text-gray-300 leading-relaxed'>
-                {eventDetails?.sectioningBodyDescription ||
-                  'Official sanctioning body for this event.'}
-              </p>
+
+            <div className='flex flex-col md:flex-row items-start gap-6'>
+              <img
+                src={eventDetails?.sectioningBodyImage}
+                alt={eventDetails?.sectioningBodyName}
+                className='w-full md:w-44 rounded-lg shadow-md object-cover'
+              />
+
+              <div className='flex-1'>
+                <h3 className='text-2xl font-semibold text-white mb-3'>
+                  {eventDetails?.sectioningBodyName}
+                </h3>
+                <p className='text-gray-300 leading-relaxed tracking-wide'>
+                  {eventDetails?.sectioningBodyDescription}
+                </p>
+              </div>
             </div>
           </div>
         )}
 
         {activeTab === 'Rules' && (
           <div className='bg-[#1b0c2e] rounded-lg p-8'>
-            <h2 className='text-2xl font-bold text-yellow-500 mb-6'>
-              Rules & Regulations
-            </h2>
+            <h2 className='text-2xl font-bold text-yellow-500 mb-6'>Rules</h2>
             <div className='prose prose-lg max-w-none'>
-              <p className='text-gray-300 leading-relaxed text-lg'>
-                {eventDetails?.rules ||
-                  'Standard competition rules apply. Please contact the promoter for detailed rule specifications.'}
-              </p>
+              {eventDetails?.rules && (
+                <a
+                  href={eventDetails?.rules}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                >
+                  Click to View Rules
+                </a>
+              )}
+              <p className='text-gray-300 leading-relaxed text-lg'></p>
             </div>
           </div>
         )}
