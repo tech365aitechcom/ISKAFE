@@ -118,7 +118,7 @@ export default function EditTrainingFacilityPage({ params }) {
     const getExistingFighters = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/fighters`)
-        const fighters = response.data.data
+        const fighters = response.data.data.items
         console.log('fighters', fighters)
 
         setExistingFighters(fighters)
@@ -137,7 +137,23 @@ export default function EditTrainingFacilityPage({ params }) {
       )
       const data = response.data.data
       setFormData({
-        ...data,
+        name: data.name,
+        logo: data.logo,
+        martialArtsStyles: data.martialArtsStyles,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        address: data.address,
+        country: data.country,
+        state: data.state,
+        city: data.city,
+        description: data.description,
+        externalWebsite: data.externalWebsite,
+        imageGallery: data.imageGallery,
+        videoIntroduction: data.videoIntroduction,
+        trainers: data.trainers,
+        fighters: data.fighters,
+        sendInvites: data.sendInvites,
+        termsAgreed: data.termsAgreed,
       })
     } catch (err) {
       console.error('Error fetching training facilities:', err)
@@ -270,7 +286,7 @@ export default function EditTrainingFacilityPage({ params }) {
           return
         }
       }
-      if (formData.imageGallery) {
+      if (formData.imageGallery && typeof formData.logo !== 'string') {
         const s3Urls = await Promise.all(
           formData.imageGallery.map((file) => uploadToS3(file))
         )
@@ -308,12 +324,12 @@ export default function EditTrainingFacilityPage({ params }) {
 
       let payload = {
         ...formData,
-        trainers: formData.trainers.map((t) =>
-          t.value ? { existingTrainerId: t.value } : t
-        ),
-        fighters: formData.fighters.map((f) =>
-          f.value ? { existingFighterId: f.value } : f
-        ),
+        trainers: formData.trainers.map((trainer) => ({
+          existingTrainerId: trainer.existingTrainerId._id,
+        })),
+        fighters: formData.fighters.map((fighter) => ({
+          existingFighterId: fighter.existingFighterId._id,
+        })),
       }
 
       if (action === 'draft') {
@@ -330,27 +346,22 @@ export default function EditTrainingFacilityPage({ params }) {
 
       console.log('Payload:', payload)
 
-      const response = await axios.post(
-        `${API_BASE_URL}/training-facilities`,
+      const response = await axios.put(
+        `${API_BASE_URL}/training-facilities/${id}`,
         {
           ...payload,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
         }
       )
       console.log('Response:', response)
 
-      if (response.status === apiConstants.create) {
+      if (response.status === apiConstants.success) {
         enqueueSnackbar(
           response.data.message || 'Facility registered successfully',
           {
             variant: 'success',
           }
         )
-
+        fetchTrainingFacilityDetails()
         setCurrentStep(1)
       }
     } catch (error) {}
@@ -375,6 +386,8 @@ export default function EditTrainingFacilityPage({ params }) {
       formData.city
     )
   }
+
+  console.log('formData trainers', formData.trainers)
 
   const isStep2Valid = () => {
     return formData.description.length > 0
@@ -839,8 +852,26 @@ export default function EditTrainingFacilityPage({ params }) {
                         <Autocomplete
                           label='Search Trainer'
                           multiple
-                          selected={formData.trainers}
-                          onChange={(value) => handleChange('trainers', value)}
+                          selected={formData.trainers.map((trainer) => ({
+                            label:
+                              trainer.existingTrainerId?.userId?.firstName +
+                              ' ' +
+                              trainer.existingTrainerId?.userId?.lastName +
+                              ' (' +
+                              trainer.existingTrainerId?.userId?.email +
+                              ' )',
+                            value: trainer.existingTrainerId._id,
+                          }))}
+                          onChange={(selectedOptions) =>
+                            handleChange(
+                              'trainers',
+                              selectedOptions.map((opt) => ({
+                                existingTrainerId: {
+                                  _id: opt.value,
+                                },
+                              }))
+                            )
+                          }
                           options={[
                             ...existingTrainers.map((trainer) => ({
                               label:
@@ -995,22 +1026,20 @@ export default function EditTrainingFacilityPage({ params }) {
                             >
                               <div className='text-white'>
                                 <div className='font-medium'>
-                                  {trainer.name ?? trainer.label}
+                                  {trainer.existingTrainerId?.userId
+                                    ?.firstName +
+                                    trainer.existingTrainerId?.userId?.lastName}
                                 </div>
-                                {trainer.role && (
+
+                                {trainer.existingTrainerId?.userId?.email && (
                                   <div className='text-sm text-gray-400'>
-                                    {trainer.role}
-                                  </div>
-                                )}
-                                {trainer.email && (
-                                  <div className='text-sm text-gray-400'>
-                                    {trainer.email}
+                                    {trainer.existingTrainerId?.userId?.email}
                                   </div>
                                 )}
                               </div>
                               <button
                                 type='button'
-                                onClick={() => removeTrainer(trainer.id)}
+                                onClick={() => removeTrainer(trainer._id)}
                                 className='text-red-400 hover:text-red-300'
                               >
                                 <Trash size={16} />
@@ -1074,18 +1103,34 @@ export default function EditTrainingFacilityPage({ params }) {
                         <Autocomplete
                           label='Search Fighter'
                           multiple
-                          selected={formData.fighters.map(
-                            (fighter) => fighter?._id
-                          )}
-                          onChange={(value) => handleChange('fighters', value)}
+                          selected={formData.fighters.map((fighter) => ({
+                            label:
+                              fighter.existingFighterId?.userId?.firstName +
+                              ' ' +
+                              fighter.existingFighterId?.userId?.lastName +
+                              ' (' +
+                              fighter.existingFighterId?.userId?.email +
+                              ' )',
+                            value: fighter.existingFighterId._id,
+                          }))}
+                          onChange={(selectedOptions) =>
+                            handleChange(
+                              'fighters',
+                              selectedOptions.map((opt) => ({
+                                existingFighterId: {
+                                  _id: opt.value,
+                                },
+                              }))
+                            )
+                          }
                           options={[
                             ...existingFighters.map((fighter) => ({
                               label:
-                                fighter.userId?.firstName +
+                                fighter.user?.firstName +
                                 ' ' +
-                                fighter.userId?.lastName +
+                                fighter.user?.lastName +
                                 ' (' +
-                                fighter.userId?.email +
+                                fighter.user?.email +
                                 ' )',
                               value: fighter._id,
                             })),
@@ -1242,28 +1287,29 @@ export default function EditTrainingFacilityPage({ params }) {
                             >
                               <div className='text-white'>
                                 <div className='font-medium'>
-                                  {fighter.name ||
-                                    fighter.label ||
+                                  {fighter.name ??
+                                    fighter.label ??
                                     fighter.existingFighterId?.userId
                                       ?.firstName +
                                       ' ' +
                                       fighter.existingFighterId?.userId
                                         ?.lastName}
                                 </div>
-                                {fighter.record && (
+                                {fighter.existingFighterId?.recordHighlight && (
                                   <div className='text-sm text-gray-400'>
-                                    Record: {fighter.record}
+                                    Record:{' '}
+                                    {fighter.existingFighterId?.recordHighlight}
                                   </div>
                                 )}
-                                {fighter.gender && fighter.age && (
+                                {fighter.existingFighterId?.userId?.gender && (
                                   <div className='text-sm text-gray-400'>
-                                    {fighter.gender}, {fighter.age} years old
+                                    {fighter.existingFighterId?.userId?.gender}
                                   </div>
                                 )}
                               </div>
                               <button
                                 type='button'
-                                onClick={() => removeFighter(fighter.id)}
+                                onClick={() => removeFighter(fighter._id)}
                                 className='text-red-400 hover:text-red-300'
                               >
                                 <Trash2 size={16} />

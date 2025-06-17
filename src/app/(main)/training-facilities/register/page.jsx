@@ -216,7 +216,7 @@ const RegisterTrainingFacilityPage = () => {
     const getExistingFighters = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/fighters`)
-        const fighters = response.data.data
+        const fighters = response.data.data.items
         console.log('fighters', fighters)
 
         setExistingFighters(fighters)
@@ -233,7 +233,7 @@ const RegisterTrainingFacilityPage = () => {
     console.log('Form submitted with action:', action)
     console.log('Form data:', formData)
     try {
-      if (formData.logo) {
+      if (formData.logo && typeof formData.logo !== 'string') {
         try {
           const s3UploadedUrl = await uploadToS3(formData.logo)
           formData.logo = s3UploadedUrl
@@ -242,7 +242,7 @@ const RegisterTrainingFacilityPage = () => {
           return
         }
       }
-      if (formData.imageGallery) {
+      if (formData.imageGallery && typeof formData.logo !== 'string') {
         const s3Urls = await Promise.all(
           formData.imageGallery.map((file) => uploadToS3(file))
         )
@@ -251,7 +251,7 @@ const RegisterTrainingFacilityPage = () => {
       if (formData.trainers?.length) {
         await Promise.all(
           formData.trainers.map(async (trainer) => {
-            if (trainer.image) {
+            if (trainer.image && typeof trainer.image !== 'string') {
               try {
                 const s3UploadedUrl = await uploadToS3(trainer.image)
                 trainer.image = s3UploadedUrl
@@ -322,36 +322,13 @@ const RegisterTrainingFacilityPage = () => {
             variant: 'success',
           }
         )
-        setFormData({
-          // Basic Info
-          name: '',
-          logo: null,
-          martialArtsStyles: [],
-
-          // Address Info
-          address: '',
-          country: '',
-          state: '',
-          city: '',
-
-          // Description & Branding
-          description: '',
-          externalWebsite: '',
-          imageGallery: [],
-          videoIntroduction: '',
-
-          // Trainers & Fighters
-          trainers: [],
-          fighters: [],
-          sendInvites: false,
-
-          // Terms
-          termsAgreed: false,
-        })
+        handleCancel()
         setCurrentStep(1)
       }
     } catch (error) {}
   }
+
+  console.log(existingFighters, 'existingFighters')
 
   const nextStep = () => {
     if (currentStep < 4) setCurrentStep(currentStep + 1)
@@ -1061,11 +1038,11 @@ const RegisterTrainingFacilityPage = () => {
                         options={[
                           ...existingFighters.map((fighter) => ({
                             label:
-                              fighter.userId?.firstName +
+                              fighter.user?.firstName +
                               ' ' +
-                              fighter.userId?.lastName +
+                              fighter.user?.lastName +
                               ' (' +
-                              fighter.userId?.email +
+                              fighter.user?.email +
                               ' )',
                             value: fighter._id,
                           })),

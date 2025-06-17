@@ -492,6 +492,16 @@ export default function ViewTrainingFacilityPage({ params }) {
                                       trainer.existingTrainerId?.userId
                                         ?.lastName}
                                 </div>
+                                {trainer.role && (
+                                  <div className='text-sm text-gray-400'>
+                                    {trainer.role}
+                                  </div>
+                                )}
+                                {trainer.email && (
+                                  <div className='text-sm text-gray-400'>
+                                    {trainer.email}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -530,6 +540,16 @@ export default function ViewTrainingFacilityPage({ params }) {
                                       fighter.existingFighterId?.userId
                                         ?.lastName}
                                 </div>
+                                {fighter.record && (
+                                  <div className='text-sm text-gray-400'>
+                                    Record: {fighter.record}
+                                  </div>
+                                )}
+                                {fighter.gender && fighter.age && (
+                                  <div className='text-sm text-gray-400'>
+                                    {fighter.gender}, {fighter.age} years old
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
