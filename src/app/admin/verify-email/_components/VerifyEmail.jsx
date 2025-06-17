@@ -41,12 +41,12 @@ const VerifyEmail = () => {
           token,
         })
 
-        enqueueSnackbar(
-          response.data.message || 'Email verified successfully!',
-          {
-            variant: 'success',
-          }
-        )
+        // enqueueSnackbar(
+        //   response.data.message || 'Email verified successfully!',
+        //   {
+        //     variant: 'success',
+        //   }
+        // )
 
         setStatus({ loading: false, success: true, error: '' })
 
