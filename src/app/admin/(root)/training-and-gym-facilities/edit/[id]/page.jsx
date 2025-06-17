@@ -137,7 +137,23 @@ export default function EditTrainingFacilityPage({ params }) {
       )
       const data = response.data.data
       setFormData({
-        ...data,
+        name: data.name,
+        logo: data.logo,
+        martialArtsStyles: data.martialArtsStyles,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        address: data.address,
+        country: data.country,
+        state: data.state,
+        city: data.city,
+        description: data.description,
+        externalWebsite: data.externalWebsite,
+        imageGallery: data.imageGallery,
+        videoIntroduction: data.videoIntroduction,
+        trainers: data.trainers,
+        fighters: data.fighters,
+        sendInvites: data.sendInvites,
+        termsAgreed: data.termsAgreed,
       })
     } catch (err) {
       console.error('Error fetching training facilities:', err)
@@ -270,7 +286,7 @@ export default function EditTrainingFacilityPage({ params }) {
           return
         }
       }
-      if (formData.imageGallery) {
+      if (formData.imageGallery && typeof formData.logo !== 'string') {
         const s3Urls = await Promise.all(
           formData.imageGallery.map((file) => uploadToS3(file))
         )
@@ -330,27 +346,22 @@ export default function EditTrainingFacilityPage({ params }) {
 
       console.log('Payload:', payload)
 
-      const response = await axios.post(
-        `${API_BASE_URL}/training-facilities`,
+      const response = await axios.put(
+        `${API_BASE_URL}/training-facilities/${id}`,
         {
           ...payload,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
         }
       )
       console.log('Response:', response)
 
-      if (response.status === apiConstants.create) {
+      if (response.status === apiConstants.success) {
         enqueueSnackbar(
           response.data.message || 'Facility registered successfully',
           {
             variant: 'success',
           }
         )
-
+        fetchTrainingFacilityDetails()
         setCurrentStep(1)
       }
     } catch (error) {}

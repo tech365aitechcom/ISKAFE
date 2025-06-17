@@ -581,13 +581,19 @@ export default function TrainingAndGymFacilities() {
                               />
                             </button>
                             {facility.sendInvites && (
-                              <button
-                                onClick={() => handleSendInvites(facility)}
+                              <a
+                                href={`mailto:${facility.trainers
+                                  ?.map((trainer) => trainer.email)
+                                  .join(',')}?subject=${encodeURIComponent(
+                                  'IKF Fight Platform – Complete Your Registration'
+                                )}&body=${encodeURIComponent(
+                                  `Dear Trainer,\n\nYou have been invited to join the IKF Fight Platform as a trainer for the facility ${facility.name}.\n\nPlease complete your registration by clicking the link sent to your email or contact us if you have any issues.\n\nThis is an automated reminder from the IKF Fight Platform to help complete pending registrations.\n\nThank you,\nIKF Fight Platform Team`
+                                )}`}
                                 className='text-purple-400 hover:text-purple-300'
-                                title='Send Invites'
+                                title='Send Invite to Trainers'
                               >
                                 <Mail size={18} />
-                              </button>
+                              </a>
                             )}
                             <button
                               onClick={() => {
