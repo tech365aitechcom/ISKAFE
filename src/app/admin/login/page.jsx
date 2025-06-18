@@ -53,10 +53,22 @@ const LoginPage = () => {
         }
       }
     } catch (err) {
-      enqueueSnackbar(
-        err?.response?.data?.message || 'An error occurred during login',
-        { variant: 'error' }
-      )
+      const status = err?.response?.status
+      const message = err?.response?.data?.message
+
+      if (status === 404) {
+        enqueueSnackbar('Email not registered', { variant: 'error' })
+      } else if (status === 401) {
+        enqueueSnackbar('Incorrect password', { variant: 'error' })
+      } else if (status === 403) {
+        enqueueSnackbar('Account not verified. Please check your email.', {
+          variant: 'warning',
+        })
+      } else {
+        enqueueSnackbar(message || 'An error occurred during login', {
+          variant: 'error',
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -85,6 +97,7 @@ const LoginPage = () => {
                   onChange={handleChange}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className='relative'>
@@ -96,6 +109,7 @@ const LoginPage = () => {
                   onChange={handleChange}
                   className='w-full px-4 py-3 pr-10 rounded border border-gray-700 bg-transparent text-white'
                   required
+                  disabled={isLoading}
                 />
                 <span
                   onClick={() => setShowPassword(!showPassword)}

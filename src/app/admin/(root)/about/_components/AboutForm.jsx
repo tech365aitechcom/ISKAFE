@@ -299,10 +299,15 @@ export const AboutForm = () => {
   }
 
   const isValidURL = (url) => {
+    if (typeof url !== 'string') return false
+
+    // Allow relative URLs starting with /
+    if (url.startsWith('/')) return true
+
     try {
       new URL(url)
       return true
-    } catch (e) {
+    } catch {
       return false
     }
   }

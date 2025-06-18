@@ -41,10 +41,22 @@ const LoginPage = () => {
         router.push('/')
       }
     } catch (err) {
-      enqueueSnackbar(
-        err?.response?.data?.message || 'An error occurred during login',
-        { variant: 'error' }
-      )
+      const status = err?.response?.status
+      const message = err?.response?.data?.message
+
+      if (status === 404) {
+        enqueueSnackbar('Email not registered', { variant: 'error' })
+      } else if (status === 401) {
+        enqueueSnackbar('Incorrect password', { variant: 'error' })
+      } else if (status === 403) {
+        enqueueSnackbar('Account not verified. Please check your email.', {
+          variant: 'warning',
+        })
+      } else {
+        enqueueSnackbar(message || 'An error occurred during login', {
+          variant: 'error',
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -76,6 +88,7 @@ const LoginPage = () => {
                   onChange={handleChange}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className='relative'>
@@ -87,12 +100,13 @@ const LoginPage = () => {
                   onChange={handleChange}
                   className='w-full px-4 py-3 pr-10 rounded border border-gray-700 bg-transparent text-white'
                   required
+                  disabled={isLoading}
                 />
                 <span
                   onClick={() => setShowPassword(!showPassword)}
                   className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                 </span>
               </div>
               <div className='flex justify-end items-center'>

@@ -10,7 +10,7 @@ import Loader from '../../../../_components/Loader'
 export const ContactSettingsForm = () => {
   const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
-    emailRecipients: [],
+    // emailRecipients: [],
     enableCaptcha: false,
     address: '',
     phone: '',
@@ -63,48 +63,48 @@ export const ContactSettingsForm = () => {
     return re.test(email)
   }
 
-  const handleAddEmailRecipient = () => {
-    if (!newEmailRecipient) {
-      setEmailError('Email cannot be empty')
-      return
-    }
+  // const handleAddEmailRecipient = () => {
+  //   if (!newEmailRecipient) {
+  //     setEmailError('Email cannot be empty')
+  //     return
+  //   }
 
-    if (!validateEmail(newEmailRecipient)) {
-      setEmailError('Please enter a valid email address')
-      return
-    }
+  //   if (!validateEmail(newEmailRecipient)) {
+  //     setEmailError('Please enter a valid email address')
+  //     return
+  //   }
 
-    if (formData.emailRecipients.includes(newEmailRecipient)) {
-      setEmailError('This email is already added')
-      return
-    }
+  //   if (formData.emailRecipients.includes(newEmailRecipient)) {
+  //     setEmailError('This email is already added')
+  //     return
+  //   }
 
-    setFormData((prev) => ({
-      ...prev,
-      emailRecipients: [...prev.emailRecipients, newEmailRecipient],
-    }))
-    setNewEmailRecipient('')
-    setEmailError('')
-  }
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     emailRecipients: [...prev.emailRecipients, newEmailRecipient],
+  //   }))
+  //   setNewEmailRecipient('')
+  //   setEmailError('')
+  // }
 
-  const handleRemoveEmailRecipient = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      emailRecipients: prev.emailRecipients.filter((_, i) => i !== index),
-    }))
-  }
+  // const handleRemoveEmailRecipient = (index) => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     emailRecipients: prev.emailRecipients.filter((_, i) => i !== index),
+  //   }))
+  // }
 
   const handleSubmit = async (e) => {
     try {
       e.preventDefault()
 
       // Validate mandatory fields
-      if (formData.emailRecipients.length === 0) {
-        enqueueSnackbar('At least one email recipient is required', {
-          variant: 'error',
-        })
-        return
-      }
+      // if (formData.emailRecipients.length === 0) {
+      //   enqueueSnackbar('At least one email recipient is required', {
+      //     variant: 'error',
+      //   })
+      //   return
+      // }
 
       // Optional: Validate contact email if present
       if (formData.email && !validateEmail(formData.email)) {
@@ -170,72 +170,6 @@ export const ContactSettingsForm = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* General Section */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>General</h2>
-
-          {/* Email Recipients */}
-          <div className='mb-6'>
-            <label className='block text-sm font-medium mb-2'>
-              Email Recipients<span className='text-red-500'>*</span>
-            </label>
-            <div className='mb-2 flex flex-wrap gap-2'>
-              {formData.emailRecipients.map((email, index) => (
-                <div
-                  key={index}
-                  className='bg-[#14255D] px-3 py-1 rounded-full flex items-center gap-2'
-                >
-                  <span className='text-sm'>{email}</span>
-                  <button
-                    type='button'
-                    onClick={() => handleRemoveEmailRecipient(index)}
-                    className='text-[#AEB9E1] hover:text-white'
-                  >
-                    <X className='w-4 h-4' />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className='flex'>
-              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
-                <input
-                  type='email'
-                  value={newEmailRecipient}
-                  onChange={(e) => {
-                    setNewEmailRecipient(e.target.value)
-                    setEmailError('')
-                  }}
-                  className='w-full outline-none'
-                  placeholder='Enter recipient email'
-                />
-              </div>
-              <button
-                type='button'
-                onClick={handleAddEmailRecipient}
-                className='bg-[#7F25FB] px-4 rounded-r flex items-center justify-center'
-              >
-                <Plus className='w-5 h-5' />
-              </button>
-            </div>
-            {emailError && (
-              <p className='mt-1 text-sm text-red-500'>{emailError}</p>
-            )}
-          </div>
-
-          {/* Enable CAPTCHA */}
-          <div className='mb-6 flex items-center'>
-            <input
-              type='checkbox'
-              id='enableCaptcha'
-              name='enableCaptcha'
-              checked={formData.enableCaptcha}
-              onChange={handleChange}
-              className='mr-2 h-5 w-5 accent-[#7F25FB]'
-            />
-            <label htmlFor='enableCaptcha' className='text-sm font-medium'>
-              Enable CAPTCHA
-            </label>
-          </div>
-
           {/* Static Info Section */}
           <h2 className='font-bold mb-4 uppercase text-sm'>
             Contact Information
@@ -315,7 +249,70 @@ export const ContactSettingsForm = () => {
               </div>
             </div>
           )}
+          {/* General Section */}
+          <h2 className='font-bold mb-4 uppercase text-sm'>General</h2>
+          {/* Email Recipients */}
+          {/* <div className='mb-6'>
+            <label className='block text-sm font-medium mb-2'>
+              Email Recipients<span className='text-red-500'>*</span>
+            </label>
+            <div className='mb-2 flex flex-wrap gap-2'>
+              {formData.emailRecipients.map((email, index) => (
+                <div
+                  key={index}
+                  className='bg-[#14255D] px-3 py-1 rounded-full flex items-center gap-2'
+                >
+                  <span className='text-sm'>{email}</span>
+                  <button
+                    type='button'
+                    onClick={() => handleRemoveEmailRecipient(index)}
+                    className='text-[#AEB9E1] hover:text-white'
+                  >
+                    <X className='w-4 h-4' />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className='flex'>
+              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
+                <input
+                  type='email'
+                  value={newEmailRecipient}
+                  onChange={(e) => {
+                    setNewEmailRecipient(e.target.value)
+                    setEmailError('')
+                  }}
+                  className='w-full outline-none'
+                  placeholder='Enter recipient email'
+                />
+              </div>
+              <button
+                type='button'
+                onClick={handleAddEmailRecipient}
+                className='bg-[#7F25FB] px-4 rounded-r flex items-center justify-center'
+              >
+                <Plus className='w-5 h-5' />
+              </button>
+            </div>
+            {emailError && (
+              <p className='mt-1 text-sm text-red-500'>{emailError}</p>
+            )}
+          </div> */}
 
+          {/* Enable CAPTCHA */}
+          <div className='mb-6 flex items-center'>
+            <input
+              type='checkbox'
+              id='enableCaptcha'
+              name='enableCaptcha'
+              checked={formData.enableCaptcha}
+              onChange={handleChange}
+              className='mr-2 h-5 w-5 accent-[#7F25FB]'
+            />
+            <label htmlFor='enableCaptcha' className='text-sm font-medium'>
+              Enable CAPTCHA
+            </label>
+          </div>
           {/* Submission Button */}
           <div className='flex justify-center mt-8 mb-6'>
             <button

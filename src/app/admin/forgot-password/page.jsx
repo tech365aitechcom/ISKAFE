@@ -14,19 +14,28 @@ const ForgotPasswordPage = () => {
     email: '',
     redirectUrl: `${APP_BASE_URL}/admin/reset-password`,
   })
-
   const [isLoading, setIsLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
+    setFormData({ ...formData, [name]: value })
+  }
+
+  const validateEmail = (email) => {
+    // Basic email regex for format validation
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return re.test(email)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'error',
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       console.log('Forgot Password data ready to be sent:', formData)
@@ -40,6 +49,11 @@ const ForgotPasswordPage = () => {
       }
     } catch (err) {
       console.log('Reset Password error:', err)
+      enqueueSnackbar(
+        err?.response?.data?.message ||
+          'Something went wrong. Try again later.',
+        { variant: 'error' }
+      )
     } finally {
       setIsLoading(false)
     }
@@ -53,7 +67,9 @@ const ForgotPasswordPage = () => {
             <h1 className='text-3xl font-bold text-white mb-8'>
               Forgot Password
             </h1>
-
+            <p className='text-sm text-gray-300 mb-6'>
+              Please enter your email to reset your password
+            </p>
             <form className='space-y-4' onSubmit={handleSubmit}>
               <div>
                 <input
@@ -64,6 +80,7 @@ const ForgotPasswordPage = () => {
                   onChange={handleChange}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
+                  disabled={isLoading}
                 />
               </div>
               <button
@@ -71,7 +88,7 @@ const ForgotPasswordPage = () => {
                 className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center'
                 disabled={isLoading}
               >
-                Submit
+                {isLoading ? 'Submitting...' : 'Submit'}
               </button>
               <div className='text-white mt-4 text-right'>
                 Remembered password?{' '}

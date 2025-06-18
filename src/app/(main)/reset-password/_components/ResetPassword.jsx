@@ -8,6 +8,17 @@ import { enqueueSnackbar } from 'notistack'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Loader from '../../../_components/Loader'
 
+const validatePasswordRules = (password) => {
+  const errors = []
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters')
+  }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    errors.push('Password must contain both letters and numbers')
+  }
+  return errors
+}
+
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
     password: '',
@@ -40,16 +51,22 @@ const ResetPassword = () => {
         })
         return
       }
+
+      const passwordErrors = validatePasswordRules(formData.password)
+      if (passwordErrors.length > 0) {
+        passwordErrors.forEach((msg) =>
+          enqueueSnackbar(msg, { variant: 'error' })
+        )
+        return
+      }
+
       if (formData.password !== formData.confirmPassword) {
         enqueueSnackbar('Passwords do not match. Please try again.', {
           variant: 'warning',
         })
         return
       }
-      console.log('Reset Password data ready to be sent:', {
-        newPassword: formData.password,
-        confirmNewPassword: formData.confirmPassword,
-      })
+
       const res = await axios.post(
         `${API_BASE_URL}/auth/reset-password?token=${token}`,
         {
@@ -57,7 +74,6 @@ const ResetPassword = () => {
           confirmNewPassword: formData.confirmPassword,
         }
       )
-      console.log('Reset Password response:', res.data)
       if (res.status === apiConstants.success) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
         router.push('/login')
@@ -93,6 +109,11 @@ const ResetPassword = () => {
                 </span>
               </div>
 
+              <p className='text-sm text-gray-300 mb-6'>
+                Enter a new password, re-enter it, then click the{' '}
+                <strong>'Update Password'</strong> button.
+              </p>
+
               <form className='space-y-4' onSubmit={handleSubmit}>
                 <div className='relative'>
                   <input
@@ -103,12 +124,13 @@ const ResetPassword = () => {
                     onChange={handleChange}
                     className='w-full px-4 py-3 pr-10 rounded border border-gray-700 bg-transparent text-white'
                     required
+                    disabled={isLoading}
                   />
                   <span
                     onClick={() => setShowPassword(!showPassword)}
                     className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                   </span>
                 </div>
                 <div className='relative'>
@@ -120,15 +142,16 @@ const ResetPassword = () => {
                     onChange={handleChange}
                     className='w-full px-4 py-3 pr-10 rounded border border-gray-700 bg-transparent text-white'
                     required
+                    disabled={isLoading}
                   />
                   <span
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
                   >
                     {showConfirmPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
                       <Eye size={20} />
+                    ) : (
+                      <EyeOff size={20} />
                     )}
                   </span>
                 </div>
@@ -138,7 +161,7 @@ const ResetPassword = () => {
                   className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center mt-4 disabled:cursor-not-allowed disabled:bg-red-400'
                   disabled={isLoading}
                 >
-                  {isLoading ? <Loader /> : 'Reset'}
+                  {isLoading ? <Loader /> : 'Update Password'}
                 </button>
                 <div className='text-center text-white mt-4'>
                   Already have an account?{' '}

@@ -758,171 +758,167 @@ export const HomeSettingsForm = () => {
               <div className='mb-4'>
                 <h3 className='text-lg font-medium mb-2'>Current Menu Items</h3>
                 <div className='space-y-2'>
-                  {[...formData.menuItems]
-                    .sort((a, b) => a.sortOrder - b.sortOrder)
-                    .map((item, idx) => (
-                      <div key={idx} className='bg-[#14255D] p-4 rounded-lg'>
-                        {editingMenuItem === idx ? (
-                          // Edit mode
-                          <div className='grid grid-cols-2 gap-3'>
-                            <div>
-                              <label className='block text-sm font-medium mb-1'>
-                                Label
-                              </label>
-                              <input
-                                type='text'
-                                value={editMenuItemData.label || ''}
-                                onChange={(e) =>
-                                  setEditMenuItemData((prev) => ({
-                                    ...prev,
-                                    label: e.target.value,
-                                  }))
-                                }
-                                className='w-full p-2 bg-[#00000061] rounded outline-none'
-                              />
-                            </div>
-                            <div>
-                              <label className='block text-sm font-medium mb-1'>
-                                Destination
-                              </label>
-                              <input
-                                type='text'
-                                value={editMenuItemData.destination || ''}
-                                onChange={(e) =>
-                                  setEditMenuItemData((prev) => ({
-                                    ...prev,
-                                    destination: e.target.value,
-                                  }))
-                                }
-                                className='w-full p-2 bg-[#00000061] rounded outline-none'
-                              />
-                            </div>
-                            <div>
-                              <label className='block text-sm font-medium mb-1'>
-                                Link Type
-                              </label>
-                              <select
-                                value={editMenuItemData.linkType || 'route'}
-                                onChange={(e) =>
-                                  setEditMenuItemData((prev) => ({
-                                    ...prev,
-                                    linkType: e.target.value,
-                                  }))
-                                }
-                                className='w-full p-2 bg-[#00000061] rounded outline-none'
-                              >
-                                <option value='route'>Route</option>
-                                <option value='url'>URL</option>
-                                <option value='modal'>Modal</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className='block text-sm font-medium mb-1'>
-                                Visibility
-                              </label>
-                              <select
-                                value={
-                                  editMenuItemData.visibilityRole || 'everyone'
-                                }
-                                onChange={(e) =>
-                                  setEditMenuItemData((prev) => ({
-                                    ...prev,
-                                    visibilityRole: e.target.value,
-                                  }))
-                                }
-                                className='w-full p-2 bg-[#00000061] rounded outline-none'
-                              >
-                                <option value='everyone'>Everyone</option>
-                                <option value='loggedIn'>Logged In</option>
-                                <option value='admin'>Admin</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className='block text-sm font-medium mb-1'>
-                                Position
-                              </label>
-                              <input
-                                type='number'
-                                value={editMenuItemData.sortOrder || 0}
-                                onChange={(e) =>
-                                  setEditMenuItemData((prev) => ({
-                                    ...prev,
-                                    sortOrder: e.target.value,
-                                  }))
-                                }
-                                className='w-full p-2 bg-[#00000061] rounded outline-none'
-                              />
-                            </div>
-                            <div className='col-span-2'>
-                              <div className='flex gap-2'>
-                                <button
-                                  type='button'
-                                  onClick={handleSaveMenuItem}
-                                  className='flex items-center bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm transition-colors'
-                                >
-                                  <Save className='w-4 h-4 mr-1' />
-                                  Save
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={handleCancelEditMenuItem}
-                                  className='flex items-center bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm transition-colors'
-                                >
-                                  <X className='w-4 h-4 mr-1' />
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
+                  {formData.menuItems.map((item, idx) => (
+                    <div key={idx} className='bg-[#14255D] p-4 rounded-lg'>
+                      {editingMenuItem === idx ? (
+                        // Edit mode
+                        <div className='grid grid-cols-2 gap-3'>
+                          <div>
+                            <label className='block text-sm font-medium mb-1'>
+                              Label
+                            </label>
+                            <input
+                              type='text'
+                              value={editMenuItemData.label || ''}
+                              onChange={(e) =>
+                                setEditMenuItemData((prev) => ({
+                                  ...prev,
+                                  label: e.target.value,
+                                }))
+                              }
+                              className='w-full p-2 bg-[#00000061] rounded outline-none'
+                            />
                           </div>
-                        ) : (
-                          // View mode
-                          <div className='flex justify-between items-center'>
-                            <div>
-                              <p className='font-medium'>
-                                <span className='text-purple-300'>Label:</span>{' '}
-                                {item.label}
-                              </p>
-                              <p className='text-sm text-gray-300'>
-                                <span className='text-purple-300'>
-                                  Destination:
-                                </span>{' '}
-                                {item.destination}
-                              </p>
-                              <p className='text-sm text-gray-300'>
-                                <span className='text-purple-300'>Type:</span>{' '}
-                                {item.linkType} |
-                                <span className='text-purple-300'>
-                                  Visibility:
-                                </span>{' '}
-                                {item.visibilityRole} |
-                                <span className='text-purple-300'>
-                                  Position:
-                                </span>{' '}
-                                {item.sortOrder}
-                              </p>
-                            </div>
+                          <div>
+                            <label className='block text-sm font-medium mb-1'>
+                              Destination
+                            </label>
+                            <input
+                              type='text'
+                              value={editMenuItemData.destination || ''}
+                              onChange={(e) =>
+                                setEditMenuItemData((prev) => ({
+                                  ...prev,
+                                  destination: e.target.value,
+                                }))
+                              }
+                              className='w-full p-2 bg-[#00000061] rounded outline-none'
+                            />
+                          </div>
+                          <div>
+                            <label className='block text-sm font-medium mb-1'>
+                              Link Type
+                            </label>
+                            <select
+                              value={editMenuItemData.linkType || 'route'}
+                              onChange={(e) =>
+                                setEditMenuItemData((prev) => ({
+                                  ...prev,
+                                  linkType: e.target.value,
+                                }))
+                              }
+                              className='w-full p-2 bg-[#00000061] rounded outline-none'
+                            >
+                              <option value='route'>Route</option>
+                              <option value='url'>URL</option>
+                              <option value='modal'>Modal</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className='block text-sm font-medium mb-1'>
+                              Visibility
+                            </label>
+                            <select
+                              value={
+                                editMenuItemData.visibilityRole || 'everyone'
+                              }
+                              onChange={(e) =>
+                                setEditMenuItemData((prev) => ({
+                                  ...prev,
+                                  visibilityRole: e.target.value,
+                                }))
+                              }
+                              className='w-full p-2 bg-[#00000061] rounded outline-none'
+                            >
+                              <option value='everyone'>Everyone</option>
+                              <option value='loggedIn'>Logged In</option>
+                              <option value='admin'>Admin</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className='block text-sm font-medium mb-1'>
+                              Position
+                            </label>
+                            <input
+                              type='number'
+                              value={editMenuItemData.sortOrder || 0}
+                              onChange={(e) =>
+                                setEditMenuItemData((prev) => ({
+                                  ...prev,
+                                  sortOrder: e.target.value,
+                                }))
+                              }
+                              className='w-full p-2 bg-[#00000061] rounded outline-none'
+                            />
+                          </div>
+                          <div className='col-span-2'>
                             <div className='flex gap-2'>
                               <button
                                 type='button'
-                                onClick={() => handleEditMenuItem(idx)}
-                                className='flex items-center text-blue-400 hover:text-blue-300'
+                                onClick={handleSaveMenuItem}
+                                className='flex items-center bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm transition-colors'
                               >
-                                <Edit2 className='w-4 h-4 mr-1' />
-                                Edit
+                                <Save className='w-4 h-4 mr-1' />
+                                Save
                               </button>
                               <button
                                 type='button'
-                                onClick={() => handleDeleteMenuItem(idx)}
-                                className='flex items-center text-red-400 hover:text-red-300'
+                                onClick={handleCancelEditMenuItem}
+                                className='flex items-center bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm transition-colors'
                               >
-                                <Trash2 className='w-4 h-4 mr-1' />
-                                Remove
+                                <X className='w-4 h-4 mr-1' />
+                                Cancel
                               </button>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ) : (
+                        // View mode
+                        <div className='flex justify-between items-center'>
+                          <div>
+                            <p className='font-medium'>
+                              <span className='text-purple-300'>Label:</span>{' '}
+                              {item.label}
+                            </p>
+                            <p className='text-sm text-gray-300'>
+                              <span className='text-purple-300'>
+                                Destination:
+                              </span>{' '}
+                              {item.destination}
+                            </p>
+                            <p className='text-sm text-gray-300'>
+                              <span className='text-purple-300'>Type:</span>{' '}
+                              {item.linkType} |
+                              <span className='text-purple-300'>
+                                Visibility:
+                              </span>{' '}
+                              {item.visibilityRole} |
+                              <span className='text-purple-300'>Position:</span>{' '}
+                              {item.sortOrder}
+                            </p>
+                          </div>
+                          <div className='flex gap-2'>
+                            <button
+                              type='button'
+                              onClick={() => handleEditMenuItem(idx)}
+                              className='flex items-center text-blue-400 hover:text-blue-300'
+                            >
+                              <Edit2 className='w-4 h-4 mr-1' />
+                              Edit
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => handleDeleteMenuItem(idx)}
+                              className='flex items-center text-red-400 hover:text-red-300'
+                            >
+                              <Trash2 className='w-4 h-4 mr-1' />
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -24,13 +24,12 @@ const SignUpPage = () => {
     role: 'superAdmin',
   })
 
-  console.log('Form Data:', formData)
-
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [errors, setErrors] = useState({})
 
   // Generate days, months, years for DOB
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
@@ -60,18 +59,36 @@ const SignUpPage = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
+    const newValue = type === 'checkbox' ? checked : value
+
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: newValue,
     })
 
-    // Handle country suggestions
-    if (name === 'country') {
-      const filtered = countryList.filter((country) =>
-        country.toLowerCase().includes(value.toLowerCase())
-      )
-      setSuggestions(filtered.slice(0, 5))
-      setShowSuggestions(filtered.length > 0 && value !== '')
+    // Clear error when user starts typing/changing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: '',
+      })
+    }
+
+    // Real-time validation for specific fields
+    if (name === 'phoneNumber') {
+      validatePhoneNumberField(newValue)
+    }
+    if (name === 'email') {
+      validateEmailField(newValue)
+    }
+    if (name === 'password') {
+      validatePasswordField(newValue)
+    }
+    if (name === 'confirmPassword') {
+      validateConfirmPasswordField(newValue, formData.password)
+    }
+    if (name === 'firstName' || name === 'lastName') {
+      validateNameField(name, newValue)
     }
   }
 
@@ -82,6 +99,14 @@ const SignUpPage = () => {
       countryCode: countryObj.isoCode,
     })
     setShowSuggestions(false)
+
+    // Clear country error
+    if (errors.countryName) {
+      setErrors({
+        ...errors,
+        countryName: '',
+      })
+    }
   }
 
   const validateLettersOnly = (text) => {
@@ -114,8 +139,159 @@ const SignUpPage = () => {
   }
 
   const validateMobileNumber = (number) => {
-    return /^\d+$/.test(number)
+    // Check if number contains only digits and has reasonable length (6-15 digits)
+    return /^\+?[0-9]{10,15}$/.test(number)
   }
+
+  // Individual field validation functions
+  const validateNameField = (fieldName, value) => {
+    if (value && !validateLettersOnly(value)) {
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: 'Name should contain only letters and spaces',
+      }))
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: '',
+      }))
+    }
+  }
+
+  const validateEmailField = (email) => {
+    if (email && !validateEmail(email)) {
+      setErrors((prev) => ({
+        ...prev,
+        email: 'Please enter a valid email address',
+      }))
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        email: '',
+      }))
+    }
+  }
+
+  const validatePasswordField = (password) => {
+    if (password && !validatePassword(password)) {
+      setErrors((prev) => ({
+        ...prev,
+        password:
+          'Password must be at least 8 characters and contain at least 1 number',
+      }))
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        password: '',
+      }))
+    }
+  }
+
+  const validateConfirmPasswordField = (confirmPassword, password) => {
+    if (confirmPassword && confirmPassword !== password) {
+      setErrors((prev) => ({
+        ...prev,
+        confirmPassword: 'Passwords do not match',
+      }))
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        confirmPassword: '',
+      }))
+    }
+  }
+
+  const validatePhoneNumberField = (phoneNumber) => {
+    if (phoneNumber && !validateMobileNumber(phoneNumber)) {
+      setErrors((prev) => ({
+        ...prev,
+        phoneNumber: 'Phone number should contain 10-15 digits only',
+      }))
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        phoneNumber: '',
+      }))
+    }
+  }
+
+  const validateDOBField = () => {
+    if (
+      formData.dobDay &&
+      formData.dobMonth &&
+      formData.dobYear &&
+      !validateDOB()
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        dob: 'You must be at least 18 years old to register',
+      }))
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        dob: '',
+      }))
+    }
+  }
+
+  // Check if all mandatory fields are filled and valid
+  const isFormValid = () => {
+    const mandatoryFields = [
+      'firstName',
+      'lastName',
+      'email',
+      'password',
+      'confirmPassword',
+      'dobDay',
+      'dobMonth',
+      'dobYear',
+      'countryName',
+      'phoneNumber',
+      'role',
+    ]
+
+    // Check if all mandatory fields have values
+    const allFieldsFilled = mandatoryFields.every(
+      (field) => formData[field] && formData[field].toString().trim() !== ''
+    )
+
+    // Check if terms are agreed
+    const termsAgreed = formData.termsAgreed
+
+    // Check if there are any validation errors
+    const hasErrors = Object.values(errors).some((error) => error !== '')
+
+    // Additional validations
+    const isEmailValid = validateEmail(formData.email)
+    const isPasswordValid = validatePassword(formData.password)
+    const passwordsMatch = formData.password === formData.confirmPassword
+    const isDOBValid = validateDOB()
+    const isPhoneValid = validateMobileNumber(formData.phoneNumber)
+    const isFirstNameValid = validateLettersOnly(formData.firstName)
+    const isLastNameValid = validateLettersOnly(formData.lastName)
+
+    return (
+      allFieldsFilled &&
+      termsAgreed &&
+      !hasErrors &&
+      isEmailValid &&
+      isPasswordValid &&
+      passwordsMatch &&
+      isDOBValid &&
+      isPhoneValid &&
+      isFirstNameValid &&
+      isLastNameValid
+    )
+  }
+
+  // Validate DOB when any DOB field changes
+  useEffect(() => {
+    if (formData.dobDay && formData.dobMonth && formData.dobYear) {
+      validateDOBField()
+    }
+  }, [formData.dobDay, formData.dobMonth, formData.dobYear])
+
+  console.log('Form data:', formData)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -171,7 +347,7 @@ const SignUpPage = () => {
 
       // Validate mobile number
       if (!validateMobileNumber(formData.phoneNumber)) {
-        enqueueSnackbar('Phone number should contain only digits', {
+        enqueueSnackbar('Phone number should contain 6-15 digits only', {
           variant: 'warning',
         })
         setIsLoading(false)
@@ -180,14 +356,13 @@ const SignUpPage = () => {
 
       const payload = {
         ...formData,
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/verify-email`,
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/verify-email`,
         country: formData.countryCode,
       }
       delete payload.countryCode
       delete payload.countryName
 
-      console.log('Registration data ready to be sent:', formData)
-
+      console.log('Registration data ready to be sent:', payload)
       const res = await axios.post(`${API_BASE_URL}/auth/signup`, payload)
       console.log('Registration response:', res)
       if (res.status === apiConstants.create) {
@@ -207,6 +382,7 @@ const SignUpPage = () => {
           termsAgreed: false,
           role: 'superAdmin',
         })
+        setErrors({})
       }
     } catch (err) {
       console.log('Registration error:', err)
@@ -222,10 +398,10 @@ const SignUpPage = () => {
   return (
     <div className='flex h-screen w-full bg-transparent  md:px-28 py-20 md:py-6'>
       <div className='flex w-full'>
-        <div className='w-full flex md:items-center justify-center p-8'>
+        <div className='w-full flex md:items-center justify-center p-0 md:p-8'>
           <div className='w-full max-w-md'>
             <div className='flex justify-between items-center mb-6'>
-              <h1 className='text-3xl font-bold text-white'>Admin Sign Up</h1>
+              <h1 className='text-3xl font-bold text-white'>Sign Up</h1>
               <span className='text-xs text-red-500'>
                 *Indicates Mandatory Fields
               </span>
@@ -239,9 +415,17 @@ const SignUpPage = () => {
                   placeholder='FIRST NAME*'
                   value={formData.firstName}
                   onChange={handleChange}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
+                  className={`w-full px-4 py-3 rounded border ${
+                    errors.firstName ? 'border-red-500' : 'border-gray-700'
+                  } bg-transparent text-white`}
                   required
+                  disabled={isLoading}
                 />
+                {errors.firstName && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors.firstName}
+                  </p>
+                )}
               </div>
 
               {/* Last Name */}
@@ -252,9 +436,15 @@ const SignUpPage = () => {
                   placeholder='LAST NAME*'
                   value={formData.lastName}
                   onChange={handleChange}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
+                  className={`w-full px-4 py-3 rounded border ${
+                    errors.lastName ? 'border-red-500' : 'border-gray-700'
+                  } bg-transparent text-white`}
                   required
+                  disabled={isLoading}
                 />
+                {errors.lastName && (
+                  <p className='text-red-500 text-xs mt-1'>{errors.lastName}</p>
+                )}
               </div>
 
               {/* Email */}
@@ -265,9 +455,15 @@ const SignUpPage = () => {
                   placeholder='EMAIL*'
                   value={formData.email}
                   onChange={handleChange}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
+                  className={`w-full px-4 py-3 rounded border ${
+                    errors.email ? 'border-red-500' : 'border-gray-700'
+                  } bg-transparent text-white`}
                   required
+                  disabled={isLoading}
                 />
+                {errors.email && (
+                  <p className='text-red-500 text-xs mt-1'>{errors.email}</p>
+                )}
               </div>
 
               {/* Password */}
@@ -278,15 +474,21 @@ const SignUpPage = () => {
                   placeholder='PASSWORD*'
                   value={formData.password}
                   onChange={handleChange}
-                  className='w-full px-4 py-3 pr-10 rounded border border-gray-700 bg-transparent text-white'
+                  className={`w-full px-4 py-3 pr-10 rounded border ${
+                    errors.password ? 'border-red-500' : 'border-gray-700'
+                  } bg-transparent text-white`}
                   required
+                  disabled={isLoading}
                 />
                 <span
                   onClick={() => setShowPassword(!showPassword)}
                   className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                 </span>
+                {errors.password && (
+                  <p className='text-red-500 text-xs mt-1'>{errors.password}</p>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -297,8 +499,13 @@ const SignUpPage = () => {
                   placeholder='RE-ENTER PASSWORD*'
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className='w-full px-4 py-3 pr-10 rounded border border-gray-700 bg-transparent text-white'
+                  className={`w-full px-4 py-3 pr-10 rounded border ${
+                    errors.confirmPassword
+                      ? 'border-red-500'
+                      : 'border-gray-700'
+                  } bg-transparent text-white`}
                   required
+                  disabled={isLoading}
                 />
                 <span
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -310,6 +517,11 @@ const SignUpPage = () => {
                     <Eye size={20} />
                   )}
                 </span>
+                {errors.confirmPassword && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors.confirmPassword}
+                  </p>
+                )}
               </div>
 
               {/* Date of Birth */}
@@ -324,6 +536,7 @@ const SignUpPage = () => {
                     onChange={handleChange}
                     className='w-1/4 px-2 py-3 rounded border border-gray-700 bg-transparent text-white'
                     required
+                    disabled={isLoading}
                   >
                     <option value='' className='text-black'>
                       DD
@@ -344,6 +557,7 @@ const SignUpPage = () => {
                     onChange={handleChange}
                     className='w-2/5 px-2 py-3 rounded border border-gray-700 bg-transparent text-white'
                     required
+                    disabled={isLoading}
                   >
                     <option value='' className='text-black'>
                       MM
@@ -364,6 +578,7 @@ const SignUpPage = () => {
                     onChange={handleChange}
                     className='w-1/3 px-2 py-3 rounded border border-gray-700 bg-transparent text-white'
                     required
+                    disabled={isLoading}
                   >
                     <option value='' className='text-black'>
                       YYYY
@@ -375,6 +590,9 @@ const SignUpPage = () => {
                     ))}
                   </select>
                 </div>
+                {errors.dob && (
+                  <p className='text-red-500 text-xs mt-1'>{errors.dob}</p>
+                )}
               </div>
 
               {/* Country with auto-suggest */}
@@ -419,8 +637,11 @@ const SignUpPage = () => {
                       setShowSuggestions(true)
                     }
                   }}
-                  className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
+                  className={`w-full px-4 py-3 rounded border ${
+                    errors.countryName ? 'border-red-500' : 'border-gray-700'
+                  } bg-transparent text-white`}
                   required
+                  disabled={isLoading}
                 />
                 {showSuggestions && suggestions.length > 0 && (
                   <div className='absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded max-h-60 overflow-auto'>
@@ -434,6 +655,11 @@ const SignUpPage = () => {
                       </div>
                     ))}
                   </div>
+                )}
+                {errors.countryName && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors.countryName}
+                  </p>
                 )}
               </div>
 
@@ -451,10 +677,18 @@ const SignUpPage = () => {
                     placeholder='Enter Mobile Number*'
                     value={formData.phoneNumber}
                     onChange={handleChange}
-                    className='w-3/4 px-4 py-3 rounded-r border border-gray-700 bg-transparent text-white'
+                    className={`w-3/4 px-4 py-3 rounded-r border ${
+                      errors.phoneNumber ? 'border-red-500' : 'border-gray-700'
+                    } bg-transparent text-white`}
                     required
+                    disabled={isLoading}
                   />
                 </div>
+                {errors.phoneNumber && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors.phoneNumber}
+                  </p>
+                )}
               </div>
 
               {/* Terms Agreement */}
@@ -467,17 +701,22 @@ const SignUpPage = () => {
                   onChange={handleChange}
                   className='w-4 h-4 mr-2 accent-yellow-500'
                   required
+                  disabled={isLoading}
                 />
                 <label htmlFor='termsAgreed' className='text-white text-sm'>
-                  I agree to terms and privacy policy
+                  I agree to terms and privacy policy*
                 </label>
               </div>
 
               {/* Submit Button */}
               <button
                 type='submit'
-                className='w-full bg-red-500 text-white py-3 rounded font-medium hover:bg-red-600 transition duration-300 flex items-center justify-center mt-4 disabled:cursor-not-allowed disabled:bg-red-400'
-                disabled={isLoading || !formData.termsAgreed}
+                className={`w-full py-3 rounded font-medium transition duration-300 flex items-center justify-center mt-4 ${
+                  isFormValid() && !isLoading
+                    ? 'bg-red-500 text-white hover:bg-red-600 cursor-pointer'
+                    : 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                }`}
+                disabled={!isFormValid() || isLoading}
               >
                 {isLoading ? 'Signing Up...' : 'Create Account'}
               </button>
@@ -487,14 +726,14 @@ const SignUpPage = () => {
                 <div className='text-center text-white'>
                   Already have an account?{' '}
                   <Link
-                    href='/admin/login'
+                    href='/login'
                     className='text-yellow-500 hover:underline'
                   >
                     Log In
                   </Link>
                 </div>
                 <Link
-                  href={'/admin/forgot-password'}
+                  href={'/forgot-password'}
                   className='text-blue-400 hover:underline'
                 >
                   Forgot Password?

@@ -26,8 +26,21 @@ const ForgotPasswordPage = () => {
     })
   }
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return re.test(email)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'error',
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       console.log('Forgot Password data ready to be sent:', formData)
@@ -38,10 +51,15 @@ const ForgotPasswordPage = () => {
       console.log('Forgot Password response:', res.data)
       if (res.status === apiConstants.success) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
-        setFormData({ email: '' })
+        setFormData({ email: '', redirectUrl: formData.redirectUrl })
       }
     } catch (err) {
       console.log('Reset Password error:', err)
+      enqueueSnackbar(
+        err?.response?.data?.message ||
+          'Something went wrong. Try again later.',
+        { variant: 'error' }
+      )
     } finally {
       setIsLoading(false)
     }
@@ -64,7 +82,9 @@ const ForgotPasswordPage = () => {
             <h1 className='text-3xl font-bold text-white mb-8'>
               Forgot Password
             </h1>
-
+            <p className='text-sm text-gray-300 mb-6'>
+              Please enter your email to reset your password
+            </p>
             <form className='space-y-4' onSubmit={handleSubmit}>
               <div>
                 <input
@@ -75,6 +95,7 @@ const ForgotPasswordPage = () => {
                   onChange={handleChange}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required
+                  disabled={isLoading}
                 />
               </div>
               <button
