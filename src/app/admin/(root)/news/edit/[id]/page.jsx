@@ -16,16 +16,15 @@ export default function EditNewsPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [newsDetails, setNewsDetails] = useState({
     title: '',
-    publishDate: '',
     category: '',
     content: '',
     videoEmbedLink: '',
-    isPublished: false,
+    publishDate: '',
+    status: 'Draft',
     coverImage: '',
   })
   const [imagePreview, setImagePreview] = useState(null)
 
-  const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const fetchNewsDetails = async () => {
@@ -38,7 +37,7 @@ export default function EditNewsPage({ params }) {
         category: data.category || '',
         content: data.content || '',
         videoEmbedLink: data.videoEmbedLink || '',
-        isPublished: data.status == 'Published' ? true : false,
+        status: data.status || 'Draft',
         coverImage: data.coverImage || '',
       })
       setImagePreview(
@@ -47,7 +46,6 @@ export default function EditNewsPage({ params }) {
       )
     } catch (err) {
       console.error('Error fetching news:', err)
-      setError('Failed to load news data.')
     } finally {
       setLoading(false)
     }
@@ -71,11 +69,54 @@ export default function EditNewsPage({ params }) {
   }
 
   console.log('News Details:', newsDetails)
+  const validateForm = () => {
+    const errors = {}
+
+    if (!newsDetails.title.trim()) {
+      errors.title = 'Title is required.'
+    } else if (!/^[a-zA-Z0-9\s\-'"&]+$/.test(newsDetails.title)) {
+      errors.title = 'Title contains invalid characters.'
+    }
+
+    if (!newsDetails.category) {
+      errors.category = 'Category is required.'
+    }
+
+    if (!newsDetails.content.trim()) {
+      errors.content = 'Content is required.'
+    } else if (newsDetails.content.trim().length < 10) {
+      errors.content = 'Content must be at least 10 characters.'
+    }
+
+    if (
+      newsDetails.videoEmbedLink &&
+      !/^https:\/\/(www\.)?youtube\.com\/embed\/.+/.test(
+        newsDetails.videoEmbedLink
+      )
+    ) {
+      errors.videoEmbedLink = 'Invalid YouTube embed link.'
+    }
+
+    if (!newsDetails.publishDate) {
+      errors.publishDate = 'Publish date is required.'
+    }
+
+    return errors
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
-    setError('')
+    const errors = validateForm()
+
+    if (Object.keys(errors).length > 0) {
+      // Show each error in Snackbar
+      Object.values(errors).forEach((msg) => {
+        enqueueSnackbar(msg, { variant: 'warning' })
+      })
+      setSubmitting(false)
+      return
+    }
 
     try {
       if (
@@ -86,7 +127,7 @@ export default function EditNewsPage({ params }) {
           const s3UploadedUrl = await uploadToS3(newsDetails.coverImage)
           newsDetails.coverImage = s3UploadedUrl
         } catch (error) {
-          console.error('Image upload failed:', error)
+          console.log('Image upload failed:', error)
           return
         }
       }
@@ -102,8 +143,7 @@ export default function EditNewsPage({ params }) {
         fetchNewsDetails()
       }
     } catch (err) {
-      console.error('Error updating news:', err)
-      setError('Failed to update news.')
+      console.log('Error updating news:', err)
     } finally {
       setSubmitting(false)
     }
@@ -143,8 +183,6 @@ export default function EditNewsPage({ params }) {
           <h1 className='text-2xl font-bold'>News Editor</h1>
         </div>
         <form onSubmit={handleSubmit}>
-          {error && <p className='text-red-500 mb-4'>{error}</p>}
-
           {/* Image Display */}
           <div className='mb-8'>
             {imagePreview ? (
@@ -194,7 +232,9 @@ export default function EditNewsPage({ params }) {
                   </svg>
                 </div>
                 <p className='text-sm text-[#AEB9E1] z-10 text-center'>
-                  <span className='text-[#FEF200] mr-1'>Click to upload</span>
+                  <span className='text-[#FEF200] mr-1'>
+                    Click to upload<span className='text-red-500'>*</span>
+                  </span>
                   or drag and drop
                   <br />
                   SVG, PNG, JPG or GIF (max. 800x400)
@@ -205,18 +245,22 @@ export default function EditNewsPage({ params }) {
 
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             <div className='col-span-2 bg-[#00000061] p-2 rounded'>
-              <label className='block text-sm font-medium mb-1'>Title</label>
+              <label className='block text-sm font-medium mb-1'>
+                Title<span className='text-red-500'>*</span>
+              </label>
               <input
                 type='text'
                 name='title'
                 value={newsDetails.title}
                 onChange={handleChange}
                 className='w-full bg-transparent text-white outline-none'
+                required
+                disabled={submitting}
               />
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Publish Date
+                Publish Date<span className='text-red-500'>*</span>
               </label>
               <input
                 type='date'
@@ -224,6 +268,8 @@ export default function EditNewsPage({ params }) {
                 value={newsDetails.publishDate}
                 onChange={handleChange}
                 className='w-full bg-transparent text-white outline-none'
+                required
+                disabled={submitting}
               />
             </div>
           </div>
@@ -238,6 +284,7 @@ export default function EditNewsPage({ params }) {
               onChange={handleChange}
               className='w-full outline-none'
               required
+              disabled={submitting}
             >
               <option value='' className='text-black'>
                 Select category
@@ -255,13 +302,17 @@ export default function EditNewsPage({ params }) {
           </div>
 
           <div className='mb-6 bg-[#00000061] p-2 rounded'>
-            <label className='block text-sm font-medium mb-1'>Content</label>
+            <label className='block text-sm font-medium mb-1'>
+              Content<span className='text-red-500'>*</span>
+            </label>
             <textarea
               name='content'
               value={newsDetails.content}
               onChange={handleChange}
               rows='6'
               className='w-full bg-transparent text-white outline-none resize-none'
+              required
+              disabled={submitting}
             />
           </div>
 
@@ -275,27 +326,25 @@ export default function EditNewsPage({ params }) {
               value={newsDetails.videoEmbedLink}
               onChange={handleChange}
               className='w-full bg-transparent text-white outline-none'
+              disabled={submitting}
             />
           </div>
 
           <div className='bg-[#00000061] p-2 rounded mb-6'>
-            <label className='block text-sm font-medium mb-1'>Status</label>
+            <label className='block text-sm font-medium mb-1'>
+              Status<span className='text-red-500'>*</span>
+            </label>
             <select
-              name='isPublished'
-              value={newsDetails.isPublished}
-              onChange={(e) =>
-                setNewsDetails({
-                  ...newsDetails,
-                  isPublished: e.target.value === 'true',
-                })
-              }
+              name='status'
+              value={newsDetails.status}
+              onChange={handleChange}
               className='w-full bg-transparent text-white outline-none'
             >
-              <option value='true' className='text-black'>
-                Published
-              </option>
-              <option value='false' className='text-black'>
+              <option value='Draft' className='text-black'>
                 Draft
+              </option>
+              <option value='Published' className='text-black'>
+                Published
               </option>
             </select>
           </div>
@@ -306,7 +355,7 @@ export default function EditNewsPage({ params }) {
               className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
               disabled={submitting}
             >
-              Save
+              {submitting ? <Loader /> : 'Save Changes'}
             </button>
             <Link href='/admin/news'>
               <button

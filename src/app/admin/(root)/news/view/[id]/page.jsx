@@ -133,7 +133,7 @@ export default function ViewNewsPage({ params }) {
             <label className='block text-sm font-medium mb-1'>Status</label>
             <input
               type='text'
-              value={newsDetails.isPublished ? 'Published' : 'Draft'}
+              value={newsDetails.status}
               readOnly
               className='w-full bg-transparent text-white outline-none'
             />
