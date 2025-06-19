@@ -31,28 +31,36 @@ export function PeopleTable({
 }) {
   const { roles } = useStore()
 
-  // Delete confirmation state
   const [isDelete, setIsDelete] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState(null)
 
-  // Handle deletion of a person
   const handleDeletePerson = async (personId) => {
     try {
       await axios.delete(`${API_BASE_URL}/people/${personId}`)
       enqueueSnackbar('Person deleted successfully', { variant: 'success' })
       setIsDelete(false)
-      if (onSuccess) onSuccess()
+      if (onSuccess)
+        onSuccess({ limit, page: 1, id: '', name: '', gender: '', role: '' })
     } catch (error) {
       enqueueSnackbar('Failed to delete person', { variant: 'error' })
     }
   }
 
-  // Reset all filters
+  const handleSearch = () => {
+    onSuccess({
+      id,
+      name,
+      gender,
+      role,
+    })
+  }
+
   const handleResetFilter = () => {
     setId('')
     setName('')
     setGender('')
     setRole('')
+    onSuccess({ page: 1, limit, id: '', name: '', gender: '', role: '' })
   }
 
   // Create column header
@@ -150,26 +158,22 @@ export function PeopleTable({
       </div>
 
       {/* Reset Filters Button */}
-      {(id || name || gender || role) && (
-        <div className='flex justify-end mb-6'>
+      <div className='flex justify-end mb-6 gap-2'>
+        <button
+          onClick={handleSearch}
+          className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium'
+        >
+          Get People
+        </button>{' '}
+        {(id || name || gender || role) && (
           <button
             className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
             onClick={handleResetFilter}
           >
             Reset Filters
           </button>
-        </div>
-      )}
-
-      {/* Search Button */}
-      {/* <div className='flex justify-center mb-6'>
-        <button
-          className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium'
-
-        >
-          Get People
-        </button>
-      </div> */}
+        )}
+      </div>
 
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
         <PaginationHeader
