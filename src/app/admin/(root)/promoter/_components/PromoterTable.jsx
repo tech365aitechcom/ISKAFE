@@ -91,10 +91,7 @@ export function PromoterTable({
                       }`}
                     >
                       <td className='p-4'>{promoter._id}</td>
-                      <td className='p-4'>
-                        {promoter.user?.firstName} {promoter.user?.middleName}{' '}
-                        {promoter.user?.lastName}
-                      </td>
+                      <td className='p-4'>{promoter.name}</td>
                       <td className='p-4'>{promoter.abbreviation}</td>
                       <td className='p-4'>
                         <a
