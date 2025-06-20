@@ -1,11 +1,11 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { X, Plus, Trash2, Camera, Users, Trash } from 'lucide-react'
+import { X, Plus, Trash, Camera, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { City, Country, State } from 'country-state-city'
 import Autocomplete from '../../../_components/Autocomplete'
 import axios from 'axios'
-import { API_BASE_URL, apiConstants } from '../../../../constants'
+import { API_BASE_URL, apiConstants, sportTypes } from '../../../../constants'
 import { uploadToS3 } from '../../../../utils/uploadToS3'
 import useStore from '../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
@@ -73,19 +73,6 @@ const RegisterTrainingFacilityPage = () => {
     image: null,
   })
 
-  const martialArtsOptions = [
-    'Kickboxing',
-    'MMA',
-    'Muay Thai',
-    'BJJ',
-    'Boxing',
-    'Karate',
-    'Taekwondo',
-    'Judo',
-    'Wrestling',
-    'Kung Fu',
-  ]
-
   const router = useRouter()
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -132,6 +119,46 @@ const RegisterTrainingFacilityPage = () => {
     }
   }
 
+  const handleTrainerImageUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setCurrentTrainer((prev) => ({
+        ...prev,
+        image: file,
+      }))
+    }
+  }
+
+  const handleFighterImageUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setCurrentFighter((prev) => ({
+        ...prev,
+        image: file,
+      }))
+    }
+  }
+
+  const removeTrainerImage = () => {
+    setCurrentTrainer((prev) => ({
+      ...prev,
+      image: null,
+    }))
+    // Clear the file input
+    const fileInput = document.querySelector('input[name="trainerImage"]')
+    if (fileInput) fileInput.value = ''
+  }
+
+  const removeFighterImage = () => {
+    setCurrentFighter((prev) => ({
+      ...prev,
+      image: null,
+    }))
+    // Clear the file input
+    const fileInput = document.querySelector('input[name="fighterImage"]')
+    if (fileInput) fileInput.value = ''
+  }
+
   const handleGalleryUpload = (e) => {
     const files = Array.from(e.target.files)
     setFormData((prev) => ({
@@ -147,12 +174,63 @@ const RegisterTrainingFacilityPage = () => {
     }))
   }
 
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validateRole = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const validateFightRecord = (code) => /^\d+-\d+-\d+$/.test(code)
+
   const addTrainer = () => {
-    if (currentTrainer.name || currentTrainer.existingId) {
+    if (currentTrainer.type !== 'existing') {
+      if (!currentTrainer.name) {
+        enqueueSnackbar('Name is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateName(currentTrainer.name)) {
+        enqueueSnackbar(
+          'Name can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return
+      }
+
+      if (!currentTrainer.role) {
+        enqueueSnackbar('Role is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateRole(currentTrainer.role)) {
+        enqueueSnackbar(
+          'Role can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return
+      }
+
+      if (!currentTrainer.email) {
+        enqueueSnackbar('Email is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateEmail(currentTrainer.email)) {
+        enqueueSnackbar('Invalid email address.', { variant: 'warning' })
+        return
+      }
+
+      if (!currentTrainer.phone) {
+        enqueueSnackbar('Phone number is required.', { variant: 'warning' })
+        return
+      }
+      if (!validatePhoneNumber(currentTrainer.phone)) {
+        enqueueSnackbar('Invalid phone number.', { variant: 'warning' })
+        return
+      }
+
+      // Add to list
       setFormData((prev) => ({
         ...prev,
         trainers: [...prev.trainers, { ...currentTrainer, id: Date.now() }],
       }))
+
+      // Reset current trainer
       setCurrentTrainer({
         type: 'new',
         existingId: '',
@@ -174,7 +252,25 @@ const RegisterTrainingFacilityPage = () => {
   }
 
   const addFighter = () => {
-    if (currentFighter.name || currentFighter.existingId) {
+    if (currentFighter.type !== 'existing') {
+      if (!currentTrainer.name) {
+        enqueueSnackbar('Name is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateName(currentFighter.name)) {
+        enqueueSnackbar(
+          'Name can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return
+      }
+      if (!validateFightRecord(currentFighter.record)) {
+        enqueueSnackbar('Invalid fight record,format should by X-Y-Z', {
+          variant: 'warning',
+        })
+        return
+      }
+
       setFormData((prev) => ({
         ...prev,
         fighters: [...prev.fighters, { ...currentFighter, id: Date.now() }],
@@ -317,7 +413,9 @@ const RegisterTrainingFacilityPage = () => {
 
       if (response.status === apiConstants.create) {
         enqueueSnackbar(
-          response.data.message || 'Facility registered successfully',
+          action === 'draft'
+            ? 'Facility saved as draft.'
+            : 'Facility submitted for review.',
           {
             variant: 'success',
           }
@@ -461,38 +559,68 @@ const RegisterTrainingFacilityPage = () => {
                   <label className='block font-medium mb-2'>
                     Facility Logo <span className='text-red-400'>*</span>
                   </label>
-                  <div className='mt-1'>
-                    <input
-                      type='file'
-                      name='logo'
-                      onChange={handleFileUpload}
-                      accept='image/jpeg,image/jpg,image/png'
-                      className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                    />
-                    <p className='text-xs text-gray-400 mt-1'>JPG/PNG</p>
+                  {formData.logo && (
+                    <div className='mb-2 relative w-20 h-20'>
+                      <img
+                        src={
+                          typeof formData.logo === 'string'
+                            ? formData.logo
+                            : URL.createObjectURL(formData.logo)
+                        }
+                        alt='Current logo'
+                        className='w-full h-full object-cover rounded border'
+                      />
+                      <Trash
+                        onClick={() => setFormData({ ...formData, logo: null })}
+                        className='absolute top-1 right-1 w-5 h-5 text-red-500 cursor-pointer'
+                        size={16}
+                      />
+                    </div>
+                  )}
+                  <div className='mt-5'>
+                    <label className='cursor-pointer inline-block file-button'>
+                      <span className='py-2 px-4 rounded-full text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700'>
+                        Choose File
+                      </span>
+                      <input
+                        type='file'
+                        name='logo'
+                        onChange={handleFileUpload}
+                        accept='image/jpeg,image/jpg,image/png'
+                        className='hidden'
+                      />
+                    </label>
+                    <p className='text-xs text-gray-400 mt-2'>JPG/PNG</p>
                   </div>
                 </div>
               </div>
 
               <div className='mt-4'>
                 <label className='block font-medium mb-1'>
-                  Martial Arts / Styles Taught *
+                  Martial Arts / Styles Taught{' '}
+                  <span className='text-red-400'>*</span>
                 </label>
                 <div className='mt-2 grid grid-cols-2 md:grid-cols-5 gap-2'>
-                  {martialArtsOptions.map((art) => (
-                    <label
-                      key={art}
-                      className='flex items-center space-x-2 text-white cursor-pointer'
-                    >
-                      <input
-                        type='checkbox'
-                        checked={formData.martialArtsStyles.includes(art)}
-                        onChange={() => handleMartialArtsChange(art)}
-                        className='accent-yellow-500'
-                      />
-                      <span className='text-sm'>{art}</span>
-                    </label>
-                  ))}
+                  {sportTypes.map((art, index) => {
+                    const id = `martial-art-${index}`
+                    return (
+                      <div
+                        key={art}
+                        className='flex items-center space-x-2 text-white'
+                      >
+                        <input
+                          id={id}
+                          type='checkbox'
+                          checked={formData.martialArtsStyles.includes(art)}
+                          onChange={() => handleMartialArtsChange(art)}
+                          className='accent-yellow-500'
+                        />
+                        <label htmlFor={id} className='text-sm cursor-pointer'>
+                          {art}
+                        </label>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -640,7 +768,7 @@ const RegisterTrainingFacilityPage = () => {
             <div className='space-y-6'>
               <div className=''>
                 <h3 className='text-lg font-semibold text-white mb-4'>
-                  Description & Branding
+                  Facility Description and Branding
                 </h3>
 
                 <div className='space-y-4'>
@@ -751,7 +879,7 @@ const RegisterTrainingFacilityPage = () => {
               <div className=''>
                 <h3 className='text-lg font-semibold text-white mb-4 flex items-center'>
                   <Users className='mr-2' size={20} />
-                  Trainers
+                  Trainers and Fighters Association
                 </h3>
 
                 <div className='space-y-4'>
@@ -914,20 +1042,48 @@ const RegisterTrainingFacilityPage = () => {
                         <div className='md:col-span-2'>
                           <label className='block font-medium mb-2'>
                             Upload Trainer Image
-                            <span className='text-red-400'>*</span>
                           </label>
-                          <div className='mt-1'>
-                            <input
-                              type='file'
-                              name='image'
-                              onChange={handleFileUpload}
-                              accept='image/jpeg,image/jpg,image/png'
-                              className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                            />
-                            <p className='text-xs text-gray-400 mt-1'>
-                              JPG/PNG
-                            </p>
-                          </div>
+                          {currentTrainer.image ? (
+                            <div className='bg-[#00000061] w-fit p-3 rounded flex gap-4 items-center justify-between'>
+                              <div className='flex items-center space-x-3'>
+                                <img
+                                  src={URL.createObjectURL(
+                                    currentTrainer.image
+                                  )}
+                                  alt='Trainer preview'
+                                  className='w-12 h-12 object-cover rounded'
+                                />
+                                <span className='text-white text-sm'>
+                                  {currentTrainer.image.name}
+                                </span>
+                              </div>
+                              <button
+                                type='button'
+                                onClick={removeTrainerImage}
+                                className='text-red-400 hover:text-red-300 p-1'
+                              >
+                                <Trash size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className='mt-1'>
+                              <label className='cursor-pointer inline-block file-button'>
+                                <span className='py-2 px-4 rounded-full text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700'>
+                                  Choose File
+                                </span>
+                                <input
+                                  type='file'
+                                  name='trainerImage'
+                                  onChange={handleTrainerImageUpload}
+                                  accept='image/jpeg,image/jpg,image/png'
+                                  className='hidden'
+                                />
+                              </label>{' '}
+                              <p className='text-xs text-gray-400 mt-3'>
+                                JPG/PNG
+                              </p>
+                            </div>
+                          )}
                         </div>
                         <button
                           type='button'
@@ -983,271 +1139,289 @@ const RegisterTrainingFacilityPage = () => {
               </div>
 
               {/* Fighters Section */}
-              <div className=''>
-                <h3 className='text-lg font-semibold text-white mb-4 flex items-center'>
-                  <Users className='mr-2' size={20} />
-                  Fighters
-                </h3>
-
-                <div className='space-y-4'>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    <div className='col-span-2'>
-                      <label className='block font-medium mb-1'>
-                        Fighter Type
+              <div className='space-y-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='col-span-2'>
+                    <label className='block font-medium mb-1'>
+                      Fighter Type
+                    </label>
+                    <div className='flex space-x-4 mt-2'>
+                      <label className='text-white cursor-pointer'>
+                        <input
+                          type='radio'
+                          value='existing'
+                          checked={currentFighter.type === 'existing'}
+                          onChange={(e) =>
+                            setCurrentFighter((prev) => ({
+                              ...prev,
+                              type: e.target.value,
+                            }))
+                          }
+                          className='accent-yellow-500'
+                        />
+                        <span className='ml-2'>Existing Fighter</span>
                       </label>
-                      <div className='flex space-x-4 mt-2'>
-                        <label className='text-white cursor-pointer'>
-                          <input
-                            type='radio'
-                            value='existing'
-                            checked={currentFighter.type === 'existing'}
-                            onChange={(e) =>
-                              setCurrentFighter((prev) => ({
-                                ...prev,
-                                type: e.target.value,
-                              }))
-                            }
-                            className='accent-yellow-500'
-                          />
-                          <span className='ml-2'>Existing Fighter</span>
-                        </label>
-                        <label className='text-white cursor-pointer'>
-                          <input
-                            type='radio'
-                            value='new'
-                            checked={currentFighter.type === 'new'}
-                            onChange={(e) =>
-                              setCurrentFighter((prev) => ({
-                                ...prev,
-                                type: e.target.value,
-                              }))
-                            }
-                            className='accent-yellow-500'
-                          />
-                          <span className='ml-2'>New Fighter</span>
-                        </label>
-                      </div>
+                      <label className='text-white cursor-pointer'>
+                        <input
+                          type='radio'
+                          value='new'
+                          checked={currentFighter.type === 'new'}
+                          onChange={(e) =>
+                            setCurrentFighter((prev) => ({
+                              ...prev,
+                              type: e.target.value,
+                            }))
+                          }
+                          className='accent-yellow-500'
+                        />
+                        <span className='ml-2'>New Fighter</span>
+                      </label>
                     </div>
-
-                    {currentFighter.type === 'existing' ? (
-                      <Autocomplete
-                        label='Search Fighter'
-                        multiple
-                        selected={formData.fighters}
-                        onChange={(value) => handleChange('fighters', value)}
-                        options={[
-                          ...existingFighters.map((fighter) => ({
-                            label:
-                              fighter.user?.firstName +
-                              ' ' +
-                              fighter.user?.lastName +
-                              ' (' +
-                              fighter.user?.email +
-                              ' )',
-                            value: fighter._id,
-                          })),
-                        ]}
-                        placeholder='Search fighter name'
-                        required
-                      />
-                    ) : (
-                      <>
-                        <div className='bg-[#00000061] p-2 rounded'>
-                          <label className='block font-medium mb-1'>
-                            Fighter Name
-                          </label>
-                          <input
-                            type='text'
-                            value={currentFighter.name}
-                            onChange={(e) =>
-                              setCurrentFighter((prev) => ({
-                                ...prev,
-                                name: e.target.value,
-                              }))
-                            }
-                            placeholder='e.g., Jane Smith'
-                            className='w-full outline-none bg-transparent'
-                          />
-                        </div>
-
-                        <div className='bg-[#00000061] p-2 rounded'>
-                          <label className='block font-medium mb-1'>
-                            Gender
-                          </label>
-                          <select
-                            value={currentFighter.gender}
-                            onChange={(e) =>
-                              setCurrentFighter((prev) => ({
-                                ...prev,
-                                gender: e.target.value,
-                              }))
-                            }
-                            className='w-full outline-none bg-transparent'
-                          >
-                            <option value=''>Select Gender</option>
-                            <option value='Male'>Male</option>
-                            <option value='Female'>Female</option>
-                            <option value='Other'>Other</option>
-                          </select>
-                        </div>
-
-                        <div className='bg-[#00000061] p-2 rounded'>
-                          <label className='block font-medium mb-1'>Age</label>
-                          <input
-                            type='number'
-                            value={currentFighter.age}
-                            onChange={(e) =>
-                              setCurrentFighter((prev) => ({
-                                ...prev,
-                                age: e.target.value,
-                              }))
-                            }
-                            placeholder='e.g., 23'
-                            min='18'
-                            className='w-full outline-none bg-transparent'
-                          />
-                        </div>
-
-                        <div className='bg-[#00000061] p-2 rounded'>
-                          <label className='block font-medium mb-1'>
-                            Record
-                          </label>
-                          <input
-                            type='text'
-                            value={currentFighter.record}
-                            onChange={(e) =>
-                              setCurrentFighter((prev) => ({
-                                ...prev,
-                                record: e.target.value,
-                              }))
-                            }
-                            placeholder='e.g., 10-2-0'
-                            pattern='\d+-\d+-\d+'
-                            className='w-full outline-none bg-transparent'
-                          />
-                          <span className='text-xs text-gray-400'>
-                            Format: Wins-Losses-Draws
-                          </span>
-                        </div>
-
-                        <div className='md:col-span-2'>
-                          <div className='bg-[#00000061] p-2 rounded'>
-                            <label className='block font-medium mb-1'>
-                              Fighter Bio
-                            </label>
-                            <textarea
-                              value={currentFighter.bio}
-                              onChange={(e) =>
-                                setCurrentFighter((prev) => ({
-                                  ...prev,
-                                  bio: e.target.value,
-                                }))
-                              }
-                              placeholder='About the fighter...'
-                              className='w-full outline-none bg-transparent h-20'
-                              maxLength={500}
-                            />
-                            <span className='text-xs text-gray-400'>
-                              {currentFighter.bio.length}/500 characters
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className='md:col-span-2'>
-                          <label className='block font-medium mb-2'>
-                            Upload Fighter image
-                            <span className='text-red-400'>*</span>
-                          </label>
-                          <div className='mt-1'>
-                            <input
-                              type='file'
-                              name='image'
-                              onChange={handleFileUpload}
-                              accept='image/jpeg,image/jpg,image/png'
-                              className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                            />
-                            <p className='text-xs text-gray-400 mt-1'>
-                              JPG/PNG
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          type='button'
-                          onClick={addFighter}
-                          className='bg-yellow-500 text-black w-32 px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors flex items-center'
-                        >
-                          <Plus className='mr-2' size={16} />
-                          Add Fighter
-                        </button>
-                      </>
-                    )}
                   </div>
 
-                  {formData.fighters.length > 0 && (
-                    <div>
-                      <h4 className='text-white font-semibold mb-2'>
-                        Added Fighters:
-                      </h4>
-                      <div className='space-y-2'>
-                        {formData.fighters.map((fighter, index) => (
-                          <div
-                            key={fighter._id ?? index}
-                            className='bg-[#00000061] p-3 rounded flex justify-between items-center'
-                          >
-                            <div className='text-white'>
-                              <div className='font-medium'>
-                                {fighter.name || fighter.label}
-                              </div>
-                              {fighter.record && (
-                                <div className='text-sm text-gray-400'>
-                                  Record: {fighter.record}
-                                </div>
-                              )}
-                              {fighter.gender && fighter.age && (
-                                <div className='text-sm text-gray-400'>
-                                  {fighter.gender}, {fighter.age} years old
-                                </div>
-                              )}
+                  {currentFighter.type === 'existing' ? (
+                    <Autocomplete
+                      label='Search Fighter'
+                      multiple
+                      selected={formData.fighters}
+                      onChange={(value) => handleChange('fighters', value)}
+                      options={[
+                        ...existingFighters.map((fighter) => ({
+                          label:
+                            fighter.user?.firstName +
+                            ' ' +
+                            fighter.user?.lastName +
+                            ' (' +
+                            fighter.user?.email +
+                            ' )',
+                          value: fighter._id,
+                        })),
+                      ]}
+                      placeholder='Search fighter name'
+                      required
+                    />
+                  ) : (
+                    <>
+                      <div className='bg-[#00000061] p-2 rounded'>
+                        <label className='block font-medium mb-1'>
+                          Fighter Name
+                        </label>
+                        <input
+                          type='text'
+                          value={currentFighter.name}
+                          onChange={(e) =>
+                            setCurrentFighter((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          placeholder='e.g., Jane Smith'
+                          className='w-full outline-none bg-transparent'
+                        />
+                      </div>
+
+                      <div className='bg-[#00000061] p-2 rounded'>
+                        <label className='block font-medium mb-1'>Gender</label>
+                        <select
+                          value={currentFighter.gender}
+                          onChange={(e) =>
+                            setCurrentFighter((prev) => ({
+                              ...prev,
+                              gender: e.target.value,
+                            }))
+                          }
+                          className='w-full outline-none bg-transparent'
+                        >
+                          <option value=''>Select Gender</option>
+                          <option value='Male'>Male</option>
+                          <option value='Female'>Female</option>
+                          <option value='Other'>Other</option>
+                        </select>
+                      </div>
+
+                      <div className='bg-[#00000061] p-2 rounded'>
+                        <label className='block font-medium mb-1'>Age</label>
+                        <input
+                          type='number'
+                          value={currentFighter.age}
+                          onChange={(e) =>
+                            setCurrentFighter((prev) => ({
+                              ...prev,
+                              age: e.target.value,
+                            }))
+                          }
+                          placeholder='e.g., 23'
+                          min='18'
+                          className='w-full outline-none bg-transparent'
+                        />
+                      </div>
+
+                      <div className='bg-[#00000061] p-2 rounded'>
+                        <label className='block font-medium mb-1'>Record</label>
+                        <input
+                          type='text'
+                          value={currentFighter.record}
+                          onChange={(e) =>
+                            setCurrentFighter((prev) => ({
+                              ...prev,
+                              record: e.target.value,
+                            }))
+                          }
+                          placeholder='e.g., 10-2-0'
+                          pattern='\d+-\d+-\d+'
+                          className='w-full outline-none bg-transparent'
+                        />
+                        <span className='text-xs text-gray-400'>
+                          Format: Wins-Losses-Draws
+                        </span>
+                      </div>
+
+                      <div className='md:col-span-2'>
+                        <div className='bg-[#00000061] p-2 rounded'>
+                          <label className='block font-medium mb-1'>
+                            Fighter Bio
+                          </label>
+                          <textarea
+                            value={currentFighter.bio}
+                            onChange={(e) =>
+                              setCurrentFighter((prev) => ({
+                                ...prev,
+                                bio: e.target.value,
+                              }))
+                            }
+                            placeholder='About the fighter...'
+                            className='w-full outline-none bg-transparent h-20'
+                            maxLength={500}
+                          />
+                          <span className='text-xs text-gray-400'>
+                            {currentFighter.bio.length}/500 characters
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className='md:col-span-2'>
+                        <label className='block font-medium mb-2'>
+                          Upload Fighter image
+                        </label>
+                        {currentFighter.image ? (
+                          <div className='bg-[#00000061] w-fit  p-3 rounded flex items-center gap-4 justify-between'>
+                            <div className='flex items-center space-x-3'>
+                              <img
+                                src={URL.createObjectURL(currentFighter.image)}
+                                alt='Fighter preview'
+                                className='w-12 h-12 object-cover rounded'
+                              />
+                              <span className='text-white text-sm'>
+                                {currentFighter.image.name}
+                              </span>
                             </div>
                             <button
                               type='button'
-                              onClick={() => removeFighter(fighter.id)}
-                              className='text-red-400 hover:text-red-300'
+                              onClick={removeFighterImage}
+                              className='text-red-400 hover:text-red-300 p-1'
                             >
-                              <Trash2 size={16} />
+                              <Trash size={16} />
                             </button>
                           </div>
-                        ))}
+                        ) : (
+                          <div className='mt-1'>
+                            <label className='cursor-pointer inline-block file-button'>
+                              <span className='py-2 px-4 rounded-full text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700'>
+                                Choose File
+                              </span>
+                              <input
+                                type='file'
+                                name='fighterImage'
+                                onChange={handleFighterImageUpload}
+                                accept='image/jpeg,image/jpg,image/png'
+                                className='hidden'
+                              />
+                            </label>{' '}
+                            <p className='text-xs text-gray-400 mt-3'>
+                              JPG/PNG
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    </div>
+
+                      <button
+                        type='button'
+                        onClick={addFighter}
+                        className='bg-yellow-500 text-black w-32 px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors flex items-center'
+                      >
+                        <Plus className='mr-2' size={16} />
+                        Add Fighter
+                      </button>
+                    </>
                   )}
                 </div>
+
+                {formData.fighters.length > 0 && (
+                  <div>
+                    <h4 className='text-white font-semibold mb-2'>
+                      Added Fighters:
+                    </h4>
+                    <div className='space-y-2'>
+                      {formData.fighters.map((fighter, index) => (
+                        <div
+                          key={fighter._id ?? index}
+                          className='bg-[#00000061] p-3 rounded flex justify-between items-center'
+                        >
+                          <div className='text-white'>
+                            <div className='font-medium'>
+                              {fighter.name || fighter.label}
+                            </div>
+                            {fighter.record && (
+                              <div className='text-sm text-gray-400'>
+                                Record: {fighter.record}
+                              </div>
+                            )}
+                            {fighter.gender && fighter.age && (
+                              <div className='text-sm text-gray-400'>
+                                {fighter.gender}, {fighter.age} years old
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type='button'
+                            onClick={() => removeFighter(fighter.id)}
+                            className='text-red-400 hover:text-red-300'
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Invite System */}
-              <div className='bg-[#00000061] p-4 rounded-lg'>
-                <h3 className='text-lg font-semibold text-white mb-4'>
-                  Invite System
-                </h3>
-                <div className='flex items-center space-x-2'>
-                  <input
-                    type='checkbox'
-                    id='sendInvites'
-                    name='sendInvites'
-                    checked={formData.sendInvites}
-                    onChange={handleChange}
-                    className='accent-yellow-500'
-                  />
-                  <label htmlFor='sendInvites' className='text-white'>
-                    Send invitation emails to new trainers and fighters
-                  </label>
+              {(formData.trainers?.some((trainer) => trainer.type === 'new') ||
+                currentTrainer.email) && (
+                <div className='bg-[#00000061] p-4 rounded-lg'>
+                  <h3 className='text-lg font-semibold text-white mb-4'>
+                    Invite System
+                  </h3>
+                  <div className='flex items-center space-x-2'>
+                    <input
+                      type='checkbox'
+                      id='sendInvites'
+                      name='sendInvites'
+                      checked={formData.sendInvites}
+                      onChange={handleChange}
+                      className='accent-yellow-500'
+                    />
+                    <label htmlFor='sendInvites' className='text-white'>
+                      Send invitation emails to new trainers and fighters
+                    </label>
+                  </div>
+                  <p className='text-sm text-gray-400 mt-2'>
+                    When enabled, invitation emails will be sent to new team
+                    members with a link to complete their profiles.
+                  </p>
                 </div>
-                <p className='text-sm text-gray-400 mt-2'>
-                  When enabled, invitation emails will be sent to new team
-                  members with a link to complete their profiles.
-                </p>
-              </div>
+              )}
             </div>
           )}
 
@@ -1390,6 +1564,13 @@ const RegisterTrainingFacilityPage = () => {
                   >
                     Save Draft
                   </button>
+                  <button
+                    type='button'
+                    onClick={handleCancel}
+                    className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                  >
+                    Cancel
+                  </button>{' '}
                   <button
                     type='button'
                     onClick={(e) => handleSubmit(e, 'review')}
