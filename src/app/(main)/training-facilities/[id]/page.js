@@ -29,6 +29,15 @@ const TrainingFacilitiesDetailsPage = ({ params }) => {
     fetchFacilityDetails()
   }, [id])
 
+  const placeholder =
+    'data:image/svg+xml;base64,' +
+    btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 24 24" fill="#ccc">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M12 14c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/>
+    </svg>
+  `)
+
   if (loading) {
     return <Loader />
   }
@@ -98,7 +107,7 @@ const TrainingFacilitiesDetailsPage = ({ params }) => {
             return (
               <div key={`trainer-${index}`} className='relative'>
                 <Image
-                  src='/fighter.png' // You can update this to trainer-specific image if available
+                  src={user?.profilePhoto || placeholder}
                   alt={user?.firstName || 'Trainer'}
                   width={220}
                   height={220}
@@ -135,7 +144,7 @@ const TrainingFacilitiesDetailsPage = ({ params }) => {
             return (
               <div key={`fighter-${index}`} className='relative'>
                 <Image
-                  src='/fighter.png' // You can update this to fighter-specific image if available
+                  src={user?.profilePhoto || placeholder}
                   alt={user?.firstName || 'Fighter'}
                   width={220}
                   height={220}

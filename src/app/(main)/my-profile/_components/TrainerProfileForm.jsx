@@ -19,6 +19,7 @@ import { uploadToS3 } from '../../../../utils/uploadToS3'
 import moment from 'moment'
 import Autocomplete from '../../../_components/Autocomplete'
 import Loader from '../../../_components/Loader'
+import Link from 'next/link'
 
 const TrainerProfileForm = ({ userDetails, onSuccess }) => {
   const { user } = useStore()
@@ -76,7 +77,26 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     : []
   const [fighters, setFighters] = useState([])
   const [events, setEvents] = useState([])
+  const [existingTrainerProfile, setExistingTrainerProfile] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+  const getAge = (dob) => {
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
 
   useEffect(() => {
     if (userDetails) {
@@ -91,33 +111,39 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
       const formattedDOB = dateOfBirth
         ? moment(dateOfBirth).format('YYYY-MM-DD')
         : ''
+      let affiliatedFighters = []
+      let associatedEvents = []
+      if (trainerProfile) {
+        console.log('trainerProfile', trainerProfile)
+        setExistingTrainerProfile(true)
 
-      // affiliatedFighters: convert to [{ label, value }]
-      const affiliatedFighters =
-        trainerProfile.affiliatedFighters?.map((fighter) => ({
-          label: `${fighter.userId?.firstName || ''} ${
-            fighter.userId?.lastName || ''
-          } (${fighter.userId?.email || ''})`,
-          value: fighter._id,
-        })) ?? []
+        // affiliatedFighters: convert to [{ label, value }]
+        affiliatedFighters =
+          trainerProfile.affiliatedFighters?.map((fighter) => ({
+            label: `${fighter.userId?.firstName || ''} ${
+              fighter.userId?.lastName || ''
+            } (${fighter.userId?.email || ''})`,
+            value: fighter._id,
+          })) ?? []
 
-      // associatedEvents: convert to [{ label, value }]
-      const associatedEvents =
-        trainerProfile.associatedEvents?.map((event) => ({
-          label: event.name,
-          value: event._id,
-        })) ?? []
+        // associatedEvents: convert to [{ label, value }]
+        associatedEvents =
+          trainerProfile.associatedEvents?.map((event) => ({
+            label: event.name,
+            value: event._id,
+          })) ?? []
+      }
 
       // Format suspension start date
-      const suspensionStartDate = suspension.incidentDate
-        ? moment(suspension.incidentDate).format('YYYY-MM-DD')
+      const suspensionStartDate = suspension?.incidentDate
+        ? moment(suspension?.incidentDate).format('YYYY-MM-DD')
         : ''
 
       // Calculate suspension end date
       const suspensionEndDate =
-        suspension.incidentDate && suspension.daysWithoutTraining
-          ? moment(suspension.incidentDate)
-              .add(suspension.daysWithoutTraining, 'days')
+        suspension?.incidentDate && suspension?.daysWithoutTraining
+          ? moment(suspension?.incidentDate)
+              .add(suspension?.daysWithoutTraining, 'days')
               .format('YYYY-MM-DD')
           : ''
 
@@ -131,8 +157,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
         associatedEvents,
         suspensionStartDate,
         suspensionEndDate,
-        suspensionNotes: suspension.description,
-        suspensionType: suspension.type,
+        suspensionNotes: suspension?.description || '',
+        suspensionType: suspension?.type || '',
       }))
     }
   }, [userDetails])
@@ -236,8 +262,78 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     }
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, action) => {
     e.preventDefault()
+
+    if (!validateName(formData.firstName)) {
+      enqueueSnackbar(
+        'First name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!formData.lastName.trim()) {
+      enqueueSnackbar('Last name is required.', { variant: 'warning' })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validateName(formData.lastName)) {
+      enqueueSnackbar(
+        'Last name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      enqueueSnackbar('Please enter a valid phone number.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!formData.dateOfBirth || getAge(formData.dateOfBirth) < 18) {
+      enqueueSnackbar('You must be at least 18 years old.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateName(formData.emergencyContactName)) {
+      enqueueSnackbar(
+        'Emergency contact name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (!validatePhoneNumber(formData.emergencyContactNumber)) {
+      enqueueSnackbar('Please enter a valid emergency contact number.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!formData.trainerType) {
+      enqueueSnackbar('Please select a trainer type.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
     try {
       if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
         formData.profilePhoto = await uploadToS3(formData.profilePhoto)
@@ -268,7 +364,9 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
       let payload = {
         ...formData,
       }
-
+      if (payload.gender === '') {
+        delete payload.gender
+      }
       if (formData.isSuspended) {
         payload = {
           ...payload,
@@ -278,20 +376,46 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
           ),
         }
       }
-      const response = await axios.put(
-        `${API_BASE_URL}/trainers/${user._id}`,
-        payload,
-        {
+      if (action == 'published') {
+        payload = {
+          ...payload,
+          isDraft: false,
+        }
+      } else {
+        payload = {
+          ...payload,
+          isDraft: true,
+        }
+      }
+
+      let response = null
+      if (existingTrainerProfile) {
+        response = await axios.put(
+          `${API_BASE_URL}/trainers/${user._id}`,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        )
+      } else {
+        response = await axios.post(`${API_BASE_URL}/trainers`, payload, {
           headers: {
             Authorization: `Bearer ${user?.token}`,
           },
-        }
-      )
-      if (response.status === apiConstants.success) {
+        })
+      }
+
+      if (
+        response.status === apiConstants.success ||
+        response.status === apiConstants.create
+      ) {
         enqueueSnackbar(response.data.message, { variant: 'success' })
         onSuccess()
       }
     } catch (error) {
+      console.log(error)
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
         { variant: 'error' }
@@ -331,7 +455,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
         <div className='flex items-center gap-4 mb-6'>
           <h1 className='text-4xl font-bold'>Trainer Profile</h1>
         </div>
-        <form onSubmit={handleSubmit}>
+        <form>
           {/* Personal Information */}
           <div className='flex items-center gap-2 mb-4'>
             <User className='w-6 h-6 text-blue-400' />
@@ -342,11 +466,12 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             {/* Profile Photo */}
             <div className=''>
-              <label className='block font-medium mb-2'>
-                Profile Photo <span className='text-red-400'>*</span>
+              <label className='block font-medium mb-2 text-gray-200'>
+                Profile Photo
               </label>
-              {formData.profilePhoto && (
-                <div className='my-4 flex'>
+
+              <div className='my-4 flex items-center'>
+                {formData.profilePhoto ? (
                   <img
                     src={
                       typeof formData.profilePhoto === 'string'
@@ -354,10 +479,28 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                         : URL.createObjectURL(formData.profilePhoto)
                     }
                     alt='Profile Preview'
-                    className='w-32 h-32 object-cover rounded-full border-4 border-purple-500'
+                    className='w-32 h-32 object-cover rounded-full border-4 border-purple-500 shadow-md'
                   />
-                </div>
-              )}
+                ) : (
+                  <div className='w-32 h-32 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border-4 border-purple-500 flex items-center justify-center shadow-md'>
+                    <svg
+                      xmlns='http://www.w3.org/2000/svg'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      strokeWidth={1.5}
+                      stroke='currentColor'
+                      className='w-14 h-14 text-gray-300'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        d='M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0'
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
               <input
                 type='file'
                 name='profilePhoto'
@@ -365,7 +508,10 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 accept='image/jpeg,image/jpg,image/png'
                 className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
               />
-              <p className='text-xs text-gray-400 mt-1'>JPG/PNG, Max 2MB</p>
+
+              <p className='text-xs text-gray-400 mt-1'>
+                Trainer image for identification. JPG/PNG, Max 2MB.
+              </p>
             </div>
           </div>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
@@ -455,15 +601,12 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
 
             {/* Gender Dropdown */}
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-1'>
-                Gender <span className='text-red-500'>*</span>
-              </label>
+              <label className='block font-medium mb-1'>Gender</label>
               <select
                 name='gender'
                 value={formData.gender}
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
-                required
               >
                 <option value='' className='text-black'>
                   Select Gender
@@ -582,7 +725,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
           {/* Fighting Styles */}
           <div className='mb-6 bg-[#00000061] p-4 rounded'>
             <label className='block font-medium mb-2'>
-              Preferred Fighting Styles<span className='text-red-500'>*</span>
+              Preferred Rule Sets<span className='text-red-500'>*</span>
             </label>
             <div className='grid grid-cols-3 md:grid-cols-4 gap-2'>
               {fightingStyles.map((style) => (
@@ -615,9 +758,16 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name='certification'
                 onChange={handleFileChange}
                 accept='.pdf,image/jpeg,image/jpg'
-                className='w-full outline-none bg-transparent text-white'
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
               />
-              <p className='text-xs text-gray-400 mt-1'>PDF/JPG, Max 5MB</p>
+              <p className='text-xs text-gray-400 mt-2'>PDF/JPG, Max 5MB</p>
+              {formData.certification && (
+                <div className='mt-2'>
+                  <a href={formData.certification} target='_blank'>
+                    View Certification
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
@@ -628,7 +778,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name='bio'
                 value={formData.bio}
                 onChange={handleInputChange}
-                placeholder='Describe your career achievements'
+                placeholder='Describe experience...'
                 rows='4'
                 className='w-full outline-none bg-transparent text-white resize-none'
               />
@@ -642,7 +792,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
           </div>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-1'>Instagram URL</label>
+              <label className='block font-medium mb-1'>Instagram</label>
               <input
                 type='url'
                 name='instagram'
@@ -654,7 +804,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-1'>Facebook URL</label>
+              <label className='block font-medium mb-1'>Facebook</label>
               <input
                 type='url'
                 name='facebook'
@@ -666,7 +816,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-1'>YouTube URL</label>
+              <label className='block font-medium mb-1'>YouTube</label>
               <input
                 type='url'
                 name='youtube'
@@ -676,6 +826,32 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 className='w-full outline-none bg-transparent text-white'
               />
             </div>
+          </div>
+          {/* Affiliated Fighters */}
+          <div className='flex items-center gap-2 mb-4'>
+            <User2 className='w-6 h-6 text-violet-400' />
+            <h2 className='font-bold uppercase text-lg'>Affiliated Fighters</h2>
+          </div>{' '}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+            <Autocomplete
+              label='Search Fighter'
+              multiple
+              selected={formData.affiliatedFighters}
+              onChange={(value) =>
+                handleAutocompleteChange('affiliatedFighters', value)
+              }
+              options={fighters.map((fighter) => ({
+                label:
+                  fighter.user?.firstName +
+                  ' ' +
+                  fighter.user?.lastName +
+                  ' (' +
+                  fighter.user?.email +
+                  ')',
+                value: fighter._id,
+              }))}
+              placeholder='Search fighter name'
+            />
           </div>
           {/* Emergency Contact */}
           <div className='flex items-center gap-2 mb-4'>
@@ -713,36 +889,10 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
               />
             </div>
           </div>
-          {/* Associated Fighters */}
-          <div className='flex items-center gap-2 mb-4'>
-            <User2 className='w-6 h-6 text-violet-400' />
-            <h2 className='font-bold uppercase text-lg'>Associated Fighters</h2>
-          </div>{' '}
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-            <Autocomplete
-              label='Search Fighter'
-              multiple
-              selected={formData.affiliatedFighters}
-              onChange={(value) =>
-                handleAutocompleteChange('affiliatedFighters', value)
-              }
-              options={fighters.map((fighter) => ({
-                label:
-                  fighter.userId?.firstName +
-                  ' ' +
-                  fighter.userId?.lastName +
-                  ' (' +
-                  fighter.userId?.email +
-                  ')',
-                value: fighter._id,
-              }))}
-              placeholder='Search fighter name'
-            />
-          </div>
-          {/* Event Information */}
+          {/* Event Association */}
           <div className='flex items-center gap-2 mb-4'>
             <Calendar className='w-6 h-6 text-violet-400' />
-            <h2 className='font-bold uppercase text-lg'>Event Information</h2>
+            <h2 className='font-bold uppercase text-lg'>Event Association</h2>
           </div>{' '}
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             <Autocomplete
@@ -833,7 +983,9 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 </div>
 
                 <div className='bg-[#00000030] p-2 rounded'>
-                  <label className='block font-medium mb-1'>Start Date</label>
+                  <label className='block font-medium mb-1'>
+                    Suspension Start Date
+                  </label>
                   <input
                     type='date'
                     name='suspensionStartDate'
@@ -844,7 +996,9 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 </div>
 
                 <div className='bg-[#00000030] p-2 rounded'>
-                  <label className='block font-medium mb-1'>End Date</label>
+                  <label className='block font-medium mb-1'>
+                    Suspension End Date
+                  </label>
                   <input
                     type='date'
                     name='suspensionEndDate'
@@ -862,11 +1016,14 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                     name='suspensionNotes'
                     value={formData.suspensionNotes}
                     onChange={handleInputChange}
-                    placeholder='Max 200 characters'
+                    placeholder='Enter Reason or note'
                     rows='3'
                     className='w-full outline-none bg-transparent text-white resize-none'
-                    minLength={10}
+                    maxLength={500}
                   />
+                  <p className='text-xs text-gray-400 mt-1'>
+                    Max 500 characters
+                  </p>
                 </div>
 
                 <div className='md:col-span-3 flex items-center gap-2'>
@@ -883,14 +1040,14 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 {formData.medicalClearance && (
                   <div className='md:col-span-3 bg-[#00000030] p-2 rounded'>
                     <label className='block font-medium mb-1'>
-                      Medical Documentation
+                      Upload Medical Docs
                     </label>
                     <input
                       type='file'
                       name='medicalDocument'
                       onChange={handleFileChange}
                       accept='.pdf,image/jpeg,image/jpg'
-                      className='w-full outline-none bg-transparent text-white'
+                      className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
                     />
                     <p className='text-xs text-gray-400 mt-1'>
                       PDF/JPG, Max 5MB
@@ -903,10 +1060,18 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
           {/* Actions */}
           <div className='flex justify-center gap-4 mt-6'>
             <button
+              type='button'
+              className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105'
+              onClick={(e) => handleSubmit(e, 'draft')}
+            >
+              Save as Draft
+            </button>
+            <button
               type='submit'
               className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              onClick={(e) => handleSubmit(e, 'publish')}
             >
-              Save Profile
+              {existingTrainerProfile ? 'Edit Profile' : 'Add Profile'}
             </button>
           </div>
         </form>

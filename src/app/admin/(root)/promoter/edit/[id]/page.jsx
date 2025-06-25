@@ -8,6 +8,7 @@ import { Eye, EyeOff, Trash } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
 import { uploadToS3 } from '../../../../../../utils/uploadToS3'
 import { City, Country, State } from 'country-state-city'
+import { useRouter } from 'next/navigation'
 
 export default function EditPromoterPage({ params }) {
   const { id } = use(params)
@@ -53,7 +54,7 @@ export default function EditPromoterPage({ params }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-
+  const router = useRouter()
   const countries = Country.getAllCountries()
   const states = formData.country
     ? State.getStatesOfCountry(formData.country)
@@ -72,7 +73,7 @@ export default function EditPromoterPage({ params }) {
       setFormData({
         // Profile Info
         profilePhoto: data.userId?.profilePhoto || null,
-        name: data.userId?.firstName ?? '' + ' ' + data.userId?.lastName ?? '',
+        name: data.name || '',
         abbreviation: data.abbreviation || '',
         websiteURL: data.websiteURL || '',
         aboutUs: data.aboutUs || '',
@@ -100,11 +101,13 @@ export default function EditPromoterPage({ params }) {
         // Access
         accountStatus: data.accountStatus || '',
         userName: data.userId.userName || '',
-        assignRole: data.userId.role || '',
+        assignRole: data.assignRole || '',
         adminNotes: data.adminNotes || '',
       })
     } catch (err) {
-      enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
+      enqueueSnackbar(err?.response?.data?.message || 'Something went wrong', {
+        variant: 'error',
+      })
     } finally {
       setLoading(false)
     }
@@ -129,9 +132,80 @@ export default function EditPromoterPage({ params }) {
     }
   }
 
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPassword = (password) =>
+    /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
+    if (!validateName(formData.name)) {
+      enqueueSnackbar(
+        'Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (!validateName(formData.contactPersonName)) {
+      enqueueSnackbar(
+        'Contact Person Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      enqueueSnackbar('Please enter a valid phone number.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (
+      formData.alternatePhoneNumber &&
+      !validatePhoneNumber(formData.alternatePhoneNumber)
+    ) {
+      enqueueSnackbar('Please enter a valid alternate phone number.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (!validPostalCode(formData.postalCode)) {
+      enqueueSnackbar('Please enter a valid postal code.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (formData.password && !validPassword(formData.password)) {
+      enqueueSnackbar(
+        'Password must be at least 8 characters and contain at least 1 number.',
+        {
+          variant: 'warning',
+        }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (formData.password !== formData.confirmPassword) {
+      enqueueSnackbar('Passwords do not match. Please try again.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
     try {
       if (
         formData.profilePhoto !== null &&
@@ -152,7 +226,9 @@ export default function EditPromoterPage({ params }) {
         formData
       )
       if (response.status === apiConstants.success) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
+        enqueueSnackbar(response.data.message || 'Something went wrong', {
+          variant: 'success',
+        })
         fetchPromoterDetails()
       }
     } catch (error) {
@@ -166,6 +242,20 @@ export default function EditPromoterPage({ params }) {
       )
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDeletePromoter = async () => {
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/promoter/${id}`)
+      if (res.status === apiConstants.success) {
+        enqueueSnackbar(res.data.message, {
+          variant: 'success',
+        })
+        router.push('/admin/promoter')
+      }
+    } catch (error) {
+      enqueueSnackbar('Failed to delete promoter', { variant: 'error' })
     }
   }
 
@@ -590,6 +680,7 @@ export default function EditPromoterPage({ params }) {
                   placeholder='123 Combat Arena Road'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={submitting}
                 />
               </div>
 
@@ -605,6 +696,7 @@ export default function EditPromoterPage({ params }) {
                   onChange={handleChange}
                   placeholder='Suite 400'
                   className='w-full bg-transparent outline-none'
+                  disabled={submitting}
                 />
               </div>
 
@@ -620,6 +712,7 @@ export default function EditPromoterPage({ params }) {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled={submitting}
                   >
                     <option value='' className='text-black'>
                       Select Country
@@ -660,6 +753,7 @@ export default function EditPromoterPage({ params }) {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled={submitting}
                   >
                     <option value='' className='text-black'>
                       Select State
@@ -687,30 +781,20 @@ export default function EditPromoterPage({ params }) {
               </div>
 
               {/* City Field */}
-              <div className='bg-[#00000061] p-2 rounded'>
-                <label className='text-white font-medium'>
+              <div className='bg-[#00000061] p-2 h-16 rounded'>
+                <label className='block text-xs font-medium mb-1'>
                   City<span className='text-red-500'>*</span>
                 </label>
-                <select
+                <input
+                  type='text'
                   name='city'
                   value={formData.city}
                   onChange={handleChange}
-                  className='w-full outline-none bg-transparent text-white'
+                  placeholder='Enter city'
+                  className='w-full bg-transparent outline-none'
                   required
-                >
-                  <option value='' className='text-black'>
-                    Select City
-                  </option>
-                  {cities.map((city) => (
-                    <option
-                      key={city.name}
-                      value={city.name}
-                      className='text-black'
-                    >
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
+                  disabled={submitting}
+                />
               </div>
 
               {/* ZIP/Postal Code Field */}
@@ -726,6 +810,7 @@ export default function EditPromoterPage({ params }) {
                   placeholder='90001'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={submitting}
                 />
               </div>
             </div>
@@ -748,6 +833,7 @@ export default function EditPromoterPage({ params }) {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled={submitting}
                   >
                     <option value='Active' className='text-black'>
                       Active
@@ -781,6 +867,7 @@ export default function EditPromoterPage({ params }) {
                   placeholder='promoter_admin'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={submitting}
                 />
               </div>
 
@@ -796,7 +883,7 @@ export default function EditPromoterPage({ params }) {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
-                    disabled
+                    disabled={submitting}
                   >
                     <option value='promoter' className='text-black'>
                       Promoter
@@ -830,12 +917,13 @@ export default function EditPromoterPage({ params }) {
                     placeholder='********'
                     className='w-full bg-transparent outline-none pr-10'
                     minLength={8}
+                    disabled={submitting}
                   />
                   <span
                     onClick={() => setShowPassword(!showPassword)}
                     className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                   </span>
                 </div>
               </div>
@@ -854,15 +942,16 @@ export default function EditPromoterPage({ params }) {
                     placeholder='********'
                     className='w-full bg-transparent outline-none'
                     minLength={8}
+                    disabled={submitting}
                   />
                   <span
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                   >
                     {showConfirmPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
                       <Eye size={20} />
+                    ) : (
+                      <EyeOff size={20} />
                     )}
                   </span>
                 </div>
@@ -882,6 +971,7 @@ export default function EditPromoterPage({ params }) {
                 rows='3'
                 className='w-full bg-transparent outline-none resize-none'
                 maxLength={300}
+                disabled={submitting}
               />
             </div>
           </div>
@@ -896,6 +986,13 @@ export default function EditPromoterPage({ params }) {
                 Cancel
               </button>
             </Link>
+            <button
+              type='button'
+              onClick={handleDeletePromoter}
+              className='bg-red-600 hover:bg-red-500 text-white font-medium py-2 px-6 rounded transition duration-200'
+            >
+              Delete
+            </button>
             <button
               type='submit'
               className='text-white font-medium py-2 px-6 rounded transition duration-200'

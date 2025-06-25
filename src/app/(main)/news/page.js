@@ -141,12 +141,19 @@ const NewsPage = () => {
 
             {/* Search Input */}
             <div className='flex flex-col items-start mb-6'>
-              <label className='text-white text-sm mb-2'>Search</label>
+              <label className='text-white text-sm mb-2'>Keyword Search</label>
               <input
                 type='text'
                 placeholder='Search by keywords...'
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  const inputValue = e.target.value
+                  const sanitizedValue = inputValue.replace(
+                    /[^a-zA-Z0-9 ]/g,
+                    ''
+                  )
+                  setSearchTerm(sanitizedValue)
+                }}
                 className='w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500 placeholder-gray-400'
               />
             </div>
@@ -192,7 +199,7 @@ const NewsPage = () => {
                     {item?.content}
                   </h3>
                   <h3 className='text-[#BDBDBD] font-medium mb-4'>
-                    {moment.utc(item?.updatedAt).toISOString()}
+                    {moment(item?.updatedAt).format('DD-MM-YYYY')}
                   </h3>
                   <Link href={`/news/${item?._id}`}>
                     <button className='bg-[#0A1330] text-white px-4 py-2 rounded transition duration-200'>

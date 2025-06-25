@@ -27,9 +27,11 @@ const Footer = () => {
         <a
           href={data?.copyrightNoticePDF ? data?.copyrightNoticePDF : '#'}
           target='_blank'
-          className='text-white text-lg md:text-2xl font-bold mb-4 md:mb-0'
+          className='text-white hover:text-gray-300'
         >
-          COPYRIGHT ©2024 COMPETITION TECHNOLOGY
+          <span className='text-xl md:text-2xl font-bold'>
+            COPYRIGHT ©2025 COMPETITION TECHNOLOGY
+          </span>
         </a>
         <div className='flex items-center space-x-4 mb-4 md:mb-0'>
           <a
@@ -79,16 +81,20 @@ const Footer = () => {
           <a
             href={data?.privacyPolicyPDF ? data.privacyPolicyPDF : '#'}
             target='_blank'
-            className='text-white hover:text-gray-300 text-xl md:text-2xl font-bold'
+            className='text-white hover:text-gray-300'
           >
-            PRIVACY POLICY
+            <span className='text-xl md:text-2xl font-bold'>
+              PRIVACY POLICY
+            </span>
           </a>
           <a
             href={data?.termsConditionsPDF ? data.termsConditionsPDF : '#'}
             target='_blank'
-            className='text-white hover:text-gray-300 text-xl md:text-2xl font-bold'
+            className='text-white hover:text-gray-300'
           >
-            TERMS AND CONDITIONS
+            <span className='text-xl md:text-2xl font-bold'>
+              TERMS AND CONDITIONS
+            </span>
           </a>
         </div>
       </div>

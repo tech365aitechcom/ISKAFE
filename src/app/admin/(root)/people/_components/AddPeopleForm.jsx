@@ -18,7 +18,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
     middleName: '',
     lastName: '',
     suffix: '',
-    nickname: '',
+    nickName: '',
     email: '',
     gender: '',
     dateOfBirth: '',
@@ -41,6 +41,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const { roles, user } = useStore()
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -70,8 +71,103 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
   }
   console.log('Form Data:', formData)
 
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPassword = (password) =>
+    /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
+  const getAge = (dob) => {
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!validateName(formData.firstName)) {
+      enqueueSnackbar(
+        'Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (formData.middleName && !validateName(formData.middleName)) {
+      enqueueSnackbar(
+        'Middle Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateName(formData.lastName)) {
+      enqueueSnackbar(
+        'Last Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (formData.nickName && !validateName(formData.nickName)) {
+      enqueueSnackbar(
+        'Last Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!formData.dateOfBirth || getAge(formData.dateOfBirth) < 18) {
+      enqueueSnackbar('You must be at least 18 years old.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      enqueueSnackbar('Please enter a valid phone number.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validPostalCode(formData.postalCode)) {
+      enqueueSnackbar('Please enter a valid postal code.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validPassword(formData.password)) {
+      enqueueSnackbar(
+        'Password must be at least 8 characters and contain at least 1 number.',
+        {
+          variant: 'warning',
+        }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (formData.password !== formData.confirmPassword) {
+      enqueueSnackbar('Passwords do not match. Please try again.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
     try {
       if (
         formData.profilePhoto !== null &&
@@ -95,7 +191,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
           middleName: '',
           lastName: '',
           suffix: '',
-          nickname: '',
+          nickName: '',
           email: '',
           gender: '',
           dateOfBirth: '',
@@ -279,8 +375,8 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
               <label className='block text-sm font-medium mb-1'>Nickname</label>
               <input
                 type='text'
-                name='nickname'
-                value={formData.nickname}
+                name='nickName'
+                value={formData.nickName}
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Eric'
@@ -306,14 +402,16 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             {/* Phone Number Field */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Phone Number
+                Phone Number<span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
                 name='phoneNumber'
                 value={formData.phoneNumber}
+                placeholder='Enter Phone Number'
                 onChange={handleChange}
                 className='w-full outline-none'
+                required
               />
             </div>
 
@@ -406,7 +504,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                   onClick={() => setShowPassword(!showPassword)}
                   className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                 </span>
               </div>
             </div>
@@ -432,9 +530,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                   className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                 >
                   {showConfirmPassword ? (
-                    <EyeOff size={20} />
-                  ) : (
                     <Eye size={20} />
+                  ) : (
+                    <EyeOff size={20} />
                   )}
                 </span>
               </div>
@@ -537,6 +635,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                   value={formData.state}
                   onChange={handleChange}
                   className='w-full outline-none appearance-none'
+                  required
                 >
                   <option value='' className='text-black'>
                     Select State
@@ -590,7 +689,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
             </div>
             {/* ZIP Code Field */}
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='text-white font-medium'>ZIP Code *</label>
+              <label className='text-white font-medium'>
+                ZIP Code <span className='text-red-500'>*</span>
+              </label>
               <input
                 type='text'
                 name='postalCode'
@@ -598,6 +699,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 onChange={handleChange}
                 placeholder='Enter ZIP Code'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
               />
             </div>
           </div>

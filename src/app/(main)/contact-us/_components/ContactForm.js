@@ -5,6 +5,7 @@ import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../stores/useStore'
 import Loader from '../../../_components/Loader'
+import Link from 'next/link'
 
 const ContactForm = () => {
   const user = useStore((state) => state.user)
@@ -31,7 +32,18 @@ const ContactForm = () => {
         console.error('Failed to fetch topics:', err)
       }
     }
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/events?isPublished=true&limit=500`
+        )
+        setEvents(response.data.data.items)
+      } catch (err) {
+        console.error('Failed to fetch events:', err)
+      }
+    }
     fetchTopics()
+    fetchEvents()
   }, [])
 
   const handleChange = (e) => {
@@ -62,6 +74,42 @@ const ContactForm = () => {
         })
         return
       }
+
+      const nameRegex = /^[a-zA-Z\s'-]+$/
+      if (!nameRegex.test(fullName.trim())) {
+        enqueueSnackbar('Please enter a valid full name', {
+          variant: 'warning',
+        })
+        setIsSubmitting(false)
+        return
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email.trim())) {
+        enqueueSnackbar('Please enter a valid email address', {
+          variant: 'warning',
+        })
+        setIsSubmitting(false)
+        return
+      }
+
+      const phoneRegex = /^[0-9]{10,15}$/
+      if (phone && !phoneRegex.test(phone.trim())) {
+        enqueueSnackbar('Phone number must be between 10 and 15 digits', {
+          variant: 'warning',
+        })
+        setIsSubmitting(false)
+        return
+      }
+
+      if (message.trim().length < 500) {
+        enqueueSnackbar('Message must be at least 500 characters long', {
+          variant: 'warning',
+        })
+        setIsSubmitting(false)
+        return
+      }
+
       const { topic, subIssue, event, fullName, email, phone, message } =
         formData
       const payload = {
@@ -114,8 +162,41 @@ const ContactForm = () => {
   }
 
   return (
-    <div className='flex items-center justify-center w-full pb-9'>
+    <div className='flex items-center justify-center w-full pb-10'>
       <form onSubmit={handleSubmit} className='w-full max-w-3xl p-6 space-y-6'>
+        <h2 className='text-3xl font-semibold w-full text-white mb-6'>
+          Contact Us
+        </h2>
+        {/* Event */}
+        <div className='relative'>
+          {focusedField === 'subIssue' && (
+            <label className='absolute -top-2.5 left-2 px-1 text-xs text-yellow-500'>
+              Event
+            </label>
+          )}
+          <select
+            name='event'
+            value={formData.event || ''}
+            onChange={handleChange}
+            onFocus={() => handleFocus('event')}
+            onBlur={handleBlur}
+            required
+            className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 text-white'
+          >
+            <option value='' disabled className='text-purple-950'>
+              Select a Event*
+            </option>
+            {events.map((event) => (
+              <option
+                key={event._id}
+                value={event._id}
+                className='text-purple-950'
+              >
+                {event.name}
+              </option>
+            ))}
+          </select>
+        </div>
         {/* Topic */}
         <div className='relative'>
           {focusedField === 'topic' && (
@@ -154,7 +235,7 @@ const ContactForm = () => {
           <div className='relative'>
             {focusedField === 'subIssue' && (
               <label className='absolute -top-2.5 left-2 px-1 text-xs text-yellow-500'>
-                Sub Issue
+                Sub Issue*
               </label>
             )}
             <select
@@ -177,39 +258,6 @@ const ContactForm = () => {
             </select>
           </div>
         )}
-        {/* Event */}
-        {formData.topic?.title === 'Events' && (
-          <div className='relative'>
-            {focusedField === 'subIssue' && (
-              <label className='absolute -top-2.5 left-2 px-1 text-xs text-yellow-500'>
-                Event
-              </label>
-            )}
-            <select
-              name='event'
-              value={formData.event || ''}
-              onChange={handleChange}
-              onFocus={() => handleFocus('event')}
-              onBlur={handleBlur}
-              required
-              className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 text-white'
-            >
-              <option value='' disabled className='text-purple-950'>
-                Select a Event*
-              </option>
-              {events.map((event, index) => (
-                <option
-                  key={index}
-                  value={event.id}
-                  className='text-purple-950'
-                >
-                  {event.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {/* Full Name */}
         <div className='relative'>
           {focusedField === 'fullName' && (
@@ -229,7 +277,6 @@ const ContactForm = () => {
             className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 bg-transparent text-white'
           />
         </div>
-
         {/* Email */}
         <div className='relative'>
           {focusedField === 'email' && (
@@ -249,26 +296,27 @@ const ContactForm = () => {
             className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 bg-transparent text-white'
           />
         </div>
-
         {/* Phone */}
         <div className='relative'>
           {focusedField === 'phone' && (
             <label className='absolute -top-2.5 left-2 px-1 text-xs text-yellow-500 bg-purple-950'>
-              Phone Number
+              Phone Number*
             </label>
           )}
           <input
             type='tel'
             name='phone'
-            placeholder='Phone Number'
+            pattern='[0-9]{10,15}'
+            maxLength='15'
+            placeholder='Enter your Phone Number*'
             value={formData.phone}
             onChange={handleChange}
             onFocus={() => handleFocus('phone')}
             onBlur={handleBlur}
             className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 bg-transparent text-white'
+            required
           />
         </div>
-
         {/* Message */}
         <div className='relative'>
           {focusedField === 'message' && (
@@ -284,12 +332,21 @@ const ContactForm = () => {
             onChange={handleChange}
             onFocus={() => handleFocus('message')}
             onBlur={handleBlur}
+            minLength={500}
             required
             className='w-full px-4 py-3 rounded border border-gray-700 outline-amber-400 focus:border-yellow-500 bg-transparent text-white resize-none'
           />
         </div>
+        <div className='flex justify-end gap-4'>
+          <Link href='/'>
+            <button
+              type='button'
+              className='bg-gray-600 text-white text-xl font-medium px-6 py-3 rounded'
+            >
+              Back
+            </button>
+          </Link>
 
-        <div className='flex justify-end'>
           <button
             type='submit'
             className='bg-yellow-500 text-white text-xl font-medium px-6 py-3 rounded'

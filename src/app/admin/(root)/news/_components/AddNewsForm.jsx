@@ -6,6 +6,7 @@ import React, { useState } from 'react'
 import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import { uploadToS3 } from '../../../../../utils/uploadToS3'
+import Loader from '../../../../_components/Loader'
 
 export const AddNewsForm = ({ setShowAddNewsForm }) => {
   const user = useStore((state) => state.user)
@@ -19,6 +20,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
     isDeleted: false,
   })
   const [image, setImage] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
   const [imagePreview, setImagePreview] = useState(null)
 
   const { newsCategories } = useStore()
@@ -36,13 +38,62 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
     }
   }
 
+  const validateForm = () => {
+    const errors = {}
+
+    if (!formData.title.trim()) {
+      errors.title = 'Title is required.'
+    } else if (!/^[a-zA-Z0-9\s\-'"&]+$/.test(formData.title)) {
+      errors.title = 'Title contains invalid characters.'
+    }
+
+    if (!formData.category) {
+      errors.category = 'Category is required.'
+    }
+
+    if (!formData.content.trim()) {
+      errors.content = 'Content is required.'
+    } else if (formData.content.trim().length < 10) {
+      errors.content = 'Content must be at least 10 characters.'
+    }
+
+    if (
+      formData.videoEmbedLink &&
+      !/^https:\/\/(www\.)?youtube\.com\/embed\/.+/.test(
+        formData.videoEmbedLink
+      )
+    ) {
+      errors.videoEmbedLink = 'Invalid YouTube embed link.'
+    }
+
+    if (!formData.publishDate) {
+      errors.publishDate = 'Publish date is required.'
+    }
+
+    return errors
+  }
+
   const handleSubmit = async (e) => {
+    setSubmitting(true)
     e.preventDefault()
+
+    const errors = validateForm()
+
+    if (Object.keys(errors).length > 0) {
+      // Show each error in Snackbar
+      Object.values(errors).forEach((msg) => {
+        enqueueSnackbar(msg, { variant: 'warning' })
+      })
+      setSubmitting(false)
+      return
+    }
+
     try {
       let s3UploadedUrl = null
       if (image !== null) {
         s3UploadedUrl = await uploadToS3(image)
       }
+
       const response = await axios.post(
         `${API_BASE_URL}/news`,
         { ...formData, coverImage: s3UploadedUrl },
@@ -52,29 +103,21 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
           },
         }
       )
+
       if (response.status === apiConstants.create) {
         enqueueSnackbar(response.data.message, { variant: 'success' })
-        setFormData({
-          title: '',
-          category: '',
-          content: '',
-          videoEmbedLink: '',
-          publishDate: '',
-          status: 'Draft',
-          isDeleted: false,
-        })
-        setImage(null)
-        setImagePreview(null)
+        handleCancel()
       }
     } catch (error) {
       console.log(error)
-
       enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
+        error?.response?.data?.message || 'News cannot be created',
         {
           variant: 'error',
         }
       )
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -150,6 +193,8 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                   accept='image/*'
                   onChange={handleFileChange}
                   className='absolute inset-0 opacity-0 cursor-pointer z-50'
+                  required
+                  disabled={submitting}
                 />
                 <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
                   <svg
@@ -168,7 +213,9 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                   </svg>
                 </div>
                 <p className='text-sm text-[#AEB9E1] z-10 text-center'>
-                  <span className='text-[#FEF200] mr-1'>Click to upload</span>
+                  <span className='text-[#FEF200] mr-1'>
+                    Click to upload <span className='text-red-500'>*</span>
+                  </span>
                   or drag and drop
                   <br />
                   SVG, PNG, JPG or GIF (max. 800x400)
@@ -192,6 +239,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                 className='w-full outline-none'
                 placeholder='News title here'
                 required
+                disabled={submitting}
               />
             </div>
 
@@ -207,6 +255,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
+                disabled={submitting}
               />
             </div>
           </div>
@@ -222,6 +271,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
               onChange={handleChange}
               className='w-full outline-none'
               required
+              disabled={submitting}
             >
               <option value='' className='text-black'>
                 Select category
@@ -251,6 +301,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
               className='w-full outline-none resize-none'
               placeholder='Type your news content here...'
               required
+              disabled={submitting}
             />
           </div>
 
@@ -266,6 +317,7 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
               onChange={handleChange}
               className='w-full outline-none'
               placeholder='https://youtube.com/embed/...'
+              disabled={submitting}
             />
           </div>
 
@@ -274,17 +326,13 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
               Status<span className='text-red-500'>*</span>
             </label>
             <select
-              name='isPublished'
-              value={formData.isPublished}
-              onChange={(e) =>
-                setFormData({ ...formData, isPublished: e.target.value })
-              }
+              name='status'
+              value={formData.status}
+              onChange={handleChange}
               className='w-full bg-transparent outline-none'
               required
+              disabled={submitting}
             >
-              <option value='' className='text-black'>
-                Select Status
-              </option>
               <option value='Draft' className='text-black'>
                 Draft
               </option>
@@ -299,13 +347,15 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
             <button
               type='submit'
               className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              disabled={submitting}
             >
-              Save
+              {submitting ? <Loader /> : 'Save'}
             </button>
             <button
               type='button'
               onClick={handleCancel}
               className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+              disabled={submitting}
             >
               Cancel
             </button>{' '}

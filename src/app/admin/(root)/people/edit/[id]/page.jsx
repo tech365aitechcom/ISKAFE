@@ -21,7 +21,7 @@ export default function EditPeoplePage({ params }) {
     middleName: '',
     lastName: '',
     suffix: '',
-    nickname: '',
+    nickName: '',
     email: '',
     gender: '',
     dateOfBirth: '',
@@ -68,7 +68,7 @@ export default function EditPeoplePage({ params }) {
         middleName: data.middleName || '',
         lastName: data.lastName || '',
         suffix: data.suffix || '',
-        nickname: data.nickname || '',
+        nickName: data.nickName || '',
         email: data.email || '',
         gender: data.gender || '',
         dateOfBirth: formattedDOB || '',
@@ -115,11 +115,104 @@ export default function EditPeoplePage({ params }) {
   }
 
   console.log('People:', people)
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPassword = (password) =>
+    /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
+  const getAge = (dob) => {
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
+    if (!validateName(people.firstName)) {
+      enqueueSnackbar(
+        'Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (people.middleName && !validateName(people.middleName)) {
+      enqueueSnackbar(
+        'Middle Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (!validateName(people.lastName)) {
+      enqueueSnackbar(
+        'Last Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (people.nickName && !validateName(people.nickName)) {
+      enqueueSnackbar(
+        'Last Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (!validateEmail(people.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (!people.dateOfBirth || getAge(people.dateOfBirth) < 18) {
+      enqueueSnackbar('You must be at least 18 years old.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (!validatePhoneNumber(people.phoneNumber)) {
+      enqueueSnackbar('Please enter a valid phone number.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (!validPostalCode(people.postalCode)) {
+      enqueueSnackbar('Please enter a valid postal code.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
 
+    if (!validPassword(people.password)) {
+      enqueueSnackbar(
+        'Password must be at least 8 characters and contain at least 1 number.',
+        {
+          variant: 'warning',
+        }
+      )
+      setSubmitting(false)
+      return
+    }
+    if (people.password !== people.confirmPassword) {
+      enqueueSnackbar('Passwords do not match. Please try again.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
     try {
       if (people.profilePhoto && typeof people.profilePhoto !== 'string') {
         try {
@@ -311,8 +404,8 @@ export default function EditPeoplePage({ params }) {
               <label className='block text-sm font-medium mb-1'>Nickname</label>
               <input
                 type='text'
-                name='nickname'
-                value={people.nickname}
+                name='nickName'
+                value={people.nickName}
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Eric'

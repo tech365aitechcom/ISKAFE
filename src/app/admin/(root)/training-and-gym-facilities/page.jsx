@@ -6,7 +6,7 @@ import PaginationHeader from '../../../_components/PaginationHeader'
 import Pagination from '../../../_components/Pagination'
 import { City, Country, State } from 'country-state-city'
 import axios from 'axios'
-import { API_BASE_URL, apiConstants } from '../../../../constants'
+import { API_BASE_URL, apiConstants, sportTypes } from '../../../../constants'
 import moment from 'moment'
 import { enqueueSnackbar } from 'notistack'
 import Loader from '../../../_components/Loader'
@@ -43,18 +43,15 @@ export default function TrainingAndGymFacilities() {
       ? City.getCitiesOfState(selectedCountry, selectedState)
       : []
 
-  const martialArtsStyles = [
-    'Boxing',
-    'Kickboxing',
-    'MMA',
-    'Brazilian Jiu-Jitsu',
-    'Kung Fu',
-    'Muay Thai',
-    'Karate',
-    'Taekwondo',
-  ]
-
-  const getTrainingFacilities = async () => {
+  const getTrainingFacilities = async ({
+    searchQuery,
+    selectedCountry,
+    selectedState,
+    selectedCity,
+    selectedStatus,
+    selectedApprovalStatus,
+    selectedStyles,
+  }) => {
     setLoading(true)
 
     try {
@@ -105,18 +102,28 @@ export default function TrainingAndGymFacilities() {
   }
 
   useEffect(() => {
-    getTrainingFacilities()
-  }, [
-    currentPage,
-    limit,
-    searchQuery,
-    selectedCountry,
-    selectedState,
-    selectedCity,
-    selectedStyles,
-    selectedStatus,
-    selectedApprovalStatus,
-  ])
+    getTrainingFacilities({
+      searchQuery: '',
+      selectedCountry: '',
+      selectedState: '',
+      selectedCity: '',
+      selectedStyles: [],
+      selectedStatus: '',
+      selectedApprovalStatus: '',
+    })
+  }, [currentPage, limit])
+
+  const handleSearch = () => {
+    getTrainingFacilities({
+      searchQuery,
+      selectedCountry,
+      selectedState,
+      selectedCity,
+      selectedStyles,
+      selectedStatus,
+      selectedApprovalStatus,
+    })
+  }
 
   const handleResetFilters = () => {
     setSearchQuery('')
@@ -126,6 +133,15 @@ export default function TrainingAndGymFacilities() {
     setSelectedStyles([])
     setSelectedStatus('')
     setSelectedApprovalStatus('')
+    getTrainingFacilities({
+      searchQuery: '',
+      selectedCountry: '',
+      selectedState: '',
+      selectedCity: '',
+      selectedStyles: [],
+      selectedStatus: '',
+      selectedApprovalStatus: '',
+    })
   }
 
   const handleApprove = async (facilityId) => {
@@ -190,11 +206,6 @@ export default function TrainingAndGymFacilities() {
       })
       console.log('Failed to delete training facility:', error)
     }
-  }
-
-  const handleSendInvites = (facility) => {
-    console.log('Sending invites for facility:', facility.name)
-    // Trigger email invitations
   }
 
   const handleStyleChange = (style) => {
@@ -391,25 +402,37 @@ export default function TrainingAndGymFacilities() {
               Discipline / Style
             </label>
             <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
-              {martialArtsStyles.map((style) => (
-                <label
-                  key={style}
-                  className='flex items-center space-x-2 text-white'
-                >
-                  <input
-                    type='checkbox'
-                    checked={selectedStyles.includes(style)}
-                    onChange={() => handleStyleChange(style)}
-                    className='form-checkbox text-blue-600'
-                  />
-                  <span className='text-sm'>{style}</span>
-                </label>
-              ))}
+              {sportTypes.map((style, index) => {
+                const id = `style-${index}`
+                return (
+                  <div
+                    key={style}
+                    className='flex items-center space-x-2 text-white'
+                  >
+                    <input
+                      id={id}
+                      type='checkbox'
+                      checked={selectedStyles.includes(style)}
+                      onChange={() => handleStyleChange(style)}
+                      className='form-checkbox text-blue-600'
+                    />
+                    <label htmlFor={id} className='text-sm cursor-pointer'>
+                      {style}
+                    </label>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className='flex justify-end mb-6'>
+          <div className='flex justify-end mb-6 gap-2'>
+            <button
+              onClick={handleSearch}
+              className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium'
+            >
+              Search
+            </button>
             {/* Reset Filters Button */}
             {(searchQuery ||
               selectedCountry ||
@@ -453,8 +476,8 @@ export default function TrainingAndGymFacilities() {
                     {renderHeader('Approval', 'approval')}
                     {renderHeader('Created On', 'createdAt')}
                     {renderHeader('Added By', 'addedBy')}
-                    {renderHeader('Trainers', 'trainers')}
-                    {renderHeader('Fighters', 'fighters')}
+                    {renderHeader('Trainers Count', 'trainers')}
+                    {renderHeader('Fighters Count', 'fighters')}
                     {renderHeader('Actions', 'actions')}
                   </tr>
                 </thead>
@@ -516,8 +539,8 @@ export default function TrainingAndGymFacilities() {
                         <td className='px-4 py-3 text-center'>
                           {facility.fighters?.length ?? 0}
                         </td>
-                        <td className='p-4 align-middle'>
-                          <div className='flex items-center justify-start space-x-4'>
+                        <td className='p-4 align-middle w-[220px]'>
+                          <div className='flex items-center space-x-3'>
                             <Link
                               href={`/admin/training-and-gym-facilities/view/${facility._id}`}
                             >

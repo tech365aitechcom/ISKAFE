@@ -96,7 +96,7 @@ export default function MyProfile() {
           </div>
         </div>
         {type == 'Change Password' ? (
-          <ChangePassword />
+          <ChangePassword setType={setType} />
         ) : (
           <ProfileForm
             isEditable={type == 'Edit Profile'}

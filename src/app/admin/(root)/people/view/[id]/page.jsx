@@ -19,7 +19,7 @@ export default function ViewPeoplePage({ params }) {
     middleName: '',
     lastName: '',
     suffix: '',
-    nickname: '',
+    nickName: '',
     email: '',
     gender: '',
     dateOfBirth: '',
@@ -60,7 +60,7 @@ export default function ViewPeoplePage({ params }) {
         middleName: data.middleName || '',
         lastName: data.lastName || '',
         suffix: data.suffix || '',
-        nickname: data.nickname || '',
+        nickName: data.nickName || '',
         email: data.email || '',
         gender: data.gender || '',
         dateOfBirth: formattedDOB || '',
@@ -234,8 +234,8 @@ export default function ViewPeoplePage({ params }) {
               <label className='block text-sm font-medium mb-1'>Nickname</label>
               <input
                 type='text'
-                name='nickname'
-                value={people.nickname}
+                name='nickName'
+                value={people.nickName}
                 className='w-full outline-none'
                 placeholder='Eric'
                 readOnly

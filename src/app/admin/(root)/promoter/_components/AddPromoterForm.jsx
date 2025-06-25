@@ -10,7 +10,8 @@ import {
   APP_BASE_URL,
 } from '../../../../../constants'
 import axios from 'axios'
-import { City, Country, State } from 'country-state-city'
+import { Country, State } from 'country-state-city'
+import Loader from '../../../../_components/Loader'
 
 export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
   const user = useStore((state) => state.user)
@@ -52,15 +53,12 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const countries = Country.getAllCountries()
   const states = formData.country
     ? State.getStatesOfCountry(formData.country)
     : []
-  const cities =
-    formData.country && formData.state
-      ? City.getCitiesOfState(formData.country, formData.state)
-      : []
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -80,13 +78,93 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
     }
   }
 
+  console.log('Form Data:', formData)
+
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPassword = (password) =>
+    /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!validateName(formData.name)) {
+      enqueueSnackbar(
+        'Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateName(formData.contactPersonName)) {
+      enqueueSnackbar(
+        'Contact Person Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      enqueueSnackbar('Please enter a valid phone number.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (
+      formData.alternatePhoneNumber &&
+      !validatePhoneNumber(formData.alternatePhoneNumber)
+    ) {
+      enqueueSnackbar('Please enter a valid alternate phone number.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validPostalCode(formData.postalCode)) {
+      enqueueSnackbar('Please enter a valid postal code.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validPassword(formData.password)) {
+      enqueueSnackbar(
+        'Password must be at least 8 characters and contain at least 1 number.',
+        {
+          variant: 'warning',
+        }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (formData.password !== formData.confirmPassword) {
+      enqueueSnackbar('Passwords do not match. Please try again.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
     try {
-      if (formData.profilePhoto !== null) {
+      if (
+        formData.profilePhoto !== null &&
+        typeof formData.profilePhoto !== 'string'
+      ) {
         formData.profilePhoto = await uploadToS3(formData.profilePhoto)
       }
-      if (formData.licenseCertificate !== null) {
+      if (
+        formData.licenseCertificate !== null &&
+        typeof formData.licenseCertificate !== 'string'
+      ) {
         formData.licenseCertificate = await uploadToS3(
           formData.licenseCertificate
         )
@@ -105,42 +183,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
       )
       if (response.status === apiConstants.create) {
         enqueueSnackbar(response.data.message, { variant: 'success' })
-        setFormData({
-          // Profile Info
-          profilePhoto: null,
-          name: '',
-          abbreviation: '',
-          websiteURL: '',
-          aboutUs: '',
-
-          // Contact Info
-          contactPersonName: '',
-          phoneNumber: '',
-          email: '',
-          alternatePhoneNumber: '',
-
-          // Compliance
-          sanctioningBody: '',
-
-          // Documents
-          licenseCertificate: null,
-
-          // Address Info
-          street1: '',
-          street2: '',
-          country: 'United States',
-          state: '',
-          city: '',
-          postalCode: '',
-
-          // Access
-          accountStatus: 'Active',
-          userName: '',
-          password: '',
-          confirmPassword: '',
-          assignRole: 'Promoter',
-          adminNotes: '',
-        })
+        handleCancel()
       }
     } catch (error) {
       console.log(error)
@@ -152,6 +195,46 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
         }
       )
     }
+  }
+
+  const handleCancel = () => {
+    setFormData({
+      // Profile Info
+      profilePhoto: null,
+      name: '',
+      abbreviation: '',
+      websiteURL: '',
+      aboutUs: '',
+
+      // Contact Info
+      contactPersonName: '',
+      phoneNumber: '',
+      email: '',
+      alternatePhoneNumber: '',
+
+      // Compliance
+      sanctioningBody: '',
+
+      // Documents
+      licenseCertificate: null,
+
+      // Address Info
+      street1: '',
+      street2: '',
+      country: 'United States',
+      state: '',
+      city: '',
+      postalCode: '',
+
+      // Access
+      accountStatus: 'Active',
+      userName: '',
+      password: '',
+      confirmPassword: '',
+      assignRole: 'Promoter',
+      adminNotes: '',
+    })
+    setShowAddPromoterForm(false)
   }
 
   return (
@@ -269,6 +352,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   placeholder='Enter Promoter Name'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -286,6 +370,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   className='w-full bg-transparent outline-none'
                   maxLength={10}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -302,6 +387,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   placeholder='https://www.example.com'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -319,6 +405,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 rows='3'
                 className='w-full bg-transparent outline-none resize-none'
                 maxLength={500}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -349,6 +436,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   placeholder='John Doe'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -365,6 +453,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   placeholder='+1-555-123456'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -381,6 +470,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   onChange={handleChange}
                   placeholder='+1-555-000000'
                   className='w-full bg-transparent outline-none'
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -398,6 +488,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   onChange={handleChange}
                   placeholder='promoter@event.com'
                   className='w-full bg-transparent outline-none'
+                  disabled={isSubmitting}
                   required
                 />
               </div>
@@ -421,6 +512,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled={isSubmitting}
                   >
                     <option value='' disabled className='text-black'>
                       Select sanctioning body
@@ -464,23 +556,27 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     <p>Document uploaded</p>
                     <p className='text-xs text-gray-400'>Click to change</p>
                   </div>
+
                   <button
                     type='button'
-                    onClick={() =>
+                    onClick={(e) => {
+                      e.stopPropagation()
                       setFormData((prev) => ({
                         ...prev,
                         licenseCertificate: null,
                       }))
-                    }
-                    className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
+                    }}
+                    className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-50' // <- z-50 makes it higher than input
                   >
                     <Trash className='w-4 h-4' />
                   </button>
+
                   <input
                     type='file'
                     accept='.pdf,.jpg,.jpeg,.png'
                     onChange={(e) => handleFileChange(e, 'licenseCertificate')}
-                    className='absolute inset-0 opacity-0 cursor-pointer z-50'
+                    className='absolute inset-0 opacity-0 cursor-pointer z-40'
+                    disabled={isSubmitting}
                   />
                 </div>
               ) : (
@@ -548,6 +644,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   placeholder='123 Combat Arena Road'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -563,6 +660,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   onChange={handleChange}
                   placeholder='Suite 400'
                   className='w-full bg-transparent outline-none'
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -578,6 +676,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled={isSubmitting}
                   >
                     <option value='' className='text-black'>
                       Select Country
@@ -618,6 +717,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled={isSubmitting}
                   >
                     <option value='' className='text-black'>
                       Select State
@@ -645,30 +745,20 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
               </div>
 
               {/* City Field */}
-              <div className='bg-[#00000061] p-2 rounded'>
-                <label className='text-white font-medium'>
+              <div className='bg-[#00000061] p-2 h-16 rounded'>
+                <label className='block text-xs font-medium mb-1'>
                   City<span className='text-red-500'>*</span>
                 </label>
-                <select
+                <input
+                  type='text'
                   name='city'
                   value={formData.city}
                   onChange={handleChange}
-                  className='w-full outline-none bg-transparent text-white'
+                  placeholder='Enter city'
+                  className='w-full bg-transparent outline-none'
                   required
-                >
-                  <option value='' className='text-black'>
-                    Select City
-                  </option>
-                  {cities.map((city) => (
-                    <option
-                      key={city.name}
-                      value={city.name}
-                      className='text-black'
-                    >
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
+                  disabled={isSubmitting}
+                />
               </div>
 
               {/* ZIP/Postal Code Field */}
@@ -684,6 +774,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   placeholder='90001'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -706,6 +797,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
+                    disabled={isSubmitting}
                   >
                     <option value='Active' className='text-black'>
                       Active
@@ -739,6 +831,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   placeholder='promoter_admin'
                   className='w-full bg-transparent outline-none'
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -754,10 +847,16 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     onChange={handleChange}
                     className='w-full bg-transparent outline-none appearance-none'
                     required
-                    disabled
+                    disabled={isSubmitting}
                   >
                     <option value='promoter' className='text-black'>
                       Promoter
+                    </option>
+                    <option value='viewer' className='text-black'>
+                      Viewer
+                    </option>
+                    <option value='admin' className='text-black'>
+                      Admin
                     </option>
                   </select>
                   <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white'>
@@ -788,12 +887,13 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     placeholder='********'
                     className='w-full bg-transparent outline-none pr-10'
                     minLength={8}
+                    disabled={isSubmitting}
                   />
                   <span
                     onClick={() => setShowPassword(!showPassword)}
                     className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                   </span>
                 </div>
               </div>
@@ -812,15 +912,16 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                     placeholder='********'
                     className='w-full bg-transparent outline-none'
                     minLength={8}
+                    disabled={isSubmitting}
                   />
                   <span
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                   >
                     {showConfirmPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
                       <Eye size={20} />
+                    ) : (
+                      <EyeOff size={20} />
                     )}
                   </span>
                 </div>
@@ -840,6 +941,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                 rows='3'
                 className='w-full bg-transparent outline-none resize-none'
                 maxLength={300}
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -861,7 +963,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
               }}
             >
-              Save Promoter
+              {isSubmitting ? <Loader /> : 'Save'}
             </button>
           </div>
         </form>

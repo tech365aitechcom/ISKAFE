@@ -12,6 +12,8 @@ import axios from 'axios'
 import useStore from '../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import { uploadToS3 } from '../../../../utils/uploadToS3'
+import Link from 'next/link'
+import Loader from '../../../_components/Loader'
 
 const FightProfileForm = ({ userDetails, onSuccess }) => {
   const { user } = useStore()
@@ -19,7 +21,6 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     // Basic Info
     firstName: '',
     lastName: '',
-    userName: '',
     profilePhoto: null,
     gender: '',
     dateOfBirth: '',
@@ -60,6 +61,23 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     medicalCertificate: null,
     licenseDocument: null,
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+  const getAge = (dob) => {
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -71,6 +89,15 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       : []
 
   console.log(userDetails, 'userDetails in fighter profile form')
+
+  const placeholder =
+    'data:image/svg+xml;base64,' +
+    btoa(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 24 24" fill="#ccc">
+    <circle cx="12" cy="8" r="4"/>
+    <path d="M12 14c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/>
+  </svg>
+`)
 
   useEffect(() => {
     if (userDetails) {
@@ -116,6 +143,55 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setIsSubmitting(true)
+    if (!validateName(formData.firstName)) {
+      enqueueSnackbar(
+        'First name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!formData.lastName.trim()) {
+      enqueueSnackbar('Last name is required.', { variant: 'warning' })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validateName(formData.lastName)) {
+      enqueueSnackbar(
+        'Last name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      enqueueSnackbar('Please enter a valid phone number.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!formData.dateOfBirth || getAge(formData.dateOfBirth) < 18) {
+      enqueueSnackbar('You must be at least 18 years old.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
         formData.profilePhoto = await uploadToS3(formData.profilePhoto)
@@ -162,6 +238,8 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
         error?.response?.data?.message || 'Something went wrong',
         { variant: 'error' }
       )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -169,7 +247,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='container mx-auto'>
         <div className='flex items-center gap-4 mb-6'>
-          <h1 className='text-4xl font-bold'>My Fighter Profile</h1>
+          <h1 className='text-4xl font-bold'>Fighter Profile</h1>
         </div>
 
         {/* Basic Information */}
@@ -184,22 +262,41 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             {/* Profile Photo */}
             <div className=''>
-              <label className='block font-medium mb-2'>
+              <label className='block font-medium mb-2 text-gray-200'>
                 Profile Photo <span className='text-red-400'>*</span>
               </label>
-              {formData.profilePhoto && (
-                <div className='my-4 flex'>
+
+              <div className='my-4 flex items-center'>
+                {formData.profilePhoto ? (
                   <img
                     src={
-                      typeof formData.profilePhoto == 'string'
+                      typeof formData.profilePhoto === 'string'
                         ? formData.profilePhoto
                         : URL.createObjectURL(formData.profilePhoto)
                     }
                     alt='Profile Preview'
-                    className='w-32 h-32 object-cover rounded-full border-4 border-purple-500'
+                    className='w-32 h-32 object-cover rounded-full border-4 border-purple-500 shadow-md'
                   />
-                </div>
-              )}
+                ) : (
+                  <div className='w-32 h-32 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border-4 border-purple-500 flex items-center justify-center shadow-md'>
+                    <svg
+                      xmlns='http://www.w3.org/2000/svg'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      strokeWidth={1.5}
+                      stroke='currentColor'
+                      className='w-14 h-14 text-gray-300'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        d='M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0'
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
               <input
                 type='file'
                 name='profilePhoto'
@@ -207,7 +304,11 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 accept='image/jpeg,image/jpg,image/png'
                 className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
               />
-              <p className='text-xs text-gray-400 mt-1'>JPG/PNG, Max 2MB</p>
+
+              <p className='text-xs text-gray-400 mt-1'>
+                Upload a high-resolution square photo (headshot preferred).
+                JPG/PNG, Max 5MB.
+              </p>
             </div>
           </div>
 
@@ -242,7 +343,9 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
               />
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Nick name</label>
+              <label className='block font-medium mb-2'>
+                Nick name/User Name
+              </label>
               <input
                 type='text'
                 name='nickName'
@@ -255,26 +358,14 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
 
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>
-                User name <span className='text-red-400'>*</span>
+                Gender<span className='text-red-400'>*</span>
               </label>
-              <input
-                type='text'
-                name='userName'
-                value={formData.userName ?? ''}
-                onChange={handleInputChange}
-                placeholder='Enter User Name'
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-                required
-              />
-            </div>
-
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Gender</label>
               <select
                 name='gender'
                 value={formData.gender}
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
+                required
               >
                 <option value='' className='text-black'>
                   Select Gender
@@ -292,14 +383,73 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Date of Birth</label>
+              <label className='block font-medium mb-2'>
+                Date of Birth<span className='text-red-400'>*</span>
+              </label>
               <input
                 type='date'
                 name='dateOfBirth'
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
               />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Height<span className='text-red-400'>*</span>
+              </label>
+              <input
+                type='text'
+                name='height'
+                value={formData.height ?? ''}
+                onChange={handleInputChange}
+                placeholder="e.g., 5'10 or 178 cm"
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Weight<span className='text-red-400'>*</span>
+              </label>
+              <input
+                type='text'
+                name='weight'
+                value={formData.weight ?? ''}
+                onChange={handleInputChange}
+                placeholder='e.g., 170 lbs or 77 kg'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Weight Class<span className='text-red-400'>*</span>
+              </label>
+              <select
+                name='weightClass'
+                value={formData.weightClass}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+                required
+              >
+                <option value='' className='text-black'>
+                  Select Weight Class
+                </option>
+                {weightClasses.map((weightClass) => (
+                  <option
+                    key={weightClass._id}
+                    value={weightClass._id}
+                    className='text-black'
+                  >
+                    {weightClass.fullName}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
@@ -382,56 +532,6 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
               </select>
             </div>
           </div>
-
-          {/* Physical Stats */}
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mt-6'>
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Height</label>
-              <input
-                type='text'
-                name='height'
-                value={formData.height ?? ''}
-                onChange={handleInputChange}
-                placeholder="e.g., 5'10 or 178 cm"
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-              />
-            </div>
-
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Weight</label>
-              <input
-                type='text'
-                name='weight'
-                value={formData.weight ?? ''}
-                onChange={handleInputChange}
-                placeholder='e.g., 170 lbs or 77 kg'
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-              />
-            </div>
-
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Weight Class</label>
-              <select
-                name='weightClass'
-                value={formData.weightClass}
-                onChange={handleInputChange}
-                className='w-full outline-none bg-transparent text-white'
-              >
-                <option value='' className='text-black'>
-                  Select Weight Class
-                </option>
-                {weightClasses.map((weightClass) => (
-                  <option
-                    key={weightClass._id}
-                    value={weightClass._id}
-                    className='text-black'
-                  >
-                    {weightClass.fullName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
         </div>
 
         {/* Contact & Social Information */}
@@ -469,7 +569,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Instagram URL</label>
+              <label className='block font-medium mb-2'>Instagram</label>
               <input
                 type='url'
                 name='instagram'
@@ -481,7 +581,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>YouTube URL</label>
+              <label className='block font-medium mb-2'>YouTube channel</label>
               <input
                 type='url'
                 name='youtube'
@@ -493,7 +593,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
-              <label className='block font-medium mb-2'>Facebook URL</label>
+              <label className='block font-medium mb-2'>Facebook Profile</label>
               <input
                 type='url'
                 name='facebook'
@@ -517,21 +617,24 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
-              <label className='block font-medium mb-2'>Fighter Bio</label>
+              <label className='block font-medium mb-2'>
+                Fighter Biography
+              </label>
               <textarea
                 name='bio'
                 value={formData.bio ?? ''}
                 onChange={handleInputChange}
-                placeholder='Tell your story, fighting style, and what drives you...'
+                placeholder='Write about your journey...'
                 rows='4'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
+                maxLength={100}
               />
-              <p className='text-xs text-gray-400 mt-1'>Max 500 characters</p>
+              <p className='text-xs text-gray-400 mt-1'>Max 100 characters</p>
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>
-                Primary Gym / Club
+                Primary Gym / Club <span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
@@ -551,6 +654,18 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.coachName ?? ''}
                 onChange={handleInputChange}
                 placeholder='Primary coach or trainer'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
+              <label className='block font-medium mb-2'>Affiliations</label>
+              <input
+                type='text'
+                name='affiliations'
+                value={formData.affiliations ?? ''}
+                onChange={handleInputChange}
+                placeholder='Teams, organizations, sponsors...'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               />
             </div>
@@ -596,18 +711,6 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
-              <label className='block font-medium mb-2'>Affiliations</label>
-              <input
-                type='text'
-                name='affiliations'
-                value={formData.affiliations ?? ''}
-                onChange={handleInputChange}
-                placeholder='Teams, organizations, sponsors...'
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-              />
-            </div>
-
-            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
               <label className='block font-medium mb-2'>Credentials</label>
               <textarea
                 name='credentials'
@@ -621,18 +724,18 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
           </div>
         </div>
 
-        {/* Achievements & Rankings */}
+        {/* Achievements & Career Milestones */}
         <div className='mb-8'>
           <div className='flex items-center gap-3 mb-6'>
             <Trophy className='w-6 h-6 text-yellow-400' />
             <h2 className='text-2xl font-bold uppercase tracking-wide'>
-              Achievements & Rankings
+              Achievements & Career Milestones
             </h2>
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>National Ranking</label>
+              <label className='block font-medium mb-2'>National Rank</label>
               <input
                 type='text'
                 name='nationalRank'
@@ -644,7 +747,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Global Ranking</label>
+              <label className='block font-medium mb-2'>Global Rank</label>
               <input
                 type='text'
                 name='globalRank'
@@ -656,57 +759,43 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Fight Record</label>
+              <label className='block font-medium mb-2'>Awards / Titles</label>
               <input
                 type='text'
-                name='recordHighlight'
-                value={formData.recordHighlight ?? ''}
+                name='achievements'
+                value={formData.achievements ?? ''}
                 onChange={handleInputChange}
-                placeholder='e.g., 15-3-1 (W-L-D)'
+                placeholder='e.g., Top Lightweight 2023'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
               />
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>
-                Video Highlight URL
+                Record-Setting Highlights
               </label>
               <input
                 type='url'
-                name='videoHighlight'
-                value={formData.videoHighlight ?? ''}
+                name='recordHighlight'
+                value={formData.recordHighlight ?? ''}
                 onChange={handleInputChange}
-                placeholder='https://youtube.com/watch?v=...'
+                placeholder='e.g., Fastest KO – 0:23'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-              />
-            </div>
-
-            <div className='bg-[#00000061] p-2 rounded md:col-span-2'>
-              <label className='block font-medium mb-2'>
-                Major Achievements
-              </label>
-              <textarea
-                name='achievements'
-                value={formData.achievements ?? ''}
-                onChange={handleInputChange}
-                placeholder='Championships, tournaments won, notable victories...'
-                rows='3'
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
               />
             </div>
           </div>
         </div>
 
-        {/* Media & Documentation */}
+        {/*Media Uploads*/}
         <div className='mb-8'>
           <div className='flex items-center gap-3 mb-6'>
             <Camera className='w-6 h-6 text-pink-400' />
             <h2 className='text-2xl font-bold uppercase tracking-wide'>
-              Media & Documentation
+              Media Uploads
             </h2>
           </div>
 
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>Media Gallery</label>
               <input
@@ -735,10 +824,35 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 ))}
               </div>
             </div>
-
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>
-                Medical Certificate
+                Video Highlight URL
+              </label>
+              <input
+                type='url'
+                name='videoHighlight'
+                value={formData.videoHighlight ?? ''}
+                onChange={handleInputChange}
+                placeholder='https://youtube.com/watch?v=...'
+                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              />
+            </div>
+          </div>
+        </div>
+        {/* Upload License Document */}
+        <div className='mb-8'>
+          <div className='flex items-center gap-3 mb-6'>
+            <Camera className='w-6 h-6 text-pink-400' />
+            <h2 className='text-2xl font-bold uppercase tracking-wide'>
+              Compliance Uploads
+            </h2>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Upload Medical Certificate
+                <span className='text-red-500'>*</span>
               </label>
               <input
                 type='file'
@@ -746,6 +860,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleFileChange}
                 accept='.pdf,.jpg,.jpeg,.png'
                 className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                required
               />
               <p className='text-xs text-gray-400 mt-1'>PDF/Image, Max 5MB</p>
 
@@ -759,7 +874,10 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>License Document</label>
+              <label className='block font-medium mb-2'>
+                Upload License Document
+                <span className='text-red-500'>*</span>
+              </label>
               <input
                 type='file'
                 name='licenseDocument'
@@ -781,19 +899,20 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
 
         {/* Action Buttons */}
         <div className='flex justify-center gap-4 mt-8'>
-          <button
-            type='button'
-            onClick={() => console.log('Cancel')}
-            className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105'
-          >
-            Cancel
-          </button>
+          <Link href={'/'}>
+            <button
+              type='button'
+              className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105'
+            >
+              Cancel
+            </button>
+          </Link>
           <button
             type='button'
             onClick={handleSubmit}
-            className='bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-8 rounded-xl transition duration-300 transform hover:scale-105 shadow-lg'
+            className='bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105 shadow-lg'
           >
-            Save Profile
+            {isSubmitting ? <Loader /> : 'Save Profile'}
           </button>
         </div>
       </div>

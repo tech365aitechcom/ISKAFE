@@ -6,8 +6,9 @@ import useStore from '../../../../stores/useStore'
 import axios from 'axios'
 import { City, Country, State } from 'country-state-city'
 import { enqueueSnackbar } from 'notistack'
+import Link from 'next/link'
 
-const SpectatorProfileForm = ({ userDetails }) => {
+const SpectatorProfileForm = ({ userDetails, onSuccess }) => {
   const { user } = useStore()
   const [formData, setFormData] = useState({
     firstName: '',
@@ -72,8 +73,77 @@ const SpectatorProfileForm = ({ userDetails }) => {
     }
   }
 
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+  const validateCity = (city) => /^[A-Za-z\s]+$/.test(city)
+
+  const getAge = (dob) => {
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!validateName(formData.firstName)) {
+      enqueueSnackbar(
+        'First name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      return
+    }
+
+    if (!formData.lastName.trim()) {
+      enqueueSnackbar('Last name is required.', { variant: 'warning' })
+      return
+    }
+
+    if (!validateName(formData.lastName)) {
+      enqueueSnackbar(
+        'Last name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      return
+    }
+
+    if (!validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (!validatePhoneNumber(formData.phoneNumber)) {
+      enqueueSnackbar('Please enter a valid phone number (10–15 digits).', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (!formData.dateOfBirth || getAge(formData.dateOfBirth) < 13) {
+      enqueueSnackbar('You must be at least 13 years old.', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (!validateCity(formData.city)) {
+      enqueueSnackbar('Please enter a valid city name.', {
+        variant: 'warning',
+      })
+      return
+    }
+
     try {
       const response = await axios.put(
         `${API_BASE_URL}/auth/users/${user._id}`,
@@ -91,7 +161,9 @@ const SpectatorProfileForm = ({ userDetails }) => {
     } catch (error) {
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
-        { variant: 'error' }
+        {
+          variant: 'error',
+        }
       )
     }
   }
@@ -100,7 +172,7 @@ const SpectatorProfileForm = ({ userDetails }) => {
     <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='w-full container mx-auto'>
         <div className='flex items-center gap-4 mb-6'>
-          <h1 className='text-4xl font-bold'>Spectator Profile</h1>
+          <h1 className='text-4xl font-bold'>My Profile</h1>
         </div>
 
         {/* Personal Info */}
@@ -135,15 +207,12 @@ const SpectatorProfileForm = ({ userDetails }) => {
 
           {/* Gender Dropdown */}
           <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block font-medium mb-1'>
-              Gender<span className='text-red-500'>*</span>
-            </label>
+            <label className='block font-medium mb-1'>Gender</label>
             <select
               name='gender'
               value={formData.gender}
               onChange={handleInputChange}
               className='w-full outline-none bg-transparent text-white'
-              required
             >
               <option value='' className='text-black'>
                 Select Gender
@@ -171,12 +240,16 @@ const SpectatorProfileForm = ({ userDetails }) => {
         </div>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
           <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block font-medium mb-1'>Country</label>
+            <label className='block font-medium mb-1'>
+              Country
+              <span className='text-red-500'>*</span>
+            </label>
             <select
               name='country'
               value={formData.country}
               onChange={handleInputChange}
               className='w-full outline-none bg-transparent text-white'
+              required
             >
               <option value='' className='text-black'>
                 Select Country
@@ -193,12 +266,16 @@ const SpectatorProfileForm = ({ userDetails }) => {
             </select>
           </div>
           <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block font-medium mb-1'>State</label>
+            <label className='block font-medium mb-1'>
+              State
+              <span className='text-red-500'>*</span>
+            </label>
             <select
               name='state'
               value={formData.state}
               onChange={handleInputChange}
               className='w-full outline-none bg-transparent text-white'
+              required
             >
               <option value='' className='text-black'>
                 Select State
@@ -216,24 +293,19 @@ const SpectatorProfileForm = ({ userDetails }) => {
           </div>
 
           <div className='bg-[#00000061] p-2 rounded'>
-            <label className='text-white font-medium'>City</label>
-            <select
+            <label className='block font-medium mb-1'>
+              City
+              <span className='text-red-500'>*</span>
+            </label>
+            <input
+              type='text'
               name='city'
               value={formData.city}
               onChange={handleInputChange}
-              className='w-full outline-none bg-transparent text-white'
-            >
-              <option value=''>Select City</option>
-              {cities.map((city) => (
-                <option
-                  key={city.name}
-                  value={city.name}
-                  className='text-black'
-                >
-                  {city.name}
-                </option>
-              ))}
-            </select>
+              placeholder='Enter City'
+              className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+              required
+            />
           </div>
         </div>
 
@@ -266,12 +338,20 @@ const SpectatorProfileForm = ({ userDetails }) => {
 
         {/* Actions */}
         <div className='flex justify-center gap-4 mt-6'>
+          <Link href={'/'}>
+            <button
+              type='button'
+              className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105'
+            >
+              Cancel
+            </button>
+          </Link>
           <button
             type='button'
             onClick={handleSubmit}
             className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
           >
-            Save Profile
+            Save Changes
           </button>
         </div>
       </div>

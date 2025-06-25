@@ -52,11 +52,11 @@ const Navbar = () => {
   }
 
   const isMoreMenuActive = moreMenuItems.some((item) =>
-    pathname.startsWith(item.path)
+    pathname.startsWith(item.destination)
   )
 
-  const getMenuItemClass = (path) => {
-    return pathname === path || pathname.startsWith(`${path}/`)
+  const getMenuItemClass = (destination) => {
+    return pathname === destination || pathname.startsWith(`${destination}/`)
       ? 'text-yellow-500'
       : 'text-white'
   }
@@ -218,7 +218,7 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Menu Items */}
-            <div className='overflow-y-auto'>
+            <div className='overflow-y-auto z-50'>
               <ul className='py-4'>
                 <ul className='py-4'>
                   {[...mainMenuItems, ...moreMenuItems].map(
@@ -240,7 +240,7 @@ const Navbar = () => {
                             href={item.destination}
                             onClick={closeMobileMenu}
                             className={`block px-2 py-3 text-xl border-b border-[#6C6C6C] mx-2 ${getMenuItemClass(
-                              item.path
+                              item.destination
                             )} uppercase font-semibold`}
                           >
                             {item.label}

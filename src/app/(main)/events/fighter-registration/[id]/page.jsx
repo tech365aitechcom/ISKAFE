@@ -14,10 +14,18 @@ import {
   Users,
 } from 'lucide-react'
 import useStore from '../../../../../stores/useStore'
-import React, { use, useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { City, Country, State } from 'country-state-city'
 import { uploadToS3 } from '../../../../../utils/uploadToS3'
+import axios from 'axios'
+import {
+  API_BASE_URL,
+  apiConstants,
+  weightClasses,
+} from '../../../../../constants'
+import { enqueueSnackbar } from 'notistack'
+import { useRouter } from 'next/navigation'
 
 const steps = [
   'Personal Info',
@@ -53,7 +61,7 @@ const FighterRegistrationPage = ({ params }) => {
     country: '',
     state: '',
     city: '',
-    zipCode: '',
+    postalCode: '',
 
     // Profile Photo
     profilePhoto: null,
@@ -92,11 +100,13 @@ const FighterRegistrationPage = ({ params }) => {
     waiverSignature: '',
 
     // Payment
+    paymentMethod: 'card',
     purchase: '',
-    event: id,
     cashCode: '',
   })
   const [errors, setErrors] = useState({})
+  const router = useRouter()
+  console.log(user, 'user')
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -107,15 +117,48 @@ const FighterRegistrationPage = ({ params }) => {
       ? City.getCitiesOfState(formData.country, formData.state)
       : []
 
+  useEffect(() => {
+    if (!user) return
+
+    const formattedDOB = user.dateOfBirth
+      ? new Date(user.dateOfBirth).toISOString().split('T')[0]
+      : ''
+
+    setFormData({
+      ...formData,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      gender: user.gender || '',
+      dateOfBirth: formattedDOB,
+      phoneNumber: user.phoneNumber || '',
+      email: user.email || '',
+      country: user.country || '',
+      state: user.state || '',
+      city: user.city || '',
+      profilePhoto: user.profilePhoto || '',
+    })
+  }, [user])
+
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
 
     if (type === 'file') {
       setFormData((prev) => ({ ...prev, [name]: files[0] }))
     } else {
+      let newValue
+      if (type === 'checkbox') {
+        newValue = checked
+      } else if (value === 'true') {
+        newValue = true
+      } else if (value === 'false') {
+        newValue = false
+      } else {
+        newValue = value
+      }
+
       setFormData((prev) => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : value,
+        [name]: newValue,
       }))
     }
 
@@ -125,47 +168,103 @@ const FighterRegistrationPage = ({ params }) => {
     }
   }
 
+  const validatePhoneNumber = (number) =>
+    /^\+?[0-9]{10,15}$/.test(number.replace(/\s+/g, '')) // Allows optional `+` and 10–15 digits
+
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name.trim()) // Allows letters, space, hyphen, apostrophe
+
+  const validateEmail = (email) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) // Basic but solid email regex
+
+  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+
   const validateStep = (step) => {
     const newErrors = {}
 
     switch (step) {
       case 1: // Personal Info
+        // First Name
         if (!formData.firstName.trim())
           newErrors.firstName = 'First name is required'
+        else if (!validateName(formData.firstName))
+          newErrors.firstName =
+            'Only letters, spaces, hyphens, and apostrophes allowed'
+
+        // Last Name
         if (!formData.lastName.trim())
           newErrors.lastName = 'Last name is required'
+        else if (!validateName(formData.lastName))
+          newErrors.lastName =
+            'Only letters, spaces, hyphens, and apostrophes allowed'
+
+        // Gender
         if (!formData.gender) newErrors.gender = 'Gender is required'
+
+        // DOB
         if (!formData.dateOfBirth)
           newErrors.dateOfBirth = 'Date of birth is required'
+
+        // Phone Number
         if (!formData.phoneNumber.trim())
           newErrors.phoneNumber = 'Mobile number is required'
-        else if (!/^\d{10}$/.test(formData.phoneNumber.replace(/\D/g, ''))) {
-          newErrors.phoneNumber = 'Valid 10-digit number required'
-        }
+        else if (!validatePhoneNumber(formData.phoneNumber))
+          newErrors.phoneNumber = 'Valid phone number required (10-15 digits)'
+
+        // Email
         if (!formData.email.trim()) newErrors.email = 'Email is required'
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        else if (!validateEmail(formData.email))
           newErrors.email = 'Valid email required'
-        }
+
+        // Street
         if (!formData.street1.trim())
           newErrors.street1 = 'Street address is required'
+
+        // City
         if (!formData.city.trim()) newErrors.city = 'City is required'
+
+        // State
         if (!formData.state) newErrors.state = 'State is required'
+
+        // Country
         if (!formData.country) newErrors.country = 'Country is required'
-        if (!formData.zipCode.trim()) newErrors.zipCode = 'ZIP code is required'
+
+        // ZIP Code
+        if (!formData.postalCode.trim())
+          newErrors.postalCode = 'ZIP code is required'
+        else if (!validPostalCode(formData.postalCode))
+          newErrors.postalCode = 'Please enter valid postal code'
+
+        // Profile photo
         if (!formData.profilePhoto)
           newErrors.profilePhoto = 'Professional headshot is required'
         break
 
       case 2: // Physical Info
-        if (!formData.height) newErrors.height = 'Height is required'
-        if (!formData.walkAroundWeight)
+        if (!formData.height) {
+          newErrors.height = 'Height is required'
+        } else {
+          const heightInInches = parseFloat(formData.height)
+          if (isNaN(heightInInches) || heightInInches < 38) {
+            // 3'2" is 38 inches
+            newErrors.height = 'Height of at least 3\'2" is required'
+          }
+        }
+
+        if (!formData.walkAroundWeight) {
           newErrors.walkAroundWeight = 'Walk-around weight is required'
+        } else {
+          const weight = parseFloat(formData.walkAroundWeight)
+          if (isNaN(weight) || weight < 10) {
+            newErrors.walkAroundWeight =
+              'Is your Walk-Around Weight accurate? Please check before continuing.'
+          }
+        }
         break
 
       case 3: // Fight History
-        if (!formData.proFighter)
+        if (formData.proFighter === undefined || formData.proFighter === '')
           newErrors.proFighter = 'Pro fighter status is required'
-        if (!formData.paidToFight)
+        if (formData.paidToFight === undefined || formData.paidToFight === '')
           newErrors.paidToFight = 'Paid to fight status is required'
         break
 
@@ -180,23 +279,34 @@ const FighterRegistrationPage = ({ params }) => {
           newErrors.skillLevel = 'Skill level is required'
         break
 
-      case 7: // Trainer Info
+      // Trainer Info
+      case 7:
         if (!formData.trainerName.trim())
           newErrors.trainerName = 'Trainer name is required'
+        else if (!validateName(formData.trainerName))
+          newErrors.trainerName =
+            'Only letters, spaces, hyphens, and apostrophes allowed'
+
         if (!formData.gymName.trim()) newErrors.gymName = 'Gym name is required'
+
         if (!formData.trainerPhone.trim())
           newErrors.trainerPhone = 'Trainer phone is required'
+        else if (!validatePhoneNumber(formData.trainerPhone))
+          newErrors.trainerPhone = 'Enter a valid phone number'
+
         if (!formData.trainerEmail.trim())
           newErrors.trainerEmail = 'Trainer email is required'
+        else if (!validateEmail(formData.trainerEmail))
+          newErrors.trainerEmail = 'Enter a valid email'
+
         if (formData.trainerEmail !== formData.trainerEmailConfirm) {
           newErrors.trainerEmailConfirm = 'Emails must match'
         }
-
         break
 
       case 8: // Age Check
-        if (!formData.isAdult)
-          newErrors.isAdult = 'Age confirmation is required'
+        if (formData.isAdult === undefined)
+          newErrors.isAdult = 'PAge confirmation is required'
         break
 
       case 9: // Waiver
@@ -230,10 +340,12 @@ const FighterRegistrationPage = ({ params }) => {
   }
 
   const handleNext = () => {
-    // if (validateStep(currentStep)) {
-    // }
-    if (currentStep < 10) {
-      setCurrentStep(currentStep + 1)
+    if (validateStep(currentStep)) {
+      console.log(formData, 'form data')
+
+      if (currentStep < 10) {
+        setCurrentStep(currentStep + 1)
+      }
     }
   }
 
@@ -251,27 +363,65 @@ const FighterRegistrationPage = ({ params }) => {
     }
 
     try {
-      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
-        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+      let payload = {
+        registrationType: 'fighter',
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        street1: formData.street1,
+        street2: formData.street2,
+        postalCode: formData.postalCode,
+        heightUnit: formData.heightUnit,
+        height: formData.height,
+        weightUnit: formData.weightUnit,
+        walkAroundWeight: formData.walkAroundWeight,
+        proFighter: formData.proFighter,
+        paidToFight: formData.paidToFight,
+        additionalRecords: formData.additionalRecords,
+        ruleStyle: formData.ruleStyle,
+        weightClass: formData.weightClass,
+        skillLevel: formData.skillLevel,
+        trainerName: formData.trainerName,
+        gymName: formData.gymName,
+        trainerPhone: formData.trainerPhone,
+        trainerEmail: formData.trainerEmail,
+        isAdult: formData.isAdult,
+        legalDisclaimerAccepted: formData.legalDisclaimerAccepted,
+        waiverSignature: formData.waiverSignature,
+        paymentMethod: formData.paymentMethod,
+        cashCode: formData.cashCode,
+        event: id,
       }
 
-      const payload = {
-        ...formData,
-        createdBy: user?.id,
-        event: eventId,
+      if (formData.profilePhoto) {
+        if (typeof formData.profilePhoto !== 'string') {
+          payload.profilePhoto = await uploadToS3(formData.profilePhoto)
+        } else {
+          payload.profilePhoto = formData.profilePhoto
+        }
       }
-
       console.log('Form submitted:', payload)
       const response = await axios.post(
-        `${API_BASE_URL}/registrations/add`,
-        payload
+        `${API_BASE_URL}/registrations`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
       )
 
       if (response.status === apiConstants.create) {
         enqueueSnackbar(response.data.message || 'Registration successful!', {
           variant: 'success',
         })
-        setIsOpen(false)
+        handleCancel()
       }
     } catch (error) {
       console.log('Error:', error)
@@ -282,6 +432,11 @@ const FighterRegistrationPage = ({ params }) => {
         }
       )
     }
+  }
+
+  const handleCancel = () => {
+    setCurrentStep(1)
+    router.push(`/events/${id}`)
   }
 
   const renderStep1 = () => (
@@ -359,19 +514,35 @@ const FighterRegistrationPage = ({ params }) => {
       </div>
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
         {[
-          { label: 'Date of Birth', name: 'dateOfBirth', type: 'date' },
-          { label: 'Phone Number', name: 'phoneNumber', type: 'tel' },
-          { label: 'Email Address', name: 'email', type: 'email' },
-          { label: 'Street Address1', name: 'street1' },
           {
-            label: 'Street Address2',
+            label: 'Date of Birth',
+            name: 'dateOfBirth',
+            type: 'date',
+            required: true,
+          },
+          {
+            label: 'Mobile Number',
+            name: 'phoneNumber',
+            type: 'tel',
+            required: true,
+          },
+          {
+            label: 'Email Address',
+            name: 'email',
+            type: 'email',
+            required: true,
+          },
+          { label: 'Street 1', name: 'street1', required: true },
+          {
+            label: 'Street 2',
             name: 'street2',
+            required: false,
           },
         ].map((field) => (
           <div key={field.name} className='bg-[#00000061] p-2 rounded'>
             <label className='block font-medium mb-1'>
               {field.label}
-              <span className='text-red-500'>*</span>
+              {field.required && <span className='text-red-500'>*</span>}
             </label>
             <input
               type={field.type || 'text'}
@@ -381,18 +552,15 @@ const FighterRegistrationPage = ({ params }) => {
               placeholder={
                 field.placeholder || `Enter ${field.label.toLowerCase()}`
               }
+              required={field.required}
               disabled={field.disabled}
               className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-              required={!field.disabled}
             />
             {errors[field.name] && (
               <p className='text-red-500 text-xs mt-1'>{errors[field.name]}</p>
             )}
           </div>
         ))}
-      </div>
-
-      <div className='grid grid-cols-3 gap-4'>
         <div className='bg-[#00000061] p-2 rounded'>
           <label className='block font-medium mb-1'>Country</label>
           <select
@@ -444,45 +612,76 @@ const FighterRegistrationPage = ({ params }) => {
           )}
         </div>
         <div className='bg-[#00000061] p-2 rounded'>
-          <label className='text-white font-medium'>ZIP Code *</label>
+          <label className='block font-medium mb-1'>
+            City
+            <span className='text-red-500'>*</span>
+          </label>
           <input
             type='text'
-            name='zipCode'
-            value={formData.zipCode}
+            name='city'
+            value={formData.city}
             onChange={handleChange}
-            placeholder='Enter ZIP Code'
+            placeholder='Enter City'
+            required
             className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
           />
-          {errors.zipCode && (
-            <p className='text-red-400 text-sm mt-1'>{errors.zipCode}</p>
+          {errors.city && (
+            <p className='text-red-500 text-xs mt-1'>{errors.city}</p>
           )}
         </div>
         <div className='bg-[#00000061] p-2 rounded'>
           <label className='text-white font-medium'>
-            City<span className='text-red-500'>*</span>
+            Postal Code <span className='text-red-500'>*</span>
           </label>
-          <select
-            name='city'
-            value={formData.city}
+          <input
+            type='text'
+            name='postalCode'
+            value={formData.postalCode}
             onChange={handleChange}
-            className='w-full outline-none bg-transparent text-white'
-            required
-            disabled={!formData.state}
-          >
-            <option value=''>Select City</option>
-            {cities.map((city) => (
-              <option key={city.name} value={city.name} className='text-black'>
-                {city.name}
-              </option>
-            ))}
-          </select>
+            placeholder='Enter Postal Code'
+            className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+          />
+          {errors.postalCode && (
+            <p className='text-red-400 text-sm mt-1'>{errors.postalCode}</p>
+          )}
         </div>
       </div>
 
       <div className=''>
-        <label className='block font-medium mb-2'>
+        <label className='block font-medium mb-2 text-gray-200'>
           Professional Headshot <span className='text-red-400'>*</span>
         </label>
+
+        <div className='my-4 flex items-center'>
+          {formData.profilePhoto ? (
+            <img
+              src={
+                typeof formData.profilePhoto === 'string'
+                  ? formData.profilePhoto
+                  : URL.createObjectURL(formData.profilePhoto)
+              }
+              alt='Profile Preview'
+              className='w-32 h-32 object-cover rounded-full border-4 border-purple-500 shadow-md'
+            />
+          ) : (
+            <div className='w-32 h-32 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border-4 border-purple-500 flex items-center justify-center shadow-md'>
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                fill='none'
+                viewBox='0 0 24 24'
+                strokeWidth={1.5}
+                stroke='currentColor'
+                className='w-14 h-14 text-gray-300'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  d='M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 0115 0'
+                />
+              </svg>
+            </div>
+          )}
+        </div>
 
         <input
           type='file'
@@ -491,6 +690,7 @@ const FighterRegistrationPage = ({ params }) => {
           accept='image/jpeg,image/jpg,image/png'
           className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
         />
+
         <p className='text-xs text-gray-400 mt-1'>JPG/PNG, Max 2MB</p>
       </div>
     </div>
@@ -531,9 +731,7 @@ const FighterRegistrationPage = ({ params }) => {
             name='height'
             value={formData.height}
             onChange={handleChange}
-            placeholder={
-              formData.heightUnit === 'inches' ? 'eg: 5.11' : 'eg: 180'
-            }
+            placeholder='eg: 180'
             className='w-full outline-none bg-transparent text-white'
           />
           {errors.height && (
@@ -589,15 +787,17 @@ const FighterRegistrationPage = ({ params }) => {
 
       <div className='flex flex-wrap gap-4'>
         <div>
-          <label className='text-white font-medium'>Pro Fighter *</label>
+          <label className='text-white font-medium'>
+            Pro Fighter <span className='text-red-500'>*</span>
+          </label>
           <div className='flex space-x-4 mt-2'>
             <label className='text-white'>
               <input
                 type='radio'
                 name='proFighter'
-                value='Yes'
+                value='true'
                 onChange={handleChange}
-                checked={formData.proFighter === 'Yes'}
+                checked={formData.proFighter === true}
               />
               <span className='ml-2'>Yes</span>
             </label>
@@ -605,9 +805,9 @@ const FighterRegistrationPage = ({ params }) => {
               <input
                 type='radio'
                 name='proFighter'
-                value='No'
+                value='false'
                 onChange={handleChange}
-                checked={formData.proFighter === 'No'}
+                checked={formData.proFighter === false}
               />
               <span className='ml-2'>No</span>
             </label>
@@ -618,15 +818,17 @@ const FighterRegistrationPage = ({ params }) => {
         </div>
 
         <div>
-          <label className='text-white font-medium'>Paid to Fight *</label>
+          <label className='text-white font-medium'>
+            Paid to Fight <span className='text-red-500'>*</span>
+          </label>
           <div className='flex space-x-4 mt-2'>
             <label className='text-white'>
               <input
                 type='radio'
                 name='paidToFight'
-                value='Yes'
+                value='true'
                 onChange={handleChange}
-                checked={formData.paidToFight === 'Yes'}
+                checked={formData.paidToFight === true}
               />
               <span className='ml-2'>Yes</span>
             </label>
@@ -634,9 +836,9 @@ const FighterRegistrationPage = ({ params }) => {
               <input
                 type='radio'
                 name='paidToFight'
-                value='No'
+                value='false'
                 onChange={handleChange}
-                checked={formData.paidToFight === 'No'}
+                checked={formData.paidToFight === false}
               />
               <span className='ml-2'>No</span>
             </label>
@@ -676,7 +878,9 @@ const FighterRegistrationPage = ({ params }) => {
   )
   const renderStep4 = () => (
     <div className='space-y-4'>
-      <h3 className='text-xl font-semibold text-white mb-4'>Rule Style*</h3>
+      <h3 className='text-xl font-semibold text-white mb-4'>
+        Rule Style<span className='text-red-500'>*</span>
+      </h3>
 
       <div>
         <div className='flex flex-wrap gap-4 mt-2'>
@@ -717,30 +921,15 @@ const FighterRegistrationPage = ({ params }) => {
           <option value='' className='text-black'>
             Select weight range
           </option>
-          <option value='Flyweight' className='text-black'>
-            Flyweight (125 lbs)
-          </option>
-          <option value='Bantamweight' className='text-black'>
-            Bantamweight (135 lbs)
-          </option>
-          <option value='Featherweight' className='text-black'>
-            Featherweight (145 lbs)
-          </option>
-          <option value='Lightweight' className='text-black'>
-            Lightweight (155 lbs)
-          </option>
-          <option value='Welterweight' className='text-black'>
-            Welterweight (170 lbs)
-          </option>
-          <option value='Middleweight' className='text-black'>
-            Middleweight (185 lbs)
-          </option>
-          <option value='Light Heavyweight' className='text-black'>
-            Light Heavyweight (205 lbs)
-          </option>
-          <option value='Heavyweight' className='text-black'>
-            Heavyweight (265 lbs)
-          </option>
+          {weightClasses.map((weightClass) => (
+            <option
+              key={weightClass._id}
+              value={weightClass.fullName}
+              className='text-black'
+            >
+              {weightClass.fullName}
+            </option>
+          ))}
         </select>
         {errors.weightClass && (
           <p className='text-red-400 text-sm mt-1'>{errors.weightClass}</p>
@@ -748,9 +937,16 @@ const FighterRegistrationPage = ({ params }) => {
       </div>
 
       <div>
-        <label className='text-white font-medium'>Skill Level *</label>
+        <label className='text-white font-medium'>
+          Skill Level <span className='text-red-500'>*</span>
+        </label>
         <div className='flex flex-wrap gap-4 mt-2'>
-          {['Class A', 'Class B', 'Class C', 'Novice'].map((level) => (
+          {[
+            'Novice: 0-2 Years',
+            'Class C: 2-4 Years (Cup Award)',
+            'Class B: 4-6 Years (Belt Award)',
+            'Class A: 6+ Years (Belt Award)',
+          ].map((level) => (
             <label key={level} className='text-white'>
               <input
                 type='radio'
@@ -782,11 +978,14 @@ const FighterRegistrationPage = ({ params }) => {
     </div>
   )
   const renderStep7 = () => (
-    <div className='space-y-4'>
-      <h3 className='text-xl font-semibold text-white mb-4'>
-        Trainer Information
-      </h3>
-
+    <div className='space-y-1'>
+      <h3 className='text-xl font-semibold text-white'>Trainer Information</h3>
+      <p className='text-gray-300 text-sm mb-4'>
+        Your gym / training facility is important to enter below because it will
+        reduce the chances of getting matched against somebody from your same
+        gym. If you are not affiliated with a gym or trainer, please enter your
+        own full name in the Trainer Name and Gym Name fields below.
+      </p>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
         {[
           { label: 'Trainer Name', name: 'trainerName' },
@@ -830,15 +1029,17 @@ const FighterRegistrationPage = ({ params }) => {
       <h3 className='text-xl font-semibold text-white mb-4'>Age Check</h3>
 
       <div>
-        <label className='text-white font-medium'>Are You Under 18? *</label>
+        <label className='text-white font-medium'>
+          Are You Under 18? <span className='text-red-500'>*</span>
+        </label>
         <div className='flex space-x-4 mt-2'>
           <label className='text-white'>
             <input
               type='radio'
               name='isAdult'
-              value='Yes'
+              value='true'
               onChange={handleChange}
-              checked={formData.isAdult === 'Yes'}
+              checked={formData.isAdult === true}
             />
             <span className='ml-2'>Yes</span>
           </label>
@@ -846,9 +1047,9 @@ const FighterRegistrationPage = ({ params }) => {
             <input
               type='radio'
               name='isAdult'
-              value='No'
+              value='false'
               onChange={handleChange}
-              checked={formData.isAdult === 'No'}
+              checked={formData.isAdult === false}
             />
             <span className='ml-2'>No</span>
           </label>
@@ -886,7 +1087,8 @@ const FighterRegistrationPage = ({ params }) => {
           className='accent-yellow-500'
         />
         <label htmlFor='legalDisclaimerAccepted' className='text-white'>
-          I agree to the terms and waiver *
+          I agree to the terms and waiver{' '}
+          <span className='text-red-500'>*</span>
         </label>
       </div>
       {errors.legalDisclaimerAccepted && (
@@ -920,7 +1122,9 @@ const FighterRegistrationPage = ({ params }) => {
       <h3 className='text-xl font-semibold text-white mb-4'>Payment</h3>
 
       <div>
-        <label className='text-white font-medium'>Payment Method *</label>
+        <label className='text-white font-medium'>
+          Payment Method <span className='text-red-500'>*</span>
+        </label>
         <div className='flex space-x-4 mt-2'>
           <label className='text-white'>
             <input
@@ -951,7 +1155,9 @@ const FighterRegistrationPage = ({ params }) => {
       {formData.paymentMethod === 'card' && (
         <div className='space-y-4'>
           <div>
-            <label className='text-white font-medium'>Card Number *</label>
+            <label className='text-white font-medium'>
+              Card Number <span className='text-red-500'>*</span>
+            </label>
             <input
               type='text'
               name='cardNumber'
@@ -967,7 +1173,9 @@ const FighterRegistrationPage = ({ params }) => {
 
           <div className='grid grid-cols-2 gap-4'>
             <div>
-              <label className='text-white font-medium'>Expiry Date *</label>
+              <label className='text-white font-medium'>
+                Expiry Date <span className='text-red-500'>*</span>
+              </label>
               <input
                 type='text'
                 name='expiryDate'
@@ -982,7 +1190,9 @@ const FighterRegistrationPage = ({ params }) => {
             </div>
 
             <div>
-              <label className='text-white font-medium'>CVV *</label>
+              <label className='text-white font-medium'>
+                CVV <span className='text-red-500'>*</span>
+              </label>
               <input
                 type='text'
                 name='cvv'
@@ -1001,7 +1211,9 @@ const FighterRegistrationPage = ({ params }) => {
 
       {formData.paymentMethod === 'cash' && (
         <div>
-          <label className='text-white font-medium'>Cash Code *</label>
+          <label className='text-white font-medium'>
+            Cash Code <span className='text-red-500'>*</span>
+          </label>
           <input
             type='text'
             name='cashCode'
@@ -1134,40 +1346,50 @@ const FighterRegistrationPage = ({ params }) => {
 
           {/* Navigation Buttons */}
           <div className='flex justify-between mt-8'>
-            <Link href={`/events/${id}`}>
-              <button
-                type='button'
-                className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
-              >
-                Cancel
-              </button>
-            </Link>
-            <div className='flex space-x-4 '>
+            <div className='flex space-x-2'>
               {currentStep > 1 && (
                 <button
                   type='button'
                   onClick={handleBack}
-                  className='flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded font-semibold hover:bg-gray-700 transition-colors'
+                  className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
                 >
-                  <ChevronLeft className='w-4 h-4' />
-                  <span>Back</span>
+                  Previous
                 </button>
               )}
-
+            </div>
+            <div className='flex space-x-2 '>
               {currentStep < 10 ? (
-                <button
-                  type='button'
-                  className='bg-yellow-500 text-black px-6 py-2 rounded font-semibold hover:bg-yellow-400 transition-colors'
-                  onClick={handleNext}
-                >
-                  Next
-                </button>
+                <>
+                  <Link href={`/events/${id}`}>
+                    <button
+                      type='button'
+                      className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                    >
+                      Cancel
+                    </button>
+                  </Link>
+                  <button
+                    type='button'
+                    className='bg-yellow-500 text-black px-6 py-2 rounded font-semibold hover:bg-yellow-400 transition-colors'
+                    onClick={handleNext}
+                  >
+                    Next
+                  </button>
+                </>
               ) : (
                 <div className='flex space-x-4'>
+                  <Link href={`/events/${id}`}>
+                    <button
+                      type='button'
+                      className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                    >
+                      Cancel
+                    </button>
+                  </Link>
                   {formData.paymentMethod === 'card' && (
                     <button
                       type='submit'
-                      className='bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-500 transition-colors'
+                      className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                       Pay Now
                     </button>
@@ -1175,18 +1397,9 @@ const FighterRegistrationPage = ({ params }) => {
                   {formData.paymentMethod === 'cash' && (
                     <button
                       type='submit'
-                      className='bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-500 transition-colors'
+                      className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                       Submit Registration
-                    </button>
-                  )}
-                  {!formData.paymentMethod && (
-                    <button
-                      type='button'
-                      className='bg-gray-600 text-white px-6 py-2 rounded font-semibold cursor-not-allowed'
-                      disabled
-                    >
-                      Select Payment Method
                     </button>
                   )}
                 </div>

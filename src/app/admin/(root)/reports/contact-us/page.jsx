@@ -36,8 +36,11 @@ export default function ContactUsReports() {
   const getContactReports = async () => {
     setLoading(true)
     try {
+      let queryParams = `?page=${currentPage}&limit=${limit}`
+      if (searchQuery) queryParams += `&search=${searchQuery}`
+      if (selectedStatus) queryParams += `&state=${selectedStatus}`
       const response = await axios.get(
-        `${API_BASE_URL}/contact-us?search=${searchQuery}&state=${selectedStatus}&page=${currentPage}&limit=${limit}`
+        `${API_BASE_URL}/contact-us${queryParams}`
       )
       console.log('Response:', response.data)
 
@@ -311,7 +314,7 @@ export default function ContactUsReports() {
                         <td className='px-4 py-3'>
                           {report.assignedAdmin || 'Unassigned'}
                         </td>
-                        <td className='px-4 py-3 uppercase'>
+                        <td className='px-4 py-3 capitalize'>
                           {report.createdBy?.role}
                         </td>
                         <td className='px-4 py-3'>

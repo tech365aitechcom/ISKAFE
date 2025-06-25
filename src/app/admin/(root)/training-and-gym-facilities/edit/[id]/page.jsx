@@ -2,9 +2,13 @@
 import React, { use, useEffect, useState } from 'react'
 import axios from 'axios'
 import Loader from '../../../../../_components/Loader'
-import { API_BASE_URL, apiConstants } from '../../../../../../constants'
+import {
+  API_BASE_URL,
+  apiConstants,
+  sportTypes,
+} from '../../../../../../constants'
 import Link from 'next/link'
-import { X, Plus, Trash2, Camera, Users, Trash } from 'lucide-react'
+import { X, Plus, Camera, Users, Trash } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../../../stores/useStore'
 import { uploadToS3 } from '../../../../../../utils/uploadToS3'
@@ -77,19 +81,6 @@ export default function EditTrainingFacilityPage({ params }) {
     image: null,
   })
 
-  const martialArtsOptions = [
-    'Kickboxing',
-    'MMA',
-    'Muay Thai',
-    'BJJ',
-    'Boxing',
-    'Karate',
-    'Taekwondo',
-    'Judo',
-    'Wrestling',
-    'Kung Fu',
-  ]
-
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -131,33 +122,60 @@ export default function EditTrainingFacilityPage({ params }) {
   }, [])
 
   const fetchTrainingFacilityDetails = async () => {
+    if (!id) return
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/training-facilities/${id}`
+        `${API_BASE_URL}/training-facilities/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
       )
-      const data = response.data.data
+
+      const facility = response.data.data
+      console.log('Existing facility data:', facility)
+
+      // Map the existing data to form state
       setFormData({
-        name: data.name,
-        logo: data.logo,
-        martialArtsStyles: data.martialArtsStyles,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        address: data.address,
-        country: data.country,
-        state: data.state,
-        city: data.city,
-        description: data.description,
-        externalWebsite: data.externalWebsite,
-        imageGallery: data.imageGallery,
-        videoIntroduction: data.videoIntroduction,
-        trainers: data.trainers,
-        fighters: data.fighters,
-        sendInvites: data.sendInvites,
-        termsAgreed: data.termsAgreed,
+        name: facility.name || '',
+        logo: facility.logo || '',
+        martialArtsStyles: facility.martialArtsStyles || [],
+        email: facility.email || '',
+        phoneNumber: facility.phoneNumber || '',
+        address: facility.address || '',
+        country: facility.country || '',
+        state: facility.state || '',
+        city: facility.city || '',
+        description: facility.description || '',
+        externalWebsite: facility.externalWebsite || '',
+        imageGallery: facility.imageGallery || [],
+        videoIntroduction: facility.videoIntroduction || '',
+        trainers:
+          facility.trainers?.map((trainer) => ({
+            ...trainer,
+            id: trainer._id || trainer.id || Date.now(),
+            label: trainer.existingTrainerId
+              ? `${trainer.existingTrainerId.userId?.firstName} ${trainer.existingTrainerId.userId?.lastName} (${trainer.existingTrainerId.userId?.email})`
+              : trainer.name,
+            value: trainer.existingTrainerId?._id || null,
+          })) || [],
+        fighters:
+          facility.fighters?.map((fighter) => ({
+            ...fighter,
+            id: fighter._id || fighter.id || Date.now(),
+            label: fighter.existingFighterId
+              ? `${fighter.existingFighterId.userId?.firstName} ${fighter.existingFighterId.userId?.lastName} (${fighter.existingFighterId.userId?.email})`
+              : fighter.name,
+            value: fighter.existingFighterId?._id || null,
+          })) || [],
+        sendInvites: facility.sendInvites || false,
+        termsAgreed: facility.termsAgreed || false,
       })
-    } catch (err) {
-      console.error('Error fetching training facilities:', err)
-      setError('Failed to load training facilities data.')
+    } catch (error) {
+      console.error('Error fetching facility data:', error)
+      enqueueSnackbar('Error loading facility data', { variant: 'error' })
+      router.push('/training-facilities')
     } finally {
       setLoading(false)
     }
@@ -276,26 +294,39 @@ export default function EditTrainingFacilityPage({ params }) {
     e.preventDefault()
     console.log('Form submitted with action:', action)
     console.log('Form data:', formData)
+
     try {
-      if (formData.logo && typeof formData.logo !== 'string') {
+      let updatedFormData = { ...formData }
+
+      // Upload new logo if provided
+      if (formData.logo && typeof formData.logo === 'object') {
         try {
           const s3UploadedUrl = await uploadToS3(formData.logo)
-          formData.logo = s3UploadedUrl
+          updatedFormData.logo = s3UploadedUrl
         } catch (error) {
-          console.error('Image upload failed:', error)
+          console.error('Logo upload failed:', error)
           return
         }
+      } else {
+        // Keep existing logo URL
+        updatedFormData.logo = formData.logoUrl
       }
-      if (formData.imageGallery && typeof formData.logo !== 'string') {
+
+      // Upload new gallery images
+      if (formData.imageGallery.length > 0) {
         const s3Urls = await Promise.all(
           formData.imageGallery.map((file) => uploadToS3(file))
         )
-        formData.imageGallery = s3Urls
+        updatedFormData.imageGallery = [...formData.existingGallery, ...s3Urls]
+      } else {
+        updatedFormData.imageGallery = formData.existingGallery
       }
+
+      // Upload trainer images
       if (formData.trainers?.length) {
         await Promise.all(
           formData.trainers.map(async (trainer) => {
-            if (trainer.image && typeof trainer.image !== 'string') {
+            if (trainer.image && typeof trainer.image === 'object') {
               try {
                 const s3UploadedUrl = await uploadToS3(trainer.image)
                 trainer.image = s3UploadedUrl
@@ -307,10 +338,11 @@ export default function EditTrainingFacilityPage({ params }) {
         )
       }
 
+      // Upload fighter images
       if (formData.fighters?.length) {
         await Promise.all(
           formData.fighters.map(async (fighter) => {
-            if (fighter.image && typeof fighter.image !== 'string') {
+            if (fighter.image && typeof fighter.image === 'object') {
               try {
                 const s3UploadedUrl = await uploadToS3(fighter.image)
                 fighter.image = s3UploadedUrl
@@ -323,14 +355,36 @@ export default function EditTrainingFacilityPage({ params }) {
       }
 
       let payload = {
-        ...formData,
-        trainers: formData.trainers.map((trainer) => ({
-          existingTrainerId: trainer.existingTrainerId._id,
-        })),
-        fighters: formData.fighters.map((fighter) => ({
-          existingFighterId: fighter.existingFighterId._id,
-        })),
+        ...updatedFormData,
+        trainers: updatedFormData.trainers.map((t) =>
+          t.value
+            ? { existingTrainerId: t.value }
+            : {
+                name: t.name,
+                role: t.role,
+                email: t.email,
+                phone: t.phone,
+                bio: t.bio,
+                image: t.image,
+              }
+        ),
+        fighters: updatedFormData.fighters.map((f) =>
+          f.value
+            ? { existingFighterId: f.value }
+            : {
+                name: f.name,
+                gender: f.gender,
+                age: f.age,
+                record: f.record,
+                bio: f.bio,
+                image: f.image,
+              }
+        ),
       }
+
+      // Remove fields not needed for update
+      delete payload.logoUrl
+      delete payload.existingGallery
 
       if (action === 'draft') {
         payload = {
@@ -341,30 +395,35 @@ export default function EditTrainingFacilityPage({ params }) {
         payload = {
           ...payload,
           isAdminApprovalRequired: true,
+          isDraft: false,
         }
       }
 
-      console.log('Payload:', payload)
+      console.log('Update Payload:', payload)
 
       const response = await axios.put(
         `${API_BASE_URL}/training-facilities/${id}`,
-        {
-          ...payload,
-        }
+        payload
       )
-      console.log('Response:', response)
 
-      if (response.status === apiConstants.success) {
+      console.log('Update Response:', response)
+
+      if (
+        response.status === apiConstants.create ||
+        response.status === apiConstants.success
+      ) {
         enqueueSnackbar(
-          response.data.message || 'Facility registered successfully',
+          response.data.message || 'Facility updated successfully',
           {
             variant: 'success',
           }
         )
         fetchTrainingFacilityDetails()
-        setCurrentStep(1)
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error('Update error:', error)
+      enqueueSnackbar('Error updating facility', { variant: 'error' })
+    }
   }
 
   const nextStep = () => {
@@ -525,23 +584,33 @@ export default function EditTrainingFacilityPage({ params }) {
 
                 <div className='mt-4'>
                   <label className='block font-medium mb-1'>
-                    Martial Arts / Styles Taught *
+                    Martial Arts / Styles Taught{' '}
+                    <span className='text-red-400'>*</span>
                   </label>
                   <div className='mt-2 grid grid-cols-2 md:grid-cols-5 gap-2'>
-                    {martialArtsOptions.map((art) => (
-                      <label
-                        key={art}
-                        className='flex items-center space-x-2 text-white cursor-pointer'
-                      >
-                        <input
-                          type='checkbox'
-                          checked={formData.martialArtsStyles.includes(art)}
-                          onChange={() => handleMartialArtsChange(art)}
-                          className='accent-yellow-500'
-                        />
-                        <span className='text-sm'>{art}</span>
-                      </label>
-                    ))}
+                    {sportTypes.map((art, index) => {
+                      const id = `martial-art-${index}`
+                      return (
+                        <div
+                          key={art}
+                          className='flex items-center space-x-2 text-white'
+                        >
+                          <input
+                            id={id}
+                            type='checkbox'
+                            checked={formData.martialArtsStyles.includes(art)}
+                            onChange={() => handleMartialArtsChange(art)}
+                            className='accent-yellow-500'
+                          />
+                          <label
+                            htmlFor={id}
+                            className='text-sm cursor-pointer'
+                          >
+                            {art}
+                          </label>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -852,26 +921,8 @@ export default function EditTrainingFacilityPage({ params }) {
                         <Autocomplete
                           label='Search Trainer'
                           multiple
-                          selected={formData.trainers.map((trainer) => ({
-                            label:
-                              trainer.existingTrainerId?.userId?.firstName +
-                              ' ' +
-                              trainer.existingTrainerId?.userId?.lastName +
-                              ' (' +
-                              trainer.existingTrainerId?.userId?.email +
-                              ' )',
-                            value: trainer.existingTrainerId._id,
-                          }))}
-                          onChange={(selectedOptions) =>
-                            handleChange(
-                              'trainers',
-                              selectedOptions.map((opt) => ({
-                                existingTrainerId: {
-                                  _id: opt.value,
-                                },
-                              }))
-                            )
-                          }
+                          selected={formData.trainers}
+                          onChange={(value) => handleChange('trainers', value)}
                           options={[
                             ...existingTrainers.map((trainer) => ({
                               label:
@@ -881,7 +932,7 @@ export default function EditTrainingFacilityPage({ params }) {
                                 ' (' +
                                 trainer.userId?.email +
                                 ' )',
-                              value: trainer._id,
+                              value: trainer?._id,
                             })),
                           ]}
                           placeholder='Search trainer name'
@@ -1026,20 +1077,23 @@ export default function EditTrainingFacilityPage({ params }) {
                             >
                               <div className='text-white'>
                                 <div className='font-medium'>
-                                  {trainer.existingTrainerId?.userId
-                                    ?.firstName +
-                                    trainer.existingTrainerId?.userId?.lastName}
+                                  {trainer.name ?? trainer.label}
                                 </div>
 
-                                {trainer.existingTrainerId?.userId?.email && (
+                                {trainer.role && (
                                   <div className='text-sm text-gray-400'>
-                                    {trainer.existingTrainerId?.userId?.email}
+                                    {trainer.role}
+                                  </div>
+                                )}
+                                {trainer.email && (
+                                  <div className='text-sm text-gray-400'>
+                                    {trainer.email}
                                   </div>
                                 )}
                               </div>
                               <button
                                 type='button'
-                                onClick={() => removeTrainer(trainer._id)}
+                                onClick={() => removeTrainer(trainer.id)}
                                 className='text-red-400 hover:text-red-300'
                               >
                                 <Trash size={16} />
@@ -1103,26 +1157,8 @@ export default function EditTrainingFacilityPage({ params }) {
                         <Autocomplete
                           label='Search Fighter'
                           multiple
-                          selected={formData.fighters.map((fighter) => ({
-                            label:
-                              fighter.existingFighterId?.userId?.firstName +
-                              ' ' +
-                              fighter.existingFighterId?.userId?.lastName +
-                              ' (' +
-                              fighter.existingFighterId?.userId?.email +
-                              ' )',
-                            value: fighter.existingFighterId._id,
-                          }))}
-                          onChange={(selectedOptions) =>
-                            handleChange(
-                              'fighters',
-                              selectedOptions.map((opt) => ({
-                                existingFighterId: {
-                                  _id: opt.value,
-                                },
-                              }))
-                            )
-                          }
+                          selected={formData.fighters}
+                          onChange={(value) => handleChange('fighters', value)}
                           options={[
                             ...existingFighters.map((fighter) => ({
                               label:
@@ -1132,7 +1168,7 @@ export default function EditTrainingFacilityPage({ params }) {
                                 ' (' +
                                 fighter.user?.email +
                                 ' )',
-                              value: fighter._id,
+                              value: fighter?._id,
                             })),
                           ]}
                           placeholder='Search fighter name'
@@ -1282,7 +1318,7 @@ export default function EditTrainingFacilityPage({ params }) {
                         <div className='space-y-2'>
                           {formData.fighters.map((fighter, index) => (
                             <div
-                              key={fighter._id ?? index}
+                              key={fighter?._id ?? index}
                               className='bg-[#00000061] p-3 rounded flex justify-between items-center'
                             >
                               <div className='text-white'>
@@ -1295,24 +1331,28 @@ export default function EditTrainingFacilityPage({ params }) {
                                       fighter.existingFighterId?.userId
                                         ?.lastName}
                                 </div>
-                                {fighter.existingFighterId?.recordHighlight && (
+                                {(fighter.existingFighterId?.recordHighlight ||
+                                  fighter.record) && (
                                   <div className='text-sm text-gray-400'>
                                     Record:{' '}
-                                    {fighter.existingFighterId?.recordHighlight}
+                                    {fighter.existingFighterId
+                                      ?.recordHighlight || fighter.record}
                                   </div>
                                 )}
-                                {fighter.existingFighterId?.userId?.gender && (
+                                {(fighter.existingFighterId?.userId?.gender ||
+                                  fighter.gender) && (
                                   <div className='text-sm text-gray-400'>
-                                    {fighter.existingFighterId?.userId?.gender}
+                                    {fighter.existingFighterId?.userId
+                                      ?.gender || fighter.gender}
                                   </div>
                                 )}
                               </div>
                               <button
                                 type='button'
-                                onClick={() => removeFighter(fighter._id)}
+                                onClick={() => removeFighter(fighter.id)}
                                 className='text-red-400 hover:text-red-300'
                               >
-                                <Trash2 size={16} />
+                                <Trash size={16} />
                               </button>
                             </div>
                           ))}
@@ -1459,12 +1499,14 @@ export default function EditTrainingFacilityPage({ params }) {
                     >
                       Save Draft
                     </button>
-                    <button
-                      type='button'
-                      className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
-                    >
-                      Cancel
-                    </button>{' '}
+                    <Link href='/admin/training-and-gym-facilities'>
+                      <button
+                        type='button'
+                        className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                      >
+                        Cancel
+                      </button>
+                    </Link>
                     <button
                       type='button'
                       onClick={nextStep}
@@ -1486,6 +1528,14 @@ export default function EditTrainingFacilityPage({ params }) {
                     >
                       Save Draft
                     </button>
+                    <Link href='/admin/training-and-gym-facilities'>
+                      <button
+                        type='button'
+                        className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                      >
+                        Cancel
+                      </button>
+                    </Link>
                     <button
                       type='button'
                       onClick={(e) => handleSubmit(e, 'review')}

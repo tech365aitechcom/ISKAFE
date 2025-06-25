@@ -9,6 +9,7 @@ import { enqueueSnackbar } from 'notistack'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import useStore from '../../../../../stores/useStore'
 import ActionButtons from '../../../../_components/ActionButtons'
+import { Country } from 'country-state-city'
 
 export function VenuesTable({
   venues,
@@ -29,6 +30,8 @@ export function VenuesTable({
   const [isDelete, setIsDelete] = useState(false)
   const [selectedVenue, setSelectedVenue] = useState(null)
   const user = useStore((state) => state.user)
+
+  const cities = venues.map((venue) => venue.address.city)
 
   const handleDeleteVenue = async (id) => {
     console.log('Deleting news with ID:', id)
@@ -54,9 +57,6 @@ export function VenuesTable({
     }
   }
 
-  const handleUpdate = (venue) => {
-    console.log('Editing venue:', venue)
-  }
   const handleResetFilter = () => {
     setSelectedCity('')
     setSelectedStatus('')
@@ -97,12 +97,11 @@ export function VenuesTable({
               <option value='' className='text-black'>
                 All
               </option>
-              <option value='Charlotte' className='text-black'>
-                Charlotte
-              </option>
-              <option value='Newport Beach' className='text-black'>
-                Newport Beach
-              </option>
+              {cities.map((city) => (
+                <option key={city} value={city} className='text-black'>
+                  {city}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -129,7 +128,7 @@ export function VenuesTable({
           </div>
         </div>
       </div>
-      {(selectedCity || selectedStatus) && (
+      {(selectedCity || selectedStatus || searchQuery) && (
         <div className='flex justify-end mb-6'>
           <button
             className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
@@ -187,7 +186,7 @@ export function VenuesTable({
                       {venue.address.state}
                     </td>
                     <td className='p-4 whitespace-nowrap'>
-                      {venue.address.country}
+                      {Country.getCountryByCode(venue.address.country).name}
                     </td>
                     <td className='p-4 whitespace-nowrap'>
                       {venue.address.postalCode}
@@ -214,18 +213,20 @@ export function VenuesTable({
                       ))}
                     </td>
                     <td className='p-4 text-center whitespace-nowrap'>
-                      <a
-                        href={venue.mapLink}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-center text-blue-500 hover:underline flex items-center justify-center gap-2'
-                        title='View on Map'
-                      >
-                        View Map
-                        <MapPin size={20} />
-                      </a>
+                      {venue.mapLink && (
+                        <a
+                          href={venue.mapLink}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='text-center text-blue-500 hover:underline flex items-center justify-center gap-2'
+                          title='View on Map'
+                        >
+                          View Map
+                          <MapPin size={20} />
+                        </a>
+                      )}
                     </td>
-                    <td className='p-4 align-middle'>
+                    <td className='p-4 align-middle '>
                       <ActionButtons
                         viewUrl={`/admin/venues/view/${venue._id}`}
                         editUrl={`/admin/venues/edit/${venue._id}`}

@@ -115,7 +115,7 @@ export default function VieVenuePage({ params }) {
               {/* Address Info Section */}
               <div className='mb-6'>
                 <h2 className='text-lg font-semibold mb-3'>Address Info</h2>
-                <div className='grid grid-cols-1 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   {/* Street 1 */}
                   <div className='bg-[#00000061] p-2 rounded'>
                     <label className='block text-sm font-medium mb-1'>
@@ -146,6 +146,57 @@ export default function VieVenuePage({ params }) {
                     />
                   </div>
 
+                  {/* Country */}
+                  <div className='bg-[#00000061] p-2 rounded'>
+                    <label className='block text-sm font-medium mb-1'>
+                      Country<span className='text-red-500'>*</span>
+                    </label>
+                    <select
+                      name='address.country'
+                      value={venue.address?.country}
+                      className='w-full bg-transparent outline-none'
+                      required
+                      disabled
+                    >
+                      {countries.map((country) => (
+                        <option
+                          key={country.isoCode}
+                          value={country.isoCode}
+                          className='text-black'
+                        >
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* State/Province */}
+                  <div className='bg-[#00000061] p-2 rounded'>
+                    <label className='block text-sm font-medium mb-1'>
+                      State / Province<span className='text-red-500'>*</span>
+                    </label>
+                    <select
+                      name='address.state'
+                      value={venue.address?.state}
+                      className='w-full bg-transparent outline-none'
+                      required
+                      readOnly
+                    >
+                      <option value='' className='text-black'>
+                        Select State
+                      </option>
+                      {states.map((state) => (
+                        <option
+                          key={state.isoCode}
+                          value={state.name}
+                          className='text-black'
+                        >
+                          {state.name}
+                        </option>
+                      ))}{' '}
+                    </select>
+                  </div>
+
                   {/* City */}
                   <div className='bg-[#00000061] p-2 rounded'>
                     <label className='block text-sm font-medium mb-1'>
@@ -160,59 +211,6 @@ export default function VieVenuePage({ params }) {
                       required
                       readOnly
                     />
-                  </div>
-
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    {/* State/Province */}
-                    <div className='bg-[#00000061] p-2 rounded'>
-                      <label className='block text-sm font-medium mb-1'>
-                        State / Province<span className='text-red-500'>*</span>
-                      </label>
-                      <select
-                        name='address.state'
-                        value={venue.address?.state}
-                        className='w-full bg-transparent outline-none'
-                        required
-                        readOnly
-                      >
-                        <option value='' className='text-black'>
-                          Select State
-                        </option>
-                        {states.map((state) => (
-                          <option
-                            key={state.isoCode}
-                            value={state.name}
-                            className='text-black'
-                          >
-                            {state.name}
-                          </option>
-                        ))}{' '}
-                      </select>
-                    </div>
-
-                    {/* Country */}
-                    <div className='bg-[#00000061] p-2 rounded'>
-                      <label className='block text-sm font-medium mb-1'>
-                        Country<span className='text-red-500'>*</span>
-                      </label>
-                      <select
-                        name='address.country'
-                        value={venue.address?.country}
-                        className='w-full bg-transparent outline-none'
-                        required
-                        disabled
-                      >
-                        {countries.map((country) => (
-                          <option
-                            key={country.isoCode}
-                            value={country.isoCode}
-                            className='text-black'
-                          >
-                            {country.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
 
                   {/* ZIP/Postal Code */}
@@ -236,7 +234,7 @@ export default function VieVenuePage({ params }) {
               {/* Contact Info Section */}
               <div className='mb-6'>
                 <h2 className='text-lg font-semibold mb-3'>Contact Info</h2>
-                <div className='grid grid-cols-1 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   {/* Contact Person Name */}
                   <div className='bg-[#00000061] p-2 rounded'>
                     <label className='block text-sm font-medium mb-1'>
@@ -346,17 +344,6 @@ export default function VieVenuePage({ params }) {
                   <label className='block text-sm font-medium mb-1'>
                     Upload Images (Optional)
                   </label>
-                  <input
-                    type='file'
-                    name='media'
-                    accept='.jpg,.jpeg,.png'
-                    multiple
-                    className='w-full bg-transparent outline-none'
-                    readOnly
-                  />
-                  <p className='text-xs text-gray-400 mt-1'>
-                    Max 5 MB image formats
-                  </p>
 
                   {/* Preview uploaded images */}
                   {venue.media.length > 0 && (
@@ -374,14 +361,6 @@ export default function VieVenuePage({ params }) {
                             height={400}
                             className='object-cover'
                           />
-                          <button
-                            type='button'
-                            onClick={() => removeMedia(index)}
-                            className='text-red-500 ml-2 absolute top-0 right-4'
-                            title='Remove Image'
-                          >
-                            ×
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -477,19 +456,18 @@ export default function VieVenuePage({ params }) {
                   )}
                 </div>
               </div>
-
-              {/* Admin Controls */}
-              <div className='flex justify-center gap-4 mt-8'>
-                <Link href='/admin/venues'>
-                  <button
-                    type='button'
-                    className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
-                  >
-                    Cancel
-                  </button>
-                </Link>
-              </div>
             </fieldset>
+            {/* Admin Controls */}
+            <div className='flex justify-center gap-4 mt-8'>
+              <Link href={`/admin/venues`}>
+                <button
+                  type='button'
+                  className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-6 rounded transition duration-200'
+                >
+                  Cancel
+                </button>
+              </Link>
+            </div>
           </form>
         </div>
       </div>

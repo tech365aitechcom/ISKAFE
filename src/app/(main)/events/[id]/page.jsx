@@ -8,8 +8,8 @@ import Loader from '../../../_components/Loader'
 import RegistrationSection from './_components/RegistrationSection'
 import Link from 'next/link'
 import { ArrowLeftIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import ReactMarkdown from 'react-markdown'
+import EventDetailsSection from './_components/EventDetailsSection'
+import PdfViewer from './_components/PdfViewer'
 
 const page = ({ params }) => {
   const { id } = use(params)
@@ -19,6 +19,7 @@ const page = ({ params }) => {
     'Registration',
     // 'Tournaments',
     // 'Fight Card',
+    'Fighters Registered',
     'Sanctioning Body',
     'Rules',
   ]
@@ -56,11 +57,6 @@ const page = ({ params }) => {
       image: '/fighter2.png',
     },
   ]
-
-  const cleanDescription = eventDetails?.fullDescription?.replace(
-    /^\*+\s*|\s*\*+$/g,
-    ''
-  )
 
   if (loading) {
     return (
@@ -111,7 +107,7 @@ const page = ({ params }) => {
       </div>
 
       {/* Navigation */}
-      <div className='sticky top-0 bg-[#0f0217] z-50'>
+      <div className='sticky top-0 bg-[#0f0217] z-40'>
         <div className='container mx-auto px-6 overflow-x-auto custom-scrollbar'>
           <nav className='flex space-x-8 whitespace-nowrap'>
             {tabNames.map((tab) => (
@@ -134,301 +130,7 @@ const page = ({ params }) => {
       {/* Content */}
       <div className='container mx-auto px-6 py-8'>
         {activeTab === 'Details' && (
-          <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
-            {/* Left Column - Poster */}
-            <div className='lg:col-span-1'>
-              <div className='bg-[#1b0c2e] rounded-lg p-6 mb-6'>
-                <img
-                  src={'/promo.png'}
-                  alt='Event Poster'
-                  className='w-full rounded-lg mb-6'
-                />
-                <RegistrationSection eventId={id} />
-
-                <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 my-2 w-full rounded-sm text-xl font-semibold'>
-                  Buy Tickets
-                </Button>
-                {eventDetails?.externalURL && (
-                  <a
-                    href={eventDetails.externalURL}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='block w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 mt-2 px-4 rounded-lg text-center transition-colors'
-                  >
-                    Visit Website
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column - Details */}
-            <div className='lg:col-span-2 space-y-8'>
-              {/* Event Schedule */}
-              <div className='bg-[#1b0c2e] rounded-lg p-6'>
-                <h2 className='text-xl font-bold text-yellow-500 mb-6 border-b border-gray-700 pb-2'>
-                  Event Schedule
-                </h2>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Event Start
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(eventDetails?.startDate).format(
-                        'ddd, MMM DD • h:mm A'
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Event End
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(eventDetails?.endDate).format(
-                        'ddd, MMM DD • h:mm A'
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Fights Begin
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(eventDetails?.fightStartTime, 'HH:mm').format(
-                        'h:mm A'
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Doors Open
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(
-                        eventDetails?.spectatorDoorsOpenTime,
-                        'HH:mm'
-                      ).format('h:mm A')}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Weigh-in
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(eventDetails?.weighInDateTime).format(
-                        'ddd, MMM DD • h:mm A'
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Rules Meeting
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(eventDetails?.rulesMeetingTime, 'HH:mm').format(
-                        'h:mm A'
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Registration */}
-              <div className='bg-[#1b0c2e] rounded-lg p-6'>
-                <h2 className='text-xl font-bold text-yellow-500 mb-6 border-b border-gray-700 pb-2'>
-                  Registration
-                </h2>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Registration Opens
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(eventDetails?.registrationStartDate).format(
-                        'MMM DD, YYYY'
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Registration Deadline
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {moment(eventDetails?.registrationDeadline).format(
-                        'MMM DD, YYYY • h:mm A'
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Registered Participants
-                    </h3>
-                    <p className='text-white font-bold text-lg'>
-                      {eventDetails?.registeredParticipants || 0}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Matching Method
-                    </h3>
-                    <p className='text-white font-semibold'>
-                      {eventDetails?.matchingMethod}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Venue */}
-              <div className='bg-[#1b0c2e] rounded-lg p-6'>
-                <h2 className='text-xl font-bold text-yellow-500 mb-6 border-b border-gray-700 pb-2'>
-                  Venue Information
-                </h2>
-                <div className='space-y-4'>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Venue
-                    </h3>
-                    <p className='text-white font-semibold text-lg'>
-                      {eventDetails?.venue?.name}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                      Address
-                    </h3>
-                    <div className='text-white'>
-                      <p>{eventDetails?.venue?.address?.street1}</p>
-                      {eventDetails?.venue?.address?.street2 && (
-                        <p>{eventDetails?.venue?.address?.street2}</p>
-                      )}
-                      <p>
-                        {eventDetails?.venue?.address?.city},{' '}
-                        {eventDetails?.venue?.address?.state}{' '}
-                        {eventDetails?.venue?.address?.postalCode}
-                      </p>
-                    </div>
-                  </div>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                    <div>
-                      <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                        Contact
-                      </h3>
-                      <p className='text-white'>
-                        {eventDetails?.venue?.contactName}
-                      </p>
-                      <p className='text-gray-300 text-sm'>
-                        {eventDetails?.venue?.contactPhone}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                        Capacity
-                      </h3>
-                      <p className='text-white font-semibold'>
-                        {eventDetails?.venue?.capacity} people
-                      </p>
-                    </div>
-                  </div>
-                  {eventDetails?.venue?.mapLink && (
-                    <div>
-                      <a
-                        href={eventDetails.venue.mapLink}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='inline-flex items-center text-yellow-400 hover:text-yellow-300 font-medium'
-                      >
-                        View on Google Maps →
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Competition Details */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div className='bg-[#1b0c2e] rounded-lg p-6'>
-                  <h2 className='text-xl font-bold text-yellow-500 mb-4 border-b border-gray-700 pb-2'>
-                    Categories
-                  </h2>
-                  <div className='space-y-4'>
-                    <div>
-                      <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                        Age Groups
-                      </h3>
-                      <p className='text-white'>
-                        {eventDetails?.ageCategories?.join(', ') || 'All Ages'}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                        Weight Classes
-                      </h3>
-                      <p className='text-white'>
-                        {eventDetails?.weightClasses?.join(', ') ||
-                          'Open Weight'}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                        KO Policy
-                      </h3>
-                      <p className='text-white'>{eventDetails?.koPolicy}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className='bg-[#1b0c2e] rounded-lg p-6'>
-                  <h2 className='text-xl font-bold text-yellow-500 mb-4 border-b border-gray-700 pb-2'>
-                    Organization
-                  </h2>
-                  <div className='space-y-4'>
-                    <div>
-                      <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                        Promoter
-                      </h3>
-                      <p className='text-white font-semibold'>
-                        {eventDetails?.promoter?.userId?.firstName}{' '}
-                        {eventDetails?.promoter?.userId?.lastName}
-                      </p>
-                      <p className='text-gray-300 text-sm'>
-                        {eventDetails?.promoter?.abbreviation}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                        Sanctioning Body
-                      </h3>
-                      <p className='text-white'>
-                        {eventDetails?.sectioningBodyName ||
-                          eventDetails?.promoter?.sanctioningBody}
-                      </p>
-                    </div>
-                    {eventDetails?.iskaRepName && (
-                      <div>
-                        <h3 className='text-gray-400 text-sm font-medium mb-1'>
-                          Representative
-                        </h3>
-                        <p className='text-white'>{eventDetails.iskaRepName}</p>
-                        <p className='text-gray-300 text-sm'>
-                          {eventDetails.iskaRepPhone}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className='bg-[#1b0c2e] rounded-lg p-6'>
-                <h2 className='text-xl font-bold text-yellow-500 mb-4 border-b border-gray-700 pb-2'>
-                  About This Event
-                </h2>
-                <div className='text-gray-300 leading-relaxed mb-4 prose prose-invert'>
-                  <ReactMarkdown>{cleanDescription}</ReactMarkdown>
-                </div>
-              </div>
-            </div>
-          </div>
+          <EventDetailsSection id={id} eventDetails={eventDetails} />
         )}
 
         {activeTab === 'Registration' && (
@@ -462,20 +164,74 @@ const page = ({ params }) => {
           </div>
         )}
 
+        {activeTab === 'Fighters Registered' && (
+          <div className='bg-[#1b0c2e] rounded-lg p-6'>
+            <h2 className='text-2xl font-bold text-yellow-500 mb-6 border-b border-gray-700 pb-2'>
+              Registered Fighters
+            </h2>
+
+            <div className='mb-6'>
+              <h3 className='text-gray-400 text-sm font-medium mb-1'>
+                Total Fighters Registered
+              </h3>
+              <p className='text-white font-bold text-2xl'>
+                {eventDetails?.registeredFighters?.length || 0}
+              </p>
+            </div>
+
+            {fighters?.length > 0 ? (
+              <div className='overflow-x-auto custom-scrollbar'>
+                <table className='min-w-full bg-[#140b23] text-white border border-gray-700 rounded-lg'>
+                  <thead>
+                    <tr className='text-left text-gray-400 uppercase text-sm border-b border-gray-700'>
+                      <th className='py-3 px-4'>Name</th>
+                      <th className='py-3 px-4'>Weight Class</th>
+                      <th className='py-3 px-4'>Country</th>
+                      <th className='py-3 px-4'></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eventDetails?.registeredFighters &&
+                      eventDetails?.registeredFighters?.map((reg, idx) => (
+                        <tr
+                          key={idx}
+                          className='border-b border-gray-800 hover:bg-[#1e112d] transition'
+                        >
+                          <td className='py-3 px-4 font-medium'>
+                            {reg?.firstName} {reg?.lastName}
+                          </td>
+                          <td className='py-3 px-4'>{reg?.weightClass}</td>
+                          <td className='py-3 px-4'>{reg?.country}</td>
+                          <td className='py-3 px-4'>
+                            <a
+                              href={`/fighters/${reg.fighterProfileId}`}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              className='text-yellow-400 hover:text-yellow-300 font-semibold text-sm'
+                            >
+                              View Profile →
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className='text-gray-300'>No fighters registered yet.</p>
+            )}
+          </div>
+        )}
+
         {activeTab === 'Rules' && (
           <div className='bg-[#1b0c2e] rounded-lg p-8'>
             <h2 className='text-2xl font-bold text-yellow-500 mb-6'>Rules</h2>
             <div className='prose prose-lg max-w-none'>
-              {eventDetails?.rules && (
-                <a
-                  href={eventDetails?.rules}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                >
-                  Click to View Rules
-                </a>
+              {eventDetails?.rules ? (
+                <PdfViewer pdfUrl={eventDetails.rules} />
+              ) : (
+                <p className='text-gray-300'>No rules available</p>
               )}
-              <p className='text-gray-300 leading-relaxed text-lg'></p>
             </div>
           </div>
         )}

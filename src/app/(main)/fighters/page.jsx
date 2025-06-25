@@ -73,7 +73,7 @@ const page = () => {
 
   return (
     <div className='relative w-full'>
-      <div className=' bg-purple-900'>
+      <div className='bg-purple-900'>
         <div className='absolute inset-0 bg-transparent opacity-90'></div>
         <div className='relative w-full max-w-6xl mx-auto px-4 pt-16 pb-32'>
           <div className='text-center mb-8'>

@@ -6,6 +6,19 @@ import { API_BASE_URL, apiConstants } from '../../../constants'
 import { enqueueSnackbar } from 'notistack'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
+import Link from 'next/link'
+import Loader from '../../_components/Loader'
+
+const validatePasswordRules = (password) => {
+  const errors = []
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters')
+  }
+  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+    errors.push('Password must contain both letters and numbers')
+  }
+  return errors
+}
 
 const ChangePassword = () => {
   const user = useStore((state) => state.user)
@@ -15,7 +28,7 @@ const ChangePassword = () => {
     newPassword: '',
     confirmNewPassword: '',
   })
-
+  const [loading, setLoading] = useState(false)
   const [passwordVisibility, setPasswordVisibility] = useState({
     current: false,
     new: false,
@@ -38,9 +51,19 @@ const ChangePassword = () => {
   }
 
   const handleSubmit = async (e) => {
-    try {
-      e.preventDefault()
+    e.preventDefault()
+    setLoading(true)
 
+    const validationErrors = validatePasswordRules(formData.newPassword)
+    if (validationErrors.length > 0) {
+      validationErrors.forEach((err) =>
+        enqueueSnackbar(err, { variant: 'error' })
+      )
+      setLoading(false)
+      return
+    }
+
+    try {
       const response = await axios.post(
         `${API_BASE_URL}/auth/change-password`,
         formData,
@@ -68,6 +91,8 @@ const ChangePassword = () => {
           variant: 'error',
         }
       )
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -93,7 +118,9 @@ const ChangePassword = () => {
                 value={formData.currentPassword}
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent'
+                placeholder='Enter current password'
                 required
+                disabled={loading}
               />
               <button
                 type='button'
@@ -101,9 +128,9 @@ const ChangePassword = () => {
                 className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
               >
                 {passwordVisibility.current ? (
-                  <EyeOff size={18} />
-                ) : (
                   <Eye size={18} />
+                ) : (
+                  <EyeOff size={18} />
                 )}
               </button>
             </div>
@@ -120,6 +147,8 @@ const ChangePassword = () => {
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent'
                 required
+                placeholder='Enter new password'
+                disabled={loading}
               />
               <button
                 type='button'
@@ -127,9 +156,9 @@ const ChangePassword = () => {
                 className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
               >
                 {passwordVisibility.new ? (
-                  <EyeOff size={18} />
-                ) : (
                   <Eye size={18} />
+                ) : (
+                  <EyeOff size={18} />
                 )}
               </button>
             </div>
@@ -146,6 +175,8 @@ const ChangePassword = () => {
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent'
                 required
+                placeholder='Confirm new password'
+                disabled={loading}
               />
               <button
                 type='button'
@@ -153,15 +184,23 @@ const ChangePassword = () => {
                 className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
               >
                 {passwordVisibility.confirm ? (
-                  <EyeOff size={18} />
-                ) : (
                   <Eye size={18} />
+                ) : (
+                  <EyeOff size={18} />
                 )}
               </button>
             </div>
 
             {/* Submit Button */}
             <div className='flex justify-center gap-4 mt-4'>
+              <Link href={'/'}>
+                <button
+                  type='button'
+                  className='bg-gray-600  text-white font-medium py-2 px-8 rounded'
+                >
+                  Cancel
+                </button>
+              </Link>
               <Button
                 variant='secondary'
                 size='lg'
@@ -170,8 +209,10 @@ const ChangePassword = () => {
                   background:
                     'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
                 }}
+                disabled={loading}
+                type='submit'
               >
-                Submit
+                {loading ? <Loader /> : 'Update Password'}
               </Button>
             </div>
           </form>

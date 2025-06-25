@@ -7,6 +7,9 @@ const PaginationHeader = ({
   totalItems,
   label = 'items',
 }) => {
+  console.log(currentPage, 'currentPage')
+  console.log(totalItems, 'totalItems')
+
   const startItem = (currentPage - 1) * limit + 1
   const endItem = Math.min(currentPage * limit, totalItems)
 
@@ -29,11 +32,13 @@ const PaginationHeader = ({
           ))}
         </select>
         <label htmlFor='limit' className='text-sm'>
-          entries per page
+          Entries Per Page
         </label>
       </div>
       <p className='text-sm'>
-        Showing {startItem} to {endItem} of {totalItems} {label}
+        {totalItems === 0
+          ? `Showing 0 to 0 of 0 ${label}`
+          : `Showing ${startItem} to ${endItem} of ${totalItems} ${label}`}
       </p>
     </div>
   )
