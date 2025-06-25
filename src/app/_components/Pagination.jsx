@@ -5,7 +5,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null
 
   return (
-    <div className='flex justify-center mt-8 space-x-2'>
+    <div className='flex justify-center my-4 space-x-2'>
       {currentPage > 1 && (
         <button
           onClick={() => onPageChange(currentPage - 1)}

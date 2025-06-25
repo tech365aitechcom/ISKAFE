@@ -6,6 +6,8 @@ import { Country, State } from 'country-state-city'
 import { uploadToS3 } from '../../../../../utils/uploadToS3'
 import useStore from '../../../../../stores/useStore'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
+import { Trash } from 'lucide-react'
+import Loader from '../../../../_components/Loader'
 
 export const AddVenuesForm = ({
   setShowAddVenueForm,
@@ -39,6 +41,7 @@ export const AddVenuesForm = ({
     statusChangeDate: '',
   })
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
 
   const countries = Country.getAllCountries()
@@ -63,11 +66,7 @@ export const AddVenuesForm = ({
       case 'country':
         return value.trim() === '' ? 'Country is required' : ''
       case 'postalCode':
-        return value.trim() === ''
-          ? 'ZIP code is required'
-          : !/^\d{5}(-\d{4})?$/.test(value)
-          ? 'Enter a valid ZIP code'
-          : ''
+        return value.trim() === '' ? 'ZIP code is required' : ''
       case 'contactName':
         return value.trim() === ''
           ? 'Contact person name is required'
@@ -75,11 +74,7 @@ export const AddVenuesForm = ({
           ? 'Maximum 50 characters allowed'
           : ''
       case 'contactEmail':
-        return value.trim() === ''
-          ? 'Email is required'
-          : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-          ? 'Enter a valid email address'
-          : ''
+        return value.trim() === '' ? 'Email is required' : ''
       case 'contactPhone':
         return value.trim() === '' ? 'Phone number is required' : ''
       case 'capacity':
@@ -195,52 +190,106 @@ export const AddVenuesForm = ({
     return isValid
   }
 
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const validateCity = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-
-    if (validateForm()) {
-      const uploadedMediaUrls = []
-
-      for (const image of formData.media) {
-        const s3UploadedUrl = await uploadToS3(image)
-        uploadedMediaUrls.push(s3UploadedUrl)
-      }
-
-      formData.media = uploadedMediaUrls
-
-      const response = await axios.post(`${API_BASE_URL}/venues`, formData, {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      })
-
-      if (response.status === apiConstants.create) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        setFormData({
-          name: '',
-          address: {
-            street1: '',
-            street2: '',
-            city: '',
-            state: '',
-            postalCode: '',
-            country: 'United States',
-          },
-          contactName: '',
-          contactPhone: '',
-          contactEmail: '',
-          capacity: '',
-          mapLink: '',
-          media: [],
-          status: 'Active',
-          autoStatusChange: false,
-          scheduledStatus: '',
-          statusChangeDate: '',
-        })
-      }
-    } else {
-      console.log('Form has errors')
+    if (!validateName(formData.name)) {
+      enqueueSnackbar(
+        'Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
     }
+    if (!validateName(formData.contactName)) {
+      enqueueSnackbar(
+        'Contact Person Name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateEmail(formData.contactEmail)) {
+      enqueueSnackbar('Please enter a valid email address.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validatePhoneNumber(formData.contactPhone)) {
+      enqueueSnackbar('Please enter a valid phone number.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validPostalCode(formData.address.postalCode)) {
+      enqueueSnackbar('Please enter a valid postal code.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateCity(formData.address.city)) {
+      enqueueSnackbar(
+        'Please enter a valid city,can only contain letters, spaces, apostrophes, or hyphens.',
+        {
+          variant: 'warning',
+        }
+      )
+      setIsSubmitting(false)
+      return
+    }
+    try {
+      if (validateForm()) {
+        const uploadedMediaUrls = []
+
+        for (const image of formData.media) {
+          const s3UploadedUrl = await uploadToS3(image)
+          uploadedMediaUrls.push(s3UploadedUrl)
+        }
+
+        formData.media = uploadedMediaUrls
+
+        const response = await axios.post(`${API_BASE_URL}/venues`, formData, {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        })
+
+        if (response.status === apiConstants.create) {
+          enqueueSnackbar(response.data.message, { variant: 'success' })
+          setFormData({
+            name: '',
+            address: {
+              street1: '',
+              street2: '',
+              city: '',
+              state: '',
+              postalCode: '',
+              country: '',
+            },
+            contactName: '',
+            contactPhone: '',
+            contactEmail: '',
+            capacity: '',
+            mapLink: '',
+            media: [],
+            status: 'Active',
+            autoStatusChange: false,
+            scheduledStatus: '',
+            statusChangeDate: '',
+          })
+        }
+      } else {
+        console.log('Form has errors')
+      }
+    } catch (error) {}
   }
 
   const handleCancel = () => {
@@ -332,7 +381,7 @@ export const AddVenuesForm = ({
           {/* Address Info Section */}
           <div className='mb-6'>
             <h2 className='text-lg font-semibold mb-3'>Address Info</h2>
-            <div className='grid grid-cols-1 gap-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Street 1 */}
               <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
@@ -369,6 +418,68 @@ export const AddVenuesForm = ({
                 />
               </div>
 
+              {/* Country */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  Country<span className='text-red-500'>*</span>
+                </label>
+                <select
+                  name='address.country'
+                  value={formData.address.country}
+                  onChange={handleChange}
+                  className='w-full bg-transparent outline-none'
+                  required
+                >
+                  {countries.map((country) => (
+                    <option
+                      key={country.isoCode}
+                      value={country.isoCode}
+                      className='text-black'
+                    >
+                      {country.name}
+                    </option>
+                  ))}
+
+                  {/* Add more countries as needed */}
+                </select>
+                {errors['address.country'] && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors['address.country']}
+                  </p>
+                )}
+              </div>
+              {/* State/Province */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  State / Province<span className='text-red-500'>*</span>
+                </label>
+                <select
+                  name='address.state'
+                  value={formData.address.state}
+                  onChange={handleChange}
+                  className='w-full bg-transparent outline-none'
+                  required
+                >
+                  <option value='' className='text-black'>
+                    Select State
+                  </option>
+                  {states.map((state) => (
+                    <option
+                      key={state.isoCode}
+                      value={state.name}
+                      className='text-black'
+                    >
+                      {state.name}
+                    </option>
+                  ))}
+                </select>
+                {errors['address.state'] && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors['address.state']}
+                  </p>
+                )}
+              </div>
+
               {/* City */}
               <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
@@ -389,74 +500,8 @@ export const AddVenuesForm = ({
                   </p>
                 )}
               </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                {/* State/Province */}
-                <div className='bg-[#00000061] p-2 rounded'>
-                  <label className='block text-sm font-medium mb-1'>
-                    State / Province<span className='text-red-500'>*</span>
-                  </label>
-                  <select
-                    name='address.state'
-                    value={formData.address.state}
-                    onChange={handleChange}
-                    className='w-full bg-transparent outline-none'
-                    required
-                  >
-                    <option value='' className='text-black'>
-                      Select State
-                    </option>
-                    {states.map((state) => (
-                      <option
-                        key={state.isoCode}
-                        value={state.name}
-                        className='text-black'
-                      >
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors['address.state'] && (
-                    <p className='text-red-500 text-xs mt-1'>
-                      {errors['address.state']}
-                    </p>
-                  )}
-                </div>
-
-                {/* Country */}
-                <div className='bg-[#00000061] p-2 rounded'>
-                  <label className='block text-sm font-medium mb-1'>
-                    Country<span className='text-red-500'>*</span>
-                  </label>
-                  <select
-                    name='address.country'
-                    value={formData.address.country}
-                    onChange={handleChange}
-                    className='w-full bg-transparent outline-none'
-                    required
-                  >
-                    {countries.map((country) => (
-                      <option
-                        key={country.isoCode}
-                        value={country.isoCode}
-                        className='text-black'
-                      >
-                        {country.name}
-                      </option>
-                    ))}
-
-                    {/* Add more countries as needed */}
-                  </select>
-                  {errors['address.country'] && (
-                    <p className='text-red-500 text-xs mt-1'>
-                      {errors['address.country']}
-                    </p>
-                  )}
-                </div>
-              </div>
-
               {/* ZIP/Postal Code */}
-              <div className='bg-[#00000061] p-2 rounded md:w-1/2'>
+              <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
                   ZIP / Postal Code<span className='text-red-500'>*</span>
                 </label>
@@ -481,7 +526,7 @@ export const AddVenuesForm = ({
           {/* Contact Info Section */}
           <div className='mb-6'>
             <h2 className='text-lg font-semibold mb-3'>Contact Info</h2>
-            <div className='grid grid-cols-1 gap-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Contact Person Name */}
               <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
@@ -617,7 +662,7 @@ export const AddVenuesForm = ({
                 onChange={handleChange}
                 accept='.jpg,.jpeg,.png'
                 multiple
-                className='w-full bg-transparent outline-none'
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
               />
               <p className='text-xs text-gray-400 mt-1'>
                 Max 5 MB image formats
@@ -628,19 +673,28 @@ export const AddVenuesForm = ({
 
               {/* Preview uploaded images */}
               {formData.media.length > 0 && (
-                <div className='mt-3 grid grid-cols-2 md:grid-cols-3 gap-2'>
+                <div className='mt-3 flex items-center flex-wrap gap-4'>
                   {formData.media.map((file, index) => (
-                    <div key={index} className='relative'>
-                      <div className='bg-gray-800 p-2 rounded flex items-center justify-between'>
-                        <span className='text-xs truncate'>{file.name}</span>
-                        <button
-                          type='button'
-                          onClick={() => removeMedia(index)}
-                          className='text-red-500 ml-2'
-                        >
-                          ×
-                        </button>
-                      </div>
+                    <div
+                      key={index}
+                      className='relative w-44 h-44 rounded overflow-hidden'
+                    >
+                      <img
+                        src={
+                          typeof file !== 'string'
+                            ? URL.createObjectURL(file)
+                            : file
+                        }
+                        alt={`Media ${index + 1}`}
+                        className='w-full h-full object-cover rounded'
+                      />
+                      <button
+                        type='button'
+                        onClick={() => removeMedia(index)}
+                        className='absolute top-1 right-1 bg-opacity-50 text-red rounded-full w-6 h-6 flex items-center justify-center text-sm'
+                      >
+                        <Trash size={16} color='red' />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -746,7 +800,7 @@ export const AddVenuesForm = ({
               type='submit'
               className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
             >
-              Save
+              {isSubmitting ? <Loader /> : 'Save'}
             </button>
             <button
               type='button'

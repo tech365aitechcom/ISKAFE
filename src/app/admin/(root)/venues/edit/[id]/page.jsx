@@ -8,7 +8,7 @@ import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../../../stores/useStore'
 import { uploadToS3 } from '../../../../../../utils/uploadToS3'
 import { Country, State } from 'country-state-city'
-import Image from 'next/image'
+import { Trash } from 'lucide-react'
 
 export default function EditVenuePage({ params }) {
   const { id } = use(params)
@@ -218,7 +218,7 @@ export default function EditVenuePage({ params }) {
           {/* Address Info Section */}
           <div className='mb-6'>
             <h2 className='text-lg font-semibold mb-3'>Address Info</h2>
-            <div className='grid grid-cols-1 gap-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Street 1 */}
               <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
@@ -234,7 +234,6 @@ export default function EditVenuePage({ params }) {
                   required
                 />
               </div>
-
               {/* Street 2 */}
               <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
@@ -249,7 +248,57 @@ export default function EditVenuePage({ params }) {
                   className='w-full bg-transparent outline-none'
                 />
               </div>
+              {/* Country */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  Country<span className='text-red-500'>*</span>
+                </label>
+                <select
+                  name='address.country'
+                  value={venue.address?.country}
+                  onChange={handleChange}
+                  className='w-full bg-transparent outline-none'
+                  required
+                >
+                  {countries.map((country) => (
+                    <option
+                      key={country.isoCode}
+                      value={country.isoCode}
+                      className='text-black'
+                    >
+                      {country.name}
+                    </option>
+                  ))}
 
+                  {/* Add more countries as needed */}
+                </select>
+              </div>
+              {/* State/Province */}
+              <div className='bg-[#00000061] p-2 rounded'>
+                <label className='block text-sm font-medium mb-1'>
+                  State / Province<span className='text-red-500'>*</span>
+                </label>
+                <select
+                  name='address.state'
+                  value={venue.address?.state}
+                  onChange={handleChange}
+                  className='w-full bg-transparent outline-none'
+                  required
+                >
+                  <option value='' className='text-black'>
+                    Select State
+                  </option>
+                  {states.map((state) => (
+                    <option
+                      key={state.isoCode}
+                      value={state.name}
+                      className='text-black'
+                    >
+                      {state.name}
+                    </option>
+                  ))}
+                </select>
+              </div>{' '}
               {/* City */}
               <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
@@ -265,64 +314,8 @@ export default function EditVenuePage({ params }) {
                   required
                 />
               </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                {/* State/Province */}
-                <div className='bg-[#00000061] p-2 rounded'>
-                  <label className='block text-sm font-medium mb-1'>
-                    State / Province<span className='text-red-500'>*</span>
-                  </label>
-                  <select
-                    name='address.state'
-                    value={venue.address?.state}
-                    onChange={handleChange}
-                    className='w-full bg-transparent outline-none'
-                    required
-                  >
-                    <option value='' className='text-black'>
-                      Select State
-                    </option>
-                    {states.map((state) => (
-                      <option
-                        key={state.isoCode}
-                        value={state.name}
-                        className='text-black'
-                      >
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Country */}
-                <div className='bg-[#00000061] p-2 rounded'>
-                  <label className='block text-sm font-medium mb-1'>
-                    Country<span className='text-red-500'>*</span>
-                  </label>
-                  <select
-                    name='address.country'
-                    value={venue.address?.country}
-                    onChange={handleChange}
-                    className='w-full bg-transparent outline-none'
-                    required
-                  >
-                    {countries.map((country) => (
-                      <option
-                        key={country.isoCode}
-                        value={country.isoCode}
-                        className='text-black'
-                      >
-                        {country.name}
-                      </option>
-                    ))}
-
-                    {/* Add more countries as needed */}
-                  </select>
-                </div>
-              </div>
-
               {/* ZIP/Postal Code */}
-              <div className='bg-[#00000061] p-2 rounded md:w-1/2'>
+              <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
                   ZIP / Postal Code<span className='text-red-500'>*</span>
                 </label>
@@ -342,7 +335,7 @@ export default function EditVenuePage({ params }) {
           {/* Contact Info Section */}
           <div className='mb-6'>
             <h2 className='text-lg font-semibold mb-3'>Contact Info</h2>
-            <div className='grid grid-cols-1 gap-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Contact Person Name */}
               <div className='bg-[#00000061] p-2 rounded'>
                 <label className='block text-sm font-medium mb-1'>
@@ -457,7 +450,7 @@ export default function EditVenuePage({ params }) {
                 onChange={handleChange}
                 accept='.jpg,.jpeg,.png'
                 multiple
-                className='w-full bg-transparent outline-none'
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
               />
               <p className='text-xs text-gray-400 mt-1'>
                 Max 5 MB image formats
@@ -465,27 +458,27 @@ export default function EditVenuePage({ params }) {
 
               {/* Preview uploaded images */}
               {venue.media.length > 0 && (
-                <div className='mt-3 flex items-center gap-2'>
+                <div className='mt-3 flex items-center flex-wrap gap-4'>
                   {venue.media.map((file, index) => (
-                    <div className='relative' key={index}>
-                      <Image
+                    <div
+                      key={index}
+                      className='relative w-44 h-44 rounded overflow-hidden'
+                    >
+                      <img
                         src={
-                          typeof file === 'string'
-                            ? file
-                            : URL.createObjectURL(file)
+                          typeof file !== 'string'
+                            ? URL.createObjectURL(file)
+                            : file
                         }
-                        alt={`Venue Media ${index + 1}`}
-                        width={400}
-                        height={400}
-                        className='object-cover'
+                        alt={`Media ${index + 1}`}
+                        className='w-full h-full object-cover rounded'
                       />
                       <button
                         type='button'
                         onClick={() => removeMedia(index)}
-                        className='text-red-500 ml-2 absolute top-0 right-4'
-                        title='Remove Image'
+                        className='absolute top-1 right-1 bg-opacity-50 text-red rounded-full w-6 h-6 flex items-center justify-center text-sm'
                       >
-                        ×
+                        <Trash size={16} color='red' />
                       </button>
                     </div>
                   ))}

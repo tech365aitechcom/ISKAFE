@@ -218,7 +218,7 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Menu Items */}
-            <div className='overflow-y-auto'>
+            <div className='overflow-y-auto z-50'>
               <ul className='py-4'>
                 <ul className='py-4'>
                   {[...mainMenuItems, ...moreMenuItems].map(

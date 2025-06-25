@@ -12,17 +12,20 @@ export const VenueContainer = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCity, setSelectedCity] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
 
   const getVenues = async () => {
+    setLoading(true)
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/venues?page=${currentPage}&limit=${limit}`
-      )
+      let queryParams = `?page=${currentPage}&limit=${limit}`
+      if (searchQuery) queryParams += `&search=${searchQuery}`
+      if (selectedCity) queryParams += `&city=${selectedCity}`
+      if (selectedStatus) queryParams += `&status=${selectedStatus}`
+      const response = await axios.get(`${API_BASE_URL}/venues${queryParams}`)
       console.log('Response:', response.data)
 
       setVenues(response.data.data.items)
@@ -37,7 +40,14 @@ export const VenueContainer = () => {
 
   useEffect(() => {
     getVenues()
-  }, [showAddVenueForm, limit, currentPage])
+  }, [
+    showAddVenueForm,
+    limit,
+    currentPage,
+    searchQuery,
+    selectedCity,
+    selectedStatus,
+  ])
 
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
