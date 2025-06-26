@@ -56,7 +56,7 @@ export const OfficialTitleContainer = () => {
               }}
               onClick={() => setShowAddTitleForm(true)}
             >
-              Create New Title
+            New Title
             </button>
           </div>
 

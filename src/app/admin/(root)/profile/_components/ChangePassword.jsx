@@ -1,4 +1,5 @@
 'use client'
+
 import axios from 'axios'
 import React, { useState } from 'react'
 import useStore from '../../../../../stores/useStore'
@@ -52,6 +53,15 @@ export default function ChangePassword({ setType }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+
+    // Frontend password match check
+    if (formData.newPassword !== formData.confirmNewPassword) {
+      enqueueSnackbar("New Password and Confirm Password do not match", {
+        variant: 'error',
+      })
+      setLoading(false)
+      return
+    }
 
     const validationErrors = validatePasswordRules(formData.newPassword)
     if (validationErrors.length > 0) {
@@ -117,11 +127,7 @@ export default function ChangePassword({ setType }) {
               onClick={() => toggleVisibility('current')}
               className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
             >
-              {passwordVisibility.current ? (
-                <Eye size={18} />
-              ) : (
-                <EyeOff size={18} />
-              )}
+              {passwordVisibility.current ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
 
@@ -145,11 +151,7 @@ export default function ChangePassword({ setType }) {
               onClick={() => toggleVisibility('new')}
               className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
             >
-              {passwordVisibility.new ? (
-                <Eye size={18} />
-              ) : (
-                <EyeOff size={18} />
-              )}
+              {passwordVisibility.new ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
 
@@ -173,11 +175,7 @@ export default function ChangePassword({ setType }) {
               onClick={() => toggleVisibility('confirm')}
               className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
             >
-              {passwordVisibility.confirm ? (
-                <Eye size={18} />
-              ) : (
-                <EyeOff size={18} />
-              )}
+              {passwordVisibility.confirm ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
           </div>
 
@@ -187,6 +185,7 @@ export default function ChangePassword({ setType }) {
               type='button'
               className='bg-gray-600 text-white font-medium py-2 px-8 rounded'
               onClick={() => setType('View Profile')}
+              disabled={loading}
             >
               Cancel
             </button>
@@ -197,6 +196,7 @@ export default function ChangePassword({ setType }) {
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
               }}
+              disabled={loading}
             >
               {loading ? <Loader /> : 'Update Password'}
             </button>

@@ -116,7 +116,7 @@ export function Sidebar() {
       icon: <SquareUser size={18} />,
       title: 'Homepage Settings',
     },
-    { href: '/admin/about', icon: <Info size={18} />, title: 'About' },
+    { href: '/admin/about', icon: <Info size={18} />, title: 'About Us' },
   ]
 
   return (

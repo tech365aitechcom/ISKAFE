@@ -151,6 +151,16 @@ export function SuspensionTable({
         </div>
       )}
 
+      {/* Refresh List Button */}
+      <div className='flex justify-end mb-4'>
+        <button
+          className='bg-green-600 text-white rounded-lg px-4 py-2 hover:bg-green-700 transition'
+          onClick={onSuccess}
+        >
+          Refresh List
+        </button>
+      </div>
+
       {/* Table */}
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
         <PaginationHeader
