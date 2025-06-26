@@ -1,8 +1,11 @@
+'use client'
+
 import React from 'react'
 
 const Hero = () => {
   return (
     <div className='bg-transparent w-full flex flex-col md:flex-row lg:px-40'>
+      {/* Left Content */}
       <div className='flex-1 p-8 pt-16 pb-16 flex flex-col justify-center'>
         <h1 className='text-white font-bold text-4xl md:text-5xl uppercase tracking-wide'>
           COMBAT SPORTS
@@ -11,16 +14,22 @@ const Hero = () => {
           CIRCUIT
         </h2>
         <p className='text-white text-xl mt-10 max-w-lg leading-relaxed'>
-          Where Kickboxing, Muey Thai, and boxing champions are forged
+          Where Kickboxing, Muay Thai, and Boxing champions are forged.
         </p>
 
-        <div className='mt-10 flex justify-between w-full'>
-          <button className='bg-red-600 text-white font-bold px-2 py-4 uppercase text-xl'>
-            Register Now
-          </button>
-          <a className=' text-center hidden md:block' href='#events'>
+        {/* CTA and Scroll */}
+        <div className='mt-10 flex justify-between w-full items-center'>
+          {/* CTA Button */}
+          <a href='/register'>
+            <button className='bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-4 uppercase text-xl rounded transition'>
+              Register Now
+            </button>
+          </a>
+
+          {/* Scroll to explore (desktop only) */}
+          <a className='hidden md:block text-center' href='#events'>
             <p className='text-gray-400 text-xs'>Scroll to explore</p>
-            <div className='text-white text-xl font-bold mt-1 flex text-center justify-center'>
+            <div className='text-white text-xl font-bold mt-1 flex justify-center'>
               <svg
                 width='20'
                 height='40'
@@ -45,6 +54,8 @@ const Hero = () => {
           </a>
         </div>
       </div>
+
+      {/* Right Image Section */}
       <div className='flex-1 border-4 border-red-600 relative overflow-hidden w-[530px] h-[600px]'>
         <img
           src='/hero.png'
