@@ -63,11 +63,20 @@ export function VenuesTable({
     setSearchQuery('')
   }
 
+  
+
   const renderHeader = (label) => (
-    <th className='px-4 pb-3 whitespace-nowrap cursor-pointer'>
-      <div className='flex items-center gap-1'>{label}</div>
-    </th>
-  )
+  <th
+    className={`px-4 pb-3 whitespace-nowrap cursor-pointer ${
+      label === 'Actions' ? 'text-center' : ''
+    }`}
+  >
+    <div className={`flex items-center gap-1 ${label === 'Actions' ? 'justify-center' : ''}`}>
+      {label}
+    </div>
+  </th>
+)
+
 
   return (
     <>
