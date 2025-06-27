@@ -89,33 +89,88 @@ export const ProfileForm = ({
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    try {
-      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
-        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
-      }
-      const response = await axios.put(
-        `${API_BASE_URL}/auth/users/${user._id}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
-      )
-      if (response.status === apiConstants.success) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        onSuccess()
-        setType('View Profile')
-      }
-    } catch (error) {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
-        { variant: 'error' }
-      )
+ const handleSubmit = async (e) => {
+  e.preventDefault()
+
+  // ===== Frontend Validation =====
+  const nameRegex = /^[a-zA-Z\s'-]+$/
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const phoneRegex = /^[0-9]{7,15}$/
+  const zipRegex = /^[0-9]{4,10}$/
+
+  if (!nameRegex.test(formData.firstName)) {
+    return enqueueSnackbar('Invalid First Name. Only alphabets allowed.', { variant: 'error' })
+  }
+
+  if (!nameRegex.test(formData.lastName)) {
+    return enqueueSnackbar('Invalid Last Name. Only alphabets allowed.', { variant: 'error' })
+  }
+
+  if (!emailRegex.test(formData.email)) {
+    return enqueueSnackbar('Invalid Email format.', { variant: 'error' })
+  }
+
+  if (!phoneRegex.test(formData.phoneNumber)) {
+    return enqueueSnackbar('Invalid Phone Number. Only digits allowed (7–15 digits).', { variant: 'error' })
+  }
+
+  if (!formData.country) {
+    return enqueueSnackbar('Country is required.', { variant: 'error' })
+  }
+
+  if (!formData.state) {
+    return enqueueSnackbar('State is required.', { variant: 'error' })
+  }
+
+  if (!formData.city) {
+    return enqueueSnackbar('City is required.', { variant: 'error' })
+  }
+
+  if (!formData.postalCode) {
+    return enqueueSnackbar('ZIP Code is required.', { variant: 'error' })
+  }
+
+  if (!zipRegex.test(formData.postalCode)) {
+    return enqueueSnackbar('Invalid ZIP Code. Only digits allowed (4–10 digits).', { variant: 'error' })
+  }
+
+  if (formData.dateOfBirth) {
+    const dobDate = new Date(formData.dateOfBirth)
+    const today = new Date()
+    if (dobDate >= today) {
+      return enqueueSnackbar('Date of Birth must be in the past.', { variant: 'error' })
     }
   }
+
+  try {
+    if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
+      formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+    }
+
+    const response = await axios.put(
+      `${API_BASE_URL}/auth/users/${user._id}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      }
+    )
+
+    if (response.status === apiConstants.success) {
+      enqueueSnackbar(response.data.message, { variant: 'success' })
+      onSuccess()
+      setType('View Profile')
+    }
+  } catch (error) {
+    enqueueSnackbar(
+      error?.response?.data?.message || 'Something went wrong',
+      { variant: 'error' }
+    )
+  }
+}
+
+
 
   return (
     <div className='min-h-screen text-white bg-dark-blue-900 mt-4'>
@@ -235,6 +290,7 @@ export const ProfileForm = ({
                 className='w-full outline-none'
                 required
                 disabled={!isEditable}
+                placeholder='Enter First Name'
               />
             </div>
 
@@ -249,6 +305,7 @@ export const ProfileForm = ({
                 onChange={handleChange}
                 className='w-full outline-none'
                 required
+                placeholder='Enter Last Name'
                 disabled={!isEditable}
               />
             </div>
@@ -260,6 +317,8 @@ export const ProfileForm = ({
               <input
                 type='email'
                 name='email'
+                  placeholder='Enter Email Address'
+
                 value={formData.email}
                 onChange={handleChange}
                 className='w-full outline-none'
@@ -275,6 +334,7 @@ export const ProfileForm = ({
               <input
                 type='text'
                 name='phoneNumber'
+                 placeholder='Enter Mobile Number'
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 className='w-full outline-none'
@@ -284,7 +344,7 @@ export const ProfileForm = ({
             </div>
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Date of Birth
+                Date of Birth <span className='text-red-500'>*</span>
               </label>
               <input
                 type='date'
@@ -331,7 +391,7 @@ export const ProfileForm = ({
           <h2 className='font-bold mb-4 uppercase text-sm'>Address</h2>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-1'>Country</label>
+              <label className='block font-medium mb-1'>Country<span className='text-red-500'>*</span></label>
               <select
                 name='country'
                 value={formData.country}
@@ -340,7 +400,7 @@ export const ProfileForm = ({
                 disabled={!isEditable}
               >
                 <option value='' className='text-black'>
-                  Select Country
+                  Select Country 
                 </option>
                 {countries.map((country) => (
                   <option
@@ -354,14 +414,14 @@ export const ProfileForm = ({
               </select>
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-1'>State</label>
+              <label className='block font-medium mb-1'>State <span className='text-red-500'>*</span></label> 
               <select
                 name='state'
                 value={formData.state}
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent text-white'
                 disabled={!isEditable}
-              >
+              > 
                 <option value='' className='text-black'>
                   Select State
                 </option>
@@ -377,7 +437,7 @@ export const ProfileForm = ({
               </select>
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='text-white font-medium'>ZIP Code</label>
+              <label className='text-white font-medium'>ZIP Code</label> <span className='text-red-500'>*</span>
               <input
                 type='text'
                 name='postalCode'
@@ -389,7 +449,7 @@ export const ProfileForm = ({
               />
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='text-white font-medium'>City</label>
+              <label className='text-white font-medium'>City<span className='text-red-500'>*</span></label>
               <select
                 name='city'
                 value={formData.city}

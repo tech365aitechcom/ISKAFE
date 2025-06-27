@@ -84,12 +84,12 @@ const AboutPage = () => {
 
         {/* Contact Button */}
         <div className='text-center my-8'>
-          <Link href={about?.contactURL || ''}>
-            <button className='border border-white rounded px-6 py-2 text-white flex items-center justify-center mx-auto'>
-              <Phone className='mr-2 w-5 h-5' />
-              Contact Us
-            </button>
-          </Link>
+          <Link href="contact-us"passHref>
+    <button className='inline-flex items-center justify-center border border-white rounded px-6 py-2 text-white'>
+      <Phone className='mr-2 w-5 h-5' />
+      Contact Us
+    </button>
+  </Link>
 
           {/* Social Links */}
           <div className='flex justify-center gap-4 mt-4'>
@@ -106,29 +106,32 @@ const AboutPage = () => {
         </div>
 
         {/* Footer Links */}
-        <div className='text-center py-8 space-y-4'>
-          <a
-            href={about?.copyrightNoticePDF || '#'}
-            target='_blank'
-            className='text-white text-lg md:text-2xl font-bold block'
-          >
-            COPYRIGHT ©2025 COMPETITION TECHNOLOGY
-          </a>
-          <a
-            href={about?.privacyPolicyPDF || '#'}
-            target='_blank'
-            className='text-white text-xl md:text-2xl font-bold hover:text-gray-300 block'
-          >
-            PRIVACY POLICY
-          </a>
-          <a
-            href={about?.termsConditionsPDF || '#'}
-            target='_blank'
-            className='text-white text-xl md:text-2xl font-bold hover:text-gray-300 block'
-          >
-            TERMS AND CONDITIONS
-          </a>
-        </div>
+      <div className='flex flex-col items-center py-8 gap-4'>
+  <a
+    href={about?.copyrightNoticePDF || '#'}
+    target='_blank'
+    rel='noopener noreferrer'
+    className='text-white text-lg md:text-2xl font-bold inline-block'
+  >
+    COPYRIGHT ©2025 COMPETITION TECHNOLOGY
+  </a>
+  <a
+    href={about?.privacyPolicyPDF || '#'}
+    target='_blank'
+    rel='noopener noreferrer'
+    className='text-white text-xl md:text-2xl font-bold hover:text-gray-300 inline-block'
+  >
+    PRIVACY POLICY
+  </a>
+  <a
+    href={about?.termsConditionsPDF || '#'}
+    target='_blank'
+    rel='noopener noreferrer'
+    className='text-white text-xl md:text-2xl font-bold hover:text-gray-300 inline-block'
+  >
+    TERMS AND CONDITIONS
+  </a>
+</div>
 
         {/* Platform Version */}
         <div className='text-center pb-8'>

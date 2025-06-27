@@ -146,19 +146,20 @@ const SignUpPage = () => {
   }
 
   // Individual field validation functions
-  const validateNameField = (fieldName, value) => {
-    if (value && !validateLettersOnly(value)) {
-      setErrors((prev) => ({
-        ...prev,
-        [fieldName]: 'Name should contain only letters and spaces',
-      }))
-    } else {
-      setErrors((prev) => ({
-        ...prev,
-        [fieldName]: '',
-      }))
-    }
+ const validateNameField = (fieldName, value) => {
+  if (value && !validateLettersOnly(value)) {
+    const fieldDisplayName = fieldName === 'firstName' ? 'First Name' : 'Last Name';
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: `${fieldDisplayName} should contain only letters and spaces`,
+    }))
+  } else {
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: '',
+    }))
   }
+}
 
   const validateEmailField = (email) => {
     if (email && !validateEmail(email)) {
