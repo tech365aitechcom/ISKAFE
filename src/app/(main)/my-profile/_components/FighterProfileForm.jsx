@@ -141,107 +141,148 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    if (!validateName(formData.firstName)) {
-      enqueueSnackbar(
-        'First name can only contain letters, spaces, apostrophes, or hyphens.',
-        { variant: 'warning' }
-      )
-      setIsSubmitting(false)
-      return
-    }
-
-    if (!formData.lastName.trim()) {
-      enqueueSnackbar('Last name is required.', { variant: 'warning' })
-      setIsSubmitting(false)
-      return
-    }
-
-    if (!validateName(formData.lastName)) {
-      enqueueSnackbar(
-        'Last name can only contain letters, spaces, apostrophes, or hyphens.',
-        { variant: 'warning' }
-      )
-      setIsSubmitting(false)
-      return
-    }
-
-    if (!validateEmail(formData.email)) {
-      enqueueSnackbar('Please enter a valid email address.', {
-        variant: 'warning',
-      })
-      setIsSubmitting(false)
-      return
-    }
-
-    if (!validatePhoneNumber(formData.phoneNumber)) {
-      enqueueSnackbar('Please enter a valid phone number.', {
-        variant: 'warning',
-      })
-      setIsSubmitting(false)
-      return
-    }
-
-    if (!formData.dateOfBirth || getAge(formData.dateOfBirth) < 18) {
-      enqueueSnackbar('You must be at least 18 years old.', {
-        variant: 'warning',
-      })
-      setIsSubmitting(false)
-      return
-    }
-
-    try {
-      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
-        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
-      }
-      if (
-        formData.imageGallery &&
-        formData.imageGallery.length > 0 &&
-        formData.imageGallery[0] &&
-        typeof formData.imageGallery[0] !== 'string'
-      ) {
-        formData.imageGallery = await Promise.all(
-          formData.imageGallery.map((file) => uploadToS3(file))
-        )
-      }
-      if (
-        formData.medicalCertificate &&
-        typeof formData.medicalCertificate !== 'string'
-      ) {
-        formData.medicalCertificate = await uploadToS3(
-          formData.medicalCertificate
-        )
-      }
-      if (
-        formData.licenseDocument &&
-        typeof formData.licenseDocument !== 'string'
-      ) {
-        formData.licenseDocument = await uploadToS3(formData.licenseDocument)
-      }
-      const response = await axios.put(
-        `${API_BASE_URL}/fighters/${user._id}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
-      )
-      if (response.status === apiConstants.success) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        onSuccess()
-      }
-    } catch (error) {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
-        { variant: 'error' }
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+ const handleSubmit = async (e) => {
+  e.preventDefault()
+  setIsSubmitting(true)
+  
+  if (!validateName(formData.firstName)) {
+    enqueueSnackbar(
+      'First name can only contain letters, spaces, apostrophes, or hyphens.',
+      { variant: 'warning' }
+    )
+    setIsSubmitting(false)
+    return
   }
+
+  if (!formData.lastName.trim()) {
+    enqueueSnackbar('Last name is required.', { variant: 'warning' })
+    setIsSubmitting(false)
+    return
+  }
+
+  if (!validateName(formData.lastName)) {
+    enqueueSnackbar(
+      'Last name can only contain letters, spaces, apostrophes, or hyphens.',
+      { variant: 'warning' }
+    )
+    setIsSubmitting(false)
+    return
+  }
+
+  if (!validateEmail(formData.email)) {
+    enqueueSnackbar('Please enter a valid email address.', {
+      variant: 'warning',
+    })
+    setIsSubmitting(false)
+    return
+  }
+
+  if (!validatePhoneNumber(formData.phoneNumber)) {
+    enqueueSnackbar('Please enter a valid phone number.', {
+      variant: 'warning',
+    })
+    setIsSubmitting(false)
+    return
+  }
+
+  if (!formData.dateOfBirth || getAge(formData.dateOfBirth) < 18) {
+    enqueueSnackbar('You must be at least 18 years old.', {
+      variant: 'warning',
+    })
+    setIsSubmitting(false)
+    return
+  }
+
+  // Add validation for State and City
+  console.log('Form validation - Country:', formData.country)
+  console.log('Form validation - State:', formData.state)
+  console.log('Form validation - City:', formData.city)
+  
+  if (!formData.country || formData.country.trim() === '') {
+    enqueueSnackbar('Country is required.', { variant: 'warning' })
+    setIsSubmitting(false)
+    return
+  }
+
+  if (!formData.state || formData.state.trim() === '') {
+    enqueueSnackbar('State is required.', { variant: 'warning' })
+    setIsSubmitting(false)
+    return
+  }
+
+  if (!formData.city || formData.city.trim() === '') {
+    enqueueSnackbar('City is required.', { variant: 'warning' })
+    setIsSubmitting(false)
+    return
+  }
+
+  // Add validation for Primary Gym (marked as required in the form)
+  if (!formData.primaryGym?.trim()) {
+    enqueueSnackbar('Primary Gym / Club is required.', { variant: 'warning' })
+    setIsSubmitting(false)
+    return
+  }
+
+  try {
+    // Create a copy of formData for payload preparation
+    const payloadData = { ...formData }
+    
+    // Remove gender from payload if it's empty or not selected
+    if (!payloadData.gender || payloadData.gender.trim() === '') {
+      delete payloadData.gender
+    }
+
+    // Handle file uploads
+    if (payloadData.profilePhoto && typeof payloadData.profilePhoto !== 'string') {
+      payloadData.profilePhoto = await uploadToS3(payloadData.profilePhoto)
+    }
+    if (
+      payloadData.imageGallery &&
+      payloadData.imageGallery.length > 0 &&
+      payloadData.imageGallery[0] &&
+      typeof payloadData.imageGallery[0] !== 'string'
+    ) {
+      payloadData.imageGallery = await Promise.all(
+        payloadData.imageGallery.map((file) => uploadToS3(file))
+      )
+    }
+    if (
+      payloadData.medicalCertificate &&
+      typeof payloadData.medicalCertificate !== 'string'
+    ) {
+      payloadData.medicalCertificate = await uploadToS3(
+        payloadData.medicalCertificate
+      )
+    }
+    if (
+      payloadData.licenseDocument &&
+      typeof payloadData.licenseDocument !== 'string'
+    ) {
+      payloadData.licenseDocument = await uploadToS3(payloadData.licenseDocument)
+    }
+    
+    const response = await axios.put(
+      `${API_BASE_URL}/fighters/${user._id}`,
+      payloadData, // Use the modified payload instead of formData
+      {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      }
+    )
+    if (response.status === apiConstants.success) {
+      enqueueSnackbar(response.data.message, { variant: 'success' })
+      onSuccess()
+    }
+  } catch (error) {
+    enqueueSnackbar(
+      error?.response?.data?.message || 'Something went wrong',
+      { variant: 'error' }
+    )
+  } finally {
+    setIsSubmitting(false)
+  }
+}
 
   return (
     <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
@@ -358,14 +399,14 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
 
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>
-                Gender<span className='text-red-400'>*</span>
+                Gender<span className='text-red-400'></span>
               </label>
               <select
                 name='gender'
                 value={formData.gender}
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
-                required
+              
               >
                 <option value='' className='text-black'>
                   Select Gender
