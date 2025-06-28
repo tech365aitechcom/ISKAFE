@@ -3,7 +3,7 @@
 import axios from 'axios'
 import { Search } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../../../../constants'
 import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import PaginationHeader from '../../../../_components/PaginationHeader'
@@ -24,6 +24,89 @@ export function OfficialTitleTable({
 }) {
   const [isDelete, setIsDelete] = useState(false)
   const [selectedTitle, setSelectedTitle] = useState(null)
+  
+  // New state for filters
+  const [sports, setSports] = useState([])
+  const [selectedSport, setSelectedSport] = useState('')
+  const [selectedProClassification, setSelectedProClassification] = useState('')
+  const [isLoadingSports, setIsLoadingSports] = useState(false)
+  const [isLoadingTitleHolders, setIsLoadingTitleHolders] = useState(false)
+  const [sportsLoadAttempted, setSportsLoadAttempted] = useState(false)
+
+  // Pro Classification options
+  const proClassificationOptions = [
+    { value: '', label: 'All Classifications' },
+    { value: 'professional', label: 'Professional' },
+    { value: 'amateur', label: 'Amateur' },
+    { value: 'semi-professional', label: 'Semi-Professional' }
+  ]
+
+  // Get Sports function
+  const getSports = async () => {
+    setIsLoadingSports(true)
+    try {
+      // Try different possible endpoints for sports
+      let response;
+      try {
+        response = await axios.get(`${API_BASE_URL}/sports`)
+      } catch (error) {
+        // Try alternative endpoint if first fails
+        response = await axios.get(`${API_BASE_URL}/sport`)
+      }
+      
+      const sportsData = response.data.data || response.data.sports || response.data || []
+      setSports(Array.isArray(sportsData) ? sportsData : [])
+      
+      if (Array.isArray(sportsData) && sportsData.length > 0) {
+        enqueueSnackbar('Sports loaded successfully', { variant: 'success' })
+      } else {
+        enqueueSnackbar('No sports data available', { variant: 'warning' })
+      }
+    } catch (error) {
+      console.error('Error fetching sports:', error)
+      // Only show warning if it's a manual refresh (not on component mount)
+      if (sportsLoadAttempted) {
+        enqueueSnackbar('Sports endpoint not available', { variant: 'warning' })
+      }
+    } finally {
+      setIsLoadingSports(false)
+      setSportsLoadAttempted(true)
+    }
+  }
+
+  // Get Title Holders function
+  const getTitleHolders = async () => {
+    setIsLoadingTitleHolders(true)
+    try {
+      const params = new URLSearchParams()
+      if (selectedSport) params.append('sport', selectedSport)
+      if (selectedProClassification) params.append('proClassification', selectedProClassification)
+      if (searchQuery) params.append('search', searchQuery)
+      params.append('page', currentPage)
+      params.append('limit', limit)
+
+      const response = await axios.get(`${API_BASE_URL}/official-title-holders?${params.toString()}`)
+      
+      // Trigger onSuccess to refresh the data in parent component
+      if (onSuccess) {
+        onSuccess(response.data)
+      }
+      enqueueSnackbar('Title holders refreshed successfully', { variant: 'success' })
+    } catch (error) {
+      enqueueSnackbar('Failed to refresh title holders', { variant: 'error' })
+      console.error('Error fetching title holders:', error)
+    } finally {
+      setIsLoadingTitleHolders(false)
+    }
+  }
+
+  // Load sports on component mount (only once)
+  useEffect(() => {
+    // Only try to load sports if we haven't attempted yet
+    if (!sportsLoadAttempted) {
+      getSports()
+    }
+  }, [sportsLoadAttempted]) // Depend on sportsLoadAttempted to prevent multiple calls
 
   const handleDeleteTitle = async (titleId) => {
     try {
@@ -44,7 +127,7 @@ export function OfficialTitleTable({
     </th>
   )
 
-  // ✅ FILTERING LOGIC based on search query
+  // ✅ FILTERING LOGIC based on search query and filters
   const filteredTitles = officialTitles.filter((title) => {
     const fullName = `${title.fighter?.userId?.firstName ?? ''} ${
       title.fighter?.userId?.lastName ?? ''
@@ -52,27 +135,101 @@ export function OfficialTitleTable({
     const titleName = title.title?.toLowerCase() ?? ''
     const weightClass = title.weightClass?.toLowerCase() ?? ''
 
-    return (
+    // Search filter
+    const matchesSearch = 
       fullName.includes(searchQuery.toLowerCase()) ||
       titleName.includes(searchQuery.toLowerCase()) ||
       weightClass.includes(searchQuery.toLowerCase())
-    )
+
+    // Sport filter
+    const matchesSport = !selectedSport || title.sport === selectedSport
+
+    // Pro Classification filter
+    const matchesProClassification = !selectedProClassification || 
+      title.fighter?.proClassification === selectedProClassification
+
+    return matchesSearch && matchesSport && matchesProClassification
   })
 
   return (
     <>
-      {/* Search Bar */}
-      <div className='relative mb-6'>
-        <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
-          <Search size={18} className='text-gray-400' />
+      {/* Filters Section */}
+      <div className='mb-6 space-y-4'>
+        {/* Filter Row 1: Pro Classification and Sport Dropdowns */}
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+          {/* Pro Classification Dropdown */}
+          <div>
+            <label className='block text-sm font-medium text-gray-300 mb-2'>
+              Pro Classification
+            </label>
+            <select
+              value={selectedProClassification}
+              onChange={(e) => setSelectedProClassification(e.target.value)}
+              className='bg-transparent border border-gray-700 text-white rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
+            >
+              {proClassificationOptions.map((option) => (
+                <option key={option.value} value={option.value} className='bg-gray-800'>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sport Dropdown */}
+          <div>
+            <label className='block text-sm font-medium text-gray-300 mb-2'>
+              Sport
+            </label>
+            <select
+              value={selectedSport}
+              onChange={(e) => setSelectedSport(e.target.value)}
+              className='bg-transparent border border-gray-700 text-white rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
+            >
+              <option value='' className='bg-gray-800'>All Sports</option>
+              {sports.map((sport) => (
+                <option key={sport._id || sport.id || sport.name} value={sport._id || sport.id || sport.name} className='bg-gray-800'>
+                  {sport.name || sport.title || sport}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Get Sports Button */}
+          <div className='flex items-end'>
+            <button
+              onClick={getSports}
+              disabled={isLoadingSports}
+              className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full md:w-auto text-sm'
+            >
+              {isLoadingSports ? 'Loading...' : 'Refresh Sports'}
+            </button>
+          </div>
+
+          {/* Get Title Holders Button */}
+          <div className='flex items-end'>
+            <button
+              onClick={getTitleHolders}
+              disabled={isLoadingTitleHolders}
+              className='bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full md:w-auto text-sm'
+            >
+              {isLoadingTitleHolders ? 'Loading...' : 'Apply Filters'}
+            </button>
+          </div>
         </div>
-        <input
-          type='text'
-          className='bg-transparent border border-gray-700 text-white rounded-md pl-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
-          placeholder='Search Titles...'
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+
+        {/* Search Bar */}
+        <div className='relative'>
+          <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
+            <Search size={18} className='text-gray-400' />
+          </div>
+          <input
+            type='text'
+            className='bg-transparent border border-gray-700 text-white rounded-md pl-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
+            placeholder='Search Titles...'
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
@@ -90,6 +247,8 @@ export function OfficialTitleTable({
                 {renderHeader('Fighter', 'fighter')}
                 {renderHeader('Title', 'title')}
                 {renderHeader('Weight Class', 'weightClass')}
+                {renderHeader('Sport', 'sport')}
+                {renderHeader('Pro Classification', 'proClassification')}
                 {renderHeader('Record', 'record')}
                 {renderHeader('Actions', 'actions')}
               </tr>
@@ -135,6 +294,12 @@ export function OfficialTitleTable({
                       </td>
                       <td className='p-4'>{title.title}</td>
                       <td className='p-4'>{title.weightClass}</td>
+                      <td className='p-4'>
+                        {sports.find(sport => sport._id === title.sport || sport.id === title.sport)?.name || title.sport || 'N/A'}
+                      </td>
+                      <td className='p-4 capitalize'>
+                        {title.fighter?.proClassification || 'N/A'}
+                      </td>
                       <td className='p-4'>{title.record || 'TODO!'}</td>
                       <td className='p-4 align-middle'>
                         <ActionButtons
@@ -151,7 +316,7 @@ export function OfficialTitleTable({
                 })
               ) : (
                 <tr className='text-center bg-[#0A1330]'>
-                  <td colSpan={4} className='p-4'>
+                  <td colSpan={7} className='p-4'>
                     No Official Titles found.
                   </td>
                 </tr>

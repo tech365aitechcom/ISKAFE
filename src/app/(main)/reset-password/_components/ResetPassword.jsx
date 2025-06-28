@@ -74,12 +74,18 @@ const ResetPassword = () => {
           confirmNewPassword: formData.confirmPassword,
         }
       )
+
       if (res.status === apiConstants.success) {
         enqueueSnackbar(res.data.message, { variant: 'success' })
         router.push('/login')
       }
     } catch (err) {
       console.log('Reset Password error:', err)
+
+      const msg =
+        err?.response?.data?.message ||
+        'Something went wrong. Please try again.'
+      enqueueSnackbar(msg, { variant: 'error' })
     } finally {
       setIsLoading(false)
     }
@@ -128,11 +134,12 @@ const ResetPassword = () => {
                   />
                   <span
                     onClick={() => setShowPassword(!showPassword)}
-                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
+                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                   >
                     {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                   </span>
                 </div>
+
                 <div className='relative'>
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
@@ -145,8 +152,10 @@ const ResetPassword = () => {
                     disabled={isLoading}
                   />
                   <span
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white'
+                    onClick={() =>
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    className='absolute right-3 top-1/2 transform -translate-y-1/2 text-white cursor-pointer'
                   >
                     {showConfirmPassword ? (
                       <Eye size={20} />
@@ -163,6 +172,7 @@ const ResetPassword = () => {
                 >
                   {isLoading ? <Loader /> : 'Update Password'}
                 </button>
+
                 <div className='text-center text-white mt-4'>
                   Already have an account?{' '}
                   <Link

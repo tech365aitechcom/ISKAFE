@@ -20,7 +20,6 @@ export const AboutForm = () => {
     facebookURL: '',
     instagramURL: '',
     twitterURL: '',
-    // New footer legal document fields
     termsConditionsPDF: null,
     privacyPolicyPDF: null,
     copyrightNoticePDF: null,
@@ -36,27 +35,20 @@ export const AboutForm = () => {
   })
   const [teamMemberImagePreview, setTeamMemberImagePreview] = useState(null)
   const [showTeamMemberModal, setShowTeamMemberModal] = useState(false)
-
-  // File previews for legal documents
-  const [termsAndConditionsFileName, setTermsAndConditionsFileName] =
-    useState(null)
+  const [termsAndConditionsFileName, setTermsAndConditionsFileName] = useState(null)
   const [privacyPolicyFileName, setPrivacyPolicyFileName] = useState(null)
   const [copyrightNoticeFileName, setCopyrightNoticeFileName] = useState(null)
-
   const [existingAboutUsId, setExistingAboutUsId] = useState('')
 
   const fetchAboutData = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/about-us`)
-      console.log('Response:', response.data)
       if (response.data.data) {
         setExistingAboutUsId(response.data.data?._id)
         setFormData(response.data.data)
         if (response.data.data.coverImage) {
           setImagePreview(response.data.data?.coverImage)
         }
-
-        // Set filenames for legal documents if they exist
         if (response.data.data.termsConditionsPDF) {
           setTermsAndConditionsFileName(
             response.data.data.termsConditionsPDF.split('/').pop()
@@ -124,7 +116,6 @@ export const AboutForm = () => {
     }
   }
 
-  // Remove legal document files
   const handleRemoveLegalDoc = (fieldName) => {
     if (fieldName === 'termsConditionsPDF') {
       setTermsAndConditionsFileName(null)
@@ -137,7 +128,7 @@ export const AboutForm = () => {
   }
 
   const handleAddTeamMember = () => {
-    if (currentTeamMember.name && currentTeamMember.position) {
+    if (currentTeamMember.name && currentTeamMember.position && currentTeamMember.profilePic) {
       setFormData((prev) => ({
         ...prev,
         leadershipTeam: [...prev.leadershipTeam, currentTeamMember],
@@ -150,7 +141,7 @@ export const AboutForm = () => {
       setTeamMemberImagePreview(null)
       setShowTeamMemberModal(false)
     } else {
-      enqueueSnackbar('Name and position are required for team members', {
+      enqueueSnackbar('Name, position and image are required for team members', {
         variant: 'error',
       })
     }
@@ -168,15 +159,29 @@ export const AboutForm = () => {
     try {
       e.preventDefault()
 
-      if (
-        !formData.pageTitle ||
-        !formData.missionStatement ||
-        !formData.organizationHistory
-      ) {
+      // Validate mandatory fields
+      const mandatoryFields = [
+        'pageTitle',
+        'missionStatement',
+        'organizationHistory',
+        'contactURL',
+        'termsConditionsPDF',
+        'privacyPolicyPDF',
+        'copyrightNoticePDF'
+      ];
+      
+      const missingFields = mandatoryFields.filter(field => 
+        !formData[field] || 
+        (field === 'termsConditionsPDF' && !termsAndConditionsFileName) ||
+        (field === 'privacyPolicyPDF' && !privacyPolicyFileName) ||
+        (field === 'copyrightNoticePDF' && !copyrightNoticeFileName)
+      );
+
+      if (missingFields.length > 0) {
         enqueueSnackbar('Please fill all mandatory fields', {
           variant: 'error',
-        })
-        return
+        });
+        return;
       }
 
       if (formData.contactURL && !isValidURL(formData.contactURL)) {
@@ -184,6 +189,20 @@ export const AboutForm = () => {
           variant: 'error',
         })
         return
+      }
+
+      // Validate team members
+      if (formData.leadershipTeam?.length > 0) {
+        const incompleteMember = formData.leadershipTeam.find(member => 
+          !member.name || !member.position || !member.profilePic
+        );
+        
+        if (incompleteMember) {
+          enqueueSnackbar('All team members must have name, position and image', {
+            variant: 'error',
+          });
+          return;
+        }
       }
 
       if (formData.coverImage && typeof formData.coverImage !== 'string') {
@@ -247,7 +266,7 @@ export const AboutForm = () => {
                 }
               } catch (error) {
                 console.error('Image upload failed:', error)
-                return teamMember // fallback to original if upload fails
+                return teamMember
               }
             }
             return teamMember
@@ -257,11 +276,7 @@ export const AboutForm = () => {
         formData.leadershipTeam = updatedTeam
       }
 
-      console.log('Form data:', formData)
-
       let response = null
-      console.log(`${API_BASE_URL}/about-us/${existingAboutUsId}`, 'url')
-
       if (existingAboutUsId) {
         response = await axios.put(
           `${API_BASE_URL}/about-us/${existingAboutUsId}`,
@@ -274,7 +289,6 @@ export const AboutForm = () => {
           },
         })
       }
-      console.log('Response:', response)
       if (
         response.status === apiConstants.create ||
         response.status === apiConstants.success
@@ -286,7 +300,6 @@ export const AboutForm = () => {
       }
     } catch (error) {
       console.log('Error submitting form:', error)
-
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
         {
@@ -300,10 +313,7 @@ export const AboutForm = () => {
 
   const isValidURL = (url) => {
     if (typeof url !== 'string') return false
-
-    // Allow relative URLs starting with /
     if (url.startsWith('/')) return true
-
     try {
       new URL(url)
       return true
@@ -342,13 +352,15 @@ export const AboutForm = () => {
               className='w-full outline-none'
               placeholder='Enter Page Title'
               required
-              autoload='true'
+              autoFocus
             />
           </div>
 
           {/* Image Upload */}
           <div className='mb-8'>
-            <label className='block text-sm font-medium mb-2'>Image</label>
+            <label className='block text-sm font-medium mb-2'>
+              Cover Image<span className='text-red-500'>*</span>
+            </label>
             {imagePreview ? (
               <div className='relative w-72 h-52 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                 <img
@@ -378,6 +390,7 @@ export const AboutForm = () => {
                   accept='image/*'
                   onChange={handleFileChange}
                   className='absolute inset-0 opacity-0 z-50'
+                  required
                 />
                 <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
                   <svg
@@ -421,7 +434,6 @@ export const AboutForm = () => {
               className='w-full outline-none resize-none'
               placeholder='Write mission here'
               required
-              autoload='true'
             />
           </div>
 
@@ -436,9 +448,8 @@ export const AboutForm = () => {
               onChange={handleChange}
               rows='4'
               className='w-full outline-none resize-none'
-              placeholder='Write organization organizationHistory'
+              placeholder='Write organization history'
               required
-              autoload='true'
             />
           </div>
 
@@ -531,6 +542,9 @@ export const AboutForm = () => {
 
                 {/* Image Upload */}
                 <div className='mb-4'>
+                  <label className='block text-sm font-medium mb-1'>
+                    Image<span className='text-red-500'>*</span>
+                  </label>
                   {teamMemberImagePreview ? (
                     <div className='relative h-40 w-50 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                       <img
@@ -563,6 +577,7 @@ export const AboutForm = () => {
                         accept='image/*'
                         onChange={handleTeamMemberImageChange}
                         className='absolute inset-0 opacity-0 z-50'
+                        required
                       />
                       <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
                         <svg
@@ -621,7 +636,7 @@ export const AboutForm = () => {
           {/* Contact Link */}
           <div className='mb-6 bg-[#00000061] p-2 rounded'>
             <label className='block text-sm font-medium mb-1'>
-              Contact Link
+              Contact Link<span className='text-red-500'>*</span>
             </label>
             <input
               type='text'
@@ -630,6 +645,7 @@ export const AboutForm = () => {
               onChange={handleChange}
               className='w-full outline-none'
               placeholder='Link to contact form'
+              required
             />
           </div>
 
@@ -689,7 +705,7 @@ export const AboutForm = () => {
               {/* Terms & Conditions PDF */}
               <div className='mb-4'>
                 <label className='block text-sm font-medium mb-2'>
-                  Terms & Conditions PDF
+                  Terms & Conditions PDF<span className='text-red-500'>*</span>
                 </label>
                 {termsAndConditionsFileName ? (
                   <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
@@ -721,6 +737,7 @@ export const AboutForm = () => {
                         handleLegalDocUpload(e, 'termsConditionsPDF')
                       }
                       className='absolute inset-0 opacity-0 z-50'
+                      required
                     />
                     <p className='text-sm text-[#AEB9E1] z-10'>
                       <span className='text-[#FEF200] mr-1'>
@@ -735,7 +752,7 @@ export const AboutForm = () => {
               {/* Privacy Policy PDF */}
               <div className='mb-4'>
                 <label className='block text-sm font-medium mb-2'>
-                  Privacy Policy PDF
+                  Privacy Policy PDF<span className='text-red-500'>*</span>
                 </label>
                 {privacyPolicyFileName ? (
                   <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
@@ -767,6 +784,7 @@ export const AboutForm = () => {
                         handleLegalDocUpload(e, 'privacyPolicyPDF')
                       }
                       className='absolute inset-0 opacity-0 z-50'
+                      required
                     />
                     <p className='text-sm text-[#AEB9E1] z-10'>
                       <span className='text-[#FEF200] mr-1'>
@@ -781,7 +799,7 @@ export const AboutForm = () => {
               {/* Copyright Notice PDF */}
               <div className='mb-4'>
                 <label className='block text-sm font-medium mb-2'>
-                  Copyright Notice PDF
+                  Copyright Notice PDF<span className='text-red-500'>*</span>
                 </label>
                 {copyrightNoticeFileName ? (
                   <div className='flex items-center gap-2 bg-[#00000061] p-2 rounded'>
@@ -813,6 +831,7 @@ export const AboutForm = () => {
                         handleLegalDocUpload(e, 'copyrightNoticePDF')
                       }
                       className='absolute inset-0 opacity-0 z-50'
+                      required
                     />
                     <p className='text-sm text-[#AEB9E1] z-10'>
                       <span className='text-[#FEF200] mr-1'>

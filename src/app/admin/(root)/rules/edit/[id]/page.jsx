@@ -4,7 +4,6 @@ import axios from 'axios'
 import Loader from '../../../../../_components/Loader'
 import { API_BASE_URL, apiConstants } from '../../../../../../constants'
 import Link from 'next/link'
-import { Eye, EyeOff, Trash } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
 import { uploadToS3 } from '../../../../../../utils/uploadToS3'
 
@@ -12,6 +11,7 @@ export default function EditRulePage({ params }) {
   const { id } = use(params)
 
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     category: '',
     subTab: '',
@@ -24,34 +24,34 @@ export default function EditRulePage({ params }) {
     status: '',
   })
 
-  const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
 
-  const fetchRuleDetails = async () => {
-    setLoading(true)
-    try {
-      const response = await axios.get(`${API_BASE_URL}/rules/${id}`)
-      const data = response.data.data
-
-      setFormData({
-        category: data.category,
-        subTab: data.subTab,
-        subTabRuleDescription: data.subTabRuleDescription,
-        ruleTitle: data.ruleTitle,
-        ruleDescription: data.ruleDescription,
-        rule: data.rule,
-        videoLink: data.videoLink,
-        sortOrder: data.sortOrder,
-        status: data.status,
-      })
-    } catch (err) {
-      enqueueSnackbar(err?.response?.data?.message, { variant: 'error' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    const fetchRuleDetails = async () => {
+      setLoading(true)
+      try {
+        const res = await axios.get(`${API_BASE_URL}/rules/${id}`)
+        const data = res.data.data
+        setFormData({
+          category: data.category || '',
+          subTab: data.subTab || '',
+          subTabRuleDescription: data.subTabRuleDescription || '',
+          ruleTitle: data.ruleTitle || '',
+          ruleDescription: data.ruleDescription || '',
+          rule: data.rule || null,
+          videoLink: data.videoLink || '',
+          sortOrder: data.sortOrder || '',
+          status: data.status || '',
+        })
+      } catch (err) {
+        enqueueSnackbar(err?.response?.data?.message || 'Error fetching rule', {
+          variant: 'error',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchRuleDetails()
   }, [id])
 
@@ -80,19 +80,17 @@ export default function EditRulePage({ params }) {
           ? 'Maximum 2000 characters allowed'
           : ''
       case 'rule':
-        if (value && !value.name.endsWith('.pdf')) {
+        if (value && !value.name?.endsWith('.pdf')) {
           return 'Only PDF files are allowed'
         }
         return ''
       case 'videoLink':
         if (value.trim() !== '') {
-          const isValidLink =
+          const isValid =
             value.includes('youtube.com') ||
             value.includes('youtu.be') ||
             value.includes('vimeo.com')
-          if (!isValidLink) {
-            return 'Only YouTube or Vimeo links are allowed'
-          }
+          return isValid ? '' : 'Only YouTube or Vimeo links are allowed'
         }
         return ''
       case 'sortOrder':
@@ -109,12 +107,11 @@ export default function EditRulePage({ params }) {
   }
 
   const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target
-    const newValue =
-      type === 'checkbox' ? checked : type === 'file' ? files[0] || null : value
+    const { name, value, type, files } = e.target
+    const newValue = type === 'file' ? files[0] || null : value
 
-    setFormData((prevState) => ({
-      ...prevState,
+    setFormData((prev) => ({
+      ...prev,
       [name]: newValue,
     }))
 
@@ -127,6 +124,8 @@ export default function EditRulePage({ params }) {
         'ruleDescription',
         'sortOrder',
         'status',
+        'rule',
+        'videoLink',
       ].includes(name)
     ) {
       const error = validateField(name, newValue)
@@ -141,7 +140,6 @@ export default function EditRulePage({ params }) {
     const newErrors = {}
     let isValid = true
 
-    // Validate all required fields
     Object.keys(formData).forEach((field) => {
       if (
         [
@@ -162,19 +160,18 @@ export default function EditRulePage({ params }) {
       }
     })
 
-    // Validate optional fields with content
     if (formData.rule) {
-      const error = validateField('rule', formData.rule)
-      if (error) {
-        newErrors.rule = error
+      const ruleErr = validateField('rule', formData.rule)
+      if (ruleErr) {
+        newErrors.rule = ruleErr
         isValid = false
       }
     }
 
     if (formData.videoLink) {
-      const error = validateField('videoLink', formData.videoLink)
-      if (error) {
-        newErrors.videoLink = error
+      const linkErr = validateField('videoLink', formData.videoLink)
+      if (linkErr) {
+        newErrors.videoLink = linkErr
         isValid = false
       }
     }
@@ -186,24 +183,39 @@ export default function EditRulePage({ params }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
-    try {
-      if (validateForm()) {
-        console.log('Form submitted:', formData)
-        if (formData.rule && formData.rule.name.endsWith('.pdf')) {
-          formData.rule = await uploadToS3(formData.rule)
-        }
-        const response = await axios.put(`${API_BASE_URL}/rules`, formData)
 
-        if (response.status === apiConstants.success) {
-          enqueueSnackbar(response.data.message || 'Rule added successfully', {
-            variant: 'success',
-          })
-        }
-      } else {
-        enqueueSnackbar('Fill all the required fields', { variant: 'error' })
+    try {
+      if (!validateForm()) {
+        enqueueSnackbar('Please fix the errors in the form', {
+          variant: 'error',
+        })
+        return
       }
-    } catch (error) {
-      enqueueSnackbar(error.response.data.message, { variant: 'error' })
+
+      let uploadedRule = formData.rule
+      if (formData.rule && formData.rule.name?.endsWith('.pdf')) {
+        uploadedRule = await uploadToS3(formData.rule)
+      }
+
+      const payload = {
+        ...formData,
+        rule: uploadedRule,
+      }
+
+      const res = await axios.put(`${API_BASE_URL}/rules/${id}`, payload)
+
+      if (res.status === apiConstants.success) {
+        enqueueSnackbar(res.data.message || 'Rule updated successfully', {
+          variant: 'success',
+        })
+      } else {
+        enqueueSnackbar('Failed to update rule', { variant: 'error' })
+      }
+    } catch (err) {
+      enqueueSnackbar(
+        err?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
     } finally {
       setSubmitting(false)
     }

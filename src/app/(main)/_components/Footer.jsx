@@ -11,7 +11,6 @@ const Footer = () => {
     const getAboutDetails = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/about-us/footer`)
-        console.log('Response:', response.data)
         setData(response.data.data)
       } catch (error) {
         console.log('Error fetching about details:', error)
@@ -24,16 +23,52 @@ const Footer = () => {
   return (
     <footer className='w-full bg-[#2e133a] py-8 px-6'>
       <div className='container mx-auto flex flex-col md:flex-row justify-between md:items-center'>
+        {/* Left Section - Copyright */}
         <a
           href={data?.copyrightNoticePDF ? data?.copyrightNoticePDF : '#'}
           target='_blank'
-          className='text-white hover:text-gray-300'
+          className='text-white hover:text-gray-300 mb-6 md:mb-0'
         >
           <span className='text-xl md:text-2xl font-bold'>
             COPYRIGHT ©2025 COMPETITION TECHNOLOGY
           </span>
         </a>
-        <div className='flex items-center space-x-4 mb-4 md:mb-0'>
+        
+        {/* Center Section - Logo */}
+        <div className='mb-6 md:mb-0 flex justify-center'>
+          <img 
+            src="/logo1.png" 
+            alt="Competition Technology Logo"
+            className='h-16 object-contain'
+          />
+        </div>
+        
+        {/* Right Section - Links */}
+        <div className='flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6'>
+          <a
+            href={data?.privacyPolicyPDF ? data.privacyPolicyPDF : '#'}
+            target='_blank'
+            className='text-white hover:text-gray-300'
+          >
+            <span className='text-xl md:text-2xl font-bold'>
+              PRIVACY POLICY
+            </span>
+          </a>
+          <a
+            href={data?.termsConditionsPDF ? data.termsConditionsPDF : '#'}
+            target='_blank'
+            className='text-white hover:text-gray-300'
+          >
+            <span className='text-xl md:text-2xl font-bold'>
+              TERMS AND CONDITIONS
+            </span>
+          </a>
+        </div>
+      </div>
+      
+      {/* Social Media Icons - Centered below */}
+      <div className='container mx-auto mt-8 flex justify-center'>
+        <div className='flex items-center space-x-4'>
           <a
             href={data?.facebookURL}
             className='text-white hover:text-gray-300'
@@ -75,26 +110,6 @@ const Footer = () => {
             aria-label='Twitter'
           >
             <Twitter size={26} />
-          </a>
-        </div>
-        <div className='flex space-x-6'>
-          <a
-            href={data?.privacyPolicyPDF ? data.privacyPolicyPDF : '#'}
-            target='_blank'
-            className='text-white hover:text-gray-300'
-          >
-            <span className='text-xl md:text-2xl font-bold'>
-              PRIVACY POLICY
-            </span>
-          </a>
-          <a
-            href={data?.termsConditionsPDF ? data.termsConditionsPDF : '#'}
-            target='_blank'
-            className='text-white hover:text-gray-300'
-          >
-            <span className='text-xl md:text-2xl font-bold'>
-              TERMS AND CONDITIONS
-            </span>
           </a>
         </div>
       </div>

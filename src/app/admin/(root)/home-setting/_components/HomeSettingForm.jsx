@@ -484,29 +484,37 @@ export const HomeSettingsForm = () => {
           </div>
 
           <div>
-            <label className='block font-medium mb-2'>Platform Name</label>
+            <label className='block font-medium mb-2'>
+              Platform Name<span className='text-red-500'>*</span>
+            </label>
             <input
               name='platformName'
               type='text'
               value={formData.platformName}
               onChange={handleChange}
               className='w-full p-2 bg-[#00000061] rounded outline-none'
+              required
             />
           </div>
 
           <div>
-            <label className='block font-medium mb-2'>Tagline</label>
+            <label className='block font-medium mb-2'>
+              Tagline<span className='text-red-500'>*</span>
+            </label>
             <input
               name='tagline'
               type='text'
               value={formData.tagline}
               onChange={handleChange}
               className='w-full p-2 bg-[#00000061] rounded outline-none'
+              required
             />
           </div>
 
           <div>
-            <label className='block font-medium mb-2'>Hero Image</label>
+            <label className='block font-medium mb-2'>
+              Hero Image<span className='text-red-500'>*</span>
+            </label>
             <div className='py-4'>
               {formData.heroImage && typeof formData.heroImage === 'string' && (
                 <img
@@ -522,28 +530,35 @@ export const HomeSettingsForm = () => {
               accept='image/*'
               onChange={handleFileUpload}
               className='w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+              required
             />
           </div>
 
           <div className='grid grid-cols-2 gap-4'>
             <div>
-              <label className='block font-medium mb-2'>CTA Text</label>
+              <label className='block font-medium mb-2'>
+                CTA Text<span className='text-red-500'>*</span>
+              </label>
               <input
                 name='text'
                 type='text'
                 value={formData.cta.text}
                 onChange={handleHeroCtaChange}
                 className='w-full p-2 bg-[#00000061] rounded outline-none'
+                required
               />
             </div>
             <div>
-              <label className='block font-medium mb-2'>CTA Link</label>
+              <label className='block font-medium mb-2'>
+                CTA Link<span className='text-red-500'>*</span>
+              </label>
               <input
                 name='link'
                 type='text'
                 value={formData.cta.link}
                 onChange={handleHeroCtaChange}
                 className='w-full p-2 bg-[#00000061] rounded outline-none'
+                required
               />
             </div>
           </div>
@@ -571,7 +586,7 @@ export const HomeSettingsForm = () => {
                           <div className='space-y-3'>
                             <div>
                               <label className='block text-sm font-medium mb-1'>
-                                Title
+                                Title<span className='text-red-500'>*</span>
                               </label>
                               <input
                                 type='text'
@@ -583,12 +598,13 @@ export const HomeSettingsForm = () => {
                                   }))
                                 }
                                 className='w-full p-2 bg-[#00000061] rounded outline-none'
+                                required
                               />
                             </div>
 
                             <div>
                               <label className='block text-sm font-medium mb-1'>
-                                Image
+                                Image<span className='text-red-500'>*</span>
                               </label>
                               {editMediaData.image &&
                                 typeof editMediaData.image === 'string' && (
@@ -603,6 +619,7 @@ export const HomeSettingsForm = () => {
                                 accept='image/*'
                                 onChange={handleEditMediaFileUpload}
                                 className='w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                                required
                               />
                             </div>
 
@@ -694,7 +711,9 @@ export const HomeSettingsForm = () => {
             <div className='space-y-3'>
               <h4 className='text-md font-medium'>Add New Media Item</h4>
               <div>
-                <label className='block text-sm font-medium mb-1'>Title</label>
+                <label className='block text-sm font-medium mb-1'>
+                  Title<span className='text-red-500'>*</span>
+                </label>
                 <input
                   type='text'
                   placeholder='Media title'
@@ -706,17 +725,21 @@ export const HomeSettingsForm = () => {
                     }))
                   }
                   className='w-full p-2 bg-[#00000061] rounded outline-none'
+                  required
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium mb-1'>Image</label>
+                <label className='block text-sm font-medium mb-1'>
+                  Image<span className='text-red-500'>*</span>
+                </label>
                 <input
                   type='file'
                   name='mediaImage'
                   accept='image/*'
                   onChange={handleMediaFileUpload}
                   className='w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  required
                 />
               </div>
 
@@ -751,7 +774,9 @@ export const HomeSettingsForm = () => {
 
           {/* Menu Items Section */}
           <div>
-            <label className='block font-medium mb-2'>Menu Items</label>
+            <label className='block font-medium mb-2'>
+              Menu Items<span className='text-red-500'>*</span> (at least one required)
+            </label>
 
             {/* Display current menu items */}
             {formData.menuItems && formData.menuItems.length > 0 && (
@@ -765,7 +790,7 @@ export const HomeSettingsForm = () => {
                         <div className='grid grid-cols-2 gap-3'>
                           <div>
                             <label className='block text-sm font-medium mb-1'>
-                              Label
+                              Label<span className='text-red-500'>*</span>
                             </label>
                             <input
                               type='text'
@@ -777,11 +802,12 @@ export const HomeSettingsForm = () => {
                                 }))
                               }
                               className='w-full p-2 bg-[#00000061] rounded outline-none'
+                              required
                             />
                           </div>
                           <div>
                             <label className='block text-sm font-medium mb-1'>
-                              Destination
+                              Destination<span className='text-red-500'>*</span>
                             </label>
                             <input
                               type='text'
@@ -793,6 +819,7 @@ export const HomeSettingsForm = () => {
                                 }))
                               }
                               className='w-full p-2 bg-[#00000061] rounded outline-none'
+                              required
                             />
                           </div>
                           <div>
@@ -927,68 +954,95 @@ export const HomeSettingsForm = () => {
             <div className='space-y-3'>
               <h4 className='text-md font-medium'>Add New Menu Item</h4>
               <div className='grid grid-cols-2 gap-2'>
-                <input
-                  placeholder='Label'
-                  value={newMenuItem.label}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      label: e.target.value,
-                    }))
-                  }
-                  className='p-2 bg-[#00000061] rounded outline-none'
-                />
-                <input
-                  placeholder='Destination'
-                  value={newMenuItem.destination}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      destination: e.target.value,
-                    }))
-                  }
-                  className='p-2 bg-[#00000061] rounded outline-none'
-                />
-                <select
-                  value={newMenuItem.linkType}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      linkType: e.target.value,
-                    }))
-                  }
-                  className='p-2 bg-[#00000061] rounded'
-                >
-                  <option value='route'>Route</option>
-                  <option value='url'>URL</option>
-                  <option value='modal'>Modal</option>
-                </select>
-                <select
-                  value={newMenuItem.visibilityRole}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      visibilityRole: e.target.value,
-                    }))
-                  }
-                  className='p-2 bg-[#00000061] rounded'
-                >
-                  <option value='everyone'>Everyone</option>
-                  <option value='loggedIn'>Logged In</option>
-                  <option value='admin'>Admin</option>
-                </select>
-                <input
-                  type='number'
-                  placeholder='Position'
-                  value={newMenuItem.sortOrder}
-                  onChange={(e) =>
-                    setNewMenuItem((prev) => ({
-                      ...prev,
-                      sortOrder: e.target.value,
-                    }))
-                  }
-                  className='p-2 bg-[#00000061] rounded outline-none'
-                />
+                <div>
+                  <label className='block text-sm font-medium mb-1'>
+                    Label<span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    placeholder='Label'
+                    value={newMenuItem.label}
+                    onChange={(e) =>
+                      setNewMenuItem((prev) => ({
+                        ...prev,
+                        label: e.target.value,
+                      }))
+                    }
+                    className='w-full p-2 bg-[#00000061] rounded outline-none'
+                    required
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-medium mb-1'>
+                    Destination<span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    placeholder='Destination'
+                    value={newMenuItem.destination}
+                    onChange={(e) =>
+                      setNewMenuItem((prev) => ({
+                        ...prev,
+                        destination: e.target.value,
+                      }))
+                    }
+                    className='w-full p-2 bg-[#00000061] rounded outline-none'
+                    required
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-medium mb-1'>
+                    Link Type
+                  </label>
+                  <select
+                    value={newMenuItem.linkType}
+                    onChange={(e) =>
+                      setNewMenuItem((prev) => ({
+                        ...prev,
+                        linkType: e.target.value,
+                      }))
+                    }
+                    className='w-full p-2 bg-[#00000061] rounded'
+                  >
+                    <option value='route'>Route</option>
+                    <option value='url'>URL</option>
+                    <option value='modal'>Modal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium mb-1'>
+                    Visibility
+                  </label>
+                  <select
+                    value={newMenuItem.visibilityRole}
+                    onChange={(e) =>
+                      setNewMenuItem((prev) => ({
+                        ...prev,
+                        visibilityRole: e.target.value,
+                      }))
+                    }
+                    className='w-full p-2 bg-[#00000061] rounded'
+                  >
+                    <option value='everyone'>Everyone</option>
+                    <option value='loggedIn'>Logged In</option>
+                    <option value='admin'>Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className='block text-sm font-medium mb-1'>
+                    Position
+                  </label>
+                  <input
+                    type='number'
+                    placeholder='Position'
+                    value={newMenuItem.sortOrder}
+                    onChange={(e) =>
+                      setNewMenuItem((prev) => ({
+                        ...prev,
+                        sortOrder: e.target.value,
+                      }))
+                    }
+                    className='w-full p-2 bg-[#00000061] rounded outline-none'
+                  />
+                </div>
               </div>
               <button
                 type='button'
@@ -1001,15 +1055,6 @@ export const HomeSettingsForm = () => {
           </div>
 
           <div className='text-center flex space-x-3 justify-center'>
-            {/* {existingId && (
-              <button
-                type='button'
-                className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
-                onClick={handleDelete}
-              >
-                Delete
-              </button>
-            )} */}
             <button
               type='submit'
               className='text-white font-medium py-2 px-6 rounded'
