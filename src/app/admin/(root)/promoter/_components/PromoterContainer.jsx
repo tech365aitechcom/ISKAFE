@@ -5,6 +5,7 @@ import axios from 'axios'
 import Loader from '../../../../_components/Loader'
 import { API_BASE_URL } from '../../../../../constants'
 import { PromoterTable } from './PromoterTable'
+import { useSearchParams } from 'next/navigation'
 
 export const PromoterContainer = () => {
   const [showAddPromoterForm, setShowAddPromoterForm] = useState(false)
@@ -15,6 +16,16 @@ export const PromoterContainer = () => {
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
   const [searchQuery, setSearchQuery] = useState('')
+
+  const searchParams = useSearchParams()
+  const redirectOrigin = searchParams.get('redirectOrigin')
+
+  useEffect(() => {
+    if (!redirectOrigin) return
+    else if (redirectOrigin === 'addEvent') {
+      setShowAddPromoterForm(true)
+    }
+  }, [redirectOrigin])
 
   const getPromoters = async () => {
     try {
@@ -40,7 +51,10 @@ export const PromoterContainer = () => {
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
       {showAddPromoterForm ? (
-        <AddPromoterForm setShowAddPromoterForm={setShowAddPromoterForm} />
+        <AddPromoterForm
+          setShowAddPromoterForm={setShowAddPromoterForm}
+          redirectOrigin={redirectOrigin}
+        />
       ) : (
         <>
           <div className='flex justify-between items-center mb-6'>
