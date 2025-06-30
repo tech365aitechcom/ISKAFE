@@ -94,6 +94,36 @@ const SpectatorProfileForm = ({ userDetails, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+        const originalData = {
+      firstName: userDetails?.firstName || '',
+      lastName: userDetails?.lastName || '',
+      email: userDetails?.email || '',
+      phoneNumber: userDetails?.phoneNumber || '',
+      dateOfBirth: userDetails?.dateOfBirth
+        ? new Date(userDetails.dateOfBirth).toISOString().split('T')[0]
+        : '',
+      gender: userDetails?.gender || '',
+      country: userDetails?.country || '',
+      state: userDetails?.state || '',
+      city: userDetails?.city || '',
+      communicationPreferences: userDetails?.communicationPreferences || [],
+    }
+
+    const isUnchanged = Object.keys(originalData).every((key) => {
+      if (Array.isArray(originalData[key])) {
+        return (
+          JSON.stringify(originalData[key].sort()) ===
+          JSON.stringify((formData[key] || []).sort())
+        )
+      }
+      return originalData[key] === (formData[key] || '')
+    })
+
+    if (isUnchanged) {
+      enqueueSnackbar('No changes made to profile.', { variant: 'info' })
+      return
+    }
+
 
     if (!validateName(formData.firstName)) {
       enqueueSnackbar(

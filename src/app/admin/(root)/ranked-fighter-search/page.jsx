@@ -211,7 +211,7 @@ export default function RankedFighterSearch() {
           </div>
 
           {/* Get Sports Button */}
-          <div className='relative w-64 mb-4 flex items-end'>
+          <div className='relative w-64 mb- flex items-end'>
             <button
               onClick={handleGetSports}
               disabled={!filters.proClassification}
@@ -253,7 +253,7 @@ export default function RankedFighterSearch() {
           </div>
 
           {/* Get Weight Classes Button */}
-          <div className='relative w-64 mb-4 flex items-end'>
+          <div className='relative w-64  flex items-end'>
             <button
               onClick={handleGetWeightClasses}
               disabled={!filters.sport}

@@ -32,6 +32,7 @@ export function OfficialTitleTable({
   const [isLoadingSports, setIsLoadingSports] = useState(false)
   const [isLoadingTitleHolders, setIsLoadingTitleHolders] = useState(false)
   const [sportsLoadAttempted, setSportsLoadAttempted] = useState(false)
+  const [filtersChanged, setFiltersChanged] = useState(false)
 
   // Pro Classification options
   const proClassificationOptions = [
@@ -98,6 +99,7 @@ export function OfficialTitleTable({
       enqueueSnackbar('Title holders refreshed successfully', {
         variant: 'success',
       })
+      setFiltersChanged(false)
     } catch (error) {
       enqueueSnackbar('Failed to refresh title holders', { variant: 'error' })
       console.error('Error fetching title holders:', error)
@@ -113,6 +115,13 @@ export function OfficialTitleTable({
       getSports()
     }
   }, [sportsLoadAttempted]) // Depend on sportsLoadAttempted to prevent multiple calls
+
+  // Track filter changes
+  useEffect(() => {
+    if (selectedSport || selectedProClassification) {
+      setFiltersChanged(true)
+    }
+  }, [selectedSport, selectedProClassification])
 
   const handleDeleteTitle = async (titleId) => {
     try {
@@ -163,7 +172,7 @@ export function OfficialTitleTable({
       {/* Filters Section */}
       <div className='mb-6 space-y-4'>
         {/* Filter Row 1: Pro Classification and Sport Dropdowns */}
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
           {/* Pro Classification Dropdown */}
           <div>
             <label className='block text-sm font-medium text-gray-300 mb-2'>
@@ -216,36 +225,41 @@ export function OfficialTitleTable({
             <button
               onClick={getSports}
               disabled={isLoadingSports}
-              className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full md:w-auto text-sm'
+              className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full text-sm'
             >
               {isLoadingSports ? 'Loading...' : 'Refresh Sports'}
             </button>
           </div>
-
-          {/* Get Title Holders Button */}
-          <div className='flex items-end'>
-            <button
-              onClick={getTitleHolders}
-              disabled={isLoadingTitleHolders}
-              className='bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full md:w-auto text-sm'
-            >
-              {isLoadingTitleHolders ? 'Loading...' : 'Apply Filters'}
-            </button>
-          </div>
         </div>
 
-        {/* Search Bar */}
-        <div className='relative'>
-          <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
-            <Search size={18} className='text-gray-400' />
+        {/* Second row with search and apply filters button */}
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          {/* Search Bar */}
+          <div className='md:col-span-2 relative'>
+            <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
+              <Search size={18} className='text-gray-400' />
+            </div>
+            <input
+              type='text'
+              className='bg-transparent border border-gray-700 text-white rounded-md pl-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
+              placeholder='Search Titles...'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <input
-            type='text'
-            className='bg-transparent border border-gray-700 text-white rounded-md pl-10 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
-            placeholder='Search Titles...'
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+
+          {/* Apply Filters Button - Only shown when filters have changed */}
+          {filtersChanged && (
+            <div className='flex items-end'>
+              <button
+                onClick={getTitleHolders}
+                disabled={isLoadingTitleHolders}
+                className='bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full text-sm'
+              >
+                {isLoadingTitleHolders ? 'Applying...' : 'Apply Filters'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
