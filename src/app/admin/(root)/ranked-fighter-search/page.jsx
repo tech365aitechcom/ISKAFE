@@ -14,6 +14,8 @@ export default function RankedFighterSearch() {
   const [rankings, setRankings] = useState([])
   const [classifications, setClassifications] = useState([])
   const [loading, setLoading] = useState(false)
+  const [sportsLoaded, setSportsLoaded] = useState(false)
+  const [weightClassesLoaded, setWeightClassesLoaded] = useState(false)
 
   const [filters, setFilters] = useState({
     proClassification: '',
@@ -95,8 +97,47 @@ export default function RankedFighterSearch() {
     setFilters((prevState) => ({
       ...prevState,
       [name]: value,
-      ...(name === 'proClassification' && { sport: '', weightClass: '' }),
-      ...(name === 'sport' && { weightClass: '' }),
+      ...(name === 'proClassification' && { 
+        sport: '', 
+        weightClass: '',
+      }),
+      ...(name === 'sport' && { 
+        weightClass: '',
+      }),
+    }))
+
+    // Reset loaded states when classification changes
+    if (name === 'proClassification') {
+      setSportsLoaded(false)
+      setWeightClassesLoaded(false)
+    } else if (name === 'sport') {
+      setWeightClassesLoaded(false)
+    }
+  }
+
+  const handleGetSports = () => {
+    if (!filters.proClassification) {
+      enqueueSnackbar('Please select a Pro Classification first', { variant: 'error' })
+      return
+    }
+    setSportsLoaded(true)
+    setWeightClassesLoaded(false)
+    setFilters(prev => ({
+      ...prev,
+      sport: '',
+      weightClass: ''
+    }))
+  }
+
+  const handleGetWeightClasses = () => {
+    if (!filters.sport) {
+      enqueueSnackbar('Please select a Sport first', { variant: 'error' })
+      return
+    }
+    setWeightClassesLoaded(true)
+    setFilters(prev => ({
+      ...prev,
+      weightClass: ''
     }))
   }
 
@@ -105,7 +146,6 @@ export default function RankedFighterSearch() {
   }, [])
 
   const handleSearch = () => {
-    // Validate required fields
     if (!filters.proClassification || !filters.sport || !filters.weightClass) {
       enqueueSnackbar(
         'Please select all required fields: Pro Classification, Sport, and Weight Class',
@@ -144,45 +184,116 @@ export default function RankedFighterSearch() {
         </div>
 
         <div className='flex flex-wrap items-center gap-4 mb-6'>
-          {[
-            { label: 'Pro Classification', name: 'proClassification' },
-            { label: 'Sport', name: 'sport' },
-            { label: 'Weight Class', name: 'weightClass' },
-          ].map(({ label, name }, index, arr) => {
-            // Determine previous field name, or null if first
-            const prevFieldName = index > 0 ? arr[index - 1].name : null
+          {/* Pro Classification */}
+          <div className='relative w-64 mb-4'>
+            <label className='block mb-2 text-sm font-medium text-white'>
+              Pro Classification
+              <span className='text-red-500'>*</span>
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                name='proClassification'
+                value={filters.proClassification}
+                onChange={handleChange}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                required
+              >
+                <option value='' className='text-black'>
+                  Select Pro Classification
+                </option>
+                {selectOptionsMap.proClassification.map((opt) => (
+                  <option key={opt} value={opt} className='text-black'>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-            // Disable current field if previous is not selected (and previous exists)
-            const disabled = prevFieldName ? !filters[prevFieldName] : false
+          {/* Get Sports Button */}
+          <div className='relative w-64 mb-4 flex items-end'>
+            <button
+              onClick={handleGetSports}
+              disabled={!filters.proClassification}
+              className={`mt-2 text-white font-medium py-2 px-6 rounded transition duration-200 ${
+                !filters.proClassification
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              Get Sports
+            </button>
+          </div>
 
-            return (
-              <div key={name} className='relative w-64 mb-4'>
-                <label className='block mb-2 text-sm font-medium text-white'>
-                  {label}
-                  <span className='text-red-500'>*</span>
-                </label>
-                <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-                  <select
-                    name={name}
-                    value={filters[name]}
-                    onChange={handleChange}
-                    className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                    required={!disabled}
-                    disabled={disabled}
-                  >
-                    <option value='' className='text-black'>
-                      Select {label}
-                    </option>
-                    {selectOptionsMap[name].map((opt) => (
-                      <option key={opt} value={opt} className='text-black'>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )
-          })}
+          {/* Sport */}
+          <div className='relative w-64 mb-4'>
+            <label className='block mb-2 text-sm font-medium text-white'>
+              Sport
+              <span className='text-red-500'>*</span>
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                name='sport'
+                value={filters.sport}
+                onChange={handleChange}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                required
+                disabled={!sportsLoaded}
+              >
+                <option value='' className='text-black'>
+                  Select Sport
+                </option>
+                {selectOptionsMap.sport.map((opt) => (
+                  <option key={opt} value={opt} className='text-black'>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Get Weight Classes Button */}
+          <div className='relative w-64 mb-4 flex items-end'>
+            <button
+              onClick={handleGetWeightClasses}
+              disabled={!filters.sport}
+              className={`mt-2 text-white font-medium py-2 px-6 rounded transition duration-200 ${
+                !filters.sport
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              Get Weight Classes
+            </button>
+          </div>
+
+          {/* Weight Class */}
+          <div className='relative w-64 mb-4'>
+            <label className='block mb-2 text-sm font-medium text-white'>
+              Weight Class
+              <span className='text-red-500'>*</span>
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                name='weightClass'
+                value={filters.weightClass}
+                onChange={handleChange}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                required
+                disabled={!weightClassesLoaded}
+              >
+                <option value='' className='text-black'>
+                  Select Weight Class
+                </option>
+                {selectOptionsMap.weightClass.map((opt) => (
+                  <option key={opt} value={opt} className='text-black'>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {/* Country Filter */}
           <div className='relative w-64 mb-4'>
             <label className='block mb-2 text-sm font-medium text-white'>
