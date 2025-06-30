@@ -31,7 +31,7 @@ export function VenuesTable({
   const [selectedVenue, setSelectedVenue] = useState(null)
   const user = useStore((state) => state.user)
 
-  const cities = venues.map((venue) => venue.address.city)
+  const cities = [...new Set(venues.map((venue) => venue.address.city))]
 
   const handleDeleteVenue = async (id) => {
     console.log('Deleting news with ID:', id)
@@ -63,20 +63,21 @@ export function VenuesTable({
     setSearchQuery('')
   }
 
-  
-
   const renderHeader = (label) => (
-  <th
-    className={`px-4 pb-3 whitespace-nowrap cursor-pointer ${
-      label === 'Actions' ? 'text-center' : ''
-    }`}
-  >
-    <div className={`flex items-center gap-1 ${label === 'Actions' ? 'justify-center' : ''}`}>
-      {label}
-    </div>
-  </th>
-)
-
+    <th
+      className={`px-4 pb-3 whitespace-nowrap cursor-pointer ${
+        label === 'Actions' ? 'text-center' : ''
+      }`}
+    >
+      <div
+        className={`flex items-center gap-1 ${
+          label === 'Actions' ? 'justify-center' : ''
+        }`}
+      >
+        {label}
+      </div>
+    </th>
+  )
 
   return (
     <>

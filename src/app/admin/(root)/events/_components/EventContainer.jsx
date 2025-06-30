@@ -5,6 +5,7 @@ import { AddEventForm } from './AddEventForm'
 import axios from 'axios'
 import Loader from '../../../../_components/Loader'
 import { API_BASE_URL } from '../../../../../constants'
+import { useSearchParams } from 'next/navigation'
 
 export const EventContainer = () => {
   const [showAddEventForm, setShowAddEvent] = useState(false)
@@ -18,6 +19,19 @@ export const EventContainer = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
+
+  const searchParams = useSearchParams()
+  const redirectOrigin = searchParams.get('redirectOrigin')
+
+  useEffect(() => {
+    if (!redirectOrigin) return
+    else if (
+      redirectOrigin === 'addVenue' ||
+      redirectOrigin === 'addPromoter'
+    ) {
+      setShowAddEvent(true)
+    }
+  }, [redirectOrigin])
 
   const getEvents = async () => {
     setLoading(true)
@@ -43,7 +57,10 @@ export const EventContainer = () => {
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
       {showAddEventForm ? (
-        <AddEventForm setShowAddEvent={setShowAddEvent} />
+        <AddEventForm
+          setShowAddEvent={setShowAddEvent}
+          redirectOrigin={redirectOrigin}
+        />
       ) : (
         <>
           <div className='flex justify-between items-center mb-6'>

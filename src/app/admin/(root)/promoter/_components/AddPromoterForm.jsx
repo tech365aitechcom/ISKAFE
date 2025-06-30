@@ -12,8 +12,12 @@ import {
 import axios from 'axios'
 import { Country, State } from 'country-state-city'
 import Loader from '../../../../_components/Loader'
+import { useRouter } from 'next/navigation'
 
-export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
+export const AddPromoterForm = ({
+  setShowAddPromoterForm,
+  redirectOrigin = '',
+}) => {
   const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
     // Profile Info
@@ -54,6 +58,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -198,6 +203,11 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
   }
 
   const handleCancel = () => {
+    if (redirectOrigin == 'addEvent') {
+      router.push('/admin/events?redirectOrigin=addPromoter')
+    } else {
+      setShowAddPromoterForm(false)
+    }
     setFormData({
       // Profile Info
       profilePhoto: null,
@@ -234,7 +244,6 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
       assignRole: 'Promoter',
       adminNotes: '',
     })
-    setShowAddPromoterForm(false)
   }
 
   return (
@@ -242,10 +251,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
       <div className='w-full'>
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
-          <button
-            className='text-white'
-            onClick={() => setShowAddPromoterForm(false)}
-          >
+          <button className='text-white' onClick={handleCancel}>
             <svg
               xmlns='http://www.w3.org/2000/svg'
               className='h-6 w-6'
@@ -950,7 +956,7 @@ export const AddPromoterForm = ({ setShowAddPromoterForm }) => {
           <div className='flex justify-center gap-4 mb-8'>
             <button
               type='button'
-              onClick={() => setShowAddPromoterForm(false)}
+              onClick={handleCancel}
               className='bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-6 rounded transition duration-200'
             >
               Cancel

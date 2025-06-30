@@ -111,23 +111,37 @@ const Autocomplete = ({
             </span>
           ))}
 
-        <input
-          ref={inputRef}
-          type='text'
-          value={
-            multiple
-              ? inputValue
-              : isFocused
-              ? inputValue
-              : selected?.label ?? ''
-          }
-          onChange={handleInputChange}
-          placeholder={placeholder}
-          onFocus={() => setIsFocused(true)}
-          className='flex-1  text-sm text-white placeholder-gray-400 outline-none min-w-[100px]'
-          required={required}
-          readOnly={readOnly}
-        />
+        <div className='flex-1 flex items-center min-w-[100px]'>
+          <input
+            ref={inputRef}
+            type='text'
+            value={
+              multiple
+                ? inputValue
+                : isFocused
+                ? inputValue
+                : selected?.label ?? ''
+            }
+            onChange={handleInputChange}
+            placeholder={placeholder}
+            onFocus={() => setIsFocused(true)}
+            className='flex-1 text-sm text-white placeholder-gray-400 outline-none bg-transparent'
+            required={required}
+            readOnly={readOnly}
+          />
+          {!multiple && selected && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleRemove(selected)
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+              className='ml-2 text-red-500 cursor-pointer'
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {isFocused && filteredOptions.length > 0 && (

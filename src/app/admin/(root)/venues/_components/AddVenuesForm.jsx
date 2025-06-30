@@ -8,10 +8,12 @@ import useStore from '../../../../../stores/useStore'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import { Trash } from 'lucide-react'
 import Loader from '../../../../_components/Loader'
+import { useRouter } from 'next/navigation'
 
 export const AddVenuesForm = ({
   setShowAddVenueForm,
   showBackButton = true,
+  redirectOrigin = '',
 }) => {
   const user = useStore((state) => state.user)
   const [formData, setFormData] = useState({
@@ -40,6 +42,7 @@ export const AddVenuesForm = ({
     scheduledStatus: '',
     statusChangeDate: '',
   })
+  const router = useRouter()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
@@ -285,6 +288,9 @@ export const AddVenuesForm = ({
             scheduledStatus: '',
             statusChangeDate: '',
           })
+          if (redirectOrigin == 'addEvent') {
+            router.push('/admin/events?redirectOrigin=addVenue')
+          }
         }
       } else {
         console.log('Form has errors')
@@ -293,6 +299,11 @@ export const AddVenuesForm = ({
   }
 
   const handleCancel = () => {
+    if (redirectOrigin == 'addEvent') {
+      router.push('/admin/events?redirectOrigin=addVenue')
+    } else {
+      setShowAddVenueForm(false)
+    }
     setFormData({
       name: '',
       address: {
@@ -314,7 +325,6 @@ export const AddVenuesForm = ({
       scheduledStatus: '',
       statusChangeDate: '',
     })
-    setShowAddVenueForm(false)
   }
 
   const removeMedia = (index) => {
@@ -329,10 +339,7 @@ export const AddVenuesForm = ({
         {/* Header with back button */}
         <div className='flex items-center gap-4 mb-6'>
           {showBackButton && (
-            <button
-              className='mr-2 text-white'
-              onClick={() => setShowAddVenueForm(false)}
-            >
+            <button className='mr-2 text-white' onClick={handleCancel}>
               <svg
                 xmlns='http://www.w3.org/2000/svg'
                 className='h-6 w-6'

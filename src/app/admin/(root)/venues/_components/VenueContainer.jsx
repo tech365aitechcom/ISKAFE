@@ -5,6 +5,7 @@ import { VenuesTable } from './VenuesTable'
 import axios from 'axios'
 import { API_BASE_URL } from '../../../../../constants'
 import Loader from '../../../../_components/Loader'
+import { useSearchParams } from 'next/navigation'
 
 export const VenueContainer = () => {
   const [showAddVenueForm, setShowAddVenueForm] = useState(false)
@@ -17,6 +18,15 @@ export const VenueContainer = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
+  const searchParams = useSearchParams()
+  const redirectOrigin = searchParams.get('redirectOrigin')
+
+  useEffect(() => {
+    if (!redirectOrigin) return
+    else if (redirectOrigin === 'addEvent') {
+      setShowAddVenueForm(true)
+    }
+  }, [redirectOrigin])
 
   const getVenues = async () => {
     setLoading(true)
@@ -52,7 +62,10 @@ export const VenueContainer = () => {
   return (
     <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
       {showAddVenueForm ? (
-        <AddVenuesForm setShowAddVenueForm={setShowAddVenueForm} />
+        <AddVenuesForm
+          setShowAddVenueForm={setShowAddVenueForm}
+          redirectOrigin={redirectOrigin}
+        />
       ) : (
         <>
           <div className='flex justify-between items-center mb-6'>

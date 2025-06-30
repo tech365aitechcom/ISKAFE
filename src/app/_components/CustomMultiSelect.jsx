@@ -1,12 +1,15 @@
 import { useState } from 'react'
 
-export const CustomMultiSelect = ({ label, options, onChange }) => {
+export const CustomMultiSelect = ({ label, options, onChange, disabled }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [selected, setSelected] = useState([])
 
-  const toggleDropdown = () => setIsOpen((prev) => !prev)
+  const toggleDropdown = () => {
+    if (!disabled) setIsOpen((prev) => !prev)
+  }
 
   const handleSelect = (option) => {
+    if (disabled) return
     const alreadySelected = selected.find((u) => u._id === option._id)
     let updated
     if (alreadySelected) {
@@ -21,7 +24,11 @@ export const CustomMultiSelect = ({ label, options, onChange }) => {
   return (
     <div className='relative w-full'>
       <div
-        className='text-white rounded cursor-pointer'
+        className={`rounded cursor-pointer px-3  ${
+          disabled
+            ? 'bg-transparent text-gray-500 cursor-not-allowed'
+            : 'bg-[#00000061] text-white'
+        }`}
         onClick={toggleDropdown}
       >
         {selected.length > 0
@@ -29,7 +36,7 @@ export const CustomMultiSelect = ({ label, options, onChange }) => {
           : label}
       </div>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className='absolute w-full mt-1 max-h-44 overflow-y-auto border bg-white shadow-lg z-10 rounded'>
           {options.map((option) => (
             <div
