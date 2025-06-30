@@ -565,14 +565,13 @@ export const AddEventForm = ({ setShowAddEvent }) => {
             <div className="">
               <button
                 type="button"
-                onClick={() => setAddNewVenue(!addNewVenue)}
+                // onClick={() => setAddNewVenue(!addNewVenue)}
                 className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
-                  addNewVenue
-                    ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                
+                    "bg-gray-200 text-gray-800 hover:bg-gray-300"
                 }`}
               >
-                {addNewVenue ? "Cancel Add Venue" : "Add New Venue"}
+                Add New Venue
               </button>
             </div>
           </div>

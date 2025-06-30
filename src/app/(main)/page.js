@@ -8,12 +8,6 @@ import Loader from '../_components/Loader'
 import moment from 'moment'
 import useStore from '../../stores/useStore'
 
-const fighters = [
-  { name: 'Tugruk Smith', record: '16–2', image: '/fighter.png' },
-  { name: 'Eric Franks', record: '20–6', image: '/fighter.png' },
-  { name: 'Alex Warner', record: '12–1', image: '/fighter.png' },
-]
-
 export default function Home() {
   const user = useStore((state) => state.user)
   const [loading, setLoading] = useState(true)
@@ -21,6 +15,7 @@ export default function Home() {
   const [latestNews, setLatestNews] = useState(null)
   const [events, setEvents] = useState([])
   const [latestMedia, setLatestMedia] = useState([])
+  const [topFighters, setTopFighters] = useState([]) // Add this state
   const isLoggedIn = user ? true : false
 
   useEffect(() => {
@@ -31,6 +26,7 @@ export default function Home() {
         setLatestNews(response.data.latestNews)
         setEvents(response.data.upcomingEvents)
         setLatestMedia(response.data.data.latestMedia)
+        setTopFighters(response.data.topFighters || []) // Add this line
       } catch (err) {
         console.error(err)
       } finally {
@@ -102,24 +98,40 @@ export default function Home() {
       </section>
 
       {/* Top Fighters Section */}
-      {/* <section className='bg-transparent w-full py-12 px-4 md:px-20'>
-        <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
-          Top Fighters
-        </h2>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-10 text-white'>
-          {fighters.map((fighter, i) => (
-            <div key={i} className='flex flex-col items-center text-center'>
-              <img
-                src={fighter.image}
-                alt={fighter.name}
-                className='w-full h-[300px] object-contain rounded-md'
-              />
-              <p className='text-xl font-semibold mt-4'>{fighter.name}</p>
-              <p className='font-bold'>{fighter.record}</p>
-            </div>
-          ))}
-        </div>
-      </section> */}
+      {topFighters.length > 0 && (
+        <section className='bg-transparent w-full py-12 px-4 md:px-20'>
+          <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
+            Top Fighters
+          </h2>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 text-white'>
+            {topFighters.map((fighter) => (
+              <div key={fighter._id} className='flex flex-col items-center text-center bg-gray-900/50 p-6 rounded-lg border border-gray-700 hover:border-red-600 transition-colors'>
+                <div className='w-full h-[300px] mb-4 overflow-hidden rounded-md'>
+                  <img
+                    src={fighter.image}
+                    alt={fighter.name}
+                    className='w-full h-full object-cover'
+                    onError={(e) => {
+                      e.target.src = '/fighter.png' // Fallback image
+                    }}
+                  />
+                </div>
+                <h3 className='text-xl font-semibold mb-2'>{fighter.name}</h3>
+                <p className='text-red-500 font-bold text-lg mb-2'>{fighter.record}</p>
+                {fighter.weightClass && (
+                  <p className='text-gray-300 text-sm mb-1'>{fighter.weightClass}</p>
+                )}
+                {fighter.weight && (
+                  <p className='text-gray-300 text-sm mb-1'>{fighter.weight} lbs</p>
+                )}
+                {fighter.rank && (
+                  <p className='text-yellow-400 text-sm font-medium'>Rank: {fighter.rank}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Upcoming Events Section */}
       <section
@@ -170,35 +182,8 @@ export default function Home() {
           ))}
         </div>
       </section>
-      {/* <section className='bg-transparent w-full py-12 px-4 md:px-20'>
-        <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
-          Recent Event Results
-        </h2>
-        <div className='flex flex-wrap gap-4 justify-evenly w-full'>
-          <img
-            src='/fighter.png'
-            alt='Tugruk Smith'
-            className=' h-[300px] object-contain rounded-md'
-          />
-          <div className='flex flex-col gap-4 justify-center text-white text-left '>
-            <p className='text-2xl'>April 19,2025</p>
-            <h2 className='text-5xl'>Professional Photography</h2>
-            <p className='text-2xl'>
-              Professional photographers capture combat sports action at a
-              <br /> new venue at inticulate sports
-            </p>
-            <div className='w-full flex items-center justify-start mt-10'>
-              <Button
-                variant='destructive'
-                size='lg'
-                className='py-6 text-xl rounded '
-              >
-                Read More
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section> */}
+
+      {/* News Post Section */}
       <section className='bg-transparent w-full py-12 px-4 md:px-20'>
         <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
           News Post

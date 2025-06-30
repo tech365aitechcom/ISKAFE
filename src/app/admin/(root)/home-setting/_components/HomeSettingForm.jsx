@@ -7,10 +7,18 @@ import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import Loader from '../../../../_components/Loader'
 import { uploadToS3 } from '../../../../../utils/uploadToS3'
+import Confirmation from '../../_components/Confirmation'
+
 
 export const HomeSettingsForm = () => {
   const user = useStore((state) => state.user)
   const [loading, setLoading] = useState(true)
+  
+  const [isNewMediaLoading, setNewMediaLoading] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+const [confirmAction, setConfirmAction] = useState(null)
+const [confirmMessage, setConfirmMessage] = useState('')
+const [confirmTitle, setConfirmTitle] = useState('')
   const [formData, setFormData] = useState({
     logo: null,
     menuItems: [],
@@ -34,7 +42,7 @@ export const HomeSettingsForm = () => {
     status: true,
   })
 
-  const [isNewMediaLoading, setNewMediaLoading] = useState(false)
+
   const [newMedia, setNewMedia] = useState({
     title: '',
     image: null,
@@ -228,12 +236,19 @@ export const HomeSettingsForm = () => {
     setEditMenuItemData({})
   }
 
-  const handleDeleteMenuItem = (index) => {
+ const handleDeleteMenuItem = (index) => {
+  setConfirmTitle('Delete Menu Item')
+  setConfirmMessage('Are you sure you want to delete this menu item?')
+  setConfirmAction(() => () => {
     setFormData((prev) => ({
       ...prev,
       menuItems: prev.menuItems.filter((_, i) => i !== index),
     }))
-  }
+    enqueueSnackbar('Menu item deleted successfully', { variant: 'success' })
+    setShowConfirmModal(false)
+  })
+  setShowConfirmModal(true)
+}
 
   // Media Functions
   const handleAddNewLatestMedia = async () => {
@@ -364,14 +379,19 @@ export const HomeSettingsForm = () => {
       setEditMediaLoading(false)
     }
   }
-
-  const handleDeleteMedia = (index) => {
+const handleDeleteMedia = (index) => {
+  setConfirmTitle('Delete Media Item')
+  setConfirmMessage('Are you sure you want to delete this media item?')
+  setConfirmAction(() => () => {
     setFormData((prev) => ({
       ...prev,
       latestMedia: (prev.latestMedia || []).filter((_, i) => i !== index),
     }))
     enqueueSnackbar('Media item deleted successfully', { variant: 'success' })
-  }
+    setShowConfirmModal(false)
+  })
+  setShowConfirmModal(true)
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -1090,8 +1110,19 @@ export const HomeSettingsForm = () => {
           </div>
         </form>
       </div>
+      
+<Confirmation
+  isOpen={showConfirmModal}
+  title={confirmTitle}
+  message={confirmMessage}
+  onConfirm={confirmAction}
+  onCancel={() => setShowConfirmModal(false)}
+/>
     </div>
   )
 }
 
+
+
 export default HomeSettingsForm
+
