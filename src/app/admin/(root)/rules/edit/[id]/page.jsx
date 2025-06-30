@@ -56,55 +56,71 @@ export default function EditRulePage({ params }) {
   }, [id])
 
   const validateField = (name, value) => {
-    switch (name) {
-      case 'category':
-        return value.trim() === '' ? 'Rule category is required' : ''
-      case 'subTab':
-        return value.trim() === '' ? 'Sub-tab name is required' : ''
-      case 'subTabRuleDescription':
-        return value.trim() === ''
-          ? 'Sub-tab rule description is required'
-          : value.length > 1500
-          ? 'Maximum 1500 characters allowed'
-          : ''
-      case 'ruleTitle':
-        return value.trim() === ''
-          ? 'Rule title is required'
-          : value.length > 100
-          ? 'Maximum 100 characters allowed'
-          : ''
-      case 'ruleDescription':
-        return value.trim() === ''
-          ? 'Rule description is required'
-          : value.length > 2000
-          ? 'Maximum 2000 characters allowed'
-          : ''
-      case 'rule':
-        if (value && !value.name?.endsWith('.pdf')) {
-          return 'Only PDF files are allowed'
-        }
-        return ''
-      case 'videoLink':
-        if (value.trim() !== '') {
-          const isValid =
-            value.includes('youtube.com') ||
-            value.includes('youtu.be') ||
-            value.includes('vimeo.com')
-          return isValid ? '' : 'Only YouTube or Vimeo links are allowed'
-        }
-        return ''
-      case 'sortOrder':
-        return value.trim() === ''
-          ? 'Sort order is required'
-          : isNaN(value) || parseInt(value) < 0
-          ? 'Enter a valid number'
-          : ''
-      case 'status':
-        return value.trim() === '' ? 'Status is required' : ''
-      default:
-        return ''
+  // Handle null/undefined values first
+  if (value == null) {
+    if (name === 'category' || name === 'subTab' || name === 'ruleTitle' || 
+        name === 'ruleDescription' || name === 'subTabRuleDescription' || 
+        name === 'sortOrder' || name === 'status') {
+      return `${name} is required`;
     }
+    return '';
   }
+
+  switch (name) {
+    case 'category':
+    case 'subTab':
+    case 'ruleTitle':
+    case 'status':
+      const strValue = String(value).trim();
+      return strValue === '' ? `${name} is required` : '';
+    
+    case 'subTabRuleDescription':
+      const descValue = String(value).trim();
+      return descValue === ''
+        ? 'Sub-tab rule description is required'
+        : descValue.length > 1500
+        ? 'Maximum 1500 characters allowed'
+        : '';
+    
+    case 'ruleDescription':
+      const ruleDescValue = String(value).trim();
+      return ruleDescValue === ''
+        ? 'Rule description is required'
+        : ruleDescValue.length > 2000
+        ? 'Maximum 2000 characters allowed'
+        : '';
+    
+    case 'rule':
+      if (value) {
+        // Handle both File object and string URL cases
+        if (value instanceof File) {
+          return !value.name?.endsWith('.pdf') ? 'Only PDF files are allowed' : '';
+        } else if (typeof value === 'string') {
+          return !value.endsWith('.pdf') ? 'Invalid PDF URL' : '';
+        }
+      }
+      return '';
+    
+    case 'videoLink':
+      if (typeof value === 'string' && value.trim() !== '') {
+        const isValid =
+          value.includes('youtube.com') ||
+          value.includes('youtu.be') ||
+          value.includes('vimeo.com');
+        return isValid ? '' : 'Only YouTube or Vimeo links are allowed';
+      }
+      return '';
+    
+    case 'sortOrder':
+      const numValue = Number(value);
+      return isNaN(numValue) || numValue < 0
+        ? 'Enter a valid positive number'
+        : '';
+    
+    default:
+      return '';
+  }
+};
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target
@@ -192,28 +208,47 @@ export default function EditRulePage({ params }) {
         return
       }
 
-      let uploadedRule = formData.rule
-      if (formData.rule && formData.rule.name?.endsWith('.pdf')) {
-        uploadedRule = await uploadToS3(formData.rule)
+      let ruleUrl = formData.rule
+      // Only upload new file if it's a File object (not a string URL)
+      if (formData.rule instanceof File) {
+        if (!formData.rule.name?.endsWith('.pdf')) {
+          enqueueSnackbar('Only PDF files are allowed', { variant: 'error' })
+          return
+        }
+        ruleUrl = await uploadToS3(formData.rule)
       }
 
       const payload = {
-        ...formData,
-        rule: uploadedRule,
+        category: formData.category,
+        subTab: formData.subTab,
+        subTabRuleDescription: formData.subTabRuleDescription,
+        ruleTitle: formData.ruleTitle,
+        ruleDescription: formData.ruleDescription,
+        rule: ruleUrl,
+        videoLink: formData.videoLink,
+        sortOrder: formData.sortOrder,
+        status: formData.status,
       }
 
-      const res = await axios.put(`${API_BASE_URL}/rules/${id}`, payload)
+      const res = await axios.put(`${API_BASE_URL}/rules/${id}`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (res.status === apiConstants.success) {
-        enqueueSnackbar(res.data.message || 'Rule updated successfully', {
+      if (res.status === 200) {
+        enqueueSnackbar('Rule updated successfully', {
           variant: 'success',
         })
+        // Optionally redirect after success
+        // router.push('/admin/rules')
       } else {
-        enqueueSnackbar('Failed to update rule', { variant: 'error' })
+        throw new Error(res.data.message || 'Failed to update rule')
       }
     } catch (err) {
+      console.error('Update error:', err)
       enqueueSnackbar(
-        err?.response?.data?.message || 'Something went wrong',
+        err?.response?.data?.message || err.message || 'Failed to update rule',
         { variant: 'error' }
       )
     } finally {

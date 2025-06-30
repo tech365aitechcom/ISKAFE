@@ -76,6 +76,18 @@ export const HomeSettingsForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
+    
+    // Enforce character limits
+    if (name === 'platformName' && value.length > 50) {
+      enqueueSnackbar('Platform Name cannot exceed 50 characters', { variant: 'error' })
+      return
+    }
+    
+    if (name === 'tagline' && value.length > 100) {
+      enqueueSnackbar('Tagline cannot exceed 100 characters', { variant: 'error' })
+      return
+    }
+    
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -486,6 +498,7 @@ export const HomeSettingsForm = () => {
           <div>
             <label className='block font-medium mb-2'>
               Platform Name<span className='text-red-500'>*</span>
+              <span className='text-xs text-gray-400 ml-2'>(Max 50 characters)</span>
             </label>
             <input
               name='platformName'
@@ -494,12 +507,17 @@ export const HomeSettingsForm = () => {
               onChange={handleChange}
               className='w-full p-2 bg-[#00000061] rounded outline-none'
               required
+              maxLength={50}
             />
+            <div className='text-xs text-right text-gray-400 mt-1'>
+              {formData.platformName.length}/50 characters
+            </div>
           </div>
 
           <div>
             <label className='block font-medium mb-2'>
               Tagline<span className='text-red-500'>*</span>
+              <span className='text-xs text-gray-400 ml-2'>(Max 100 characters)</span>
             </label>
             <input
               name='tagline'
@@ -508,7 +526,11 @@ export const HomeSettingsForm = () => {
               onChange={handleChange}
               className='w-full p-2 bg-[#00000061] rounded outline-none'
               required
+              maxLength={100}
             />
+            <div className='text-xs text-right text-gray-400 mt-1'>
+              {formData.tagline.length}/100 characters
+            </div>
           </div>
 
           <div>
