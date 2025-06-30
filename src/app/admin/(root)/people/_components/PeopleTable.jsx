@@ -234,7 +234,7 @@ export function PeopleTable({
                     <td className='p-4'>{person.gender || 'Unspecified'}</td>
                     <td className='p-4'>
                       {Country.getCountryByCode(person.country).name ||
-                        'No Address On File'}
+                        'No Address Provided'}
                     </td>
                     <td className='p-4 capitalize'>{person.role}</td>
                     <td className='p-4 align-middle'>

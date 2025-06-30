@@ -1,7 +1,7 @@
 'use client'
 import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants/index'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import useStore from '../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
@@ -9,8 +9,8 @@ import Loader from '../../../../_components/Loader'
 
 export const ContactSettingsForm = () => {
   const user = useStore((state) => state.user)
+
   const [formData, setFormData] = useState({
-    // emailRecipients: [],
     enableCaptcha: false,
     address: '',
     phone: '',
@@ -19,27 +19,30 @@ export const ContactSettingsForm = () => {
   })
 
   const [loading, setLoading] = useState(true)
-  const [newEmailRecipient, setNewEmailRecipient] = useState('')
-  const [newTopic, setNewTopic] = useState('')
-  const [emailError, setEmailError] = useState('')
-
   const [existingId, setExistingId] = useState('')
+
+  const [topics, setTopics] = useState([])
+  const [newTopic, setNewTopic] = useState('')
+  const [editIndex, setEditIndex] = useState(null)
 
   const fetchContactSettings = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/contactUs-settings`)
-      console.log('Response:', response.data)
       if (response.data.data) {
         setExistingId(response.data.data._id)
-        setFormData(response.data.data)
+        setFormData({
+          enableCaptcha: response.data.data.enableCaptcha || false,
+          address: response.data.data.address || '',
+          phone: response.data.data.phone || '',
+          email: response.data.data.email || '',
+          googleMapEmbedUrl: response.data.data.googleMapEmbedUrl || '',
+        })
+        setTopics(response.data.data.topics || [])
       }
     } catch (error) {
-      console.log('Error fetching contact settings:', error)
       enqueueSnackbar(
         error?.response?.data?.message || 'Error loading contact settings',
-        {
-          variant: 'error',
-        }
+        { variant: 'error' }
       )
     } finally {
       setLoading(false)
@@ -63,69 +66,33 @@ export const ContactSettingsForm = () => {
     return re.test(email)
   }
 
-  // const handleAddEmailRecipient = () => {
-  //   if (!newEmailRecipient) {
-  //     setEmailError('Email cannot be empty')
-  //     return
-  //   }
-
-  //   if (!validateEmail(newEmailRecipient)) {
-  //     setEmailError('Please enter a valid email address')
-  //     return
-  //   }
-
-  //   if (formData.emailRecipients.includes(newEmailRecipient)) {
-  //     setEmailError('This email is already added')
-  //     return
-  //   }
-
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     emailRecipients: [...prev.emailRecipients, newEmailRecipient],
-  //   }))
-  //   setNewEmailRecipient('')
-  //   setEmailError('')
-  // }
-
-  // const handleRemoveEmailRecipient = (index) => {
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     emailRecipients: prev.emailRecipients.filter((_, i) => i !== index),
-  //   }))
-  // }
-
   const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (formData.email && !validateEmail(formData.email)) {
+      enqueueSnackbar('Please enter a valid contact email', {
+        variant: 'error',
+      })
+      return
+    }
+
+    const payload = {
+      ...formData,
+      topics,
+    }
+
     try {
-      e.preventDefault()
-
-      // Validate mandatory fields
-      // if (formData.emailRecipients.length === 0) {
-      //   enqueueSnackbar('At least one email recipient is required', {
-      //     variant: 'error',
-      //   })
-      //   return
-      // }
-
-      // Optional: Validate contact email if present
-      if (formData.email && !validateEmail(formData.email)) {
-        enqueueSnackbar('Please enter a valid contact email', {
-          variant: 'error',
-        })
-        return
-      }
-
-      console.log('Form submitted:', formData)
-
       let response = null
+
       if (existingId) {
         response = await axios.put(
           `${API_BASE_URL}/contactUs-settings/${existingId}`,
-          formData
+          payload
         )
       } else {
         response = await axios.post(
           `${API_BASE_URL}/contactUs-settings`,
-          formData,
+          payload,
           {
             headers: {
               Authorization: `Bearer ${user?.token}`,
@@ -134,7 +101,6 @@ export const ContactSettingsForm = () => {
         )
       }
 
-      console.log('Response:', response)
       if (
         response.status === apiConstants.success ||
         response.status === apiConstants.create
@@ -142,8 +108,8 @@ export const ContactSettingsForm = () => {
         enqueueSnackbar(response.data.message, {
           variant: 'success',
         })
+        fetchContactSettings()
       }
-      fetchContactSettings()
     } catch (error) {
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
@@ -152,6 +118,44 @@ export const ContactSettingsForm = () => {
         }
       )
     }
+  }
+
+  const handleAddTopic = () => {
+    const trimmed = newTopic.trim()
+    if (!trimmed) return
+
+    if (topics.includes(trimmed)) {
+      enqueueSnackbar('Topic already exists', { variant: 'warning' })
+      return
+    }
+
+    setTopics((prev) => [...prev, trimmed])
+    setNewTopic('')
+  }
+
+  const handleEditTopic = (index) => {
+    setEditIndex(index)
+    setNewTopic(topics[index])
+  }
+
+  const handleUpdateTopic = () => {
+    const trimmed = newTopic.trim()
+    if (!trimmed) return
+
+    if (topics.includes(trimmed) && topics[editIndex] !== trimmed) {
+      enqueueSnackbar('Topic already exists', { variant: 'warning' })
+      return
+    }
+
+    const updated = [...topics]
+    updated[editIndex] = trimmed
+    setTopics(updated)
+    setNewTopic('')
+    setEditIndex(null)
+  }
+
+  const handleDeleteTopic = (index) => {
+    setTopics((prev) => prev.filter((_, i) => i !== index))
   }
 
   if (loading) {
@@ -170,7 +174,6 @@ export const ContactSettingsForm = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Static Info Section */}
           <h2 className='font-bold mb-4 uppercase text-sm'>
             Contact Information
           </h2>
@@ -214,7 +217,7 @@ export const ContactSettingsForm = () => {
             />
           </div>
 
-          {/* Google Map */}
+          {/* Google Map Embed */}
           <div className='mb-6 bg-[#00000061] p-2 rounded'>
             <label className='block text-sm font-medium mb-1'>
               Google Map Embed URL
@@ -229,7 +232,7 @@ export const ContactSettingsForm = () => {
             />
           </div>
 
-          {/* Preview Map */}
+          {/* Map Preview */}
           {formData.googleMapEmbedUrl && (
             <div className='mb-6'>
               <label className='block text-sm font-medium mb-2'>
@@ -249,57 +252,10 @@ export const ContactSettingsForm = () => {
               </div>
             </div>
           )}
-          {/* General Section */}
-          <h2 className='font-bold mb-4 uppercase text-sm'>General</h2>
-          {/* Email Recipients */}
-          {/* <div className='mb-6'>
-            <label className='block text-sm font-medium mb-2'>
-              Email Recipients<span className='text-red-500'>*</span>
-            </label>
-            <div className='mb-2 flex flex-wrap gap-2'>
-              {formData.emailRecipients.map((email, index) => (
-                <div
-                  key={index}
-                  className='bg-[#14255D] px-3 py-1 rounded-full flex items-center gap-2'
-                >
-                  <span className='text-sm'>{email}</span>
-                  <button
-                    type='button'
-                    onClick={() => handleRemoveEmailRecipient(index)}
-                    className='text-[#AEB9E1] hover:text-white'
-                  >
-                    <X className='w-4 h-4' />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className='flex'>
-              <div className='flex-grow bg-[#00000061] p-2 rounded-l'>
-                <input
-                  type='email'
-                  value={newEmailRecipient}
-                  onChange={(e) => {
-                    setNewEmailRecipient(e.target.value)
-                    setEmailError('')
-                  }}
-                  className='w-full outline-none'
-                  placeholder='Enter recipient email'
-                />
-              </div>
-              <button
-                type='button'
-                onClick={handleAddEmailRecipient}
-                className='bg-[#7F25FB] px-4 rounded-r flex items-center justify-center'
-              >
-                <Plus className='w-5 h-5' />
-              </button>
-            </div>
-            {emailError && (
-              <p className='mt-1 text-sm text-red-500'>{emailError}</p>
-            )}
-          </div> */}
 
-          {/* Enable CAPTCHA */}
+          {/* General Settings */}
+          <h2 className='font-bold mb-4 uppercase text-sm'>General</h2>
+
           <div className='mb-6 flex items-center'>
             <input
               type='checkbox'
@@ -313,7 +269,55 @@ export const ContactSettingsForm = () => {
               Enable CAPTCHA
             </label>
           </div>
-          {/* Submission Button */}
+
+          {/* Topics Management */}
+          <h2 className='font-bold mb-4 uppercase text-sm'>Topics</h2>
+
+          <div className='mb-4 flex gap-2'>
+            <input
+              type='text'
+              className='w-full p-2 bg-[#00000061] rounded outline-none'
+              placeholder='Enter a topic'
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+            />
+            <button
+              type='button'
+              onClick={editIndex !== null ? handleUpdateTopic : handleAddTopic}
+              className='bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded text-white'
+            >
+              {editIndex !== null ? 'Update' : <Plus size={16} />}
+            </button>
+          </div>
+
+          <div className='space-y-2'>
+            {topics.map((topic, index) => (
+              <div
+                key={index}
+                className='flex justify-between items-center bg-[#00000061] px-3 py-2 rounded'
+              >
+                <span>{topic}</span>
+                <div className='flex gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => handleEditTopic(index)}
+                    className='text-blue-400 hover:text-blue-600 text-sm'
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => handleDeleteTopic(index)}
+                    className='text-red-400 hover:text-red-600 text-sm'
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Submit Button */}
           <div className='flex justify-center mt-8 mb-6'>
             <button
               type='submit'
