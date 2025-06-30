@@ -64,7 +64,7 @@ const ContactUs = () => {
           ></iframe>
         </div>
       </div>
-      <ContactForm />
+      <ContactForm topics={data?.topics} />
     </div>
   )
 }

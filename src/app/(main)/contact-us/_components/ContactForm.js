@@ -7,10 +7,9 @@ import useStore from '../../../../stores/useStore'
 import Loader from '../../../_components/Loader'
 import Link from 'next/link'
 
-const ContactForm = () => {
+const ContactForm = ({ topics }) => {
   const user = useStore((state) => state.user)
   const [focusedField, setFocusedField] = useState(null)
-  const [topics, setTopics] = useState([])
   const [events, setEvents] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -24,14 +23,6 @@ const ContactForm = () => {
   })
 
   useEffect(() => {
-    const fetchTopics = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/master/topics`)
-        setTopics(response.data.result)
-      } catch (err) {
-        console.error('Failed to fetch topics:', err)
-      }
-    }
     const fetchEvents = async () => {
       try {
         const response = await axios.get(
@@ -42,7 +33,6 @@ const ContactForm = () => {
         console.error('Failed to fetch events:', err)
       }
     }
-    fetchTopics()
     fetchEvents()
   }, [])
 
@@ -113,7 +103,7 @@ const ContactForm = () => {
       const { topic, subIssue, event, fullName, email, phone, message } =
         formData
       const payload = {
-        topic: topic?.title || '',
+        topic: topic || '',
         subIssue: subIssue || '',
         fullName: fullName.trim(),
         email: email.trim(),
@@ -206,9 +196,9 @@ const ContactForm = () => {
           )}
           <select
             name='topic'
-            value={formData.topic?.title || ''}
+            value={formData.topic || ''}
             onChange={(e) => {
-              const selected = topics.find((t) => t.title === e.target.value)
+              const selected = topics.find((t) => t === e.target.value)
               setFormData({ ...formData, topic: selected, subIssue: '' })
             }}
             onFocus={() => handleFocus('topic')}
@@ -220,12 +210,8 @@ const ContactForm = () => {
               Select a Topic*
             </option>
             {topics.map((topic, index) => (
-              <option
-                key={index}
-                value={topic.title}
-                className='text-purple-950'
-              >
-                {topic.title}
+              <option key={index} value={topic} className='text-purple-950'>
+                {topic}
               </option>
             ))}
           </select>

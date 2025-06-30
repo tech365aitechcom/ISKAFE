@@ -84,14 +84,21 @@ const Page = () => {
         <div className='absolute inset-0 bg-transparent opacity-90'></div>
         <div className='relative w-full max-w-6xl mx-auto px-4 pt-16 pb-32'>
           <div className='text-center mb-8'>
-            <h1 className='text-4xl md:text-5xl font-bold text-white'>FIGHTERS</h1>
+            <h1 className='text-4xl md:text-5xl font-bold text-white'>
+              FIGHTERS
+            </h1>
           </div>
-          <div className='absolute left-0 right-0 mx-auto px-4 w-full max-w-5xl' style={{ top: '70%' }}>
+          <div
+            className='absolute left-0 right-0 mx-auto px-4 w-full max-w-5xl'
+            style={{ top: '70%' }}
+          >
             <div className='bg-purple-950 rounded-xl p-8 shadow-xl'>
               <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
                 {/* Search */}
                 <div className='flex flex-col items-start'>
-                  <label className='text-white text-sm mb-2'>Search Fighter</label>
+                  <label className='text-white text-sm mb-2'>
+                    Search Fighter
+                  </label>
                   <input
                     type='text'
                     placeholder='Fighter Name'
@@ -114,9 +121,15 @@ const Page = () => {
                       }}
                       className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
                     >
-                      <option value='' className='bg-purple-900'>Select</option>
+                      <option value='' className='bg-purple-900'>
+                        Select
+                      </option>
                       {countries.map((c) => (
-                        <option key={c.isoCode} value={c.isoCode} className='bg-purple-900'>
+                        <option
+                          key={c.isoCode}
+                          value={c.isoCode}
+                          className='bg-purple-900'
+                        >
                           {c.name}
                         </option>
                       ))}
@@ -139,9 +152,15 @@ const Page = () => {
                       }}
                       className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
                     >
-                      <option value='' className='bg-purple-900'>Select</option>
+                      <option value='' className='bg-purple-900'>
+                        Select
+                      </option>
                       {states.map((s) => (
-                        <option key={s.isoCode} value={s.isoCode} className='bg-purple-900'>
+                        <option
+                          key={s.isoCode}
+                          value={s.isoCode}
+                          className='bg-purple-900'
+                        >
                           {s.name}
                         </option>
                       ))}
@@ -161,9 +180,15 @@ const Page = () => {
                       onChange={(e) => setCity(e.target.value)}
                       className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
                     >
-                      <option value='' className='bg-purple-900'>Select</option>
+                      <option value='' className='bg-purple-900'>
+                        Select
+                      </option>
                       {cities.map((c) => (
-                        <option key={c.name} value={c.name} className='bg-purple-900'>
+                        <option
+                          key={c.name}
+                          value={c.name}
+                          className='bg-purple-900'
+                        >
                           {c.name}
                         </option>
                       ))}
@@ -183,9 +208,15 @@ const Page = () => {
                       onChange={(e) => setTrainingStyle(e.target.value)}
                       className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
                     >
-                      <option value='' className='bg-purple-900'>Select</option>
+                      <option value='' className='bg-purple-900'>
+                        Select
+                      </option>
                       {sportTypes.map((type) => (
-                        <option key={type} value={type} className='bg-purple-900'>
+                        <option
+                          key={type}
+                          value={type}
+                          className='bg-purple-900'
+                        >
                           {type}
                         </option>
                       ))}
@@ -228,11 +259,15 @@ const Page = () => {
           const stateCode = user.state
           const cityCode = user.city
 
-          const countryName = Country.getCountryByCode(countryCode)?.name || countryCode
-          const stateName = State.getStateByCodeAndCountry(stateCode, countryCode)?.name || stateCode
-          const cityName = City.getCitiesOfState(countryCode, stateCode)?.find(
-            (c) => c.name.toLowerCase() === cityCode?.toLowerCase()
-          )?.name || cityCode
+          const countryName =
+            Country.getCountryByCode(countryCode)?.name || countryCode
+          const stateName =
+            State.getStateByCodeAndCountry(stateCode, countryCode)?.name ||
+            stateCode
+          const cityName =
+            City.getCitiesOfState(countryCode, stateCode)?.find(
+              (c) => c.name.toLowerCase() === cityCode?.toLowerCase()
+            )?.name || cityCode
 
           return (
             <FighterCard
@@ -240,7 +275,9 @@ const Page = () => {
               id={fighter._id}
               image={user.profilePhoto}
               imageAlt={user.firstName}
-              location={`${cityName}, ${stateName}, ${countryName}`}
+              city={cityName}
+              state={stateName}
+              country={countryName}
               name={`${user.firstName ?? ''} ${user.lastName ?? ''}${
                 user.nickName ? ` - ${user.nickName}` : ''
               }`}

@@ -307,12 +307,15 @@ export default function RankedFighterSearch() {
                             <td className='p-4'>{index + 1}</td>
 
                             <td className='p-4'>
-                              {ranking.fighter?.userId?.firstName +
+                              {ranking.user?.firstName +
                                 ' ' +
-                                ranking.fighter?.userId?.lastName}
+                                ranking.user?.lastName}
                             </td>
                             <td className='p-4'>
-                              {ranking.fighter.userId.country}
+                              {
+                                Country.getCountryByCode(ranking.user?.country)
+                                  .name
+                              }
                             </td>
                             <td className='p-4'>
                               {ranking.fighter.recordHighlight}

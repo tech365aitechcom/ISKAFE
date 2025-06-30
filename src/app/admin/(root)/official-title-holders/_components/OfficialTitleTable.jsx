@@ -24,7 +24,7 @@ export function OfficialTitleTable({
 }) {
   const [isDelete, setIsDelete] = useState(false)
   const [selectedTitle, setSelectedTitle] = useState(null)
-  
+
   // New state for filters
   const [sports, setSports] = useState([])
   const [selectedSport, setSelectedSport] = useState('')
@@ -38,7 +38,7 @@ export function OfficialTitleTable({
     { value: '', label: 'All Classifications' },
     { value: 'professional', label: 'Professional' },
     { value: 'amateur', label: 'Amateur' },
-    { value: 'semi-professional', label: 'Semi-Professional' }
+    { value: 'semi-professional', label: 'Semi-Professional' },
   ]
 
   // Get Sports function
@@ -46,17 +46,18 @@ export function OfficialTitleTable({
     setIsLoadingSports(true)
     try {
       // Try different possible endpoints for sports
-      let response;
+      let response
       try {
         response = await axios.get(`${API_BASE_URL}/sports`)
       } catch (error) {
         // Try alternative endpoint if first fails
         response = await axios.get(`${API_BASE_URL}/sport`)
       }
-      
-      const sportsData = response.data.data || response.data.sports || response.data || []
+
+      const sportsData =
+        response.data.data || response.data.sports || response.data || []
       setSports(Array.isArray(sportsData) ? sportsData : [])
-      
+
       if (Array.isArray(sportsData) && sportsData.length > 0) {
         enqueueSnackbar('Sports loaded successfully', { variant: 'success' })
       } else {
@@ -80,18 +81,23 @@ export function OfficialTitleTable({
     try {
       const params = new URLSearchParams()
       if (selectedSport) params.append('sport', selectedSport)
-      if (selectedProClassification) params.append('proClassification', selectedProClassification)
+      if (selectedProClassification)
+        params.append('proClassification', selectedProClassification)
       if (searchQuery) params.append('search', searchQuery)
       params.append('page', currentPage)
       params.append('limit', limit)
 
-      const response = await axios.get(`${API_BASE_URL}/official-title-holders?${params.toString()}`)
-      
+      const response = await axios.get(
+        `${API_BASE_URL}/official-title-holders?${params.toString()}`
+      )
+
       // Trigger onSuccess to refresh the data in parent component
       if (onSuccess) {
         onSuccess(response.data)
       }
-      enqueueSnackbar('Title holders refreshed successfully', { variant: 'success' })
+      enqueueSnackbar('Title holders refreshed successfully', {
+        variant: 'success',
+      })
     } catch (error) {
       enqueueSnackbar('Failed to refresh title holders', { variant: 'error' })
       console.error('Error fetching title holders:', error)
@@ -136,7 +142,7 @@ export function OfficialTitleTable({
     const weightClass = title.weightClass?.toLowerCase() ?? ''
 
     // Search filter
-    const matchesSearch = 
+    const matchesSearch =
       fullName.includes(searchQuery.toLowerCase()) ||
       titleName.includes(searchQuery.toLowerCase()) ||
       weightClass.includes(searchQuery.toLowerCase())
@@ -145,7 +151,8 @@ export function OfficialTitleTable({
     const matchesSport = !selectedSport || title.sport === selectedSport
 
     // Pro Classification filter
-    const matchesProClassification = !selectedProClassification || 
+    const matchesProClassification =
+      !selectedProClassification ||
       title.fighter?.proClassification === selectedProClassification
 
     return matchesSearch && matchesSport && matchesProClassification
@@ -168,7 +175,11 @@ export function OfficialTitleTable({
               className='bg-transparent border border-gray-700 text-white rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
             >
               {proClassificationOptions.map((option) => (
-                <option key={option.value} value={option.value} className='bg-gray-800'>
+                <option
+                  key={option.value}
+                  value={option.value}
+                  className='bg-gray-800'
+                >
                   {option.label}
                 </option>
               ))}
@@ -185,9 +196,15 @@ export function OfficialTitleTable({
               onChange={(e) => setSelectedSport(e.target.value)}
               className='bg-transparent border border-gray-700 text-white rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
             >
-              <option value='' className='bg-gray-800'>All Sports</option>
+              <option value='' className='bg-gray-800'>
+                All Sports
+              </option>
               {sports.map((sport) => (
-                <option key={sport._id || sport.id || sport.name} value={sport._id || sport.id || sport.name} className='bg-gray-800'>
+                <option
+                  key={sport._id || sport.id || sport.name}
+                  value={sport._id || sport.id || sport.name}
+                  className='bg-gray-800'
+                >
                   {sport.name || sport.title || sport}
                 </option>
               ))}
@@ -265,7 +282,7 @@ export function OfficialTitleTable({
                     >
                       <td className='p-4 capitalize'>
                         {(() => {
-                          const user = title.fighter?.userId
+                          const user = title?.user
                           const fullName = `${user?.firstName ?? ''} ${
                             user?.lastName ?? ''
                           }`
@@ -295,10 +312,16 @@ export function OfficialTitleTable({
                       <td className='p-4'>{title.title}</td>
                       <td className='p-4'>{title.weightClass}</td>
                       <td className='p-4'>
-                        {sports.find(sport => sport._id === title.sport || sport.id === title.sport)?.name || title.sport || 'N/A'}
+                        {sports.find(
+                          (sport) =>
+                            sport._id === title.sport ||
+                            sport.id === title.sport
+                        )?.name ||
+                          title.sport ||
+                          'N/A'}
                       </td>
                       <td className='p-4 capitalize'>
-                        {title.fighter?.proClassification || 'N/A'}
+                        {title?.proClassification || 'N/A'}
                       </td>
                       <td className='p-4'>{title.record || 'TODO!'}</td>
                       <td className='p-4 align-middle'>

@@ -1,4 +1,5 @@
 'use client'
+import Loader from '../../../_components/Loader'
 import { API_BASE_URL } from '../../../../constants'
 import axios from 'axios'
 import { Facebook, Instagram, Video, Youtube } from 'lucide-react'
@@ -52,7 +53,7 @@ const FighterProfile = ({ params }) => {
   if (loading) {
     return (
       <div className='bg-gray-900 text-white min-h-screen p-6 flex items-center justify-center'>
-        <div className='text-xl'>Loading fighter details...</div>
+        <Loader />
       </div>
     )
   }
@@ -74,12 +75,30 @@ const FighterProfile = ({ params }) => {
         {/* Header Section with Fighter Details */}
         <div className='flex space-x-6 mb-6'>
           {/* Fighter Image */}
-          <div className='w-64 h-64 bg-gray-800 rounded-lg overflow-hidden'>
-            <img
-              src={user?.profilePhoto || '/api/placeholder/256/256'}
-              alt={getFullName(fighter)}
-              className='w-full h-full object-cover'
-            />
+          <div className='w-64 h-64 bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center'>
+            {user?.profilePhoto ? (
+              <img
+                src={user.profilePhoto}
+                alt={getFullName(fighter)}
+                className='w-full h-full object-cover'
+              />
+            ) : (
+              <svg
+                xmlns='http://www.w3.org/2000/svg'
+                width='96'
+                height='96'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='1.5'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                className='text-gray-500'
+              >
+                <path d='M12 12c2.67 0 8 1.34 8 4v2H4v-2c0-2.66 5.33-4 8-4z' />
+                <circle cx='12' cy='7' r='4' />
+              </svg>
+            )}
           </div>
 
           {/* Fighter Info */}
@@ -272,22 +291,118 @@ const FighterProfile = ({ params }) => {
           <div className='bg-gray-800 p-6 rounded-lg'>
             <div className='text-center mb-4'>
               <p className='text-3xl font-bold text-yellow-400'>
-                {fighter.recordHighlight || 'N/A'}
+                {fighter.result || '0-0-0'}
               </p>
               <p className='text-gray-400'>Total Win-Loss-Draw Record</p>
             </div>
           </div>
         </div>
 
+        {/* Record Breakdown */}
+        <div className='mb-6'>
+          <h2 className='text-xl font-semibold mb-4'>Record Breakdown</h2>
+          <div className='grid grid-cols-2 gap-4'>
+            <div className='bg-gray-800 p-4 rounded-lg text-center'>
+              <h3 className='text-lg font-semibold mb-2'>Wins (Official)</h3>
+              <p className='text-3xl font-bold text-blue-400'>
+                {fighter.wins || 0}
+              </p>
+            </div>
+            <div className='bg-gray-800 p-4 rounded-lg text-center'>
+              <h3 className='text-lg font-semibold mb-2'>
+                Wins by Decision / Stoppage
+              </h3>
+              <p className='text-3xl font-bold text-blue-400'>
+                {fighter.winsByDecision || 0} / {fighter.winsByStoppage || 0}
+              </p>
+            </div>
+            <div className='bg-gray-800 p-4 rounded-lg text-center'>
+              <h3 className='text-lg font-semibold mb-2'>Losses (Official)</h3>
+              <p className='text-3xl font-bold text-blue-400'>
+                {fighter.losses || 0}
+              </p>
+            </div>
+            <div className='bg-gray-800 p-4 rounded-lg text-center'>
+              <h3 className='text-lg font-semibold mb-2'>
+                Losses by Decision / Stoppage
+              </h3>
+              <p className='text-3xl font-bold text-blue-400'>
+                {fighter.lossesByDecision || 0} /{' '}
+                {fighter.lossesByStoppage || 0}
+              </p>
+            </div>
+            <div className='bg-gray-800 p-4 rounded-lg text-center'>
+              <h3 className='text-lg font-semibold mb-2'>
+                Semi-Contact Record
+              </h3>
+              <p className='text-3xl font-bold text-blue-400'>
+                {fighter.semiContactWins || 0} bouts
+              </p>
+            </div>
+            <div className='bg-gray-800 p-4 rounded-lg text-center'>
+              <h3 className='text-lg font-semibold mb-2'>
+                Purported Record (Self-Claimed)
+              </h3>
+              <p className='text-3xl font-bold text-blue-400'>
+                {fighter.purportedRecord || '0-0-0'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Fight History */}
+        {fighter.fightHistory?.length > 0 ? (
+          <div className='mb-6'>
+            <h2 className='text-xl font-semibold mb-4'>Fight History</h2>
+            <div className='bg-gray-800 p-4 rounded-lg'>
+              <table className='w-full text-sm'>
+                <thead>
+                  <tr>
+                    <th className='py-2'>Date</th>
+                    <th className='py-2'>Opponent</th>
+                    <th className='py-2'>Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fighter.fightHistory.map((fight, index) => (
+                    <tr key={index}>
+                      <td className='py-2'>{fight.date}</td>
+                      <td className='py-2'>{fight.opponent}</td>
+                      <td className='py-2'>{fight.result}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className='mb-6'>
+            <h2 className='text-xl font-semibold mb-4'>Fight History</h2>
+            <div className='bg-gray-800 p-4 rounded-lg text-center'>
+              <p className='text-gray-400'>No fight history available.</p>
+            </div>
+          </div>
+        )}
+
         {/* Achievements */}
         {fighter.achievements && (
           <div className='mb-6'>
             <h2 className='text-xl font-semibold mb-4'>Achievements</h2>
-            <div className='bg-gray-800 p-4 rounded-lg'>
+            <div className='bg-gray-800 p-4 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6'>
               <div className='space-y-3'>
+                <h3 className='text-lg font-semibold'>Awards</h3>
                 <div className='flex items-center space-x-3'>
                   <div className='w-2 h-2 bg-yellow-400 rounded-full'></div>
                   <span>{fighter.achievements}</span>
+                </div>
+              </div>
+              <div className='space-y-3'>
+                <h3 className='text-lg font-semibold'>
+                  Record-Setting Moments
+                </h3>
+                <div className='flex items-center space-x-3'>
+                  <div className='w-2 h-2 bg-yellow-400 rounded-full'></div>
+                  <span>{fighter.recordHighlight}</span>
                 </div>
               </div>
             </div>
