@@ -89,88 +89,91 @@ export const ProfileForm = ({
     }
   }
 
- const handleSubmit = async (e) => {
-  e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault()
 
-  // ===== Frontend Validation =====
-  const nameRegex = /^[a-zA-Z\s'-]+$/
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  const phoneRegex = /^[0-9]{7,15}$/
-  const zipRegex = /^[0-9]{4,10}$/
+    // ===== Frontend Validation =====
+    const nameRegex = /^[a-zA-Z\s'-]+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const phoneRegex = /^[0-9]{7,15}$/
+    const zipRegex = /^[0-9]{4,10}$/
 
-  if (!nameRegex.test(formData.firstName)) {
-    return enqueueSnackbar('Invalid First Name. Only alphabets allowed.', { variant: 'error' })
-  }
-
-  if (!nameRegex.test(formData.lastName)) {
-    return enqueueSnackbar('Invalid Last Name. Only alphabets allowed.', { variant: 'error' })
-  }
-
-  if (!emailRegex.test(formData.email)) {
-    return enqueueSnackbar('Invalid Email format.', { variant: 'error' })
-  }
-
-  if (!phoneRegex.test(formData.phoneNumber)) {
-    return enqueueSnackbar('Invalid Phone Number. Only digits allowed (7–15 digits).', { variant: 'error' })
-  }
-
-  if (!formData.country) {
-    return enqueueSnackbar('Country is required.', { variant: 'error' })
-  }
-
-  if (!formData.state) {
-    return enqueueSnackbar('State is required.', { variant: 'error' })
-  }
-
-  if (!formData.city) {
-    return enqueueSnackbar('City is required.', { variant: 'error' })
-  }
-
-  if (!formData.postalCode) {
-    return enqueueSnackbar('ZIP Code is required.', { variant: 'error' })
-  }
-
-  if (!zipRegex.test(formData.postalCode)) {
-    return enqueueSnackbar('Invalid ZIP Code. Only digits allowed (4–10 digits).', { variant: 'error' })
-  }
-
-  if (formData.dateOfBirth) {
-    const dobDate = new Date(formData.dateOfBirth)
-    const today = new Date()
-    if (dobDate >= today) {
-      return enqueueSnackbar('Date of Birth must be in the past.', { variant: 'error' })
-    }
-  }
-
-  try {
-    if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
-      formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+    // Add validation for profile photo
+    if (!formData.profilePhoto) {
+      return enqueueSnackbar('Profile photo is required', { variant: 'error' })
     }
 
-    const response = await axios.put(
-      `${API_BASE_URL}/auth/users/${user._id}`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
+    if (!nameRegex.test(formData.firstName)) {
+      return enqueueSnackbar('Invalid First Name. Only alphabets allowed.', { variant: 'error' })
+    }
+
+    if (!nameRegex.test(formData.lastName)) {
+      return enqueueSnackbar('Invalid Last Name. Only alphabets allowed.', { variant: 'error' })
+    }
+
+    if (!emailRegex.test(formData.email)) {
+      return enqueueSnackbar('Invalid Email format.', { variant: 'error' })
+    }
+
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      return enqueueSnackbar('Invalid Phone Number. Only digits allowed (7–15 digits).', { variant: 'error' })
+    }
+
+    if (!formData.country) {
+      return enqueueSnackbar('Country is required.', { variant: 'error' })
+    }
+
+    if (!formData.state) {
+      return enqueueSnackbar('State is required.', { variant: 'error' })
+    }
+
+    if (!formData.city) {
+      return enqueueSnackbar('City is required.', { variant: 'error' })
+    }
+
+    if (!formData.postalCode) {
+      return enqueueSnackbar('ZIP Code is required.', { variant: 'error' })
+    }
+
+    if (!zipRegex.test(formData.postalCode)) {
+      return enqueueSnackbar('Invalid ZIP Code. Only digits allowed (4–10 digits).', { variant: 'error' })
+    }
+
+    if (formData.dateOfBirth) {
+      const dobDate = new Date(formData.dateOfBirth)
+      const today = new Date()
+      if (dobDate >= today) {
+        return enqueueSnackbar('Date of Birth must be in the past.', { variant: 'error' })
       }
-    )
-
-    if (response.status === apiConstants.success) {
-      enqueueSnackbar(response.data.message, { variant: 'success' })
-      onSuccess()
-      setType('View Profile')
     }
-  } catch (error) {
-    enqueueSnackbar(
-      error?.response?.data?.message || 'Something went wrong',
-      { variant: 'error' }
-    )
+
+    try {
+      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
+        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+      }
+
+      const response = await axios.put(
+        `${API_BASE_URL}/auth/users/${user._id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar(response.data.message, { variant: 'success' })
+        onSuccess()
+        setType('View Profile')
+      }
+    } catch (error) {
+      enqueueSnackbar(
+        error?.response?.data?.message || 'Something went wrong',
+        { variant: 'error' }
+      )
+    }
   }
-}
-
-
 
   return (
     <div className='min-h-screen text-white bg-dark-blue-900 mt-4'>
@@ -178,9 +181,14 @@ export const ProfileForm = ({
         {/* Form */}
         <form onSubmit={handleSubmit}>
           {/* Profile Picture */}
-          {isEditable ? (
-            <div className='mb-8'>
-              {formData.profilePhoto ? (
+          <div className='mb-8'>
+            <label className='block text-sm font-medium mb-2'>
+              Profile Photo<span className='text-red-500'>*</span>
+              <span className='text-xs text-gray-400 ml-2'>(Required)</span>
+            </label>
+            
+            {isEditable ? (
+              formData.profilePhoto ? (
                 <div className='relative w-72 h-64 rounded-lg overflow-hidden border border-[#D9E2F930]'>
                   <img
                     src={
@@ -212,6 +220,7 @@ export const ProfileForm = ({
                     accept='image/*'
                     onChange={handleFileChange}
                     className='absolute inset-0 opacity-0 cursor-pointer z-50'
+                    required
                   />
 
                   <div className='bg-yellow-500 opacity-50 rounded-full p-2 mb-2 z-10'>
@@ -237,10 +246,8 @@ export const ProfileForm = ({
                     SVG, PNG, JPG or GIF (max. 800 x 400px)
                   </p>
                 </label>
-              )}
-            </div>
-          ) : (
-            <div className='mb-8'>
+              )
+            ) : (
               <div className='relative w-72 h-64 rounded-lg overflow-hidden border border-[#D9E2F930] bg-[#0B122A] flex items-center justify-center'>
                 {formData.profilePhoto ? (
                   <img
@@ -270,8 +277,8 @@ export const ProfileForm = ({
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* PERSONAL DETAILS */}
           <h2 className='font-bold mb-4 uppercase text-sm'>Personal Details</h2>
@@ -317,8 +324,7 @@ export const ProfileForm = ({
               <input
                 type='email'
                 name='email'
-                  placeholder='Enter Email Address'
-
+                placeholder='Enter Email Address'
                 value={formData.email}
                 onChange={handleChange}
                 className='w-full outline-none'
@@ -334,7 +340,7 @@ export const ProfileForm = ({
               <input
                 type='text'
                 name='phoneNumber'
-                 placeholder='Enter Mobile Number'
+                placeholder='Enter Mobile Number'
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 className='w-full outline-none'
