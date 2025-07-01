@@ -97,41 +97,47 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Top Fighters Section */}
-      {topFighters.length > 0 && (
-        <section className='bg-transparent w-full py-12 px-4 md:px-20'>
-          <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
-            Top Fighters
-          </h2>
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 text-white'>
-            {topFighters.map((fighter) => (
-              <div key={fighter._id} className='flex flex-col items-center text-center bg-gray-900/50 p-6 rounded-lg border border-gray-700 hover:border-red-600 transition-colors'>
-                <div className='w-full h-[300px] mb-4 overflow-hidden rounded-md'>
-                  <img
-                    src={fighter.image}
-                    alt={fighter.name}
-                    className='w-full h-full object-cover'
-                    onError={(e) => {
-                      e.target.src = '/fighter.png' // Fallback image
-                    }}
-                  />
-                </div>
-                <h3 className='text-xl font-semibold mb-2'>{fighter.name}</h3>
-                <p className='text-red-500 font-bold text-lg mb-2'>{fighter.record}</p>
-                {fighter.weightClass && (
-                  <p className='text-gray-300 text-sm mb-1'>{fighter.weightClass}</p>
-                )}
-                {fighter.weight && (
-                  <p className='text-gray-300 text-sm mb-1'>{fighter.weight} lbs</p>
-                )}
-                {fighter.rank && (
-                  <p className='text-yellow-400 text-sm font-medium'>Rank: {fighter.rank}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+    
+{/* Top Fighters Section */}
+{topFighters.length > 0 && (
+  <section className='bg-transparent w-full py-12 px-4 md:px-20'>
+    <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
+      Top Fighters
+    </h2>
+    <div className='grid grid-cols-1 md:grid-cols-3 gap-10 text-white'>
+      {topFighters.map((fighter) => (
+        <div
+          key={fighter._id}
+          className='flex flex-col items-center text-center'
+        >
+          <img
+            src={fighter.image}
+            alt={fighter.name}
+            className='w-full h-[300px] object-contain rounded-md'
+            onError={(e) => {
+              e.target.src = '/fighter.png'
+            }}
+          />
+          <p className='text-xl font-semibold mt-4'>{fighter.name}</p>
+          <p className='text-red-500 font-bold text-lg'>{fighter.record}</p>
+          {fighter.weightClass && (
+            <p className='text-gray-300 text-sm'>{fighter.weightClass}</p>
+          )}
+          {fighter.weight && (
+            <p className='text-gray-300 text-sm'>{fighter.weight} lbs</p>
+          )}
+          {fighter.rank && (
+            <p className='text-yellow-400 text-sm font-medium'>
+              Rank: {fighter.rank}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  </section>
+)}
+
+
 
       {/* Upcoming Events Section */}
       <section

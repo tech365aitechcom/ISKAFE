@@ -381,7 +381,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 name='name'
                 value={formData.name}
                 onChange={handleChange}
-                className='w-full outline-none bg-transparent disabled:cursor-not-allowed disabled:cursor-not-allowed'
+                className='w-full outline-none bg-transparent  disabled:cursor-not-allowed'
                 required
                 placeholder='Enter Event Title'
                 disabled={!formData.venue || !formData.promoter || submitting}
@@ -497,7 +497,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 name='poster'
                 onChange={handleChange}
                 accept='image/jpeg,image/png'
-                className='w-full outline-none bg-transparent disabled:cursor-not-allowed text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:cursor-not-allowed'
+                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:cursor-not-allowed'
                 disabled={!formData.venue || !formData.promoter || submitting}
               />
               <p className='text-xs text-gray-400 mt-1'>
