@@ -12,6 +12,7 @@ import Confirmation from "../../_components/Confirmation";
 export const HomeSettingsForm = () => {
   const user = useStore((state) => state.user);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   const [isNewMediaLoading, setNewMediaLoading] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -29,7 +30,22 @@ export const HomeSettingsForm = () => {
       link: "",
     },
     latestMedia: [],
+    latestNews: "",
+    upcomingEvents: [],
+    topFighters: [],
   });
+
+  // For image previews
+  const [previews, setPreviews] = useState({
+    logo: null,
+    heroImage: null,
+    mediaImage: null,
+  });
+
+  // Data lists
+  const [newsList, setNewsList] = useState([]);
+  const [eventsList, setEventsList] = useState([]);
+  const [fightersList, setFightersList] = useState([]);
 
   const [newMenuItem, setNewMenuItem] = useState({
     label: "",
@@ -56,28 +72,62 @@ export const HomeSettingsForm = () => {
 
   const [existingId, setExistingId] = useState("");
 
-  const fetchHomeSettings = async () => {
+  // Fetch all necessary data
+  const fetchData = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/home-config`);
-      if (response.data.data) {
-        const data = response.data.data;
+      setDataLoading(true);
+      
+      // Fetch home settings
+      const homeResponse = await axios.get(`${API_BASE_URL}/home-config`);
+      if (homeResponse.data.data) {
+        const data = homeResponse.data.data;
         setFormData({
           ...data,
           latestMedia: data.latestMedia || [],
           menuItems: data.menuItems || [],
           cta: data.cta || { text: "", link: "" },
+          latestNews: data.latestNews || "",
+          upcomingEvents: data.upcomingEvents || [],
+          topFighters: data.topFighters || [],
         });
         setExistingId(data._id);
+        
+        // Set previews for existing images
+        setPreviews({
+          logo: data.logo || null,
+          heroImage: data.heroImage || null,
+          mediaImage: null
+        });
       }
+
+      // Fetch news articles
+      const newsResponse = await axios.get(`${API_BASE_URL}/news`);
+      setNewsList(newsResponse.data.data || []);
+      
+      // Fetch events
+      const eventsResponse = await axios.get(`${API_BASE_URL}/events`);
+      setEventsList(eventsResponse.data.data || []);
+      
+      // Fetch fighters
+      const fightersResponse = await axios.get(`${API_BASE_URL}/fighters`);
+      setFightersList(fightersResponse.data.data || []);
+      
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching data:", err);
+      enqueueSnackbar("Failed to load data", { variant: "error" });
+   // Set empty arrays on error
+      setNewsList([]);
+      setEventsList([]);
+      setFightersList([]);
+
     } finally {
       setLoading(false);
+      setDataLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHomeSettings();
+    fetchData();
   }, []);
 
   const handleChange = (e) => {
@@ -104,6 +154,18 @@ export const HomeSettingsForm = () => {
     }));
   };
 
+  // Handle multi-select changes
+  const handleMultiSelectChange = (e, field) => {
+    const options = e.target.options;
+    const selectedValues = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selectedValues.push(options[i].value);
+      }
+    }
+    setFormData(prev => ({ ...prev, [field]: selectedValues }));
+  };
+
   const handleFileUpload = (e) => {
     const { name, files } = e.target;
     const file = files[0];
@@ -112,6 +174,10 @@ export const HomeSettingsForm = () => {
         ...prev,
         [name]: file,
       }));
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setPreviews(prev => ({ ...prev, [name]: previewUrl }));
     }
   };
 
@@ -122,6 +188,10 @@ export const HomeSettingsForm = () => {
         ...prev,
         image: file,
       }));
+      
+      // Create preview for new media
+      const previewUrl = URL.createObjectURL(file);
+      setPreviews(prev => ({ ...prev, mediaImage: previewUrl }));
     }
   };
 
@@ -132,12 +202,26 @@ export const HomeSettingsForm = () => {
         ...prev,
         image: file,
       }));
+      
+      // Create preview for edit media
+      const previewUrl = URL.createObjectURL(file);
+      setPreviews(prev => ({ ...prev, editMediaImage: previewUrl }));
     }
   };
 
   const handleHeroCtaChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, cta: { ...prev.cta, [name]: value } }));
+  };
+
+  // Validate URLs
+  const isValidUrl = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
   };
 
   // Menu Item Functions
@@ -256,8 +340,25 @@ export const HomeSettingsForm = () => {
   const handleAddNewLatestMedia = async () => {
     setNewMediaLoading(true);
     const { title, image, sortOrder } = newMedia;
-    if (!title.trim() || !image) {
-      enqueueSnackbar("Title and image are required", {
+    
+    if (!title.trim()) {
+      enqueueSnackbar("Title is required", {
+        variant: "error",
+      });
+      setNewMediaLoading(false);
+      return;
+    }
+    
+    if (title.length > 50) {
+      enqueueSnackbar("Title cannot exceed 50 characters", {
+        variant: "error",
+      });
+      setNewMediaLoading(false);
+      return;
+    }
+    
+    if (!image) {
+      enqueueSnackbar("Image is required", {
         variant: "error",
       });
       setNewMediaLoading(false);
@@ -305,9 +406,10 @@ export const HomeSettingsForm = () => {
         sortOrder: 0,
       });
 
-      // Reset file input
+      // Reset file input and preview
       const fileInput = document.querySelector('input[name="mediaImage"]');
       if (fileInput) fileInput.value = "";
+      setPreviews(prev => ({ ...prev, mediaImage: null }));
     } catch (error) {
       console.log("Error uploading media image:", error);
     } finally {
@@ -318,11 +420,13 @@ export const HomeSettingsForm = () => {
   const handleEditMedia = (index) => {
     setEditingMedia(index);
     setEditMediaData({ ...formData.latestMedia[index] });
+    setPreviews(prev => ({ ...prev, editMediaImage: formData.latestMedia[index].image }));
   };
 
   const handleCancelEditMedia = () => {
     setEditingMedia(null);
     setEditMediaData({});
+    setPreviews(prev => ({ ...prev, editMediaImage: null }));
   };
 
   const handleSaveMedia = async () => {
@@ -331,6 +435,14 @@ export const HomeSettingsForm = () => {
 
     if (!title?.trim()) {
       enqueueSnackbar("Title is required", { variant: "error" });
+      setEditMediaLoading(false);
+      return;
+    }
+    
+    if (title.length > 50) {
+      enqueueSnackbar("Title cannot exceed 50 characters", {
+        variant: "error",
+      });
       setEditMediaLoading(false);
       return;
     }
@@ -375,12 +487,14 @@ export const HomeSettingsForm = () => {
 
       setEditingMedia(null);
       setEditMediaData({});
+      setPreviews(prev => ({ ...prev, editMediaImage: null }));
     } catch (error) {
       console.log("Error uploading media image:", error);
     } finally {
       setEditMediaLoading(false);
     }
   };
+  
   const handleDeleteMedia = (index) => {
     setConfirmTitle("Delete Media Item");
     setConfirmMessage("Are you sure you want to delete this media item?");
@@ -411,42 +525,66 @@ export const HomeSettingsForm = () => {
       },
       { condition: !formData.heroImage, message: "Hero image is required" },
       { condition: !formData.cta.text.trim(), message: "CTA text is required" },
-      { condition: !formData.cta.link.trim(), message: "CTA link is required" },
+      { 
+        condition: !formData.cta.link.trim(), 
+        message: "CTA link is required" 
+      },
+      {
+        condition: !isValidUrl(formData.cta.link),
+        message: "CTA link must be a valid URL",
+      }
     ];
+    
     for (const { condition, message } of validations) {
       if (condition) {
         enqueueSnackbar(message, { variant: "error" });
         return;
       }
     }
+    
+    // Validate media titles
+    const hasInvalidMedia = formData.latestMedia.some(media => 
+      !media.title || media.title.length > 50
+    );
+    
+    if (hasInvalidMedia) {
+      enqueueSnackbar("Media titles must be 1-50 characters", {
+        variant: "error",
+      });
+      return;
+    }
+    
     try {
+      const preparedData = { ...formData };
+      
       if (formData.logo && typeof formData.logo !== "string") {
         try {
           const s3UploadedUrl = await uploadToS3(formData.logo);
-          formData.logo = s3UploadedUrl;
+          preparedData.logo = s3UploadedUrl;
         } catch (error) {
-          console.error("Image upload failed:", error);
+          console.error("Logo upload failed:", error);
           return;
         }
       }
+      
       if (formData.heroImage && typeof formData.heroImage !== "string") {
         try {
           const s3UploadedUrl = await uploadToS3(formData.heroImage);
-          formData.heroImage = s3UploadedUrl;
+          preparedData.heroImage = s3UploadedUrl;
         } catch (error) {
-          console.error("Image upload failed:", error);
+          console.error("Hero image upload failed:", error);
           return;
         }
       }
-      console.log(formData, "formData");
+      
       let response = null;
       if (existingId) {
         response = await axios.put(
           `${API_BASE_URL}/home-config/${existingId}`,
-          formData
+          preparedData
         );
       } else {
-        response = await axios.post(`${API_BASE_URL}/home-config`, formData, {
+        response = await axios.post(`${API_BASE_URL}/home-config`, preparedData, {
           headers: {
             Authorization: `Bearer ${user?.token}`,
           },
@@ -461,7 +599,7 @@ export const HomeSettingsForm = () => {
           response.data.message || "Settings updated successfully",
           { variant: "success" }
         );
-        fetchHomeSettings();
+        fetchData();
       }
     } catch (error) {
       enqueueSnackbar(
@@ -473,21 +611,7 @@ export const HomeSettingsForm = () => {
     }
   };
 
-  const handleDelete = async () => {
-    try {
-      const response = await axios.delete(
-        `${API_BASE_URL}/home-config/${existingId}`
-      );
-      if (response.status == apiConstants.success) {
-        enqueueSnackbar(response.data.message, { variant: "success" });
-        fetchHomeSettings();
-      }
-    } catch (error) {
-      enqueueSnackbar(error?.response?.data?.message, { variant: "error" });
-    }
-  };
-
-  if (loading)
+  if (loading || dataLoading)
     return (
       <div className="min-h-screen text-white bg-dark-blue-900 flex justify-center items-center">
         <Loader />
@@ -495,148 +619,232 @@ export const HomeSettingsForm = () => {
     );
 
   return (
-    <div className="min-h-screen text-white bg-dark-blue-900">
-      <div className="w-full">
+    <div className="min-h-screen text-white bg-dark-blue-900 p-6">
+      <div className="w-full max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Manage Home Page Settings</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block font-medium mb-2">Logo</label>
-            <div className="py-4">
-              {formData.logo && typeof formData.logo === "string" && (
-                <img
-                  src={formData.logo}
-                  alt="Logo"
-                  className="w-32 h-32 object-cover rounded-full"
-                />
-              )}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Logo Section */}
+            <div className="bg-dark-blue-800 p-6 rounded-xl">
+              <label className="block font-medium mb-4 text-lg">Logo</label>
+              <div className="flex items-center gap-8">
+                <div className="flex-shrink-0">
+                  {previews.logo ? (
+                    <img
+                      src={previews.logo}
+                      alt="Logo Preview"
+                      className="w-32 h-32 object-contain rounded-lg border border-purple-500"
+                    />
+                  ) : (
+                    <div className="bg-gray-700 border-2 border-dashed rounded-xl w-32 h-32 flex items-center justify-center">
+                      <span className="text-gray-400">No logo</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-grow">
+                  <input
+                    type="file"
+                    name="logo"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                  />
+                </div>
+              </div>
             </div>
-            <input
-              type="file"
-              name="logo"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-            />
-          </div>
 
-          <div>
-            <label className="block font-medium mb-2">
-              Platform Name<span className="text-red-500">*</span>
-              <span className="text-xs text-gray-400 ml-2">
-                (Max 50 characters)
-              </span>
-            </label>
-            <input
-              name="platformName"
-              type="text"
-              value={formData.platformName}
-              onChange={handleChange}
-              className="w-full p-2 bg-[#00000061] rounded outline-none"
-              required
-              maxLength={50}
-            />
-            <div className="text-xs text-right text-gray-400 mt-1">
-              {formData.platformName.length}/50 characters
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-medium mb-2">
-              Tagline<span className="text-red-500">*</span>
-              <span className="text-xs text-gray-400 ml-2">
-                (Max 100 characters)
-              </span>
-            </label>
-            <input
-              name="tagline"
-              type="text"
-              value={formData.tagline}
-              onChange={handleChange}
-              className="w-full p-2 bg-[#00000061] rounded outline-none"
-              required
-              maxLength={100}
-            />
-            <div className="text-xs text-right text-gray-400 mt-1">
-              {formData.tagline.length}/100 characters
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-medium mb-2">
-              Hero Image<span className="text-red-500">*</span>
-            </label>
-            <div className="py-4">
-              {formData.heroImage && typeof formData.heroImage === "string" && (
-                <img
-                  src={formData.heroImage}
-                  alt="Hero Image"
-                  className="w-52 h-52 object-cover"
-                />
-              )}
-            </div>
-            <input
-              type="file"
-              name="heroImage"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+            {/* Platform Name */}
+            <div className="bg-dark-blue-800 p-6 rounded-xl">
               <label className="block font-medium mb-2">
-                CTA Text<span className="text-red-500">*</span>
+                Platform Name<span className="text-red-500">*</span>
+                <span className="text-xs text-gray-400 ml-2">
+                  (Max 50 characters)
+                </span>
               </label>
               <input
-                name="text"
+                name="platformName"
                 type="text"
-                value={formData.cta.text}
-                onChange={handleHeroCtaChange}
-                className="w-full p-2 bg-[#00000061] rounded outline-none"
+                value={formData.platformName}
+                onChange={handleChange}
+                className="w-full p-3 bg-[#00000061] rounded-lg outline-none border border-gray-700 focus:border-purple-500"
+                required
+                maxLength={50}
+              />
+              <div className="text-xs text-right text-gray-400 mt-1">
+                {formData.platformName.length}/50 characters
+              </div>
+            </div>
+
+            {/* Tagline */}
+            <div className="bg-dark-blue-800 p-6 rounded-xl">
+              <label className="block font-medium mb-2">
+                Tagline<span className="text-red-500">*</span>
+                <span className="text-xs text-gray-400 ml-2">
+                  (Max 100 characters)
+                </span>
+              </label>
+              <input
+                name="tagline"
+                type="text"
+                value={formData.tagline}
+                onChange={handleChange}
+                className="w-full p-3 bg-[#00000061] rounded-lg outline-none border border-gray-700 focus:border-purple-500"
+                required
+                maxLength={100}
+              />
+              <div className="text-xs text-right text-gray-400 mt-1">
+                {formData.tagline.length}/100 characters
+              </div>
+            </div>
+
+            {/* Hero Image */}
+            <div className="bg-dark-blue-800 p-6 rounded-xl">
+              <label className="block font-medium mb-4 text-lg">
+                Hero Image<span className="text-red-500">*</span>
+              </label>
+              <div className="mb-4">
+                {previews.heroImage ? (
+                  <img
+                    src={previews.heroImage}
+                    alt="Hero Preview"
+                    className="w-full h-64 object-cover rounded-lg border border-purple-500"
+                  />
+                ) : (
+                  <div className="bg-gray-700 border-2 border-dashed rounded-xl w-full h-64 flex items-center justify-center">
+                    <span className="text-gray-400">No hero image</span>
+                  </div>
+                )}
+              </div>
+              <input
+                type="file"
+                name="heroImage"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
                 required
               />
             </div>
-            <div>
-              <label className="block font-medium mb-2">
-                CTA Link<span className="text-red-500">*</span>
+
+            {/* CTA Section */}
+            <div className="bg-dark-blue-800 p-6 rounded-xl">
+              <label className="block font-medium mb-4 text-lg">
+                Call to Action
               </label>
-              <input
-                name="link"
-                type="text"
-                value={formData.cta.link}
-                onChange={handleHeroCtaChange}
-                className="w-full p-2 bg-[#00000061] rounded outline-none"
-                required
-              />
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-medium mb-2">
+                    CTA Text<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    name="text"
+                    type="text"
+                    value={formData.cta.text}
+                    onChange={handleHeroCtaChange}
+                    className="w-full p-3 bg-[#00000061] rounded-lg outline-none border border-gray-700 focus:border-purple-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium mb-2">
+                    CTA Link<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    name="link"
+                    type="text"
+                    value={formData.cta.link}
+                    onChange={handleHeroCtaChange}
+                    className="w-full p-3 bg-[#00000061] rounded-lg outline-none border border-gray-700 focus:border-purple-500"
+                    required
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* Latest News */}
+         <div className="bg-dark-blue-800 p-6 rounded-xl">
+      <label className="block font-medium mb-2">
+        Latest News Article
+      </label>
+      <select
+        name="latestNews"
+        value={formData.latestNews}
+        onChange={handleChange}
+        className="w-full p-3 bg-[#00000061] rounded-lg outline-none border border-gray-700 focus:border-purple-500"
+      >
+        <option value="">Select a news article</option>
+        {Array.isArray(newsList) && newsList.map((news) => (
+          <option key={news._id} value={news._id}>
+            {news.title}
+          </option>
+        ))}
+      </select>
+    </div>
+            {/* Upcoming Events */}
+            <div className="bg-dark-blue-800 p-6 rounded-xl">
+      <label className="block font-medium mb-2">
+        Upcoming Events
+      </label>
+      <select
+        multiple
+        value={formData.upcomingEvents}
+        onChange={(e) => handleMultiSelectChange(e, "upcomingEvents")}
+        className="w-full p-3 bg-[#00000061] rounded-lg outline-none border border-gray-700 focus:border-purple-500 min-h-[150px]"
+      >
+        {Array.isArray(eventsList) && eventsList.map((event) => (
+          <option key={event._id} value={event._id}>
+            {event.name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+            {/* Top Fighters */}
+             <div className="bg-dark-blue-800 p-6 rounded-xl">
+      <label className="block font-medium mb-2">
+        Top Fighters
+      </label>
+      <select
+        multiple
+        value={formData.topFighters}
+        onChange={(e) => handleMultiSelectChange(e, "topFighters")}
+        className="w-full p-3 bg-[#00000061] rounded-lg outline-none border border-gray-700 focus:border-purple-500 min-h-[150px]"
+      >
+        {Array.isArray(fightersList) && fightersList.map((fighter) => (
+          <option key={fighter._id} value={fighter._id}>
+            {fighter.name}
+          </option>
+        ))}
+      </select>
+    </div>
           </div>
 
           {/* Latest Media Section */}
-          <div>
-            <label className="block font-medium mb-2">Latest Media</label>
+          <div className="bg-dark-blue-800 p-6 rounded-xl">
+            <label className="block font-medium mb-4 text-lg">Latest Media</label>
 
             {/* Display existing media items */}
             {formData.latestMedia &&
               Array.isArray(formData.latestMedia) &&
               formData.latestMedia.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-lg font-medium mb-2">
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium mb-4">
                     Current Media Items
                   </h3>
-                  <div className="flex flex-wrap gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {formData.latestMedia.map((item, idx) => (
                       <div
                         key={idx}
-                        className="bg-[#14255D] p-4 rounded-lg min-w-[300px]"
+                        className="bg-[#14255D] p-4 rounded-lg border border-gray-700"
                       >
                         {editingMedia === idx ? (
                           // Edit mode
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium mb-1">
                                 Title<span className="text-red-500">*</span>
+                                <span className="text-xs text-gray-400 ml-2">
+                                  (Max 50 characters)
+                                </span>
                               </label>
                               <input
                                 type="text"
@@ -649,27 +857,29 @@ export const HomeSettingsForm = () => {
                                 }
                                 className="w-full p-2 bg-[#00000061] rounded outline-none"
                                 required
+                                maxLength={50}
                               />
+                              <div className="text-xs text-right text-gray-400 mt-1">
+                                {editMediaData.title?.length || 0}/50
+                              </div>
                             </div>
 
                             <div>
                               <label className="block text-sm font-medium mb-1">
                                 Image<span className="text-red-500">*</span>
                               </label>
-                              {editMediaData.image &&
-                                typeof editMediaData.image === "string" && (
-                                  <img
-                                    src={editMediaData.image}
-                                    alt={editMediaData.title}
-                                    className="w-32 h-32 object-cover rounded mb-2"
-                                  />
-                                )}
+                              {previews.editMediaImage && (
+                                <img
+                                  src={previews.editMediaImage}
+                                  alt={editMediaData.title}
+                                  className="w-full h-48 object-cover rounded mb-2"
+                                />
+                              )}
                               <input
                                 type="file"
                                 accept="image/*"
                                 onChange={handleEditMediaFileUpload}
                                 className="w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-                                required
                               />
                             </div>
 
@@ -695,10 +905,10 @@ export const HomeSettingsForm = () => {
                                 type="button"
                                 onClick={handleSaveMedia}
                                 disabled={isEditMediaLoading}
-                                className="flex items-center bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm transition-colors"
+                                className="flex items-center bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm transition-colors"
                               >
                                 {isEditMediaLoading ? (
-                                  <Loader />
+                                  <Loader size="small" />
                                 ) : (
                                   <>
                                     <Save className="w-4 h-4 mr-1" /> Save
@@ -708,7 +918,7 @@ export const HomeSettingsForm = () => {
                               <button
                                 type="button"
                                 onClick={handleCancelEditMedia}
-                                className="flex items-center bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm transition-colors"
+                                className="flex items-center bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm transition-colors"
                               >
                                 <X className="w-4 h-4 mr-1" />
                                 Cancel
@@ -718,24 +928,24 @@ export const HomeSettingsForm = () => {
                         ) : (
                           // View mode
                           <>
-                            {item.image && typeof item.image === "string" && (
+                            {item.image && (
                               <img
                                 src={item.image}
                                 alt={item.title}
-                                className="w-32 h-32 object-cover rounded mb-2"
+                                className="w-full h-48 object-cover rounded mb-3"
                               />
                             )}
-                            <p className="font-medium mb-1">
-                              Title: {item.title}
+                            <p className="font-medium mb-1 truncate">
+                              {item.title}
                             </p>
-                            <p className="text-sm text-gray-300 mb-2">
+                            <p className="text-sm text-gray-300 mb-3">
                               Position: {item.sortOrder}
                             </p>
                             <div className="flex gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleEditMedia(idx)}
-                                className="flex items-center text-blue-400 hover:text-blue-300"
+                                className="flex-1 flex items-center justify-center bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded transition-colors"
                               >
                                 <Edit2 className="w-4 h-4 mr-1" />
                                 Edit
@@ -743,7 +953,7 @@ export const HomeSettingsForm = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteMedia(idx)}
-                                className="flex items-center text-red-400 hover:text-red-300"
+                                className="flex-1 flex items-center justify-center bg-red-600 hover:bg-red-700 px-3 py-2 rounded transition-colors"
                               >
                                 <Trash2 className="w-4 h-4 mr-1" />
                                 Remove
@@ -758,11 +968,14 @@ export const HomeSettingsForm = () => {
               )}
 
             {/* Add new media item form */}
-            <div className="space-y-3">
+            <div className="space-y-4 mt-6 p-4 bg-[#14255D] rounded-lg">
               <h4 className="text-md font-medium">Add New Media Item</h4>
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Title<span className="text-red-500">*</span>
+                  <span className="text-xs text-gray-400 ml-2">
+                    (Max 50 characters)
+                  </span>
                 </label>
                 <input
                   type="text"
@@ -776,13 +989,24 @@ export const HomeSettingsForm = () => {
                   }
                   className="w-full p-2 bg-[#00000061] rounded outline-none"
                   required
+                  maxLength={50}
                 />
+                <div className="text-xs text-right text-gray-400 mt-1">
+                  {newMedia.title.length}/50
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Image<span className="text-red-500">*</span>
                 </label>
+                {previews.mediaImage && (
+                  <img
+                    src={previews.mediaImage}
+                    alt="Media preview"
+                    className="w-full h-48 object-cover rounded mb-2"
+                  />
+                )}
                 <input
                   type="file"
                   name="mediaImage"
@@ -814,31 +1038,38 @@ export const HomeSettingsForm = () => {
               <button
                 type="button"
                 onClick={handleAddNewLatestMedia}
-                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition-colors"
+                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition-colors flex items-center justify-center"
                 disabled={isNewMediaLoading}
               >
-                {isNewMediaLoading ? <Loader /> : "Add Media Item"}
+                {isNewMediaLoading ? (
+                  <Loader size="small" />
+                ) : (
+                  "Add Media Item"
+                )}
               </button>
             </div>
           </div>
 
           {/* Menu Items Section */}
-          <div>
-            <label className="block font-medium mb-2">
+          <div className="bg-dark-blue-800 p-6 rounded-xl">
+            <label className="block font-medium mb-4 text-lg">
               Menu Items<span className="text-red-500">*</span> (at least one
               required)
             </label>
 
             {/* Display current menu items */}
             {formData.menuItems && formData.menuItems.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-lg font-medium mb-2">Current Menu Items</h3>
-                <div className="space-y-2">
+              <div className="mb-6">
+                <h3 className="text-lg font-medium mb-4">Current Menu Items</h3>
+                <div className="space-y-3">
                   {formData.menuItems.map((item, idx) => (
-                    <div key={idx} className="bg-[#14255D] p-4 rounded-lg">
+                    <div
+                      key={idx}
+                      className="bg-[#14255D] p-4 rounded-lg border border-gray-700"
+                    >
                       {editingMenuItem === idx ? (
                         // Edit mode
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium mb-1">
                               Label<span className="text-red-500">*</span>
@@ -929,34 +1160,81 @@ export const HomeSettingsForm = () => {
                               className="w-full p-2 bg-[#00000061] rounded outline-none"
                             />
                           </div>
-                          <div className="col-span-2">
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={handleSaveMenuItem}
-                                className="flex items-center bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm transition-colors"
-                              >
-                                <Save className="w-4 h-4 mr-1" />
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleCancelEditMenuItem}
-                                className="flex items-center bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm transition-colors"
-                              >
-                                <X className="w-4 h-4 mr-1" />
-                                Cancel
-                              </button>
-                            </div>
+                          
+                          {/* New fields */}
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              id={`edit-open-new-${idx}`}
+                              checked={editMenuItemData.openInNewTab || false}
+                              onChange={(e) =>
+                                setEditMenuItemData((prev) => ({
+                                  ...prev,
+                                  openInNewTab: e.target.checked,
+                                }))
+                              }
+                              className="w-4 h-4"
+                            />
+                            <label 
+                              htmlFor={`edit-open-new-${idx}`}
+                              className="text-sm"
+                            >
+                              Open in new tab
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              id={`edit-status-${idx}`}
+                              checked={editMenuItemData.status ?? true}
+                              onChange={(e) =>
+                                setEditMenuItemData((prev) => ({
+                                  ...prev,
+                                  status: e.target.checked,
+                                }))
+                              }
+                              className="w-4 h-4"
+                            />
+                            <label 
+                              htmlFor={`edit-status-${idx}`}
+                              className="text-sm"
+                            >
+                              Active
+                            </label>
+                          </div>
+                          
+                          <div className="col-span-2 flex gap-2 pt-2">
+                            <button
+                              type="button"
+                              onClick={handleSaveMenuItem}
+                              className="flex items-center bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm transition-colors"
+                            >
+                              <Save className="w-4 h-4 mr-1" />
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditMenuItem}
+                              className="flex items-center bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm transition-colors"
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Cancel
+                            </button>
                           </div>
                         </div>
                       ) : (
                         // View mode
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">
-                              <span className="text-purple-300">Label:</span>{" "}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                          <div className="flex-grow">
+                            <p className="font-medium flex items-center gap-2">
+                              <span className="text-purple-300">Label:</span> 
                               {item.label}
+                              {!item.status && (
+                                <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded">
+                                  Inactive
+                                </span>
+                              )}
                             </p>
                             <p className="text-sm text-gray-300">
                               <span className="text-purple-300">
@@ -966,20 +1244,20 @@ export const HomeSettingsForm = () => {
                             </p>
                             <p className="text-sm text-gray-300">
                               <span className="text-purple-300">Type:</span>{" "}
-                              {item.linkType} |
-                              <span className="text-purple-300">
-                                Visibility:
-                              </span>{" "}
-                              {item.visibilityRole} |
+                              {item.linkType} |{" "}
+                              <span className="text-purple-300">Visibility:</span>{" "}
+                              {item.visibilityRole} |{" "}
                               <span className="text-purple-300">Position:</span>{" "}
-                              {item.sortOrder}
+                              {item.sortOrder} |{" "}
+                              <span className="text-purple-300">New Tab:</span>{" "}
+                              {item.openInNewTab ? "Yes" : "No"}
                             </p>
                           </div>
                           <div className="flex gap-2">
                             <button
                               type="button"
                               onClick={() => handleEditMenuItem(idx)}
-                              className="flex items-center text-blue-400 hover:text-blue-300"
+                              className="flex items-center bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm transition-colors"
                             >
                               <Edit2 className="w-4 h-4 mr-1" />
                               Edit
@@ -987,7 +1265,7 @@ export const HomeSettingsForm = () => {
                             <button
                               type="button"
                               onClick={() => handleDeleteMenuItem(idx)}
-                              className="flex items-center text-red-400 hover:text-red-300"
+                              className="flex items-center bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-sm transition-colors"
                             >
                               <Trash2 className="w-4 h-4 mr-1" />
                               Remove
@@ -1002,9 +1280,9 @@ export const HomeSettingsForm = () => {
             )}
 
             {/* Add new menu item form */}
-            <div className="space-y-3">
+            <div className="space-y-4 mt-6 p-4 bg-[#14255D] rounded-lg">
               <h4 className="text-md font-medium">Add New Menu Item</h4>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     Label<span className="text-red-500">*</span>
@@ -1094,24 +1372,62 @@ export const HomeSettingsForm = () => {
                     className="w-full p-2 bg-[#00000061] rounded outline-none"
                   />
                 </div>
+                
+                {/* New fields */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="open-new-tab"
+                    checked={newMenuItem.openInNewTab}
+                    onChange={(e) =>
+                      setNewMenuItem((prev) => ({
+                        ...prev,
+                        openInNewTab: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="open-new-tab" className="text-sm">
+                    Open in new tab
+                  </label>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="menu-status"
+                    checked={newMenuItem.status}
+                    onChange={(e) =>
+                      setNewMenuItem((prev) => ({
+                        ...prev,
+                        status: e.target.checked,
+                      }))
+                    }
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="menu-status" className="text-sm">
+                    Active
+                  </label>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={handleAddMenuItem}
-                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition-colors"
+                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition-colors mt-2"
               >
                 Add Menu Item
               </button>
             </div>
           </div>
 
-          <div className="text-center flex space-x-3 justify-center">
+          <div className="text-center pt-6">
             <button
               type="submit"
-              className="text-white font-medium py-2 px-6 rounded"
+              className="text-white font-medium py-3 px-8 rounded-lg text-lg transition-all hover:scale-105"
               style={{
                 background:
                   "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
+                boxShadow: "0 4px 15px rgba(203, 60, 255, 0.4)"
               }}
             >
               Save Changes
