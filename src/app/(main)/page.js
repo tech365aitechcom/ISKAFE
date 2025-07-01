@@ -15,24 +15,28 @@ export default function Home() {
   const [latestNews, setLatestNews] = useState(null)
   const [events, setEvents] = useState([])
   const [latestMedia, setLatestMedia] = useState([])
-  const [topFighters, setTopFighters] = useState([]) // Add this state
-  const isLoggedIn = user ? true : false
+  const [topFighters, setTopFighters] = useState([])
+
+  const isLoggedIn = !!user
 
   useEffect(() => {
     const fetchHomeSettings = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/home-config`)
-        setData(response.data.data)
-        setLatestNews(response.data.latestNews)
-        setEvents(response.data.upcomingEvents)
-        setLatestMedia(response.data.data.latestMedia)
-        setTopFighters(response.data.topFighters || []) // Add this line
+        const resData = response.data
+
+        setData(resData.data || {})
+        setLatestNews(resData.latestNews || resData.data?.latestNews || null)
+        setEvents(Array.isArray(resData.upcomingEvents) ? resData.upcomingEvents : [])
+        setLatestMedia(Array.isArray(resData.data?.latestMedia) ? resData.data.latestMedia : [])
+        setTopFighters(Array.isArray(resData.topFighters) ? resData.topFighters : [])
       } catch (err) {
-        console.error(err)
+        console.error('Error fetching home config:', err)
       } finally {
         setLoading(false)
       }
     }
+
     fetchHomeSettings()
   }, [])
 
@@ -72,6 +76,7 @@ export default function Home() {
           <p className='text-white text-lg sm:text-xl mt-4 max-w-xl mx-auto lg:mx-0 leading-relaxed'>
             {data?.tagline}
           </p>
+
           {!isLoggedIn && (
             <div className='mt-6 flex justify-center lg:justify-start'>
               <Link href={data?.cta?.link || '#'}>
@@ -97,7 +102,6 @@ export default function Home() {
         </div>
       </section>
 
-    
 {/* Top Fighters Section */}
 {topFighters.length > 0 && (
   <section className='bg-transparent w-full py-12 px-4 md:px-20'>
@@ -105,54 +109,76 @@ export default function Home() {
       Top Fighters
     </h2>
     <div className='grid grid-cols-1 md:grid-cols-3 gap-10 text-white'>
-      {topFighters.map((fighter) => (
-        <div
-          key={fighter._id}
-          className='flex flex-col items-center text-center'
-        >
-          <img
-            src={fighter.image}
-            alt={fighter.name}
-            className='w-full h-[300px] object-contain rounded-md'
-            onError={(e) => {
-              e.target.src = '/fighter.png'
-            }}
-          />
-          <p className='text-xl font-semibold mt-4'>{fighter.name}</p>
-          <p className='text-red-500 font-bold text-lg'>{fighter.record}</p>
-          {fighter.weightClass && (
-            <p className='text-gray-300 text-sm'>{fighter.weightClass}</p>
-          )}
-          {fighter.weight && (
-            <p className='text-gray-300 text-sm'>{fighter.weight} lbs</p>
-          )}
-          {fighter.rank && (
-            <p className='text-yellow-400 text-sm font-medium'>
-              Rank: {fighter.rank}
-            </p>
-          )}
-        </div>
-      ))}
+      {topFighters.map((fighter) => {
+        const user = fighter.userId
+        if (!user) return null
+
+        const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
+        const image = user.profilePhoto || '/fighter.png'
+
+        return (
+          <div key={fighter._id} className='flex flex-col items-center text-center bg-[#1b1b2f] p-6 rounded-lg shadow-lg'>
+            <img
+              src={image}
+              alt={fullName}
+              className='w-full h-[300px] object-contain rounded-md mb-4'
+              onError={(e) => { e.currentTarget.src = '/fighter.png' }}
+            />
+            <p className='text-xl font-semibold'>{fullName}</p>
+
+            {fighter.recordHighlight && (
+              <p className='text-red-500 font-bold text-lg'>{fighter.recordHighlight}</p>
+            )}
+
+            {fighter.weightClass && (
+              <p className='text-gray-300 text-sm'>{fighter.weightClass}</p>
+            )}
+
+            {fighter.weight && (
+              <p className='text-gray-300 text-sm'>{fighter.weight} lbs</p>
+            )}
+
+            {fighter.nationalRank && (
+              <p className='text-yellow-400 text-sm font-medium'>
+                Rank: {fighter.nationalRank}
+              </p>
+            )}
+
+            <div className='flex gap-4 justify-center mt-4'>
+              {user.instagram && (
+                <a href={user.instagram} target='_blank' rel='noopener noreferrer'>
+                  <img src='/icons/instagram.svg' alt='Instagram' className='w-6 h-6' />
+                </a>
+              )}
+              {user.facebook && (
+                <a href={user.facebook} target='_blank' rel='noopener noreferrer'>
+                  <img src='/icons/facebook.svg' alt='Facebook' className='w-6 h-6' />
+                </a>
+              )}
+              {user.youtube && (
+                <a href={user.youtube} target='_blank' rel='noopener noreferrer'>
+                  <img src='/icons/youtube.svg' alt='YouTube' className='w-6 h-6' />
+                </a>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   </section>
 )}
 
 
 
+
       {/* Upcoming Events Section */}
-      <section
-        id='events'
-        className='bg-transparent w-full py-12 px-4 md:px-20'
-      >
+      <section id='events' className='bg-transparent w-full py-12 px-4 md:px-20'>
         <h2 className='text-white text-3xl md:text-4xl font-bold uppercase tracking-wide mb-10 container mx-auto'>
           Upcoming Events
         </h2>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-10 text-white'>
-          {events.map((event, i) => (
-            <div
-              key={event._id}
-              className='flex flex-col items-center text-center'
-            >
+          {events.map((event) => (
+            <div key={event._id} className='flex flex-col items-center text-center'>
               <img
                 src={event.poster}
                 alt={event.name}
@@ -227,7 +253,7 @@ export default function Home() {
           <img
             src={latestNews?.coverImage}
             alt={latestNews?.title}
-            className=' h-[400px] w-[600px] object-contain rounded-md'
+            className='h-[400px] w-[600px] object-contain rounded-md'
           />
         </div>
       </section>
