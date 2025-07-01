@@ -1,8 +1,13 @@
 import { useState } from 'react'
 
-export const CustomMultiSelect = ({ label, options, onChange, disabled }) => {
+export const CustomMultiSelect = ({
+  label,
+  options,
+  onChange,
+  disabled,
+  value = [],
+}) => {
   const [isOpen, setIsOpen] = useState(false)
-  const [selected, setSelected] = useState([])
 
   const toggleDropdown = () => {
     if (!disabled) setIsOpen((prev) => !prev)
@@ -10,45 +15,52 @@ export const CustomMultiSelect = ({ label, options, onChange, disabled }) => {
 
   const handleSelect = (option) => {
     if (disabled) return
-    const alreadySelected = selected.find((u) => u._id === option._id)
-    let updated
+
+    const alreadySelected = value.includes(option._id)
+    let updatedIds
+
     if (alreadySelected) {
-      updated = selected.filter((u) => u._id !== option._id)
+      updatedIds = value.filter((id) => id !== option._id)
     } else {
-      updated = [...selected, option]
+      updatedIds = [...value, option._id]
     }
-    setSelected(updated)
-    onChange(updated.map((u) => u._id))
+
+    onChange(updatedIds)
   }
+
+  const selectedOptions = options.filter((opt) => value.includes(opt._id))
 
   return (
     <div className='relative w-full'>
       <div
-        className={`rounded cursor-pointer px-3  ${
-          disabled
-            ? 'bg-transparent text-gray-500 cursor-not-allowed'
-            : 'bg-[#00000061] text-white'
+        className={`rounded cursor-pointer px-3 py-2 bg-transparent ${
+          disabled ? 'text-gray-500 cursor-not-allowed' : 'text-white'
         }`}
         onClick={toggleDropdown}
       >
-        {selected.length > 0
-          ? selected.map((u) => u.fullName).join(', ')
+        {selectedOptions.length > 0
+          ? selectedOptions.map((u) => u.fullName).join(', ')
           : label}
       </div>
 
       {isOpen && !disabled && (
         <div className='absolute w-full mt-1 max-h-44 overflow-y-auto border bg-white shadow-lg z-10 rounded'>
-          {options.map((option) => (
-            <div
-              key={option._id}
-              className='p-2 hover:bg-gray-200 cursor-pointer flex items-center gap-2'
-              onClick={() => handleSelect(option)}
-            >
-              <span className='text-black'>
-                {option.fullName || option.label}
-              </span>
-            </div>
-          ))}
+          {options.map((option) => {
+            const isSelected = value.includes(option._id)
+            return (
+              <div
+                key={option._id}
+                className={`p-2 flex items-center gap-2 cursor-pointer hover:bg-gray-200 ${
+                  isSelected ? 'bg-gray-100 font-semibold' : ''
+                }`}
+                onClick={() => handleSelect(option)}
+              >
+                <span className='text-black'>
+                  {option.fullName || option.label}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
