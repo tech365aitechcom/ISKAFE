@@ -1,5 +1,6 @@
 'use client'
-import React, { use, useState } from 'react'
+import React, { use, useState, useEffect } from 'react'
+import axios from 'axios'
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,6 +18,7 @@ import Link from 'next/link'
 
 const TrainerRegistrationPage = ({ params }) => {
   const { id } = use(params)
+  const user = useStore((state) => state.user)
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     // Personal Info
@@ -42,13 +44,36 @@ const TrainerRegistrationPage = ({ params }) => {
     agreementChecked: false,
     waiverSignature: '',
 
-    // Payment
+    // Payment (kept but non-functional)
     paymentMethod: '',
     cardNumber: '',
     expiryDate: '',
     cvv: '',
     cashCode: '',
   })
+  const [errors, setErrors] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Pre-fill form with user data from Zustand store
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        gender: user.gender || '',
+        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
+        phoneNumber: user.phoneNumber || '',
+        email: user.email || '',
+        city: user.city || '',
+        state: user.state || '',
+        country: user.country || '',
+        waiverSignature: `${user.firstName || ''} ${
+          user.lastName || ''
+        }`.trim(),
+      }))
+    }
+  }, [user])
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -65,44 +90,128 @@ const TrainerRegistrationPage = ({ params }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }))
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
   }
 
   const validateStep = (step) => {
-    switch (step) {
-      case 1:
-        return (
-          formData.firstName &&
-          formData.lastName &&
-          formData.gender &&
-          formData.dateOfBirth &&
-          formData.phoneNumber &&
-          formData.email &&
-          formData.street1 &&
-          formData.city &&
-          formData.state &&
-          formData.country &&
-          formData.postalCode
-        )
-      case 2:
-        return formData.fightersRepresented.trim().length > 0
-      case 3:
-        return formData.agreementChecked && formData.waiverSignature
-      case 4:
-        if (formData.paymentMethod === 'card') {
-          return formData.cardNumber && formData.expiryDate && formData.cvv
-        } else if (formData.paymentMethod === 'cash') {
-          return formData.cashCode
+    const newErrors = {}
+    let isValid = true
+
+    if (step === 1) {
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = 'First name is required'
+        isValid = false
+      } else if (!/^[a-zA-Z ]+$/.test(formData.firstName)) {
+        newErrors.firstName = 'First name should contain only letters'
+        isValid = false
+      }
+
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = 'Last name is required'
+        isValid = false
+      } else if (!/^[a-zA-Z ]+$/.test(formData.lastName)) {
+        newErrors.lastName = 'Last name should contain only letters'
+        isValid = false
+      }
+
+      if (!formData.gender) {
+        newErrors.gender = 'Gender is required'
+        isValid = false
+      }
+
+      if (!formData.dateOfBirth) {
+        newErrors.dateOfBirth = 'Date of birth is required'
+        isValid = false
+      } else {
+        const dob = new Date(formData.dateOfBirth)
+        const today = new Date()
+        if (dob >= today) {
+          newErrors.dateOfBirth = 'Date of birth must be in the past'
+          isValid = false
         }
-        return formData.paymentMethod !== ''
-      default:
-        return true
+      }
+
+      if (!formData.phoneNumber.trim()) {
+        newErrors.phoneNumber = 'Phone number is required'
+        isValid = false
+      } else if (!/^[0-9+\- ]+$/.test(formData.phoneNumber)) {
+        newErrors.phoneNumber = 'Invalid phone number format'
+        isValid = false
+      }
+
+      if (!formData.email.trim()) {
+        newErrors.email = 'Email is required'
+        isValid = false
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = 'Invalid email format'
+        isValid = false
+      }
+
+      if (!formData.street1.trim()) {
+        newErrors.street1 = 'Street address is required'
+        isValid = false
+      }
+
+      if (!formData.city) {
+        newErrors.city = 'City is required'
+        isValid = false
+      }
+
+      if (!formData.state) {
+        newErrors.state = 'State is required'
+        isValid = false
+      }
+
+      if (!formData.country) {
+        newErrors.country = 'Country is required'
+        isValid = false
+      }
+
+      if (!formData.postalCode.trim()) {
+        newErrors.postalCode = 'Postal code is required'
+        isValid = false
+      }
     }
+
+    if (step === 2) {
+      if (!formData.fightersRepresented.trim()) {
+        newErrors.fightersRepresented = 'Please list at least one fighter'
+        isValid = false
+      }
+    }
+
+    if (step === 3) {
+      if (!formData.agreementChecked) {
+        newErrors.agreementChecked = 'You must agree to the waiver'
+        isValid = false
+      }
+
+      if (!formData.waiverSignature.trim()) {
+        newErrors.waiverSignature = 'Signature is required'
+        isValid = false
+      } else if (formData.waiverSignature.trim().split(' ').length < 2) {
+        newErrors.waiverSignature = 'Please enter your full name'
+        isValid = false
+      }
+    }
+
+    // No validation for payment step (step 4)
+
+    setErrors(newErrors)
+    return isValid
   }
 
   const nextStep = () => {
     if (validateStep(currentStep) && currentStep < 4) {
+      setCurrentStep(currentStep + 1)
     }
-    setCurrentStep(currentStep + 1)
   }
 
   const prevStep = () => {
@@ -112,13 +221,79 @@ const TrainerRegistrationPage = ({ params }) => {
   }
 
   const handleSubmit = async () => {
-    if (validateStep(4)) {
-      // Handle form submission
-      console.log('Form submitted:', formData)
-      alert('Registration completed successfully!')
+    setIsSubmitting(true)
+    try {
+      // Validate required fields first
+      const requiredFields = [
+        'firstName',
+        'lastName',
+        'email',
+        'phoneNumber',
+        'dateOfBirth',
+        'street1',
+        'postalCode',
+      ]
+
+      const missingFields = requiredFields.filter((field) => !formData[field])
+
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
+      }
+
+      const payload = {
+        // Required root-level fields
+        registrationType: 'trainer',
+        event: id, // Make sure this matches your event ID
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        dateOfBirth: new Date(formData.dateOfBirth).toISOString(),
+
+        // Address fields (also required)
+        street1: formData.street1.trim(),
+        postalCode: formData.postalCode.trim(),
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        country: formData.country || undefined,
+        street2: formData.street2?.trim() || undefined,
+
+        // Other fields
+        fightersRepresented: formData.fightersRepresented
+          .split('\n')
+          .filter((f) => f.trim())
+          .join('\n'),
+        waiverSignature: formData.waiverSignature.trim(),
+        agreementChecked: formData.agreementChecked,
+        paymentMethod: formData.paymentMethod || 'pending',
+      }
+
+      console.log('Final payload:', JSON.stringify(payload, null, 2))
+
+      const response = await axios.post(
+        `${API_BASE_URL}/registrations`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      alert('Registration successful!')
+      // window.location.href = `/events/${id}/registration-success`;
+    } catch (error) {
+      console.error('Submission error:', error)
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          'Registration failed. Please check all required fields.'
+      )
+    } finally {
+      setIsSubmitting(false)
     }
   }
-
   const renderPersonalInfoStep = () => (
     <div className='space-y-4'>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -143,6 +318,9 @@ const TrainerRegistrationPage = ({ params }) => {
               className={`w-full outline-none bg-transparent text-white disabled:text-gray-400`}
               required={!field.disabled}
             />
+            {errors[field.name] && (
+              <p className='text-red-500 text-xs mt-1'>{errors[field.name]}</p>
+            )}
           </div>
         ))}
       </div>
@@ -155,7 +333,9 @@ const TrainerRegistrationPage = ({ params }) => {
               type='radio'
               name='gender'
               value='Male'
-              onChange={handleChange}
+              onChange={() =>
+                setFormData((prev) => ({ ...prev, gender: 'Male' }))
+              }
               checked={formData.gender === 'Male'}
               className='mr-2'
             />
@@ -166,13 +346,18 @@ const TrainerRegistrationPage = ({ params }) => {
               type='radio'
               name='gender'
               value='Female'
-              onChange={handleChange}
+              onChange={() =>
+                setFormData((prev) => ({ ...prev, gender: 'Female' }))
+              }
               checked={formData.gender === 'Female'}
               className='mr-2'
             />
             Female
           </label>
         </div>
+        {errors.gender && (
+          <p className='text-red-500 text-xs mt-1'>{errors.gender}</p>
+        )}
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
@@ -194,6 +379,7 @@ const TrainerRegistrationPage = ({ params }) => {
             name: 'email',
             type: 'email',
             required: true,
+            disabled: !!user?.email,
           },
           { label: 'Street 1', name: 'street1', required: true },
           {
@@ -219,6 +405,9 @@ const TrainerRegistrationPage = ({ params }) => {
               className={`w-full outline-none bg-transparent text-white disabled:text-gray-400`}
               required={!field.disabled}
             />
+            {errors[field.name] && (
+              <p className='text-red-500 text-xs mt-1'>{errors[field.name]}</p>
+            )}
           </div>
         ))}
         <div className='bg-[#00000061] p-2 rounded'>
@@ -245,6 +434,9 @@ const TrainerRegistrationPage = ({ params }) => {
               </option>
             ))}
           </select>
+          {errors.country && (
+            <p className='text-red-500 text-xs mt-1'>{errors.country}</p>
+          )}
         </div>
         <div className='bg-[#00000061] p-2 rounded'>
           <label className='block font-medium mb-1'>
@@ -271,6 +463,9 @@ const TrainerRegistrationPage = ({ params }) => {
               </option>
             ))}
           </select>
+          {errors.state && (
+            <p className='text-red-500 text-xs mt-1'>{errors.state}</p>
+          )}
         </div>
 
         <div className='bg-[#00000061] p-2 rounded'>
@@ -294,6 +489,9 @@ const TrainerRegistrationPage = ({ params }) => {
               </option>
             ))}
           </select>
+          {errors.city && (
+            <p className='text-red-500 text-xs mt-1'>{errors.city}</p>
+          )}
         </div>
         <div className='bg-[#00000061] p-2 rounded'>
           <label className='text-white font-medium'>ZIP Code *</label>
@@ -305,6 +503,9 @@ const TrainerRegistrationPage = ({ params }) => {
             placeholder='Enter ZIP Code'
             className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
           />
+          {errors.postalCode && (
+            <p className='text-red-500 text-xs mt-1'>{errors.postalCode}</p>
+          )}
         </div>
       </div>
     </div>
@@ -323,7 +524,13 @@ const TrainerRegistrationPage = ({ params }) => {
           placeholder='Enter fighter names (one per line)'
           className='w-full outline-none bg-transparent text-white'
           required
+          rows={5}
         />
+        {errors.fightersRepresented && (
+          <p className='text-red-500 text-xs mt-1'>
+            {errors.fightersRepresented}
+          </p>
+        )}
         <p className='text-gray-400 text-sm mt-1'>
           List each fighter you represent on a separate line
         </p>
@@ -378,6 +585,9 @@ const TrainerRegistrationPage = ({ params }) => {
           I agree to waiver. Must be checked to proceed. *
         </label>
       </div>
+      {errors.agreementChecked && (
+        <p className='text-red-500 text-xs mt-1'>{errors.agreementChecked}</p>
+      )}
 
       <div>
         <label className='text-white font-medium'>Digital Signature *</label>
@@ -390,6 +600,9 @@ const TrainerRegistrationPage = ({ params }) => {
           className='w-full mt-1 p-2 rounded bg-[#00000061] text-white placeholder-gray-400'
           required
         />
+        {errors.waiverSignature && (
+          <p className='text-red-500 text-xs mt-1'>{errors.waiverSignature}</p>
+        )}
         <p className='text-gray-400 text-sm mt-1'>
           This serves as your legal digital signature
         </p>
@@ -399,8 +612,15 @@ const TrainerRegistrationPage = ({ params }) => {
 
   const renderPaymentStep = () => (
     <div className='space-y-4'>
+      <div className='bg-yellow-500/20 p-4 rounded-lg mb-4'>
+        <p className='text-yellow-400 font-medium'>
+          Note: Payment processing will be implemented soon. Your registration
+          will be confirmed, and payment details will be collected later.
+        </p>
+      </div>
+
       <div>
-        <label className='text-white font-medium'>Payment Method *</label>
+        <label className='text-white font-medium'>Payment Method</label>
         <div className='flex space-x-4 mt-2'>
           <label className='text-white flex items-center'>
             <input
@@ -428,10 +648,10 @@ const TrainerRegistrationPage = ({ params }) => {
       </div>
 
       {formData.paymentMethod === 'card' && (
-        <div className='space-y-4'>
+        <div className='space-y-4 mt-4'>
           <div className='grid grid-cols-3 gap-4'>
             <div>
-              <label className='text-white font-medium'>Card Number *</label>
+              <label className='text-white font-medium'>Card Number</label>
               <input
                 type='text'
                 name='cardNumber'
@@ -439,11 +659,11 @@ const TrainerRegistrationPage = ({ params }) => {
                 onChange={handleChange}
                 placeholder='1234 5678 9012 3456'
                 className='w-full mt-1 p-2 rounded bg-[#00000061] text-white placeholder-gray-400'
-                required
+                disabled
               />
             </div>
             <div>
-              <label className='text-white font-medium'>Expiry Date *</label>
+              <label className='text-white font-medium'>Expiry Date</label>
               <input
                 type='text'
                 name='expiryDate'
@@ -451,11 +671,11 @@ const TrainerRegistrationPage = ({ params }) => {
                 onChange={handleChange}
                 placeholder='MM/YY'
                 className='w-full mt-1 p-2 rounded bg-[#00000061] text-white placeholder-gray-400'
-                required
+                disabled
               />
             </div>
             <div>
-              <label className='text-white font-medium'>CVV *</label>
+              <label className='text-white font-medium'>CVV</label>
               <input
                 type='text'
                 name='cvv'
@@ -463,7 +683,7 @@ const TrainerRegistrationPage = ({ params }) => {
                 onChange={handleChange}
                 placeholder='123'
                 className='w-full mt-1 p-2 rounded bg-[#00000061] text-white placeholder-gray-400'
-                required
+                disabled
               />
             </div>
           </div>
@@ -471,8 +691,8 @@ const TrainerRegistrationPage = ({ params }) => {
       )}
 
       {formData.paymentMethod === 'cash' && (
-        <div>
-          <label className='text-white font-medium'>Cash Code *</label>
+        <div className='mt-4'>
+          <label className='text-white font-medium'>Cash Code</label>
           <input
             type='text'
             name='cashCode'
@@ -480,7 +700,7 @@ const TrainerRegistrationPage = ({ params }) => {
             onChange={handleChange}
             placeholder='Enter event code'
             className='w-full mt-1 p-2 rounded bg-[#00000061] text-white placeholder-gray-400'
-            required
+            disabled
           />
           <p className='text-gray-400 text-sm mt-1'>
             Code must match issued code from event staff
@@ -609,7 +829,6 @@ const TrainerRegistrationPage = ({ params }) => {
                 <button
                   type='button'
                   onClick={nextStep}
-                  // disabled={!validateStep(currentStep)}
                   className='flex items-center space-x-2 bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-600 transition-colors'
                 >
                   <span>Next</span>
@@ -619,10 +838,10 @@ const TrainerRegistrationPage = ({ params }) => {
                 <button
                   type='button'
                   onClick={handleSubmit}
-                  disabled={!validateStep(4)}
+                  disabled={isSubmitting}
                   className='flex items-center space-x-2 bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-600 transition-colors'
                 >
-                  {formData.paymentMethod === 'card' ? 'Pay' : 'Submit'}
+                  {isSubmitting ? 'Submitting...' : 'Complete Registration'}
                 </button>
               )}
             </div>
