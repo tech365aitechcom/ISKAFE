@@ -12,7 +12,6 @@ import {
   PenTool,
   CheckCircle,
 } from 'lucide-react'
-import { countries } from '../../../../../constants'
 import { City, Country, State } from 'country-state-city'
 import Link from 'next/link'
 
