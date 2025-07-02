@@ -1,6 +1,10 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { API_BASE_URL, apiConstants } from '../../../../constants'
+import {
+  API_BASE_URL,
+  apiConstants,
+  subtopicsByTopic,
+} from '../../../../constants'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../stores/useStore'
@@ -65,6 +69,9 @@ const ContactForm = ({ topics }) => {
         return
       }
 
+      const { topic, subIssue, event, fullName, email, phone, message } =
+        formData
+
       const nameRegex = /^[a-zA-Z\s'-]+$/
       if (!nameRegex.test(fullName.trim())) {
         enqueueSnackbar('Please enter a valid full name', {
@@ -100,8 +107,6 @@ const ContactForm = ({ topics }) => {
         return
       }
 
-      const { topic, subIssue, event, fullName, email, phone, message } =
-        formData
       const payload = {
         topic: topic || '',
         subIssue: subIssue || '',
@@ -140,6 +145,8 @@ const ContactForm = ({ topics }) => {
         })
       }
     } catch (error) {
+      console.log('Error submitting contact form:', error)
+
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
         {
@@ -150,6 +157,10 @@ const ContactForm = ({ topics }) => {
       setIsSubmitting(false)
     }
   }
+
+  // Get subtopics for selected topic
+  const selectedSubtopics =
+    subtopicsByTopic.find((t) => t.title === formData.topic)?.subtopics || []
 
   return (
     <div className='flex items-center justify-center w-full pb-10'>
@@ -197,10 +208,9 @@ const ContactForm = ({ topics }) => {
           <select
             name='topic'
             value={formData.topic || ''}
-            onChange={(e) => {
-              const selected = topics.find((t) => t === e.target.value)
-              setFormData({ ...formData, topic: selected, subIssue: '' })
-            }}
+            onChange={(e) =>
+              setFormData({ ...formData, topic: e.target.value, subIssue: '' })
+            }
             onFocus={() => handleFocus('topic')}
             onBlur={handleBlur}
             required
@@ -209,15 +219,20 @@ const ContactForm = ({ topics }) => {
             <option value='' disabled className='text-purple-950'>
               Select a Topic*
             </option>
-            {topics.map((topic, index) => (
-              <option key={index} value={topic} className='text-purple-950'>
-                {topic}
+            {subtopicsByTopic.map((topic, index) => (
+              <option
+                key={index}
+                value={topic.title}
+                className='text-purple-950'
+              >
+                {topic.title}
               </option>
             ))}
           </select>
         </div>
+
         {/* Sub topic */}
-        {formData.topic?.subtopics && (
+        {selectedSubtopics.length > 0 && (
           <div className='relative'>
             {focusedField === 'subIssue' && (
               <label className='absolute -top-2.5 left-2 px-1 text-xs text-yellow-500'>
@@ -236,7 +251,7 @@ const ContactForm = ({ topics }) => {
               <option value='' disabled className='text-purple-950'>
                 Select a Sub Issue*
               </option>
-              {formData.topic.subtopics.map((sub, index) => (
+              {selectedSubtopics.map((sub, index) => (
                 <option key={index} value={sub} className='text-purple-950'>
                   {sub}
                 </option>
@@ -244,6 +259,7 @@ const ContactForm = ({ topics }) => {
             </select>
           </div>
         )}
+
         {/* Full Name */}
         <div className='relative'>
           {focusedField === 'fullName' && (

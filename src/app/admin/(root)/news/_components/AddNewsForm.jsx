@@ -339,7 +339,6 @@ export const AddNewsForm = ({ setShowAddNewsForm }) => {
               <option value='Published' className='text-black'>
                 Published
               </option>
-              {/* Add more countries as needed */}
             </select>
           </div>
           {/* Action Buttons */}
