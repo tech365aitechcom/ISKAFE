@@ -5,7 +5,7 @@ import { ChevronDown, Edit, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../../../constants'
-import { Country, State } from 'country-state-city'
+import { Country, State, City } from 'country-state-city'
 import Pagination from '../../_components/Pagination'
 import Flag from 'react-world-flags'
 
@@ -15,14 +15,19 @@ const TrainingFacilitiesPage = () => {
   const [facilityName, setFacilityName] = useState('')
   const [country, setCountry] = useState('')
   const [state, setState] = useState('')
+  const [city, setCity] = useState('')
   const [bgImage, setBgImage] = useState('/Cover.png')
   const [topPosition, setTopPosition] = useState('90%')
   const [limit, setLimit] = useState(8)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
+
   const countries = Country.getAllCountries()
   const states = country ? State.getStatesOfCountry(country) : []
+  const cities = country && state
+    ? City.getCitiesOfState(country, state)
+    : []
 
   const [loading, setLoading] = useState(false)
   const [facilities, setFacilities] = useState([])
@@ -38,6 +43,7 @@ const TrainingFacilitiesPage = () => {
         search: search?.trim(),
         country,
         state,
+        city
       }
 
       const filteredParams = Object.fromEntries(
@@ -73,14 +79,15 @@ const TrainingFacilitiesPage = () => {
   }, [])
 
   const handleSearch = () => {
-    getTrainingFacilities({ search: facilityName, country, state })
+    getTrainingFacilities({ search: facilityName, country, state, city })
   }
 
   const handleReset = () => {
     setFacilityName('')
     setCountry('')
     setState('')
-    getTrainingFacilities({ search: '', country: '', state: '' })
+    setCity('')
+    getTrainingFacilities({ search: '', country: '', state: '', city: '' })
   }
 
   useEffect(() => {
@@ -190,6 +197,32 @@ const TrainingFacilitiesPage = () => {
                   </div>
                 </div>
               </div>
+              <div className='flex flex-col items-start'>
+  <label className='text-white text-sm mb-2 mt-3'>City</label>
+  <div className='relative w-full'>
+    <select
+      className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
+      value={city}
+      onChange={(e) => setCity(e.target.value)}
+      disabled={!state}
+    >
+      <option value='' className='bg-purple-900'>Select</option>
+      {cities.map((cityItem, index) => (
+        <option
+          key={index}
+          value={cityItem.name}
+          className='bg-purple-900'
+        >
+          {cityItem.name}
+        </option>
+      ))}
+    </select>
+    <div className='absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none'>
+      <ChevronDown className='h-5 w-5 text-white' />
+    </div>
+  </div>
+</div>
+
               <div className='mt-8 flex justify-center'>
                 <button
                   onClick={handleSearch}
