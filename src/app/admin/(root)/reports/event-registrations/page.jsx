@@ -435,11 +435,11 @@ export default function EventRegistrationListing() {
                     >
                       <td className='px-4 py-3 whitespace-nowrap'>
                         {moment(
-                          registration.event?.registrationStartDate
+                          registration.event?.createdAt
                         ).format('DD-MM-YYYY')}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        {moment(registration.event?.createdAt).format(
+                        {moment(registration.event?.startDate).format(   
                           'DD-MM-YYYY'
                         )}
                       </td>
