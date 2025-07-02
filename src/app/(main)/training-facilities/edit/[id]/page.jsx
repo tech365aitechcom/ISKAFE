@@ -913,7 +913,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       <>
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Trainer Name
+                            Trainer Name <span className='text-red-400'>*</span>
                           </label>
                           <input
                             type='text'
@@ -931,7 +931,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
 
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Role / Title
+                            Role / Title <span className='text-red-400'>*</span>
                           </label>
                           <input
                             type='text'
@@ -949,7 +949,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
 
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Email
+                            Email <span className='text-red-400'>*</span>
                           </label>
                           <input
                             type='email'
@@ -967,7 +967,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
 
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Phone
+                            Phone <span className='text-red-400'>*</span>
                           </label>
                           <input
                             type='tel'
@@ -1008,7 +1008,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                         <div className='md:col-span-2'>
                           <label className='block font-medium mb-2'>
                             Upload Trainer Image
-                            <span className='text-red-400'>*</span>
                           </label>
                           <div className='mt-1'>
                             <input
@@ -1143,6 +1142,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       <div className='bg-[#00000061] p-2 rounded'>
                         <label className='block font-medium mb-1'>
                           Fighter Name
+                          <span className='text-red-400'>*</span>
                         </label>
                         <input
                           type='text'
@@ -1159,7 +1159,10 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       </div>
 
                       <div className='bg-[#00000061] p-2 rounded'>
-                        <label className='block font-medium mb-1'>Gender</label>
+                        <label className='block font-medium mb-1'>
+                          Gender
+                          <span className='text-red-400'>*</span>
+                        </label>
                         <select
                           value={currentFighter.gender}
                           onChange={(e) =>
@@ -1178,7 +1181,10 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       </div>
 
                       <div className='bg-[#00000061] p-2 rounded'>
-                        <label className='block font-medium mb-1'>Age</label>
+                        <label className='block font-medium mb-1'>
+                          Age
+                          <span className='text-red-400'>*</span>
+                        </label>
                         <input
                           type='number'
                           value={currentFighter.age}
@@ -1195,7 +1201,10 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       </div>
 
                       <div className='bg-[#00000061] p-2 rounded'>
-                        <label className='block font-medium mb-1'>Record</label>
+                        <label className='block font-medium mb-1'>
+                          Record
+                          <span className='text-red-400'>*</span>
+                        </label>
                         <input
                           type='text'
                           value={currentFighter.record}
@@ -1240,7 +1249,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       <div className='md:col-span-2'>
                         <label className='block font-medium mb-2'>
                           Upload Fighter image
-                          <span className='text-red-400'>*</span>
                         </label>
                         <div className='mt-1'>
                           <input
