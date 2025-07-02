@@ -253,7 +253,7 @@ const RegisterTrainingFacilityPage = () => {
 
   const addFighter = () => {
     if (currentFighter.type !== 'existing') {
-      if (!currentTrainer.name) {
+      if (!currentFighter.name) {
         enqueueSnackbar('Name is required.', { variant: 'warning' })
         return
       }
@@ -262,6 +262,18 @@ const RegisterTrainingFacilityPage = () => {
           'Name can only contain letters, spaces, apostrophes, or hyphens.',
           { variant: 'warning' }
         )
+        return
+      }
+      if (!currentFighter.gender) {
+        enqueueSnackbar('Gender is required.', { variant: 'warning' })
+        return
+      }
+      if (!currentFighter.age) {
+        enqueueSnackbar('Age is required.', { variant: 'warning' })
+        return
+      }
+      if (!currentFighter.record) {
+        enqueueSnackbar('Fight record is required.', { variant: 'warning' })
         return
       }
       if (!validateFightRecord(currentFighter.record)) {
@@ -947,7 +959,7 @@ const RegisterTrainingFacilityPage = () => {
                       <>
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Trainer Name
+                            Trainer Name <span className='text-red-500'>*</span>
                           </label>
                           <input
                             type='text'
@@ -965,7 +977,7 @@ const RegisterTrainingFacilityPage = () => {
 
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Role / Title
+                            Role / Title<span className='text-red-500'>*</span>
                           </label>
                           <input
                             type='text'
@@ -983,7 +995,7 @@ const RegisterTrainingFacilityPage = () => {
 
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Email
+                            Email<span className='text-red-500'>*</span>
                           </label>
                           <input
                             type='email'
@@ -1001,7 +1013,7 @@ const RegisterTrainingFacilityPage = () => {
 
                         <div className='bg-[#00000061] p-2 rounded'>
                           <label className='block font-medium mb-1'>
-                            Phone
+                            Phone<span className='text-red-500'>*</span>
                           </label>
                           <input
                             type='tel'
@@ -1204,7 +1216,7 @@ const RegisterTrainingFacilityPage = () => {
                     <>
                       <div className='bg-[#00000061] p-2 rounded'>
                         <label className='block font-medium mb-1'>
-                          Fighter Name
+                          Fighter Name<span className='text-red-500'>*</span>
                         </label>
                         <input
                           type='text'
@@ -1221,7 +1233,10 @@ const RegisterTrainingFacilityPage = () => {
                       </div>
 
                       <div className='bg-[#00000061] p-2 rounded'>
-                        <label className='block font-medium mb-1'>Gender</label>
+                        <label className='block font-medium mb-1'>
+                          Gender
+                          <span className='text-red-500'>*</span>
+                        </label>
                         <select
                           value={currentFighter.gender}
                           onChange={(e) =>
@@ -1232,15 +1247,26 @@ const RegisterTrainingFacilityPage = () => {
                           }
                           className='w-full outline-none bg-transparent'
                         >
-                          <option value=''>Select Gender</option>
-                          <option value='Male'>Male</option>
-                          <option value='Female'>Female</option>
-                          <option value='Other'>Other</option>
+                          <option value='' className='text-black'>
+                            Select Gender
+                          </option>
+                          <option value='Male' className='text-black'>
+                            Male
+                          </option>
+                          <option value='Female' className='text-black'>
+                            Female
+                          </option>
+                          <option value='Other' className='text-black'>
+                            Other
+                          </option>
                         </select>
                       </div>
 
                       <div className='bg-[#00000061] p-2 rounded'>
-                        <label className='block font-medium mb-1'>Age</label>
+                        <label className='block font-medium mb-1'>
+                          Age
+                          <span className='text-red-500'>*</span>
+                        </label>
                         <input
                           type='number'
                           value={currentFighter.age}
@@ -1257,7 +1283,10 @@ const RegisterTrainingFacilityPage = () => {
                       </div>
 
                       <div className='bg-[#00000061] p-2 rounded'>
-                        <label className='block font-medium mb-1'>Record</label>
+                        <label className='block font-medium mb-1'>
+                          Record
+                          <span className='text-red-500'>*</span>
+                        </label>
                         <input
                           type='text'
                           value={currentFighter.record}

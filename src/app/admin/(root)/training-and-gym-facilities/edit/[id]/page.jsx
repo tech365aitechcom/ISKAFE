@@ -943,6 +943,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Trainer Name
+                              <span className='text-red-400'>*</span>
                             </label>
                             <input
                               type='text'
@@ -961,6 +962,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Role / Title
+                              <span className='text-red-400'>*</span>
                             </label>
                             <input
                               type='text'
@@ -979,6 +981,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Email
+                              <span className='text-red-400'>*</span>
                             </label>
                             <input
                               type='email'
@@ -997,6 +1000,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Phone
+                              <span className='text-red-400'>*</span>
                             </label>
                             <input
                               type='tel'
@@ -1037,7 +1041,6 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='md:col-span-2'>
                             <label className='block font-medium mb-2'>
                               Upload Trainer Image
-                              <span className='text-red-400'>*</span>
                             </label>
                             <div className='mt-1'>
                               <input
@@ -1179,6 +1182,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Fighter Name
+                              <span className='text-red-400'>*</span>
                             </label>
                             <input
                               type='text'
@@ -1197,6 +1201,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Gender
+                              <span className='text-red-400'>*</span>
                             </label>
                             <select
                               value={currentFighter.gender}
@@ -1218,6 +1223,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Age
+                              <span className='text-red-400'>*</span>
                             </label>
                             <input
                               type='number'
@@ -1237,6 +1243,7 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='bg-[#00000061] p-2 rounded'>
                             <label className='block font-medium mb-1'>
                               Record
+                              <span className='text-red-400'>*</span>
                             </label>
                             <input
                               type='text'
@@ -1282,7 +1289,6 @@ export default function EditTrainingFacilityPage({ params }) {
                           <div className='md:col-span-2'>
                             <label className='block font-medium mb-2'>
                               Upload Fighter image
-                              <span className='text-red-400'>*</span>
                             </label>
                             <div className='mt-1'>
                               <input
