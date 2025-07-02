@@ -73,6 +73,7 @@ const ContactForm = ({ topics }) => {
         formData
 
       const nameRegex = /^[a-zA-Z\s'-]+$/
+      
       if (!nameRegex.test(fullName.trim())) {
         enqueueSnackbar('Please enter a valid full name', {
           variant: 'warning',
