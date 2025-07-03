@@ -21,9 +21,6 @@ const EventDetailsSection = ({ id, eventDetails }) => {
           />
           <RegistrationSection eventId={id} />
 
-          <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 my-2 w-full rounded-sm text-xl font-semibold'>
-            Buy Tickets
-          </Button>
           {eventDetails?.externalURL && (
             <a
               href={eventDetails.externalURL}
@@ -133,7 +130,7 @@ const EventDetailsSection = ({ id, eventDetails }) => {
                 Total Fighters Registered
               </h3>
               <p className='text-white font-bold text-lg'>
-                {eventDetails?.registeredParticipants || 0}
+                {eventDetails?.registeredFighters?.length || 0}
               </p>
             </div>
             <div>
