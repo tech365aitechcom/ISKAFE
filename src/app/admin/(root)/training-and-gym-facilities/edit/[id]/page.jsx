@@ -290,6 +290,95 @@ export default function EditTrainingFacilityPage({ params }) {
     }))
   }
 
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
+  const validateCurrentStep = () => {
+    if (currentStep === 1) {
+      if (!formData.name) {
+        enqueueSnackbar('Facility name is required.', { variant: 'warning' })
+        return false
+      }
+      if (formData.name.length < 3) {
+        enqueueSnackbar('Facility name must be at least 3 characters.', {
+          variant: 'warning',
+        })
+        return false
+      }
+      if (!validateName(formData.name)) {
+        enqueueSnackbar(
+          'Facility name can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return false
+      }
+      if (!formData.logo) {
+        enqueueSnackbar('Facility logo is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.martialArtsStyles.length) {
+        enqueueSnackbar('Please select at least one martial art/style.', {
+          variant: 'warning',
+        })
+        return false
+      }
+      if (!formData.email) {
+        enqueueSnackbar('Email is required.', { variant: 'warning' })
+        return false
+      }
+      if (!validateEmail(formData.email)) {
+        enqueueSnackbar('Invalid email address.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.phoneNumber) {
+        enqueueSnackbar('Phone number is required.', { variant: 'warning' })
+        return false
+      }
+      if (!validatePhoneNumber(formData.phoneNumber)) {
+        enqueueSnackbar('Invalid phone number.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.address) {
+        enqueueSnackbar('Address is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.country) {
+        enqueueSnackbar('Country is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.state) {
+        enqueueSnackbar('State is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.city) {
+        enqueueSnackbar('City is required.', { variant: 'warning' })
+        return false
+      }
+    }
+    if (currentStep === 2) {
+      if (!formData.description) {
+        enqueueSnackbar('Facility description is required.', {
+          variant: 'warning',
+        })
+        return false
+      }
+    }
+
+    return true
+  }
+
+  const nextStep = () => {
+    if (currentStep < 4) {
+      if (validateCurrentStep()) {
+        setCurrentStep(currentStep + 1)
+      }
+    }
+  }
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
+  }
+
   const handleSubmit = async (e, action) => {
     e.preventDefault()
     console.log('Form submitted with action:', action)
@@ -424,30 +513,6 @@ export default function EditTrainingFacilityPage({ params }) {
       console.error('Update error:', error)
       enqueueSnackbar('Error updating facility', { variant: 'error' })
     }
-  }
-
-  const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1)
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
-  }
-
-  const isStep1Valid = () => {
-    return (
-      formData.name.length >= 3 &&
-      formData.logo &&
-      formData.martialArtsStyles.length > 0 &&
-      formData.address &&
-      formData.country &&
-      formData.state &&
-      formData.city
-    )
-  }
-
-  const isStep2Valid = () => {
-    return formData.description.length > 0
   }
 
   if (loading) return <Loader />
@@ -1514,10 +1579,6 @@ export default function EditTrainingFacilityPage({ params }) {
                     <button
                       type='button'
                       onClick={nextStep}
-                      disabled={
-                        (currentStep === 1 && !isStep1Valid()) ||
-                        (currentStep === 2 && !isStep2Valid())
-                      }
                       className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                       Next

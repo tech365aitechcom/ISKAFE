@@ -239,15 +239,62 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
   }
 
   const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validateRole = (name) => /^[A-Za-z\s'-]+$/.test(name)
   const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const validateFightRecord = (code) => /^\d+-\d+-\d+$/.test(code)
 
   const addTrainer = () => {
-    if (currentTrainer.name || currentTrainer.existingId) {
+    if (currentTrainer.type !== 'existing') {
+      if (!currentTrainer.name) {
+        enqueueSnackbar('Name is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateName(currentTrainer.name)) {
+        enqueueSnackbar(
+          'Name can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return
+      }
+
+      if (!currentTrainer.role) {
+        enqueueSnackbar('Role is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateRole(currentTrainer.role)) {
+        enqueueSnackbar(
+          'Role can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return
+      }
+
+      if (!currentTrainer.email) {
+        enqueueSnackbar('Email is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateEmail(currentTrainer.email)) {
+        enqueueSnackbar('Invalid email address.', { variant: 'warning' })
+        return
+      }
+
+      if (!currentTrainer.phone) {
+        enqueueSnackbar('Phone number is required.', { variant: 'warning' })
+        return
+      }
+      if (!validatePhoneNumber(currentTrainer.phone)) {
+        enqueueSnackbar('Invalid phone number.', { variant: 'warning' })
+        return
+      }
+
+      // Add to list
       setFormData((prev) => ({
         ...prev,
         trainers: [...prev.trainers, { ...currentTrainer, id: Date.now() }],
       }))
+
+      // Reset current trainer
       setCurrentTrainer({
         type: 'new',
         existingId: '',
@@ -269,7 +316,37 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
   }
 
   const addFighter = () => {
-    if (currentFighter.name || currentFighter.existingId) {
+    if (currentFighter.type !== 'existing') {
+      if (!currentFighter.name) {
+        enqueueSnackbar('Name is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateName(currentFighter.name)) {
+        enqueueSnackbar(
+          'Name can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return
+      }
+      if (!currentFighter.gender) {
+        enqueueSnackbar('Gender is required.', { variant: 'warning' })
+        return
+      }
+      if (!currentFighter.age) {
+        enqueueSnackbar('Age is required.', { variant: 'warning' })
+        return
+      }
+      if (!currentFighter.record) {
+        enqueueSnackbar('Fight record is required.', { variant: 'warning' })
+        return
+      }
+      if (!validateFightRecord(currentFighter.record)) {
+        enqueueSnackbar('Invalid fight record,format should by X-Y-Z', {
+          variant: 'warning',
+        })
+        return
+      }
+
       setFormData((prev) => ({
         ...prev,
         fighters: [...prev.fighters, { ...currentFighter, id: Date.now() }],
@@ -294,57 +371,97 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
     }))
   }
 
+  const validateCurrentStep = () => {
+    if (currentStep === 1) {
+      if (!formData.name) {
+        enqueueSnackbar('Facility name is required.', { variant: 'warning' })
+        return false
+      }
+      if (formData.name.length < 3) {
+        enqueueSnackbar('Facility name must be at least 3 characters.', {
+          variant: 'warning',
+        })
+        return false
+      }
+      if (!validateName(formData.name)) {
+        enqueueSnackbar(
+          'Facility name can only contain letters, spaces, apostrophes, or hyphens.',
+          { variant: 'warning' }
+        )
+        return false
+      }
+      if (!formData.logo) {
+        enqueueSnackbar('Facility logo is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.martialArtsStyles.length) {
+        enqueueSnackbar('Please select at least one martial art/style.', {
+          variant: 'warning',
+        })
+        return false
+      }
+      if (!formData.email) {
+        enqueueSnackbar('Email is required.', { variant: 'warning' })
+        return false
+      }
+      if (!validateEmail(formData.email)) {
+        enqueueSnackbar('Invalid email address.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.phoneNumber) {
+        enqueueSnackbar('Phone number is required.', { variant: 'warning' })
+        return false
+      }
+      if (!validatePhoneNumber(formData.phoneNumber)) {
+        enqueueSnackbar('Invalid phone number.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.address) {
+        enqueueSnackbar('Address is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.country) {
+        enqueueSnackbar('Country is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.state) {
+        enqueueSnackbar('State is required.', { variant: 'warning' })
+        return false
+      }
+      if (!formData.city) {
+        enqueueSnackbar('City is required.', { variant: 'warning' })
+        return false
+      }
+    }
+    if (currentStep === 2) {
+      if (!formData.description) {
+        enqueueSnackbar('Facility description is required.', {
+          variant: 'warning',
+        })
+        return false
+      }
+    }
+
+    return true
+  }
+
+  const nextStep = () => {
+    if (currentStep < 4) {
+      if (validateCurrentStep()) {
+        setCurrentStep(currentStep + 1)
+      }
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1)
+  }
+
   const handleSubmit = async (e, action) => {
     e.preventDefault()
     console.log('Form submitted with action:', action)
     console.log('Form data:', formData)
-    if (!formData.name && action !== 'draft') {
-      enqueueSnackbar('Facility name is required.', { variant: 'warning' })
-      return
-    }
-    if (!validateName(formData.name)) {
-      enqueueSnackbar(
-        'Facility name can only contain letters, spaces, apostrophes, or hyphens.',
-        { variant: 'warning' }
-      )
-      return
-    }
-    if (!formData.email && action !== 'draft') {
-      enqueueSnackbar('Email is required.', { variant: 'warning' })
-      return
-    }
-    if (!validateEmail(formData.email) && action !== 'draft') {
-      enqueueSnackbar('Invalid email address.', { variant: 'warning' })
-      return
-    }
-    if (!formData.phoneNumber && action !== 'draft') {
-      enqueueSnackbar('Phone number is required.', { variant: 'warning' })
-      return
-    }
-    if (!validatePhoneNumber(formData.phoneNumber) && action !== 'draft') {
-      enqueueSnackbar('Invalid phone number.', { variant: 'warning' })
-      return
-    }
-    if (!formData.address && action !== 'draft') {
-      enqueueSnackbar('Address is required.', { variant: 'warning' })
-      return
-    }
-    if (!formData.country && action !== 'draft') {
-      enqueueSnackbar('Country is required.', { variant: 'warning' })
-      return
-    }
-    if (!formData.state && action !== 'draft') {
-      enqueueSnackbar('State is required.', { variant: 'warning' })
-      return
-    }
-    if (!formData.city && action !== 'draft') {
-      enqueueSnackbar('City is required.', { variant: 'warning' })
-      return
-    }
-    if (!formData.description && action !== 'draft') {
-      enqueueSnackbar('Description is required.', { variant: 'warning' })
-      return
-    }
+
     try {
       let updatedFormData = { ...formData }
 
@@ -476,14 +593,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
     }
   }
 
-  const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1)
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(currentStep - 1)
-  }
-
   const handleCancel = () => {
     router.push('/training-facilities')
   }
@@ -497,7 +606,9 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
       <div className='w-full container mx-auto'>
         <div className='mb-6'>
           <h1 className='text-4xl font-bold'>Edit Training Facility</h1>
-          <p>Fill out the form below to register your training and gym facility</p>
+          <p>
+            Fill out the form below to register your training and gym facility
+          </p>
         </div>
         <div className='mb-8'>
           {/* Dots + connectors */}
