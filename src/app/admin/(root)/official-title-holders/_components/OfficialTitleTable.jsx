@@ -21,107 +21,65 @@ export function OfficialTitleTable({
   onSuccess,
   searchQuery,
   setSearchQuery,
+  selectedSport,
+  setSelectedSport,
+  selectedProClassification,
+  setSelectedProClassification,
 }) {
   const [isDelete, setIsDelete] = useState(false)
   const [selectedTitle, setSelectedTitle] = useState(null)
 
-  // New state for filters
   const [sports, setSports] = useState([])
-  const [selectedSport, setSelectedSport] = useState('')
-  const [selectedProClassification, setSelectedProClassification] = useState('')
   const [isLoadingSports, setIsLoadingSports] = useState(false)
-  const [isLoadingTitleHolders, setIsLoadingTitleHolders] = useState(false)
-  const [sportsLoadAttempted, setSportsLoadAttempted] = useState(false)
-  const [filtersChanged, setFiltersChanged] = useState(false)
 
-  // Pro Classification options
-  const proClassificationOptions = [
-    { value: '', label: 'All Classifications' },
-    { value: 'professional', label: 'Professional' },
-    { value: 'amateur', label: 'Amateur' },
-    { value: 'semi-professional', label: 'Semi-Professional' },
-  ]
+  const [proClassifications, setProClassifications] = useState([])
 
-  // Get Sports function
   const getSports = async () => {
     setIsLoadingSports(true)
     try {
-      // Try different possible endpoints for sports
-      let response
-      try {
-        response = await axios.get(`${API_BASE_URL}/sports`)
-      } catch (error) {
-        // Try alternative endpoint if first fails
-        response = await axios.get(`${API_BASE_URL}/sport`)
-      }
-
-      const sportsData =
-        response.data.data || response.data.sports || response.data || []
-      setSports(Array.isArray(sportsData) ? sportsData : [])
-
-      if (Array.isArray(sportsData) && sportsData.length > 0) {
-        enqueueSnackbar('Sports loaded successfully', { variant: 'success' })
-      } else {
-        enqueueSnackbar('No sports data available', { variant: 'warning' })
-      }
-    } catch (error) {
-      console.error('Error fetching sports:', error)
-      // Only show warning if it's a manual refresh (not on component mount)
-      if (sportsLoadAttempted) {
-        enqueueSnackbar('Sports endpoint not available', { variant: 'warning' })
-      }
-    } finally {
-      setIsLoadingSports(false)
-      setSportsLoadAttempted(true)
-    }
-  }
-
-  // Get Title Holders function
-  const getTitleHolders = async () => {
-    setIsLoadingTitleHolders(true)
-    try {
-      const params = new URLSearchParams()
-      if (selectedSport) params.append('sport', selectedSport)
-      if (selectedProClassification)
-        params.append('proClassification', selectedProClassification)
-      if (searchQuery) params.append('search', searchQuery)
-      params.append('page', currentPage)
-      params.append('limit', limit)
-
       const response = await axios.get(
-        `${API_BASE_URL}/official-title-holders?${params.toString()}`
+        `${API_BASE_URL}/master/proClassifications`
+      )
+      console.log('Sports response:', response.data)
+
+      const selectedClassification = response.data.result.find(
+        (classification) =>
+          classification.label.toLowerCase() ===
+          selectedProClassification.toLowerCase()
       )
 
-      // Trigger onSuccess to refresh the data in parent component
-      if (onSuccess) {
-        onSuccess(response.data)
-      }
-      enqueueSnackbar('Title holders refreshed successfully', {
-        variant: 'success',
-      })
-      setFiltersChanged(false)
+      const sportsArray = selectedClassification?.sports || []
+      const proClassificationOptions = response.data.result.map(
+        (classification) => classification.label
+      )
+      setProClassifications(proClassificationOptions)
+      setSports(sportsArray)
     } catch (error) {
-      enqueueSnackbar('Failed to refresh title holders', { variant: 'error' })
-      console.error('Error fetching title holders:', error)
+      setSports([])
     } finally {
-      setIsLoadingTitleHolders(false)
+      setIsLoadingSports(false)
     }
   }
 
-  // Load sports on component mount (only once)
-  useEffect(() => {
-    // Only try to load sports if we haven't attempted yet
-    if (!sportsLoadAttempted) {
-      getSports()
-    }
-  }, [sportsLoadAttempted]) // Depend on sportsLoadAttempted to prevent multiple calls
+  const getProClassifications = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/master/proClassifications`
+      )
+      console.log('Sports response:', response.data)
 
-  // Track filter changes
-  useEffect(() => {
-    if (selectedSport || selectedProClassification) {
-      setFiltersChanged(true)
+      const proClassificationOptions = response.data.result.map(
+        (classification) => classification.label
+      )
+      setProClassifications(proClassificationOptions)
+    } catch (error) {
+      setProClassifications([])
     }
-  }, [selectedSport, selectedProClassification])
+  }
+
+  useEffect(() => {
+    getProClassifications()
+  }, [])
 
   const handleDeleteTitle = async (titleId) => {
     try {
@@ -130,10 +88,31 @@ export function OfficialTitleTable({
       )
       enqueueSnackbar(response.data.message, { variant: 'success' })
       setIsDelete(false)
-      if (onSuccess) onSuccess()
+      if (onSuccess)
+        onSuccess({
+          selectedProClassification: '',
+          selectedSport: '',
+        })
     } catch (error) {
       enqueueSnackbar('Failed to delete title', { variant: 'error' })
     }
+  }
+
+  const handleSearch = async () => {
+    onSuccess({
+      selectedProClassification,
+      selectedSport,
+    })
+  }
+
+  const handleResetFilter = () => {
+    setSelectedProClassification('')
+    setSelectedSport('')
+    setSearchQuery('')
+    onSuccess({
+      selectedProClassification: '',
+      selectedSport: '',
+    })
   }
 
   const renderHeader = (label, key) => (
@@ -141,31 +120,6 @@ export function OfficialTitleTable({
       <div className='flex items-center gap-1'>{label}</div>
     </th>
   )
-
-  // ✅ FILTERING LOGIC based on search query and filters
-  const filteredTitles = officialTitles.filter((title) => {
-    const fullName = `${title.fighter?.userId?.firstName ?? ''} ${
-      title.fighter?.userId?.lastName ?? ''
-    }`.toLowerCase()
-    const titleName = title.title?.toLowerCase() ?? ''
-    const weightClass = title.weightClass?.toLowerCase() ?? ''
-
-    // Search filter
-    const matchesSearch =
-      fullName.includes(searchQuery.toLowerCase()) ||
-      titleName.includes(searchQuery.toLowerCase()) ||
-      weightClass.includes(searchQuery.toLowerCase())
-
-    // Sport filter
-    const matchesSport = !selectedSport || title.sport === selectedSport
-
-    // Pro Classification filter
-    const matchesProClassification =
-      !selectedProClassification ||
-      title.fighter?.proClassification === selectedProClassification
-
-    return matchesSearch && matchesSport && matchesProClassification
-  })
 
   return (
     <>
@@ -183,53 +137,56 @@ export function OfficialTitleTable({
               onChange={(e) => setSelectedProClassification(e.target.value)}
               className='bg-transparent border border-gray-700 text-white rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
             >
-              {proClassificationOptions.map((option) => (
-                <option
-                  key={option.value}
-                  value={option.value}
-                  className='bg-gray-800'
-                >
-                  {option.label}
+              <option value='' className='bg-gray-800'>
+                All Classifications
+              </option>
+              {proClassifications.map((option) => (
+                <option key={option} value={option} className='bg-gray-800'>
+                  {option}
                 </option>
               ))}
             </select>
           </div>
 
           {/* Sport Dropdown */}
-          <div>
-            <label className='block text-sm font-medium text-gray-300 mb-2'>
-              Sport
-            </label>
-            <select
-              value={selectedSport}
-              onChange={(e) => setSelectedSport(e.target.value)}
-              className='bg-transparent border border-gray-700 text-white rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
-            >
-              <option value='' className='bg-gray-800'>
-                All Sports
-              </option>
-              {sports.map((sport) => (
-                <option
-                  key={sport._id || sport.id || sport.name}
-                  value={sport._id || sport.id || sport.name}
-                  className='bg-gray-800'
-                >
-                  {sport.name || sport.title || sport}
+          {sports.length > 0 && (
+            <div>
+              <label className='block text-sm font-medium text-gray-300 mb-2'>
+                Sport
+              </label>
+              <select
+                value={selectedSport}
+                onChange={(e) => setSelectedSport(e.target.value)}
+                className='bg-transparent border border-gray-700 text-white rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-600'
+              >
+                <option value='' className='bg-gray-800'>
+                  All Sports
                 </option>
-              ))}
-            </select>
-          </div>
+                {sports.map((sport, index) => (
+                  <option
+                    key={index}
+                    value={sport.label}
+                    className='bg-gray-800'
+                  >
+                    {sport.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Get Sports Button */}
-          <div className='flex items-end'>
-            <button
-              onClick={getSports}
-              disabled={isLoadingSports}
-              className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full text-sm'
-            >
-              {isLoadingSports ? 'Loading...' : 'Refresh Sports'}
-            </button>
-          </div>
+          {selectedProClassification && selectedProClassification !== '' && (
+            <div className='flex items-end'>
+              <button
+                onClick={getSports}
+                disabled={isLoadingSports}
+                className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-fit text-sm'
+              >
+                {isLoadingSports ? 'Getting Sports...' : 'Get Sports'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Second row with search and apply filters button */}
@@ -249,17 +206,24 @@ export function OfficialTitleTable({
           </div>
 
           {/* Apply Filters Button - Only shown when filters have changed */}
-          {filtersChanged && (
-            <div className='flex items-end'>
-              <button
-                onClick={getTitleHolders}
-                disabled={isLoadingTitleHolders}
-                className='bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-full text-sm'
-              >
-                {isLoadingTitleHolders ? 'Applying...' : 'Apply Filters'}
-              </button>
-            </div>
-          )}
+          {selectedProClassification &&
+            selectedProClassification !== '' &&
+            selectedSport && (
+              <div className='flex items-end gap-2'>
+                <button
+                  onClick={handleSearch}
+                  className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md transition-colors duration-200 w-fit text-sm'
+                >
+                  Apply Filters
+                </button>
+                <button
+                  className='border border-gray-700 text-white rounded-lg px-4 py-1.5 hover:bg-gray-700 transition'
+                  onClick={handleResetFilter}
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
         </div>
       </div>
 
@@ -285,8 +249,8 @@ export function OfficialTitleTable({
               </tr>
             </thead>
             <tbody>
-              {filteredTitles && filteredTitles.length > 0 ? (
-                filteredTitles.map((title, index) => {
+              {officialTitles && officialTitles.length > 0 ? (
+                officialTitles.map((title, index) => {
                   return (
                     <tr
                       key={title._id}

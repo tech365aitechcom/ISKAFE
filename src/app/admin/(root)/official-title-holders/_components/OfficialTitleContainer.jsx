@@ -15,13 +15,15 @@ export const OfficialTitleContainer = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
   const [limit, setLimit] = useState(10)
+  const [selectedSport, setSelectedSport] = useState('')
+  const [selectedProClassification, setSelectedProClassification] = useState('')
 
-  const getTitles = async () => {
+  const getTitles = async ({ selectedProClassification, selectedSport }) => {
     setLoading(true)
     setOfficialTitles([])
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/official-title-holders?page=${currentPage}&limit=${limit}&search=${searchQuery}`
+        `${API_BASE_URL}/official-title-holders?page=${currentPage}&limit=${limit}&search=${searchQuery}&sport=${selectedSport}&proClassification=${selectedProClassification}`
       )
       console.log('Response:', response.data)
       setOfficialTitles(response.data.data.items)
@@ -35,7 +37,10 @@ export const OfficialTitleContainer = () => {
   }
 
   useEffect(() => {
-    getTitles()
+    getTitles({
+      selectedProClassification: '',
+      selectedSport: '',
+    })
   }, [showAddTitleForm, limit, currentPage])
 
   return (
@@ -56,7 +61,7 @@ export const OfficialTitleContainer = () => {
               }}
               onClick={() => setShowAddTitleForm(true)}
             >
-            New Title
+              New Title
             </button>
           </div>
 
@@ -74,6 +79,10 @@ export const OfficialTitleContainer = () => {
               onSuccess={getTitles}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              selectedSport={selectedSport}
+              setSelectedSport={setSelectedSport}
+              selectedProClassification={selectedProClassification}
+              setSelectedProClassification={setSelectedProClassification}
             />
           )}
         </>
