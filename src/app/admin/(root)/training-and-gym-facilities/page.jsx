@@ -155,7 +155,15 @@ export default function TrainingAndGymFacilities() {
       console.log(response)
       if (response.status === apiConstants.success) {
         enqueueSnackbar('Approved successfully', { variant: 'success' })
-        getTrainingFacilities()
+        getTrainingFacilities({
+          searchQuery: '',
+          selectedCountry: '',
+          selectedState: '',
+          selectedCity: '',
+          selectedStyles: [],
+          selectedStatus: '',
+          selectedApprovalStatus: '',
+        })
       }
     } catch (error) {
       enqueueSnackbar(
@@ -177,7 +185,15 @@ export default function TrainingAndGymFacilities() {
       console.log(response)
       if (response.status === apiConstants.success) {
         enqueueSnackbar('Status updated successfully', { variant: 'success' })
-        getTrainingFacilities()
+        getTrainingFacilities({
+          searchQuery: '',
+          selectedCountry: '',
+          selectedState: '',
+          selectedCity: '',
+          selectedStyles: [],
+          selectedStatus: '',
+          selectedApprovalStatus: '',
+        })
       }
     } catch (error) {
       enqueueSnackbar(
@@ -198,7 +214,15 @@ export default function TrainingAndGymFacilities() {
           variant: 'success',
         })
         setIsDelete(false)
-        getTrainingFacilities()
+        getTrainingFacilities({
+          searchQuery: '',
+          selectedCountry: '',
+          selectedState: '',
+          selectedCity: '',
+          selectedStyles: [],
+          selectedStatus: '',
+          selectedApprovalStatus: '',
+        })
       }
     } catch (error) {
       enqueueSnackbar('Failed to delete training facility,try again', {
@@ -463,185 +487,194 @@ export default function TrainingAndGymFacilities() {
           {loading ? (
             <Loader />
           ) : (
-            <div className='overflow-x-auto custom-scrollbar'>
-              <table className='w-full text-sm text-left'>
-                <thead>
-                  <tr className='text-gray-400 text-sm'>
-                    {renderHeader('SR No', 'srno')}
-                    {renderHeader('Logo', 'logo')}
-                    {renderHeader('Facility Name', 'name')}
-                    {renderHeader('Location', 'location')}
-                    {renderHeader('Styles Taught', 'styles')}
-                    {renderHeader('Status', 'status')}
-                    {renderHeader('Approval', 'approval')}
-                    {renderHeader('Created On', 'createdAt')}
-                    {renderHeader('Added By', 'addedBy')}
-                    {renderHeader('Trainers Count', 'trainers')}
-                    {renderHeader('Fighters Count', 'fighters')}
-                    {renderHeader('Actions', 'actions')}
-                  </tr>
-                </thead>
-                <tbody>
-                  {facilities && facilities.length > 0 ? (
-                    facilities.map((facility, index) => (
-                      <tr
-                        key={facility._id}
-                        className={`${
-                          index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
-                        }`}
-                      >
-                        <td className='px-4 py-3'>
-                          {(currentPage - 1) * limit + index + 1}
-                        </td>
-                        <td className='px-4 py-3'>
-                          <img
-                            src={facility.logo}
-                            alt={`${facility.name} logo`}
-                            className='h-10 w-10 object-cover rounded'
-                          />
-                        </td>
-                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                          {facility.name}
-                        </td>
-                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                          {facility.address}
-                        </td>
-                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                          {facility.martialArtsStyles?.join(', ')}
-                        </td>
-                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                          <span
-                            className={getStatusBadge(facility.facilityStatus)}
-                          >
-                            {facility.facilityStatus}
-                          </span>
-                        </td>
-                        <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                          <span
-                            className={getApprovalBadge(
-                              facility.adminApproveStatus
-                            )}
-                          >
-                            {facility.adminApproveStatus}
-                          </span>
-                        </td>
-                        <td className='px-4 py-3 whitespace-nowrap'>
-                          {moment(facility.createdAt).format('DD-MM-YYYY')}
-                        </td>
-                        <td className='px-4 py-3 whitespace-nowrap'>
-                          {facility.createdBy?.firstName}{' '}
-                          {facility.createdBy?.middleName ?? ''}{' '}
-                          {facility.createdBy?.lastName}
-                        </td>
-                        <td className='px-4 py-3 text-center'>
-                          {facility.trainers?.length ?? 0}
-                        </td>
-                        <td className='px-4 py-3 text-center'>
-                          {facility.fighters?.length ?? 0}
-                        </td>
-                        <td className='p-4 align-middle w-[220px]'>
-                          <div className='flex items-center space-x-3'>
-                            <Link
-                              href={`/admin/training-and-gym-facilities/view/${facility._id}`}
+            <>
+              <div className='overflow-x-auto custom-scrollbar'>
+                <table className='w-full text-sm text-left'>
+                  <thead>
+                    <tr className='text-gray-400 text-sm'>
+                      {renderHeader('SR No', 'srno')}
+                      {renderHeader('Logo', 'logo')}
+                      {renderHeader('Facility Name', 'name')}
+                      {renderHeader('Location', 'location')}
+                      {renderHeader('Styles Taught', 'styles')}
+                      {renderHeader('Status', 'status')}
+                      {renderHeader('Approval', 'approval')}
+                      {renderHeader('Created On', 'createdAt')}
+                      {renderHeader('Added By', 'addedBy')}
+                      {renderHeader('Trainers Count', 'trainers')}
+                      {renderHeader('Fighters Count', 'fighters')}
+                      {renderHeader('Actions', 'actions')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {facilities && facilities.length > 0 ? (
+                      facilities.map((facility, index) => (
+                        <tr
+                          key={facility._id}
+                          className={`${
+                            index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
+                          }`}
+                        >
+                          <td className='px-4 py-3'>
+                            {(currentPage - 1) * limit + index + 1}
+                          </td>
+                          <td className='px-4 py-3'>
+                            <img
+                              src={facility.logo}
+                              alt={`${facility.name} logo`}
+                              className='h-10 w-10 object-cover rounded'
+                            />
+                          </td>
+                          <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                            {facility.name}
+                          </td>
+                          <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                            {facility.address}
+                          </td>
+                          <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                            {facility.martialArtsStyles?.join(', ')}
+                          </td>
+                          <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                            <span
+                              className={getStatusBadge(
+                                facility.facilityStatus
+                              )}
                             >
-                              <button
-                                className='text-gray-400 hover:text-gray-200 transition flex items-center justify-center'
-                                title='View Profile'
-                              >
-                                <Eye size={18} />
-                              </button>
-                            </Link>
-                            <Link
-                              href={`/admin/training-and-gym-facilities/edit/${facility._id}`}
+                              {facility.facilityStatus}
+                            </span>
+                          </td>
+                          <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
+                            <span
+                              className={getApprovalBadge(
+                                facility.adminApproveStatus
+                              )}
                             >
-                              <button
-                                className='text-green-400 hover:text-green-300'
-                                title='Edit'
+                              {facility.adminApproveStatus}
+                            </span>
+                          </td>
+                          <td className='px-4 py-3 whitespace-nowrap'>
+                            {moment(facility.createdAt).format('DD-MM-YYYY')}
+                          </td>
+                          <td className='px-4 py-3 whitespace-nowrap'>
+                            {facility.createdBy?.firstName}{' '}
+                            {facility.createdBy?.middleName ?? ''}{' '}
+                            {facility.createdBy?.lastName}
+                          </td>
+                          <td className='px-4 py-3 text-center'>
+                            {facility.trainers?.length ?? 0}
+                          </td>
+                          <td className='px-4 py-3 text-center'>
+                            {facility.fighters?.length ?? 0}
+                          </td>
+                          <td className='p-4 align-middle w-[220px]'>
+                            <div className='flex items-center space-x-3'>
+                              <Link
+                                href={`/admin/training-and-gym-facilities/view/${facility._id}`}
                               >
-                                <Edit size={18} />
-                              </button>
-                            </Link>
-                            {facility.adminApproveStatus === 'Pending' && (
-                              <button
-                                onClick={() => handleApprove(facility._id)}
-                                className='text-blue-400 hover:text-blue-300'
-                                title='Approve'
+                                <button
+                                  className='text-gray-400 hover:text-gray-200 transition flex items-center justify-center'
+                                  title='View Profile'
+                                >
+                                  <Eye size={18} />
+                                </button>
+                              </Link>
+                              <Link
+                                href={`/admin/training-and-gym-facilities/edit/${facility._id}`}
                               >
-                                <Check size={18} />
-                              </button>
-                            )}
-                            {/* status toggle */}
-                            <button
-                              onClick={() => handleToggleStatus(facility)}
-                              className='relative inline-flex h-4 w-8 rounded-full transition-colors
+                                <button
+                                  className='text-green-400 hover:text-green-300'
+                                  title='Edit'
+                                >
+                                  <Edit size={18} />
+                                </button>
+                              </Link>
+                              {facility.adminApproveStatus === 'Pending' && (
+                                <button
+                                  onClick={() => handleApprove(facility._id)}
+                                  className='text-blue-400 hover:text-blue-300'
+                                  title='Approve'
+                                >
+                                  <Check size={18} />
+                                </button>
+                              )}
+                              {/* status toggle */}
+                              <button
+                                onClick={() => handleToggleStatus(facility)}
+                                className='relative inline-flex h-4 w-8 rounded-full transition-colors
              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-                              aria-label={
-                                facility.facilityStatus === 'Active'
-                                  ? 'Suspend'
-                                  : 'Activate'
-                              }
-                            >
-                              {/* track */}
-                              <span
-                                className={`absolute inset-0 rounded-full
+                                aria-label={
+                                  facility.facilityStatus === 'Active'
+                                    ? 'Suspend'
+                                    : 'Activate'
+                                }
+                              >
+                                {/* track */}
+                                <span
+                                  className={`absolute inset-0 rounded-full
                 ${
                   facility.facilityStatus === 'Active'
                     ? 'bg-green-500'
                     : 'bg-red-500'
                 }
                 transition-colors`}
-                              />
+                                />
 
-                              {/* thumb */}
-                              <span
-                                className={`inline-block h-4 w-4 bg-white rounded-full shadow transform
+                                {/* thumb */}
+                                <span
+                                  className={`inline-block h-4 w-4 bg-white rounded-full shadow transform
                 transition-transform duration-200
                 ${
                   facility.facilityStatus === 'Active'
                     ? 'translate-x-5'
                     : 'translate-x-0'
                 }`}
-                              />
-                            </button>
-                            {facility.sendInvites && (
-                              <a
-                                href={`mailto:${facility.trainers
-                                  ?.map((trainer) => trainer.email)
-                                  .join(',')}?subject=${encodeURIComponent(
-                                  'IKF Fight Platform – Complete Your Registration'
-                                )}&body=${encodeURIComponent(
-                                  `Dear Trainer,\n\nYou have been invited to join the IKF Fight Platform as a trainer for the facility ${facility.name}.\n\nPlease complete your registration by clicking the link sent to your email or contact us if you have any issues.\n\nThis is an automated reminder from the IKF Fight Platform to help complete pending registrations.\n\nThank you,\nIKF Fight Platform Team`
-                                )}`}
-                                className='text-purple-400 hover:text-purple-300'
-                                title='Send Invite to Trainers'
+                                />
+                              </button>
+                              {facility.sendInvites && (
+                                <a
+                                  href={`mailto:${facility.trainers
+                                    ?.map((trainer) => trainer.email)
+                                    .join(',')}?subject=${encodeURIComponent(
+                                    'IKF Fight Platform – Complete Your Registration'
+                                  )}&body=${encodeURIComponent(
+                                    `Dear Trainer,\n\nYou have been invited to join the IKF Fight Platform as a trainer for the facility ${facility.name}.\n\nPlease complete your registration by clicking the link sent to your email or contact us if you have any issues.\n\nThis is an automated reminder from the IKF Fight Platform to help complete pending registrations.\n\nThank you,\nIKF Fight Platform Team`
+                                  )}`}
+                                  className='text-purple-400 hover:text-purple-300'
+                                  title='Send Invite to Trainers'
+                                >
+                                  <Mail size={18} />
+                                </a>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setIsDelete(true)
+                                  setSelectedFacility(facility._id)
+                                }}
+                                className='text-red-400 hover:text-red-300'
+                                title='Delete'
                               >
-                                <Mail size={18} />
-                              </a>
-                            )}
-                            <button
-                              onClick={() => {
-                                setIsDelete(true)
-                                setSelectedFacility(facility._id)
-                              }}
-                              className='text-red-400 hover:text-red-300'
-                              title='Delete'
-                            >
-                              <Trash size={18} />
-                            </button>
-                          </div>
+                                <Trash size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className='text-center bg-[#0A1330]'>
+                        <td colSpan='12' className='px-4 py-8 text-gray-400'>
+                          No training facilities found.
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr className='text-center bg-[#0A1330]'>
-                      <td colSpan='12' className='px-4 py-8 text-gray-400'>
-                        No training facilities found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </>
           )}
           {/* Confirmation Modal */}
           <ConfirmationModal
@@ -650,11 +683,6 @@ export default function TrainingAndGymFacilities() {
             onConfirm={() => handleDelete(selectedFacility)}
             title='Delete Facility'
             message='Are you sure you want to delete this training facility?'
-          />
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
           />
         </div>
       </div>
