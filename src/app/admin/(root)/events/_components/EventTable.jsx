@@ -285,18 +285,18 @@ export function EventTable({
                       </td>
                       <td className='p-4 flex space-x-4 items-center'>
                         {/* View */}
-                        {/* <Link href={`/admin/events/view/${event._id}`}>
+                        <Link href={`/admin/events/view/${event._id}`}>
                           <button className='text-gray-400 hover:text-gray-200 transition'>
                             <Eye size={20} />
                           </button>
-                        </Link> */}
+                        </Link>
 
                         {/* Edit */}
-                        {/* <Link href={`/admin/events/edit/${event._id}`}>
+                        <Link href={`/admin/events/edit/${event._id}`}>
                           <button className='text-blue-500 hover:underline'>
                             <SquarePen size={20} />
                           </button>
-                        </Link> */}
+                        </Link>
 
                         {/* Publish Toggle */}
                         <div className='flex items-center gap-2 whitespace-nowrap'>

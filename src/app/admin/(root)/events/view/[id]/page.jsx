@@ -3,45 +3,16 @@ import React, { useEffect, useState } from 'react'
 import { ChevronDown, Edit, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { API_BASE_URL} from "../../../../../../constants"
+import Loader from "../../../../../_components/Loader"
 
 export default function EventDetailsPage() {
   const params = useParams()
   const [eventId, setEventId] = useState(null)
   const [isOpen, setIsOpen] = useState(false)
-  const [event, setEvent] = useState({
-    name: 'IKF PKB and PBSC Point Boxing Sparring',
-    date: '03/29/2025',
-    promoter: 'AK Promotions',
-    venueName: 'Ophelia Garmon-Brown Community Center',
-    venueAddress: 'Charlotte, NC, USA',
-    shortDescription:
-      'Semi Contact Muay Thai, Kickboxing and Point Boxing Sparring',
-    fullDescription:
-      'Semi Contact Muay Thai, Kickboxing and Point Boxing Sparring. Semi Contact Muay Thai, Kickboxing and Point Boxing Sparring',
-    sanctioningRules: 'International Kickboxing Federation',
-    stats: {
-      bracketCount: {
-        value: 22,
-        breakdown:
-          'Girls Brackets: 2 ; Boys Brackets: 2\nWomen Brackets: 2 ; Men Brackets: 2',
-      },
-      boutCount: {
-        value: 0,
-        breakdown:
-          'Girls Brackets: 0 ; Boys Brackets: 0\nWomen Brackets: 0 ; Men Brackets: 0',
-      },
-      registrationFee: {
-        fighter: '$55',
-        trainer: '$30',
-        breakdown:
-          'Max Fighters per Bracket: 4 ;\nNum Registration Brackets: 6',
-      },
-      participants: {
-        value: 19,
-        breakdown: 'Fighters: 17 ; Trainers: 2',
-      },
-    },
-  })
+  const [event, setEvent] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen)
@@ -50,9 +21,102 @@ export default function EventDetailsPage() {
   useEffect(() => {
     if (params?.id) {
       setEventId(params.id)
-      console.log('Event ID:', params.id)
+      fetchEventData(params.id)
     }
   }, [params])
+
+  const fetchEventData = async (id) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/events/${id}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch event data')
+      }
+      const data = await response.json()
+      if (data.success) {
+        setEvent(data.data)
+      } else {
+        throw new Error(data.message || 'Error fetching event')
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+    const formatAddress = (address) => {
+    if (!address) return 'N/A';
+    if (typeof address === 'string') return address;
+    
+    const { street1, street2, city, state, postalCode, country } = address;
+    return [
+      street1,
+      street2,
+      `${city}, ${state} ${postalCode}`,
+      country
+    ].filter(Boolean).join(', ');
+  }
+
+   if (loading) {
+    return (
+      <div className='flex items-center justify-center h-screen w-full bg-[#07091D]'>
+        <Loader />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-white p-8 flex justify-center">
+        <div className="bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full">
+          <p className="text-red-500">Error: {error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!event) {
+    return (
+      <div className="text-white p-8 flex justify-center">
+        <div className="bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full">
+          <p>Event not found</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Format the event data to match your component's structure
+ const formattedEvent = {
+    name: event.name,
+    date: new Date(event.startDate).toLocaleDateString('en-US'),
+    promoter: event.promoter?.userId?.name || 'N/A',
+    venueName: event.venue?.name || 'N/A',
+    venueAddress: formatAddress(event.venue?.address),
+    shortDescription: event.briefDescription || 'N/A',
+    fullDescription: event.fullDescription || 'N/A',
+    sanctioningRules: event.sectioningBodyName || 'N/A',
+    stats: {
+      bracketCount: {
+        value: 0, // You'll need to get this from your data
+        breakdown: 'No breakdown available',
+      },
+      boutCount: {
+        value: 0, // You'll need to get this from your data
+        breakdown: 'No breakdown available',
+      },
+      registrationFee: {
+        fighter: '$0', // You'll need to get this from your data
+        trainer: '$0', // You'll need to get this from your data
+        breakdown: 'No breakdown available',
+      },
+      participants: {
+        value: event.registeredParticipants || 0,
+        breakdown: `Fighters: ${event.registeredFighters?.length || 0}`,
+      },
+    },
+  }
+
 
   return (
     <div className='text-white p-8 flex justify-center relative overflow-hidden'>
@@ -85,7 +149,7 @@ export default function EventDetailsPage() {
                 </svg>
               </button>
             </Link>
-            <h1 className='text-2xl font-bold'>{event.name}</h1>
+            <h1 className='text-2xl font-bold'>{formattedEvent.name}</h1>
           </div>
           <div className='relative w-64'>
             {/* Dropdown Button */}
@@ -135,12 +199,10 @@ export default function EventDetailsPage() {
             </div>
             <div className='mt-2'>
               <h2 className='text-2xl font-bold'>
-                {event.stats.bracketCount.value}
+                {formattedEvent.stats.bracketCount.value}
               </h2>
-              <p className='text-sm text-[#AEB9E1] mt-2'>
-                Girls Brackets: 2 ; Boys Brackets: 2
-                <br />
-                Women Brackets: 2 ; Men Brackets: 2
+              <p className='text-sm text-[#AEB9E1] mt-2 whitespace-pre-line'>
+                {formattedEvent.stats.bracketCount.breakdown}
               </p>
             </div>
           </div>
@@ -157,12 +219,10 @@ export default function EventDetailsPage() {
             </div>
             <div className='mt-2'>
               <h2 className='text-2xl font-bold'>
-                {event.stats.boutCount.value}
+                {formattedEvent.stats.boutCount.value}
               </h2>
-              <p className='text-sm text-[#AEB9E1] mt-2'>
-                Girls Brackets: 0 ; Boys Brackets: 0
-                <br />
-                Women Brackets: 0 ; Men Brackets: 0
+              <p className='text-sm text-[#AEB9E1] mt-2 whitespace-pre-line'>
+                {formattedEvent.stats.boutCount.breakdown}
               </p>
             </div>
           </div>
@@ -177,17 +237,15 @@ export default function EventDetailsPage() {
             </div>
             <div className='mt-2'>
               <h2 className='text-2xl font-bold'>
-                <span>{event.stats.registrationFee.fighter}</span>
+                <span>{formattedEvent.stats.registrationFee.fighter}</span>
                 <span className='text-sm'>/Fighter</span>
                 <span className='ml-2'>
-                  {event.stats.registrationFee.trainer}
+                  {formattedEvent.stats.registrationFee.trainer}
                 </span>
                 <span className='text-sm'>/Trainer</span>
               </h2>
-              <p className='text-sm text-[#AEB9E1] mt-2'>
-                Max Fighters per Bracket: 4 ;
-                <br />
-                Num Registration Brackets: 6
+              <p className='text-sm text-[#AEB9E1] mt-2 whitespace-pre-line'>
+                {formattedEvent.stats.registrationFee.breakdown}
               </p>
             </div>
           </div>
@@ -196,16 +254,14 @@ export default function EventDetailsPage() {
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>Participants</span>
-              <button className=''>
-                <Pencil size={16} />
-              </button>
+              
             </div>
             <div className='mt-2'>
               <h2 className='text-2xl font-bold'>
-                {event.stats.participants.value}
+                {formattedEvent.stats.participants.value}
               </h2>
-              <p className='text-sm text-[#AEB9E1] mt-2'>
-                {event.stats.participants.breakdown}
+              <p className='text-sm text-[#AEB9E1] mt-2 whitespace-pre-line'>
+                {formattedEvent.stats.participants.breakdown}
               </p>
             </div>
           </div>
@@ -231,49 +287,49 @@ export default function EventDetailsPage() {
             {/* Event Name */}
             <div>
               <p className='text-sm mb-1'>Event Name</p>
-              <p className='font-medium'>{event.name}</p>
+              <p className='font-medium'>{formattedEvent.name}</p>
             </div>
 
             {/* Date */}
             <div>
               <p className='text-sm mb-1'>Date</p>
-              <p className='font-medium'>{event.date}</p>
+              <p className='font-medium'>{formattedEvent.date}</p>
             </div>
 
             {/* Promoter */}
             <div>
               <p className='text-sm mb-1'>Promoter</p>
-              <p className='font-medium'>{event.promoter}</p>
+              <p className='font-medium'>{formattedEvent.promoter}</p>
             </div>
 
             {/* Venue Name */}
             <div>
               <p className='text-sm mb-1'>Venue Name</p>
-              <p className='font-medium'>{event.venueName}</p>
+              <p className='font-medium'>{formattedEvent.venueName}</p>
             </div>
 
             {/* Venue Address */}
             <div>
               <p className='text-sm mb-1'>Venue Address</p>
-              <p className='font-medium'>{event.venueAddress}</p>
+              <p className='font-medium'>{formattedEvent.venueAddress}</p>
             </div>
 
             {/* Short Description */}
             <div className='md:col-span-2'>
               <p className='text-sm mb-1'>Short Description</p>
-              <p className='font-medium'>{event.shortDescription}</p>
+              <p className='font-medium'>{formattedEvent.shortDescription}</p>
             </div>
 
             {/* Full Description */}
             <div className='md:col-span-2'>
               <p className='text-sm mb-1'>Full Description</p>
-              <p className='font-medium'>{event.fullDescription}</p>
+              <p className='font-medium'>{formattedEvent.fullDescription}</p>
             </div>
 
             {/* Sanctioning Rules */}
             <div className='md:col-span-2'>
               <p className='text-sm mb-1'>Sanctioning Rules</p>
-              <p className='font-medium'>{event.sanctioningRules}</p>
+              <p className='font-medium'>{formattedEvent.sanctioningRules}</p>
             </div>
           </div>
         </div>
