@@ -257,6 +257,19 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     }
   };
 
+  const validateUrl = (url) => {
+    if (!url) return true; // Allow empty
+    return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(
+      url
+    );
+  };
+
+  const validateNumeric = (value) => {
+    if (!value) return false;
+    // Allows numbers with optional decimal point and optional units (cm, kg, lbs, etc.)
+    return /^[\d]+(\.\d+)?\s*(cm|kg|lbs|ft|in)?$/i.test(value);
+  };
+
   const validateForm = () => {
     // Basic Info Validation
     if (!formData.firstName.trim()) {
@@ -361,6 +374,59 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
 
     if (!validatePhoneNumber(formData.emergencyContactNumber)) {
       enqueueSnackbar("Please enter a valid emergency contact number.", {
+        variant: "warning",
+      });
+      return false;
+    }
+
+    if (formData.instagram && !validateUrl(formData.instagram)) {
+      enqueueSnackbar(
+        "Please enter a valid Instagram URL (e.g., https://instagram.com/username)",
+        {
+          variant: "warning",
+        }
+      );
+      return false;
+    }
+
+    if (formData.facebook && !validateUrl(formData.facebook)) {
+      enqueueSnackbar(
+        "Please enter a valid Facebook URL (e.g., https://facebook.com/username)",
+        {
+          variant: "warning",
+        }
+      );
+      return false;
+    }
+
+    if (formData.youtube && !validateUrl(formData.youtube)) {
+      enqueueSnackbar(
+        "Please enter a valid YouTube URL (e.g., https://youtube.com/channel)",
+        {
+          variant: "warning",
+        }
+      );
+      return false;
+    }
+
+    // Height and Weight Validation (BR-266)
+    if (!validateNumeric(formData.height)) {
+      enqueueSnackbar("Please enter a valid height (e.g., 5.10 or 180cm)", {
+        variant: "warning",
+      });
+      return false;
+    }
+
+    if (!validateNumeric(formData.weight)) {
+      enqueueSnackbar("Please enter a valid weight (e.g., 175 lbs or 70kg)", {
+        variant: "warning",
+      });
+      return false;
+    }
+
+    // Bio Length Validation (BR-267)
+    if (formData.bio && formData.bio.length > 1000) {
+      enqueueSnackbar("Bio cannot exceed 1000 characters", {
         variant: "warning",
       });
       return false;
@@ -872,8 +938,11 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder="Describe experience..."
                 rows="4"
                 className="w-full outline-none bg-transparent text-white resize-none"
+                maxLength={1000}
               />
-              <p className="text-xs text-gray-400 mt-1">Max 1000 characters</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {formData.bio.length}/1000 characters
+              </p>
             </div>
           </div>
           {/* Social Media */}
@@ -1113,7 +1182,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                     name="suspensionNotes"
                     value={formData.suspensionNotes}
                     onChange={handleInputChange}
-                  placeholder='Enter Reason or note (Optional)'
+                    placeholder="Enter Reason or note (Optional)"
                     rows="3"
                     className="w-full outline-none bg-transparent text-white resize-none"
                     maxLength={500}
