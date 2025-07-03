@@ -121,6 +121,8 @@ export default function EditPeoplePage({ params }) {
   const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
   const validPassword = (password) =>
     /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
+  const validateSuffix = (suffix) => /^[A-Za-z]+$/.test(suffix)
+
   const getAge = (dob) => {
     const birthDate = new Date(dob)
     const today = new Date()
@@ -159,9 +161,16 @@ export default function EditPeoplePage({ params }) {
       setSubmitting(false)
       return
     }
+    if (people.suffix && !validateSuffix(people.suffix)) {
+      enqueueSnackbar('Suffix must contain only letters.', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
     if (people.nickName && !validateName(people.nickName)) {
       enqueueSnackbar(
-        'Last Name can only contain letters, spaces, apostrophes, or hyphens.',
+        'Nick Name can only contain letters, spaces, apostrophes, or hyphens.',
         { variant: 'warning' }
       )
       setSubmitting(false)
@@ -354,6 +363,8 @@ export default function EditPeoplePage({ params }) {
                 className='w-full outline-none'
                 required
                 placeholder='Eric'
+                minLength={3}
+                maxLength={50}
               />
             </div>
 
@@ -367,6 +378,8 @@ export default function EditPeoplePage({ params }) {
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='M'
+                minLength={3}
+                maxLength={50}
               />
             </div>
 
@@ -383,6 +396,8 @@ export default function EditPeoplePage({ params }) {
                 className='w-full outline-none'
                 required
                 placeholder='Franks'
+                minLength={3}
+                maxLength={50}
               />
             </div>
 
@@ -396,6 +411,7 @@ export default function EditPeoplePage({ params }) {
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Mr'
+                maxLength={50}
               />
             </div>
 
@@ -409,6 +425,7 @@ export default function EditPeoplePage({ params }) {
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Eric'
+                maxLength={50}
               />
             </div>
 

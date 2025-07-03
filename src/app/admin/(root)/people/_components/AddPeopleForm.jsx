@@ -77,6 +77,8 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
   const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
   const validPassword = (password) =>
     /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
+  const validateSuffix = (suffix) => /^[A-Za-z]+$/.test(suffix)
+
   const getAge = (dob) => {
     const birthDate = new Date(dob)
     const today = new Date()
@@ -114,9 +116,16 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
       setIsSubmitting(false)
       return
     }
+    if (formData.suffix && !validateSuffix(formData.suffix)) {
+      enqueueSnackbar('Suffix must contain only letters.', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
     if (formData.nickName && !validateName(formData.nickName)) {
       enqueueSnackbar(
-        'Last Name can only contain letters, spaces, apostrophes, or hyphens.',
+        'Nick Name can only contain letters, spaces, apostrophes, or hyphens.',
         { variant: 'warning' }
       )
       setIsSubmitting(false)
@@ -144,7 +153,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
       return
     }
     if (!validPostalCode(formData.postalCode)) {
-      enqueueSnackbar('Please enter a valid postal code.', {
+      enqueueSnackbar('Please enter a valid zip code.', {
         variant: 'warning',
       })
       setIsSubmitting(false)
@@ -325,6 +334,8 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 className='w-full outline-none'
                 required
                 placeholder='Eric'
+                minLength={3}
+                maxLength={50}
               />
             </div>
 
@@ -338,6 +349,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='M'
+                maxLength={50}
               />
             </div>
 
@@ -354,6 +366,8 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 className='w-full outline-none'
                 required
                 placeholder='Franks'
+                minLength={3}
+                maxLength={50}
               />
             </div>
 
@@ -367,6 +381,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Mr'
+                maxLength={50}
               />
             </div>
 
@@ -380,6 +395,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 onChange={handleChange}
                 className='w-full outline-none'
                 placeholder='Eric'
+                maxLength={50}
               />
             </div>
 
@@ -707,13 +723,17 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
           <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-8'>
             {/* Street 1 Field */}
             <div className='bg-[#00000061] p-2 h-16 rounded'>
-              <label className='block text-sm font-medium mb-1'>Street 1</label>
+              <label className='block text-sm font-medium mb-1'>
+                Street 1<span className='text-red-500'>*</span>
+              </label>
               <input
                 type='text'
                 name='street1'
                 value={formData.street1}
                 onChange={handleChange}
                 className='w-full outline-none'
+                placeholder='Enter Street 1'
+                required
               />
             </div>
 
@@ -726,6 +746,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 value={formData.street2}
                 onChange={handleChange}
                 className='w-full outline-none'
+                placeholder='Enter Street 2'
               />
             </div>
           </div>
