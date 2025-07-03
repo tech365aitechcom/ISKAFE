@@ -323,19 +323,20 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
             />
 
             {/* Add New Venue */}
-            <Link href={`/admin/venues?redirectOrigin=addEvent`}>
-              <button
-                type='button'
-                className='px-4 py-2 rounded-md font-medium transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300'
-              >
-                Add New Venue
-              </button>
-            </Link>
+            <button
+              type='button'
+              className='px-4 py-2 rounded-md font-medium transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300 w-fit h-fit'
+              onClick={() =>
+                router.push('/admin/venues?redirectOrigin=addEvent')
+              }
+            >
+              Add New Venue
+            </button>
           </div>
 
           {/* PROMOTER INFO SECTION */}
           <h2 className='font-bold mb-4 uppercase text-sm border-b border-gray-700 pb-2 mt-8'>
-            Promoter Info
+            Promoter Info <span className='text-red-500'>*</span>
           </h2>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
@@ -370,14 +371,15 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
             />
 
             {/* Add New promoter */}
-            <Link href={`/admin/promoter?redirectOrigin=addEvent`}>
-              <button
-                type='button'
-                className='px-4 py-2 rounded-md font-medium transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300'
-              >
-                Add New Promoter
-              </button>
-            </Link>
+            <button
+              type='button'
+              className='px-4 py-2 rounded-md font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 w-fit h-fit'
+              onClick={() =>
+                router.push('/admin/promoter?redirectOrigin=addEvent')
+              }
+            >
+              Add New Promoter
+            </button>
           </div>
 
           {!formData.venue || !formData.promoter ? (
@@ -514,14 +516,30 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
             {/* Event Poster */}
             <div className='bg-[#00000061] p-2 rounded col-span-2'>
               <label className='block text-sm font-medium mb-1'>Poster</label>
-              <input
-                type='file'
-                name='poster'
-                onChange={handleChange}
-                accept='image/jpeg,image/png'
-                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:cursor-not-allowed'
-                disabled={!formData.venue || !formData.promoter || submitting}
-              />
+
+              {/* Custom file upload button */}
+              <div className='relative inline-block'>
+                <label
+                  htmlFor='posterUpload'
+                  className={`cursor-pointer inline-block file-btn py-2 px-4 rounded-full text-sm font-semibold ${
+                    !formData.venue || !formData.promoter || submitting
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                  }`}
+                >
+                  Choose Poster
+                </label>
+                <input
+                  id='posterUpload'
+                  type='file'
+                  name='poster'
+                  onChange={handleChange}
+                  accept='image/jpeg,image/png'
+                  disabled={!formData.venue || !formData.promoter || submitting}
+                  className='absolute inset-0 opacity-0 w-full h-full cursor-pointer'
+                />
+              </div>
+
               <p className='text-xs text-gray-400 mt-1'>
                 JPG, PNG formats only
               </p>
@@ -743,14 +761,28 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
               <label className='block text-sm font-medium mb-1'>
                 Upload Rules Info File
               </label>
-              <input
-                type='file'
-                name='rules'
-                accept='application/pdf'
-                onChange={handleChange}
-                className='w-full outline-none bg-transparent disabled:cursor-not-allowed text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                disabled={!formData.venue || !formData.promoter || submitting}
-              />
+
+              <div className='relative inline-block'>
+                <label
+                  htmlFor='rulesFile'
+                  className={`cursor-pointer inline-block py-1 px-4 rounded-full text-sm font-semibold ${
+                    !formData.venue || !formData.promoter || submitting
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                  }`}
+                >
+                  Choose File
+                </label>
+                <input
+                  id='rulesFile'
+                  type='file'
+                  name='rules'
+                  accept='application/pdf'
+                  onChange={handleChange}
+                  disabled={!formData.venue || !formData.promoter || submitting}
+                  className='absolute inset-0 opacity-0 w-full h-full cursor-pointer'
+                />
+              </div>
             </div>
 
             {/* Matching Method */}
@@ -866,20 +898,35 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
             {/* Image */}
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block text-sm font-medium mb-1'>
-                Sectioning body image
-                <span className='text-red-500'>*</span>
+                Sectioning body image <span className='text-red-500'>*</span>
               </label>
-              <input
-                type='file'
-                name='sectioningBodyImage'
-                required
-                onChange={handleChange}
-                accept='image/jpeg,image/png'
-                className='w-full outline-none bg-transparent disabled:cursor-not-allowed text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                disabled={!formData.venue || !formData.promoter || submitting}
-              />
+
+              <div className='relative inline-block'>
+                <label
+                  htmlFor='sectioningBodyImage'
+                  className={`cursor-pointer inline-block py-2 px-4 rounded-full text-sm font-semibold ${
+                    !formData.venue || !formData.promoter || submitting
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                  }`}
+                >
+                  Choose Image
+                </label>
+                <input
+                  id='sectioningBodyImage'
+                  type='file'
+                  name='sectioningBodyImage'
+                  required
+                  onChange={handleChange}
+                  accept='image/jpeg,image/png'
+                  disabled={!formData.venue || !formData.promoter || submitting}
+                  className='absolute inset-0 opacity-0 w-full h-full cursor-pointer'
+                />
+              </div>
+
               <p className='text-xs text-gray-400 mt-1'>Upload Logo/Image</p>
             </div>
+
             {/* description */}
             <div className='bg-[#00000061] p-2 rounded '>
               <label className='block text-sm font-medium mb-1'>

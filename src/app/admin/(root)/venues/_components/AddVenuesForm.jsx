@@ -663,14 +663,26 @@ export const AddVenuesForm = ({
               <label className='block text-sm font-medium mb-1'>
                 Upload Images (Optional)
               </label>
-              <input
-                type='file'
-                name='media'
-                onChange={handleChange}
-                accept='.jpg,.jpeg,.png'
-                multiple
-                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-              />
+
+              {/* Custom File Upload Button */}
+              <div className='relative inline-block'>
+                <label
+                  htmlFor='mediaUpload'
+                  className='cursor-pointer inline-block py-2 px-4 rounded-full bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700'
+                >
+                  Choose Files
+                </label>
+                <input
+                  id='mediaUpload'
+                  type='file'
+                  name='media'
+                  onChange={handleChange}
+                  accept='.jpg,.jpeg,.png'
+                  multiple
+                  className='absolute inset-0 w-full h-full opacity-0 cursor-pointer'
+                />
+              </div>
+
               <p className='text-xs text-gray-400 mt-1'>
                 Max 5 MB image formats
               </p>
