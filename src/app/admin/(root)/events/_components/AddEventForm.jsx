@@ -191,12 +191,13 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
         handleCancel()
       }
     } catch (error) {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
-        {
-          variant: 'error',
-        }
-      )
+      const errorMsg =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Something went wrong'
+
+      enqueueSnackbar(errorMsg, { variant: 'error' })
     } finally {
       setSubmitting(false)
     }
@@ -293,19 +294,29 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
             <Autocomplete
               label={'Search or Select venue'}
-              options={venues.map((venue) => {
-                return {
-                  label: `${venue.name} (${
-                    venue.address.street1 +
-                      ', ' +
-                      venue.address.city +
-                      ', ' +
-                      Country.getCountryByCode(venue.address.country).name || ''
-                  })`,
-                  value: venue._id,
-                }
-              })}
-              selected={formData.venue}
+              options={venues.map((venue) => ({
+                label: `${venue.name} (${venue.address.street1}, ${
+                  venue.address.city
+                }, ${
+                  Country.getCountryByCode(venue.address.country).name || ''
+                })`,
+                value: venue._id,
+              }))}
+              selected={
+                typeof formData.venue === 'string'
+                  ? venues
+                      .map((venue) => ({
+                        label: `${venue.name} (${venue.address.street1}, ${
+                          venue.address.city
+                        }, ${
+                          Country.getCountryByCode(venue.address.country)
+                            .name || ''
+                        })`,
+                        value: venue._id,
+                      }))
+                      .find((v) => v.value === formData.venue)
+                  : formData.venue
+              }
               onChange={(value) => handleChange('venue', value)}
               placeholder='Search venue name'
               required={true}
@@ -331,17 +342,28 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
             {/* Promoter */}
             <Autocomplete
               label={'Search or Select promoter'}
-              options={promoters.map((promoter) => {
-                return {
-                  label: `${promoter.user?.firstName || ''} ${
-                    promoter.user?.middleName || ''
-                  } ${promoter.user?.lastName || ''} (${
-                    promoter.user?.email || ''
-                  })`,
-                  value: promoter._id,
-                }
-              })}
-              selected={formData.promoter}
+              options={promoters.map((promoter) => ({
+                label: `${promoter.user?.firstName || ''} ${
+                  promoter.user?.middleName || ''
+                } ${promoter.user?.lastName || ''} (${
+                  promoter.user?.email || ''
+                })`,
+                value: promoter._id,
+              }))}
+              selected={
+                typeof formData.promoter === 'string'
+                  ? promoters
+                      .map((promoter) => ({
+                        label: `${promoter.user?.firstName || ''} ${
+                          promoter.user?.middleName || ''
+                        } ${promoter.user?.lastName || ''} (${
+                          promoter.user?.email || ''
+                        })`,
+                        value: promoter._id,
+                      }))
+                      .find((p) => p.value === formData.promoter)
+                  : formData.promoter
+              }
               onChange={(value) => handleChange('promoter', value)}
               placeholder='Search promoter name'
               required={true}
