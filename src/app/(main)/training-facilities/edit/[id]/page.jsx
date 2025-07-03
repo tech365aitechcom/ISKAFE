@@ -238,6 +238,10 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
     }))
   }
 
+  const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
+  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+
   const addTrainer = () => {
     if (currentTrainer.name || currentTrainer.existingId) {
       setFormData((prev) => ({
@@ -294,7 +298,53 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
     e.preventDefault()
     console.log('Form submitted with action:', action)
     console.log('Form data:', formData)
-
+    if (!formData.name && action !== 'draft') {
+      enqueueSnackbar('Facility name is required.', { variant: 'warning' })
+      return
+    }
+    if (!validateName(formData.name)) {
+      enqueueSnackbar(
+        'Facility name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      return
+    }
+    if (!formData.email && action !== 'draft') {
+      enqueueSnackbar('Email is required.', { variant: 'warning' })
+      return
+    }
+    if (!validateEmail(formData.email) && action !== 'draft') {
+      enqueueSnackbar('Invalid email address.', { variant: 'warning' })
+      return
+    }
+    if (!formData.phoneNumber && action !== 'draft') {
+      enqueueSnackbar('Phone number is required.', { variant: 'warning' })
+      return
+    }
+    if (!validatePhoneNumber(formData.phoneNumber) && action !== 'draft') {
+      enqueueSnackbar('Invalid phone number.', { variant: 'warning' })
+      return
+    }
+    if (!formData.address && action !== 'draft') {
+      enqueueSnackbar('Address is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.country && action !== 'draft') {
+      enqueueSnackbar('Country is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.state && action !== 'draft') {
+      enqueueSnackbar('State is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.city && action !== 'draft') {
+      enqueueSnackbar('City is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.description && action !== 'draft') {
+      enqueueSnackbar('Description is required.', { variant: 'warning' })
+      return
+    }
     try {
       let updatedFormData = { ...formData }
 
@@ -438,22 +488,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
     router.push('/training-facilities')
   }
 
-  const isStep1Valid = () => {
-    return (
-      formData.name.length >= 3 &&
-      (formData.logo || formData.logoUrl) &&
-      formData.martialArtsStyles.length > 0 &&
-      formData.address &&
-      formData.country &&
-      formData.state &&
-      formData.city
-    )
-  }
-
-  const isStep2Valid = () => {
-    return formData.description.length > 0
-  }
-
   if (loading) {
     return <Loader />
   }
@@ -522,7 +556,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                     onChange={handleChange}
                     placeholder='e.g., Arnett Sport Kung Fu'
                     className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-                    required
                     minLength={3}
                     maxLength={50}
                   />
@@ -602,7 +635,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                     onChange={handleChange}
                     placeholder='Enter your email address'
                     className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-                    required
                   />
                 </div>
                 <div className='bg-[#00000061] p-2 rounded'>
@@ -616,7 +648,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                     onChange={handleChange}
                     placeholder='Enter your phone number'
                     className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-                    required
                   />
                 </div>
               </div>
@@ -639,7 +670,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       onChange={handleChange}
                       placeholder='580 Ellis Rd S, Suite 122A'
                       className='w-full outline-none bg-transparent text-white'
-                      required
                     />
                   </div>
 
@@ -653,7 +683,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                         value={formData.country}
                         onChange={handleChange}
                         className='w-full outline-none bg-transparent text-white'
-                        required
                       >
                         <option value='' className='text-black'>
                           Select Country
@@ -679,7 +708,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                         value={formData.state}
                         onChange={handleChange}
                         className='w-full outline-none bg-transparent text-white'
-                        required
                         disabled={!formData.country}
                       >
                         <option value='' className='text-black'>
@@ -706,7 +734,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                         value={formData.city}
                         onChange={handleChange}
                         className='w-full outline-none bg-transparent text-white'
-                        required
                         disabled={!formData.state}
                       >
                         <option value='' className='text-black'>
@@ -749,7 +776,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                       placeholder="Share your gym's journey, mission, and values..."
                       className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                       rows={4}
-                      required
                       maxLength={1000}
                     />
                     <span className='text-xs text-gray-400'>
@@ -907,7 +933,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                           })),
                         ]}
                         placeholder='Search trainer name'
-                        required
                       />
                     ) : (
                       <>
@@ -1135,7 +1160,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                         })),
                       ]}
                       placeholder='Search fighter name'
-                      required
                     />
                   ) : (
                     <>
@@ -1463,10 +1487,6 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
                   <button
                     type='button'
                     onClick={nextStep}
-                    disabled={
-                      (currentStep === 1 && !isStep1Valid()) ||
-                      (currentStep === 2 && !isStep2Valid())
-                    }
                     className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     Next

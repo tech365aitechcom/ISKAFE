@@ -446,8 +446,6 @@ export default function EditTrainingFacilityPage({ params }) {
     )
   }
 
-  console.log('formData trainers', formData.trainers)
-
   const isStep2Valid = () => {
     return formData.description.length > 0
   }

@@ -404,9 +404,56 @@ const RegisterTrainingFacilityPage = () => {
   };
 
   const handleSubmit = async (e, action) => {
-    e.preventDefault();
-    console.log("Form submitted with action:", action);
-    console.log("Form data:", formData);
+    e.preventDefault()
+    console.log('Form submitted with action:', action)
+    console.log('Form data:', formData)
+    if (!formData.name && action !== 'draft') {
+      enqueueSnackbar('Facility name is required.', { variant: 'warning' })
+      return
+    }
+    if (!validateName(formData.name)) {
+      enqueueSnackbar(
+        'Facility name can only contain letters, spaces, apostrophes, or hyphens.',
+        { variant: 'warning' }
+      )
+      return
+    }
+    if (!formData.email && action !== 'draft') {
+      enqueueSnackbar('Email is required.', { variant: 'warning' })
+      return
+    }
+    if (!validateEmail(formData.email) && action !== 'draft') {
+      enqueueSnackbar('Invalid email address.', { variant: 'warning' })
+      return
+    }
+    if (!formData.phoneNumber && action !== 'draft') {
+      enqueueSnackbar('Phone number is required.', { variant: 'warning' })
+      return
+    }
+    if (!validatePhoneNumber(formData.phoneNumber) && action !== 'draft') {
+      enqueueSnackbar('Invalid phone number.', { variant: 'warning' })
+      return
+    }
+    if (!formData.address && action !== 'draft') {
+      enqueueSnackbar('Address is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.country && action !== 'draft') {
+      enqueueSnackbar('Country is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.state && action !== 'draft') {
+      enqueueSnackbar('State is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.city && action !== 'draft') {
+      enqueueSnackbar('City is required.', { variant: 'warning' })
+      return
+    }
+    if (!formData.description && action !== 'draft') {
+      enqueueSnackbar('Description is required.', { variant: 'warning' })
+      return
+    }
     try {
       if (formData.logo && typeof formData.logo !== "string") {
         try {
@@ -541,25 +588,9 @@ const RegisterTrainingFacilityPage = () => {
 
       // Terms
       termsAgreed: false,
-    });
-    router.push("/training-facilities");
-  };
-
-  const isStep1Valid = () => {
-    return (
-      formData.name.length >= 3 &&
-      formData.logo &&
-      formData.martialArtsStyles.length > 0 &&
-      formData.address &&
-      formData.country &&
-      formData.state &&
-      formData.city
-    );
-  };
-
-  const isStep2Valid = () => {
-    return formData.description.length > 0;
-  };
+    })
+    router.push('/training-facilities')
+  }
 
   return (
     <div className="min-h-screen text-white bg-[#0B1739] py-6 px-4">
@@ -625,9 +656,8 @@ const RegisterTrainingFacilityPage = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="e.g., Arnett Sport Kung Fu"
-                    className="w-full outline-none bg-transparent text-white disabled:text-gray-400"
-                    required
+                    placeholder='e.g., Arnett Sport Kung Fu'
+                    className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                     minLength={3}
                     maxLength={50}
                   />
@@ -715,9 +745,8 @@ const RegisterTrainingFacilityPage = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Enter your email address"
-                    className="w-full outline-none bg-transparent text-white disabled:text-gray-400"
-                    required
+                    placeholder='Enter your email address'
+                    className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                   />
                 </div>
                 <div className="bg-[#00000061] p-2 rounded">
@@ -729,9 +758,8 @@ const RegisterTrainingFacilityPage = () => {
                     name="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleChange}
-                    placeholder="Enter your phone number"
-                    className="w-full outline-none bg-transparent text-white disabled:text-gray-400"
-                    required
+                    placeholder='Enter your phone number'
+                    className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                   />
                 </div>
               </div>
@@ -752,9 +780,8 @@ const RegisterTrainingFacilityPage = () => {
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      placeholder="580 Ellis Rd S, Suite 122A"
-                      className="w-full outline-none bg-transparent text-white"
-                      required
+                      placeholder='580 Ellis Rd S, Suite 122A'
+                      className='w-full outline-none bg-transparent text-white'
                     />
                   </div>
 
@@ -767,8 +794,7 @@ const RegisterTrainingFacilityPage = () => {
                         name="country"
                         value={formData.country}
                         onChange={handleChange}
-                        className="w-full outline-none bg-transparent text-white"
-                        required
+                        className='w-full outline-none bg-transparent text-white'
                       >
                         <option value="" className="text-black">
                           Select Country
@@ -793,8 +819,7 @@ const RegisterTrainingFacilityPage = () => {
                         name="state"
                         value={formData.state}
                         onChange={handleChange}
-                        className="w-full outline-none bg-transparent text-white"
-                        required
+                        className='w-full outline-none bg-transparent text-white'
                         disabled={!formData.country}
                       >
                         <option value="" className="text-black">
@@ -820,8 +845,7 @@ const RegisterTrainingFacilityPage = () => {
                         name="city"
                         value={formData.city}
                         onChange={handleChange}
-                        className="w-full outline-none bg-transparent text-white"
-                        required
+                        className='w-full outline-none bg-transparent text-white'
                         disabled={!formData.state}
                       >
                         <option value="" className="text-black">
@@ -864,7 +888,6 @@ const RegisterTrainingFacilityPage = () => {
                       placeholder="Share your gym's journey, mission, and values..."
                       className="w-full outline-none bg-transparent text-white disabled:text-gray-400"
                       rows={4}
-                      required
                       maxLength={1000}
                     />
                     <span className="text-xs text-gray-400">
@@ -1021,8 +1044,7 @@ const RegisterTrainingFacilityPage = () => {
                             value: trainer._id,
                           })),
                         ]}
-                        placeholder="Search trainer name"
-                        required
+                        placeholder='Search trainer name'
                       />
                     ) : (
                       <>
@@ -1278,8 +1300,7 @@ const RegisterTrainingFacilityPage = () => {
                           value: fighter._id,
                         })),
                       ]}
-                      placeholder="Search fighter name"
-                      required
+                      placeholder='Search fighter name'
                     />
                   ) : (
                     <>
@@ -1644,11 +1665,7 @@ const RegisterTrainingFacilityPage = () => {
                   <button
                     type="button"
                     onClick={nextStep}
-                    disabled={
-                      (currentStep === 1 && !isStep1Valid()) ||
-                      (currentStep === 2 && !isStep2Valid())
-                    }
-                    className="bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     Next
                   </button>
