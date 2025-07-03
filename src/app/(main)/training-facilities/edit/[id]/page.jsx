@@ -497,7 +497,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
       <div className='w-full container mx-auto'>
         <div className='mb-6'>
           <h1 className='text-4xl font-bold'>Edit Training Facility</h1>
-          <p>Fill the form below to register you training and gym facility</p>
+          <p>Fill out the form below to register your training and gym facility</p>
         </div>
         <div className='mb-8'>
           {/* Dots + connectors */}
