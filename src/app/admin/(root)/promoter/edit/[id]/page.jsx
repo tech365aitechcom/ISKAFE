@@ -135,7 +135,10 @@ export default function EditPromoterPage({ params }) {
   const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
   const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPostalCode = (postalCode) => /^\d{1,6}$/.test(postalCode);
+  const validateAbbreviation = (abbr) => /^[A-Z]{1,10}$/.test(abbr);
+const validateCityStreet = (text) => /^[A-Za-z0-9\s\-.,#]*$/.test(text);
+const validateUsername = (username) => /^[a-zA-Z0-9_]{3,30}$/.test(username);
   const validPassword = (password) =>
     /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
 
@@ -150,6 +153,33 @@ export default function EditPromoterPage({ params }) {
       setSubmitting(false)
       return
     }
+    if (!formData.password) {
+  enqueueSnackbar("Password is required.", { variant: "warning" });
+  setSubmitting(false);
+  return;
+}
+if (!formData.confirmPassword) {
+  enqueueSnackbar("Confirm Password is required.", { variant: "warning" });
+  setSubmitting(false);
+  return;
+}
+if (!validateAbbreviation(formData.abbreviation)) {
+  enqueueSnackbar("Abbreviation must be uppercase letters only, max 10 characters.", { variant: "warning" });
+  setSubmitting(false);
+  return;
+}
+if (!validateCityStreet(formData.street1) ||
+    (formData.street2 && !validateCityStreet(formData.street2)) ||
+    !validateCityStreet(formData.city)) {
+  enqueueSnackbar("Street and City should not contain special characters.", { variant: "warning" });
+  setSubmitting(false);
+  return;
+}
+if (!validateUsername(formData.userName)) {
+  enqueueSnackbar("Username must be alphanumeric and 3–30 characters.", { variant: "warning" });
+  setSubmitting(false);
+  return;
+}
     if (!validateName(formData.contactPersonName)) {
       enqueueSnackbar(
         'Contact Person Name can only contain letters, spaces, apostrophes, or hyphens.',
@@ -246,6 +276,8 @@ export default function EditPromoterPage({ params }) {
   }
 
   const handleDeletePromoter = async () => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this promoter?");
+  if (!confirmDelete) return;
     try {
       const res = await axios.delete(`${API_BASE_URL}/promoter/${id}`)
       if (res.status === apiConstants.success) {
@@ -906,7 +938,7 @@ export default function EditPromoterPage({ params }) {
               {/* Password Field */}
               <div className='bg-[#00000061] p-2 h-16 rounded relative'>
                 <label className='block text-xs font-medium mb-1'>
-                  Password
+                  Password <span className='text-red-500'>*</span>
                 </label>
                 <div className='relative'>
                   <input
@@ -931,7 +963,7 @@ export default function EditPromoterPage({ params }) {
               {/* Confirm Password Field */}
               <div className='bg-[#00000061] p-2 h-16 rounded'>
                 <label className='block text-xs font-medium mb-1'>
-                  Confirm Password
+                  Confirm Password <span className='text-red-500'>*</span>
                 </label>
                 <div className='relative'>
                   <input
