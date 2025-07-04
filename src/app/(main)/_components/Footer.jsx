@@ -33,16 +33,16 @@ const Footer = () => {
             COPYRIGHT ©2025 COMPETITION TECHNOLOGY
           </span>
         </a>
-        
+
         {/* Center Section - Logo */}
-        <div className='mb-6 md:mb-0 flex justify-center'>
-          <img 
-            src="/logo1.png" 
-            alt="Competition Technology Logo"
+        <div className='mb-6 md:mb-0 flex justify-center w-full md:w-auto'>
+          <img
+            src='/logo1.png'
+            alt='Competition Technology Logo'
             className='h-16 object-contain'
           />
         </div>
-        
+
         {/* Right Section - Links */}
         <div className='flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6'>
           <a
@@ -50,28 +50,26 @@ const Footer = () => {
             target='_blank'
             className='text-white hover:text-gray-300'
           >
-            <span className='text-xl md:text-2xl font-bold'>
-              PRIVACY POLICY
-            </span>
+            <span className='text-xl md:text-2xl font-bold'>PRIVACY POLICY</span>
           </a>
           <a
             href={data?.termsConditionsPDF ? data.termsConditionsPDF : '#'}
             target='_blank'
             className='text-white hover:text-gray-300'
           >
-            <span className='text-xl md:text-2xl font-bold'>
-              TERMS AND CONDITIONS
-            </span>
+            <span className='text-xl md:text-2xl font-bold'>TERMS AND CONDITIONS</span>
           </a>
         </div>
       </div>
-      
-      {/* Social Media Icons - Centered below */}
-      <div className='container mx-auto mt-8 flex justify-center'>
-        <div className='flex items-center space-x-4'>
+
+      {/* Social Media Icons - Perfectly Centered Below Logo */}
+      <div className='w-full mt-6 ml-3 flex justify-center'>
+        <div className='flex items-center space-x-6'>
           <a
-            href={data?.facebookURL}
+            href={data?.facebookURL || '#'}
             className='text-white hover:text-gray-300'
+            target='_blank'
+            aria-label='Facebook'
           >
             <svg
               className='w-8 h-8'
@@ -86,9 +84,12 @@ const Footer = () => {
               />
             </svg>
           </a>
+
           <a
-            href={data?.instagramURL}
+            href={data?.instagramURL || '#'}
             className='text-white hover:text-gray-300'
+            target='_blank'
+            aria-label='Instagram'
           >
             <svg
               className='w-8 h-8'
@@ -103,8 +104,9 @@ const Footer = () => {
               />
             </svg>
           </a>
+
           <a
-            href={data?.twitterURL}
+            href={data?.twitterURL || '#'}
             className='text-white hover:text-gray-300'
             target='_blank'
             aria-label='Twitter'
