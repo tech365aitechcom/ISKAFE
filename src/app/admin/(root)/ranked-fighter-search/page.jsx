@@ -13,6 +13,8 @@ export default function RankedFighterSearch() {
   const [showResults, setShowResults] = useState(false)
   const [rankings, setRankings] = useState([])
   const [classifications, setClassifications] = useState([])
+  const [sports, setSports] = useState([])
+  const [weightClasses, setWeightClasses] = useState([])
   const [loading, setLoading] = useState(false)
   const [sportsLoaded, setSportsLoaded] = useState(false)
   const [weightClassesLoaded, setWeightClassesLoaded] = useState(false)
@@ -62,46 +64,88 @@ export default function RankedFighterSearch() {
     }
   }
 
-  const fetchMasterData = async () => {
+  const getProClassifications = async () => {
     try {
       const response = await axios.get(
         `${API_BASE_URL}/master/proClassifications`
       )
-      setClassifications(response.data.result)
-    } catch (err) {
-      console.error('Failed to fetch classifications:', err)
+      console.log('Sports response:', response.data)
+
+      const proClassificationOptions = response.data.result.map(
+        (classification) => classification.label
+      )
+      setClassifications(proClassificationOptions)
+    } catch (error) {
+      setClassifications([])
     }
   }
 
-  const selectedClassification = classifications.find(
-    (c) => c.label === filters.proClassification
-  )
+  const getSports = async () => {
+    setSportsLoaded(false)
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/master/proClassifications`
+      )
+      console.log('Sports response:', response.data)
 
-  const sportOptions =
-    selectedClassification?.sports.map((sport) => sport.label) || []
+      const selectedClassification = response.data.result.find(
+        (classification) =>
+          classification.label.toLowerCase() ===
+          filters.proClassification.toLowerCase()
+      )
 
-  const selectedSport = selectedClassification?.sports.find(
-    (s) => s.label === filters.sport
-  )
+      const sportsArray = selectedClassification?.sports || []
 
-  const weightClassOptions = selectedSport?.weightClass || []
-
-  const selectOptionsMap = {
-    proClassification: classifications.map((c) => c.label),
-    sport: sportOptions,
-    weightClass: weightClassOptions,
+      setSports(sportsArray)
+    } catch (error) {
+      setSports([])
+    } finally {
+      setSportsLoaded(true)
+    }
   }
+
+  const getWeightClasses = async () => {
+    setWeightClassesLoaded(false)
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/master/proClassifications`
+      )
+      console.log('Sports response:', response.data)
+
+      const selectedClassification = response.data.result.find(
+        (classification) =>
+          classification.label.toLowerCase() ===
+          filters.proClassification.toLowerCase()
+      )
+
+      const sportsArray = selectedClassification?.sports || []
+      const selectedSport = sportsArray.find(
+        (sport) => sport.label.toLowerCase() === filters.sport.toLowerCase()
+      )
+      const weightClassOptions = selectedSport?.weightClass || []
+
+      setWeightClasses(weightClassOptions)
+    } catch (error) {
+      setWeightClasses([])
+    } finally {
+      setWeightClassesLoaded(true)
+    }
+  }
+
+  useEffect(() => {
+    getProClassifications()
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFilters((prevState) => ({
       ...prevState,
       [name]: value,
-      ...(name === 'proClassification' && { 
-        sport: '', 
+      ...(name === 'proClassification' && {
+        sport: '',
         weightClass: '',
       }),
-      ...(name === 'sport' && { 
+      ...(name === 'sport' && {
         weightClass: '',
       }),
     }))
@@ -117,16 +161,12 @@ export default function RankedFighterSearch() {
 
   const handleGetSports = () => {
     if (!filters.proClassification) {
-      enqueueSnackbar('Please select a Pro Classification first', { variant: 'error' })
+      enqueueSnackbar('Please select a Pro Classification first', {
+        variant: 'error',
+      })
       return
     }
-    setSportsLoaded(true)
-    setWeightClassesLoaded(false)
-    setFilters(prev => ({
-      ...prev,
-      sport: '',
-      weightClass: ''
-    }))
+    getSports()
   }
 
   const handleGetWeightClasses = () => {
@@ -134,16 +174,8 @@ export default function RankedFighterSearch() {
       enqueueSnackbar('Please select a Sport first', { variant: 'error' })
       return
     }
-    setWeightClassesLoaded(true)
-    setFilters(prev => ({
-      ...prev,
-      weightClass: ''
-    }))
+    getWeightClasses()
   }
-
-  useEffect(() => {
-    fetchMasterData()
-  }, [])
 
   const handleSearch = () => {
     if (!filters.proClassification || !filters.sport || !filters.weightClass) {
@@ -201,7 +233,7 @@ export default function RankedFighterSearch() {
                 <option value='' className='text-black'>
                   Select Pro Classification
                 </option>
-                {selectOptionsMap.proClassification.map((opt) => (
+                {classifications.map((opt) => (
                   <option key={opt} value={opt} className='text-black'>
                     {opt}
                   </option>
@@ -226,166 +258,183 @@ export default function RankedFighterSearch() {
           </div>
 
           {/* Sport */}
-          <div className='relative w-64 mb-4'>
-            <label className='block mb-2 text-sm font-medium text-white'>
-              Sport
-              <span className='text-red-500'>*</span>
-            </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-              <select
-                name='sport'
-                value={filters.sport}
-                onChange={handleChange}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                required
-                disabled={!sportsLoaded}
-              >
-                <option value='' className='text-black'>
-                  Select Sport
-                </option>
-                {selectOptionsMap.sport.map((opt) => (
-                  <option key={opt} value={opt} className='text-black'>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Get Weight Classes Button */}
-          <div className='relative w-64  flex items-end'>
-            <button
-              onClick={handleGetWeightClasses}
-              disabled={!filters.sport}
-              className={`mt-2 text-white font-medium py-2 px-6 rounded transition duration-200 ${
-                !filters.sport
-                  ? 'bg-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
-            >
-              Get Weight Classes
-            </button>
-          </div>
+          {sportsLoaded && (
+            <>
+              <div className='relative w-64 mb-4'>
+                <label className='block mb-2 text-sm font-medium text-white'>
+                  Sport
+                  <span className='text-red-500'>*</span>
+                </label>
+                <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+                  <select
+                    name='sport'
+                    value={filters.sport}
+                    onChange={handleChange}
+                    className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                    required
+                    disabled={!sportsLoaded}
+                  >
+                    <option value='' className='text-black'>
+                      Select Sport
+                    </option>
+                    {sports.map((opt, index) => (
+                      <option
+                        key={index}
+                        value={opt.label}
+                        className='text-black'
+                      >
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* Get Weight Classes Button */}
+              <div className='relative w-64  flex items-end'>
+                <button
+                  onClick={handleGetWeightClasses}
+                  disabled={!filters.sport}
+                  className={`mt-2 text-white font-medium py-2 px-6 rounded transition duration-200 ${
+                    !filters.sport
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  Get Weight Classes
+                </button>
+              </div>
+            </>
+          )}
 
           {/* Weight Class */}
-          <div className='relative w-64 mb-4'>
-            <label className='block mb-2 text-sm font-medium text-white'>
-              Weight Class
-              <span className='text-red-500'>*</span>
-            </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-              <select
-                name='weightClass'
-                value={filters.weightClass}
-                onChange={handleChange}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                required
-                disabled={!weightClassesLoaded}
-              >
-                <option value='' className='text-black'>
-                  Select Weight Class
-                </option>
-                {selectOptionsMap.weightClass.map((opt) => (
-                  <option key={opt} value={opt} className='text-black'>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          {sportsLoaded && weightClassesLoaded && (
+            <>
+              {weightClassesLoaded && (
+                <div className='relative w-64 mb-4'>
+                  <label className='block mb-2 text-sm font-medium text-white'>
+                    Weight Class
+                    <span className='text-red-500'>*</span>
+                  </label>
+                  <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+                    <select
+                      name='weightClass'
+                      value={filters.weightClass}
+                      onChange={handleChange}
+                      className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                      required
+                      disabled={!weightClassesLoaded}
+                    >
+                      <option value='' className='text-black'>
+                        Select Weight Class
+                      </option>
+                      {weightClasses.map((opt) => (
+                        <option key={opt} value={opt} className='text-black'>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {filters.proClassification &&
+            filters.sport &&
+            filters.weightClass && (
+              <>
+                {/* Country Filter */}
+                <div className='relative w-64 mb-4'>
+                  <label className='block mb-2 text-sm font-medium text-white'>
+                    Country
+                  </label>
+                  <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+                    <select
+                      name='country'
+                      value={filters.country}
+                      onChange={handleChange}
+                      className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                    >
+                      <option value='' className='text-black'>
+                        Select Country
+                      </option>
+                      {countries.map((country) => (
+                        <option
+                          key={country.isoCode}
+                          value={country.isoCode}
+                          className='text-black'
+                        >
+                          {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-          {/* Country Filter */}
-          <div className='relative w-64 mb-4'>
-            <label className='block mb-2 text-sm font-medium text-white'>
-              Country
-            </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-              <select
-                name='country'
-                value={filters.country}
-                onChange={handleChange}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-              >
-                <option value='' className='text-black'>
-                  Select Country
-                </option>
-                {countries.map((country) => (
-                  <option
-                    key={country.isoCode}
-                    value={country.isoCode}
-                    className='text-black'
-                  >
-                    {country.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                {/* State Filter */}
+                <div className='relative w-64 mb-4'>
+                  <label className='block mb-2 text-sm font-medium text-white'>
+                    State
+                  </label>
+                  <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+                    <select
+                      name='state'
+                      value={filters.state}
+                      onChange={handleChange}
+                      className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                      disabled={!filters.country}
+                    >
+                      <option value='' className='text-black'>
+                        Select State
+                      </option>
+                      {states.map((state) => (
+                        <option
+                          key={state.isoCode}
+                          value={state.isoCode}
+                          className='text-black'
+                        >
+                          {state.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-          {/* State Filter */}
-          <div className='relative w-64 mb-4'>
-            <label className='block mb-2 text-sm font-medium text-white'>
-              State
-            </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-              <select
-                name='state'
-                value={filters.state}
-                onChange={handleChange}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                disabled={!filters.country}
-              >
-                <option value='' className='text-black'>
-                  Select State
-                </option>
-                {states.map((state) => (
-                  <option
-                    key={state.isoCode}
-                    value={state.isoCode}
-                    className='text-black'
-                  >
-                    {state.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* City Filter */}
-          <div className='relative w-64 mb-4'>
-            <label className='block mb-2 text-sm font-medium text-white'>
-              City
-            </label>
-            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-              <select
-                name='city'
-                value={filters.city}
-                onChange={handleChange}
-                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                disabled={!filters.state}
-              >
-                <option value='' className='text-black'>
-                  Select City
-                </option>
-                {cities.map((city) => (
-                  <option
-                    key={city.name}
-                    value={city.name}
-                    className='text-black'
-                  >
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <button
-            onClick={handleSearch}
-            className='bg-purple-600 hover:bg-purple-700 mt-2 text-white font-medium py-2 px-6 rounded transition duration-200'
-          >
-            Get Ranked Fighters
-          </button>
+                {/* City Filter */}
+                <div className='relative w-64 mb-4'>
+                  <label className='block mb-2 text-sm font-medium text-white'>
+                    City
+                  </label>
+                  <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+                    <select
+                      name='city'
+                      value={filters.city}
+                      onChange={handleChange}
+                      className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+                      disabled={!filters.state}
+                    >
+                      <option value='' className='text-black'>
+                        Select City
+                      </option>
+                      {cities.map((city) => (
+                        <option
+                          key={city.name}
+                          value={city.name}
+                          className='text-black'
+                        >
+                          {city.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={handleSearch}
+                  className='bg-purple-600 hover:bg-purple-700 mt-2 text-white font-medium py-2 px-6 rounded transition duration-200'
+                >
+                  Get Ranked Fighters
+                </button>
+              </>
+            )}
         </div>
         {loading ? (
           <Loader />
