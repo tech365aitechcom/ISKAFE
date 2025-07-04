@@ -32,7 +32,7 @@ const PublicRulesScreen = () => {
     const getRules = async () => {
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/rules?page=1&limit=500`
+          `${API_BASE_URL}/rules/active?page=1&limit=500`
         )
         const fetchedRules = response.data.data.items
         setRules(fetchedRules)
@@ -110,7 +110,9 @@ const PublicRulesScreen = () => {
           ([subTab, { description, rules }]) => (
             <div key={subTab} className='mb-8'>
               <h2 className='text-2xl font-semibold mb-1'>{subTab}</h2>
-              <p className='text-gray-400 mb-4'>{description}</p>
+              <p className='text-gray-400 mb-4 break-words whitespace-pre-wrap'>
+                {description}
+              </p>
 
               {rules
                 .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -142,11 +144,12 @@ const PublicRulesScreen = () => {
                     {expandedRules.has(rule._id || rule.ruleTitle) && (
                       <div className='p-4 bg-gray-900 rounded-b-xl'>
                         <div
-                          className='prose prose-invert max-w-none text-gray-300'
+                          className='prose prose-invert max-w-none text-gray-300 break-words whitespace-pre-wrap'
                           dangerouslySetInnerHTML={{
                             __html: rule.ruleDescription,
                           }}
                         />
+
                         <div className='mt-4 flex gap-4 flex-wrap'>
                           {rule.rule && (
                             <a
