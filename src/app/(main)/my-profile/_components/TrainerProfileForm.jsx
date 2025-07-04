@@ -277,6 +277,24 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
       return false;
     }
 
+    if (
+      formData.isSuspended &&
+      formData.suspensionStartDate &&
+      formData.suspensionEndDate
+    ) {
+      const start = moment(formData.suspensionStartDate);
+      const end = moment(formData.suspensionEndDate);
+      if (end.isBefore(start)) {
+        enqueueSnackbar(
+          "Suspension End Date cannot be earlier than Start Date.",
+          {
+            variant: "warning",
+          }
+        );
+        return false;
+      }
+    }
+
     if (!validateName(formData.firstName)) {
       enqueueSnackbar(
         "First name can only contain letters, spaces, apostrophes, or hyphens.",
