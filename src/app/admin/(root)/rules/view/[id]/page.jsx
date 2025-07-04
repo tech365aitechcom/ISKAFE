@@ -63,7 +63,7 @@ export default function ViewRulePage({ params }) {
       ></div>
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex items-center gap-4 mb-6'>
-          <Link href='/admin/people'>
+          <Link href='/admin/rules'>
             <button className='mr-2 text-white'>
               <svg
                 xmlns='http://www.w3.org/2000/svg'
