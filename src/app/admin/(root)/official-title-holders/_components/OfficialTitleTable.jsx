@@ -47,12 +47,7 @@ export function OfficialTitleTable({
           classification.label.toLowerCase() ===
           selectedProClassification.toLowerCase()
       )
-
       const sportsArray = selectedClassification?.sports || []
-      const proClassificationOptions = response.data.result.map(
-        (classification) => classification.label
-      )
-      setProClassifications(proClassificationOptions)
       setSports(sportsArray)
     } catch (error) {
       setSports([])

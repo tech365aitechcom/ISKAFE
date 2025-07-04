@@ -35,13 +35,15 @@ const Footer = () => {
         </a>
 
         {/* Center Section - Logo */}
-        <div className='mb-6 md:mb-0 flex justify-center w-full md:w-auto'>
-          <img
-            src='/logo1.png'
-            alt='Competition Technology Logo'
-            className='h-16 object-contain'
-          />
-        </div>
+        {data?.logo && (
+          <div className='mb-6 md:mb-0 flex justify-center w-full md:w-auto'>
+            <img
+              src={data.logo}
+              alt='Competition Technology Logo'
+              className='h-16 object-contain'
+            />
+          </div>
+        )}
 
         {/* Right Section - Links */}
         <div className='flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6'>
@@ -50,14 +52,18 @@ const Footer = () => {
             target='_blank'
             className='text-white hover:text-gray-300'
           >
-            <span className='text-xl md:text-2xl font-bold'>PRIVACY POLICY</span>
+            <span className='text-xl md:text-2xl font-bold'>
+              PRIVACY POLICY
+            </span>
           </a>
           <a
             href={data?.termsConditionsPDF ? data.termsConditionsPDF : '#'}
             target='_blank'
             className='text-white hover:text-gray-300'
           >
-            <span className='text-xl md:text-2xl font-bold'>TERMS AND CONDITIONS</span>
+            <span className='text-xl md:text-2xl font-bold'>
+              TERMS AND CONDITIONS
+            </span>
           </a>
         </div>
       </div>
