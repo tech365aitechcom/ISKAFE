@@ -843,6 +843,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
               <CustomMultiSelect
                 label='Select Age Categories'
                 options={ageCategories}
+                value={formData.ageCategories}
                 onChange={(selectedIds) => {
                   setFormData((prev) => ({
                     ...prev,
@@ -861,6 +862,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
               <CustomMultiSelect
                 label='Select Weight Classes'
                 options={weightClasses}
+                value={formData.weightClasses}
                 onChange={(selectedIds) => {
                   setFormData((prev) => ({
                     ...prev,

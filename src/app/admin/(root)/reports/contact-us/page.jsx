@@ -295,16 +295,7 @@ export default function ContactUsReports() {
                           {report?._id}
                         </td>
                         <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
-                          {report?.eventId ? (
-                            <a
-                              href={`/admin/event-${report.eventId}`}
-                              className='text-blue-400 hover:text-blue-300 flex items-center gap-1 '
-                            >
-                              {report.eventId} <ExternalLink size={14} />
-                            </a>
-                          ) : (
-                            '-'
-                          )}
+                          {report.event ?? 'N/A'}
                         </td>
                         <td className='px-4 py-3 whitespace-nowrap overflow-hidden text-ellipsis max-w-xs truncate'>
                           <span className={getStatusBadge(report.state)}>
