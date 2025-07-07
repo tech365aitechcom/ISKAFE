@@ -7,6 +7,8 @@ export default function FighterAndRankingTable({ rankings }) {
   const [classification, setClassification] = useState('Amateur')
   const [sport, setSport] = useState('Kickboxing')
   const [weightClass, setWeightClass] = useState('')
+  const [country, setCountry] = useState('')
+  const [state, setState] = useState('')
   const [isApproved, setIsApproved] = useState(false)
 
   const toggleSwitch = (eventId) => {
@@ -20,6 +22,8 @@ export default function FighterAndRankingTable({ rankings }) {
     setWeightClass('')
     setSport('Kickboxing')
     setClassification('Amateur')
+    setCountry('')
+    setState('')
   }
 
   const renderHeader = (label, key) => (
@@ -34,110 +38,196 @@ export default function FighterAndRankingTable({ rankings }) {
     </th>
   )
 
+  // Sport options data
+  const sportOptions = [
+    'Kickboxing',
+    'Boxing',
+    'Muay Thai',
+    'MMA',
+    'Karate',
+    'Taekwondo'
+  ]
+
+  // Weight class options data
+  const weightClassOptions = [
+    'Flyweight',
+    'Bantamweight',
+    'Featherweight',
+    'Lightweight',
+    'Welterweight',
+    'Middleweight',
+    'Light Heavyweight',
+    'Heavyweight',
+    'Super Heavyweight'
+  ]
+
+  // Country and state options data
+  const countryOptions = ['USA', 'Brazil', 'Thailand', 'Netherlands', 'Japan', 'UK']
+  const stateOptions = ['California', 'Florida', 'Texas', 'New York', 'Nevada']
+
   return (
     <div className=''>
       <div className='flex items-center gap-4'>
-        <div className='flex space-x-4'>
+        <div className='flex flex-wrap gap-4'>
+          {/* Classification Filter */}
           <div className='relative w-64 mb-4'>
-            <div className='w-64 mb-4'>
-              <label
-                htmlFor='pro-classification'
-                className='block mb-2 text-sm font-medium text-white'
+            <label
+              htmlFor='pro-classification'
+              className='block mb-2 text-sm font-medium text-white'
+            >
+              Select Classification
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                id='pro-classification'
+                value={classification}
+                onChange={(e) => setClassification(e.target.value)}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
               >
-                Select Classification
-              </label>
-              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-                <select
-                  id='pro-classification'
-                  value={classification}
-                  onChange={(e) => setClassification(e.target.value)}
-                  className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                >
-                  <option value='Pro' className='text-black'>
-                    Pro
-                  </option>
-                  <option value='Semi Pro' className='text-black'>
-                    Semi Pro
-                  </option>
-                  <option value='Amateur' className='text-black'>
-                    Amateur
-                  </option>
-                </select>
-                <ChevronDown
-                  size={16}
-                  className='absolute right-4 pointer-events-none'
-                />
-              </div>
+                <option value='Pro' className='text-black'>
+                  Pro
+                </option>
+                <option value='Semi Pro' className='text-black'>
+                  Semi Pro
+                </option>
+                <option value='Amateur' className='text-black'>
+                  Amateur
+                </option>
+              </select>
+              <ChevronDown
+                size={16}
+                className='absolute right-4 pointer-events-none'
+              />
             </div>
           </div>
+
+          {/* Sport Filter - Fixed with correct options */}
           <div className='relative w-64 mb-4'>
-            <div className='w-64 mb-4'>
-              <label
-                htmlFor='pro-classification'
-                className='block mb-2 text-sm font-medium text-white'
+            <label
+              htmlFor='sport'
+              className='block mb-2 text-sm font-medium text-white'
+            >
+              Select Sport
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                id='sport'
+                value={sport}
+                onChange={(e) => setSport(e.target.value)}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
               >
-                Select Sport
-              </label>
-              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-                <select
-                  id='sport'
-                  value={sport}
-                  onChange={(e) => setSport(e.target.value)}
-                  className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                >
-                  <option value='Kickboxing' className='text-black'>
-                    Kickboxing
+                {sportOptions.map((sport) => (
+                  <option key={sport} value={sport} className='text-black'>
+                    {sport}
                   </option>
-                  <option value='Semi Pro' className='text-black'>
-                    Semi Pro
-                  </option>
-                  <option value='Amateur' className='text-black'>
-                    Amateur
-                  </option>
-                </select>
-                <ChevronDown
-                  size={16}
-                  className='absolute right-4 pointer-events-none'
-                />
-              </div>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className='absolute right-4 pointer-events-none'
+              />
             </div>
           </div>
+
+          {/* Weight Class Filter */}
           <div className='relative w-64 mb-4'>
-            <div className='w-64 mb-4'>
-              <label
-                htmlFor='pro-classification'
-                className='block mb-2 text-sm font-medium text-white'
+            <label
+              htmlFor='weightClass'
+              className='block mb-2 text-sm font-medium text-white'
+            >
+              Select Weight Class
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                id='weightClass'
+                value={weightClass}
+                onChange={(e) => setWeightClass(e.target.value)}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
               >
-                Select Weight Class
-              </label>
-              <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
-                <select
-                  id='weightClass'
-                  value={weightClass}
-                  onChange={(e) => setWeightClass(e.target.value)}
-                  className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
-                >
-                  <option value='Pro' className='text-black'>
-                    Pro
+                <option value='' className='text-black'>
+                  All Weight Classes
+                </option>
+                {weightClassOptions.map((weightClass) => (
+                  <option key={weightClass} value={weightClass} className='text-black'>
+                    {weightClass}
                   </option>
-                  <option value='Semi Pro' className='text-black'>
-                    Semi Pro
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className='absolute right-4 pointer-events-none'
+              />
+            </div>
+          </div>
+
+          {/* Country Filter - New */}
+          <div className='relative w-64 mb-4'>
+            <label
+              htmlFor='country'
+              className='block mb-2 text-sm font-medium text-white'
+            >
+              Select Country
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                id='country'
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+              >
+                <option value='' className='text-black'>
+                  All Countries
+                </option>
+                {countryOptions.map((country) => (
+                  <option key={country} value={country} className='text-black'>
+                    {country}
                   </option>
-                  <option value='Amateur' className='text-black'>
-                    Amateur
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className='absolute right-4 pointer-events-none'
+              />
+            </div>
+          </div>
+
+          {/* State Filter - New */}
+          <div className='relative w-64 mb-4'>
+            <label
+              htmlFor='state'
+              className='block mb-2 text-sm font-medium text-white'
+            >
+              Select State
+            </label>
+            <div className='relative flex items-center justify-between w-full px-4 py-2 border border-gray-700 rounded-lg'>
+              <select
+                id='state'
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className='w-full bg-transparent text-white appearance-none outline-none cursor-pointer'
+              >
+                <option value='' className='text-black'>
+                  All States
+                </option>
+                {stateOptions.map((state) => (
+                  <option key={state} value={state} className='text-black'>
+                    {state}
                   </option>
-                </select>
-                <ChevronDown
-                  size={16}
-                  className='absolute right-4 pointer-events-none'
-                />
-              </div>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className='absolute right-4 pointer-events-none'
+              />
             </div>
           </div>
         </div>
+
         {(classification !== 'Amateur' ||
           sport !== 'Kickboxing' ||
-          weightClass) && (
+          weightClass ||
+          country ||
+          state) && (
           <button
             className='border border-gray-700 rounded-lg px-4 py-2 mb-1'
             onClick={handleResetFilter}

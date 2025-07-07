@@ -6,19 +6,31 @@ import SpectatorProfileForm from './_components/SpectatorProfileForm'
 import { API_BASE_URL, roles } from '../../../constants'
 import useStore from '../../../stores/useStore'
 import axios from 'axios'
+import Loader from '../../_components/Loader'
 
 export default function MyProfile() {
   const user = useStore((state) => state.user)
   const [userDetails, setUserDetails] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   const getUserDetails = async () => {
-    const response = await axios.get(`${API_BASE_URL}/auth/users/${user._id}`, {
-      headers: {
-        Authorization: `Bearer ${user.token}`,
-      },
-    })
-    console.log('User details:', response.data)
-    setUserDetails(response.data.data)
+    setLoading(true)
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/auth/users/${user._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      )
+      console.log('User details:', response.data)
+      setUserDetails(response.data.data)
+    } catch (error) {
+      console.log('Error fetching user details:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -40,6 +52,10 @@ export default function MyProfile() {
   console.log('User in MyProfile:', user)
 
   const role = user.role
+
+  if (loading) {
+    return <Loader />
+  }
 
   return (
     <div className='bg-transparent border-t border-[#D9E2F930]'>

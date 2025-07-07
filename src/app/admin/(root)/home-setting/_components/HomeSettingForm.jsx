@@ -82,6 +82,7 @@ export const HomeSettingsForm = () => {
   const [editMenuItemData, setEditMenuItemData] = useState({})
   const [editMediaData, setEditMediaData] = useState({})
   const [isEditMediaLoading, setEditMediaLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [existingId, setExistingId] = useState('')
 
@@ -139,6 +140,7 @@ export const HomeSettingsForm = () => {
       setDataLoading(false)
     }
   }
+  console.log(previews, 'previews')
 
   useEffect(() => {
     fetchData()
@@ -230,6 +232,9 @@ export const HomeSettingsForm = () => {
 
   // Validate URLs
   const isValidUrl = (url) => {
+    // Allow routes starting with /
+    if (url.startsWith('/')) return true
+
     try {
       new URL(url)
       return true
@@ -351,7 +356,8 @@ export const HomeSettingsForm = () => {
   }
 
   // Media Functions
-  const handleAddNewLatestMedia = async () => {
+  const handleAddNewLatestMedia = async (e) => {
+    if (e) e.preventDefault()
     setNewMediaLoading(true)
     const { title, image, sortOrder } = newMedia
 
@@ -372,7 +378,7 @@ export const HomeSettingsForm = () => {
     }
 
     if (!image) {
-      enqueueSnackbar('Image is required', {
+      enqueueSnackbar('Image is required for new media items', {
         variant: 'error',
       })
       setNewMediaLoading(false)
@@ -530,27 +536,81 @@ export const HomeSettingsForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setIsSubmitting(true)
     const validations = [
       {
         condition: !formData.platformName.trim(),
         message: 'Platform Name is required',
       },
-      { condition: !formData.tagline.trim(), message: 'Tagline is required' },
       {
-        condition: formData.menuItems.length === 0,
-        message: 'At least one menu item required',
+        condition: !formData.tagline.trim(),
+        message: 'Tagline is required',
       },
-      { condition: !formData.heroImage, message: 'Hero image is required' },
-      { condition: !formData.cta.text.trim(), message: 'CTA text is required' },
+      {
+        condition: !formData.heroImage,
+        message: 'Hero image is required',
+      },
+      {
+        condition: !formData.cta.text.trim(),
+        message: 'CTA text is required',
+      },
       {
         condition: !formData.cta.link.trim(),
         message: 'CTA link is required',
       },
-      {
-        condition: !isValidUrl(formData.cta.link),
-        message: 'CTA link must be a valid URL',
-      },
     ]
+
+    const failedValidation = validations.find((v) => v.condition)
+    if (failedValidation) {
+      enqueueSnackbar(failedValidation.message, { variant: 'error' })
+      setIsSubmitting(false)
+      return
+    }
+
+    // Validate CTA link format (either URL or route starting with /)
+    if (formData.cta.link.trim() && !isValidUrl(formData.cta.link)) {
+      if (!formData.cta.link.startsWith('/')) {
+        enqueueSnackbar(
+          'CTA link must be a valid URL or start with / for routes',
+          {
+            variant: 'error',
+          }
+        )
+        setIsSubmitting(false)
+        return
+      }
+    }
+
+    if (formData.menuItems.length > 0) {
+      validations.push({
+        condition: formData.menuItems.some(
+          (item) => !item.label.trim() || !item.destination.trim()
+        ),
+        message: 'All menu items must have a label and destination',
+      })
+    }
+
+    if (formData.latestMedia.length > 0) {
+      validations.push({
+        condition: formData.latestMedia.some(
+          (media) => !media.title || media.title.length > 50
+        ),
+        message: 'Media titles must be 1-50 characters',
+      })
+    }
+
+    if (formData.cta.link.trim() && !isValidUrl(formData.cta.link)) {
+      if (!formData.cta.link.startsWith('/')) {
+        enqueueSnackbar(
+          'CTA link must be a valid URL or start with / for routes',
+          {
+            variant: 'error',
+          }
+        )
+        setIsSubmitting(false)
+        return
+      }
+    }
 
     for (const { condition, message } of validations) {
       if (condition) {
@@ -629,6 +689,8 @@ export const HomeSettingsForm = () => {
           variant: 'error',
         }
       )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -714,7 +776,7 @@ export const HomeSettingsForm = () => {
                 maxLength={100}
               />
               <p className='text-xs text-right text-gray-400 p-2'>
-                {formData.tagline.length}/50 characters
+                {formData.tagline.length}/100 characters
               </p>
             </div>
 
@@ -742,7 +804,6 @@ export const HomeSettingsForm = () => {
                 accept='image/*'
                 onChange={handleFileUpload}
                 className='w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                required
               />
             </div>
 
@@ -862,7 +923,6 @@ export const HomeSettingsForm = () => {
             <label className='block font-medium mb-4 text-lg'>
               Latest Media
             </label>
-
             {/* Display existing media items */}
             {formData.latestMedia &&
               Array.isArray(formData.latestMedia) &&
@@ -1007,8 +1067,8 @@ export const HomeSettingsForm = () => {
                   </div>
                 </div>
               )}
-
             {/* Add new media item form */}
+
             <div className='space-y-4 mt-6 p-4 bg-[#14255D] rounded-lg'>
               <h4 className='text-md font-medium'>Add New Media Item</h4>
               <div>
@@ -1029,7 +1089,6 @@ export const HomeSettingsForm = () => {
                     }))
                   }
                   className='w-full p-2 bg-[#00000061] rounded outline-none'
-                  required
                   maxLength={50}
                 />
                 <div className='text-xs text-right text-gray-400 mt-1'>
@@ -1054,7 +1113,6 @@ export const HomeSettingsForm = () => {
                   accept='image/*'
                   onChange={handleMediaFileUpload}
                   className='w-full bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                  required
                 />
               </div>
 
@@ -1077,8 +1135,8 @@ export const HomeSettingsForm = () => {
               </div>
 
               <button
-                type='button'
-                onClick={handleAddNewLatestMedia}
+                type='button' // Change to button type to prevent form submission
+                onClick={handleAddNewLatestMedia} // Handle click directly
                 className='bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded transition-colors flex items-center justify-center'
                 disabled={isNewMediaLoading}
               >
@@ -1089,10 +1147,7 @@ export const HomeSettingsForm = () => {
 
           {/* Menu Items Section */}
           <div className='bg-dark-blue-800 rounded-xl'>
-            <label className='block font-medium mb-4 text-lg'>
-              Menu Items<span className='text-red-500'>*</span> (at least one
-              required)
-            </label>
+            <label className='block font-medium mb-4 text-lg'>Menu Items</label>
             {/* Display current menu items */}
             {formData.menuItems && formData.menuItems.length > 0 && (
               <div className='space-y-3'>
@@ -1361,7 +1416,6 @@ export const HomeSettingsForm = () => {
                       }))
                     }
                     className='w-full p-2 bg-[#00000061] rounded outline-none'
-                    required
                   />
                 </div>
                 <div>
@@ -1378,7 +1432,6 @@ export const HomeSettingsForm = () => {
                       }))
                     }
                     className='w-full p-2 bg-[#00000061] rounded outline-none'
-                    required
                   />
                 </div>
                 <div>
@@ -1487,14 +1540,21 @@ export const HomeSettingsForm = () => {
           <div className='text-center pt-6'>
             <button
               type='submit'
-              className='text-white font-medium py-3 px-8 rounded-lg text-lg transition-all hover:scale-105'
+              className='text-white font-medium py-3 px-8 rounded-lg text-lg transition-all hover:scale-105 flex items-center justify-center gap-2 min-w-[180px]'
               style={{
                 background:
                   'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
                 boxShadow: '0 4px 15px rgba(203, 60, 255, 0.4)',
               }}
+              disabled={isSubmitting || loading || dataLoading}
             >
-              Save Changes
+              {isSubmitting ? (
+                <>
+                  <Loader size='small' /> Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
             </button>
           </div>
         </form>

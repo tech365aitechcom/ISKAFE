@@ -56,71 +56,79 @@ export default function EditRulePage({ params }) {
   }, [id])
 
   const validateField = (name, value) => {
-  // Handle null/undefined values first
-  if (value == null) {
-    if (name === 'category' || name === 'subTab' || name === 'ruleTitle' || 
-        name === 'ruleDescription' || name === 'subTabRuleDescription' || 
-        name === 'sortOrder' || name === 'status') {
-      return `${name} is required`;
+    // Handle null/undefined values first
+    if (value == null) {
+      if (
+        name === 'category' ||
+        name === 'subTab' ||
+        name === 'ruleTitle' ||
+        name === 'ruleDescription' ||
+        name === 'subTabRuleDescription' ||
+        name === 'sortOrder' ||
+        name === 'status'
+      ) {
+        return `${name} is required`
+      }
+      return ''
     }
-    return '';
-  }
 
-  switch (name) {
-    case 'category':
-    case 'subTab':
-    case 'ruleTitle':
-    case 'status':
-      const strValue = String(value).trim();
-      return strValue === '' ? `${name} is required` : '';
-    
-    case 'subTabRuleDescription':
-      const descValue = String(value).trim();
-      return descValue === ''
-        ? 'Sub-tab rule description is required'
-        : descValue.length > 1500
-        ? 'Maximum 1500 characters allowed'
-        : '';
-    
-    case 'ruleDescription':
-      const ruleDescValue = String(value).trim();
-      return ruleDescValue === ''
-        ? 'Rule description is required'
-        : ruleDescValue.length > 2000
-        ? 'Maximum 2000 characters allowed'
-        : '';
-    
-    case 'rule':
-      if (value) {
-        // Handle both File object and string URL cases
-        if (value instanceof File) {
-          return !value.name?.endsWith('.pdf') ? 'Only PDF files are allowed' : '';
-        } else if (typeof value === 'string') {
-          return !value.endsWith('.pdf') ? 'Invalid PDF URL' : '';
+    switch (name) {
+      case 'category':
+      case 'subTab':
+      case 'ruleTitle':
+      case 'status':
+        const strValue = String(value).trim()
+        return strValue === '' ? `${name} is required` : ''
+
+      case 'subTabRuleDescription':
+        const descValue = String(value).trim()
+        return descValue === ''
+          ? 'Sub-tab rule description is required'
+          : descValue.length > 1500
+          ? 'Maximum 1500 characters allowed'
+          : ''
+
+      case 'ruleDescription':
+        const ruleDescValue = String(value).trim()
+        return ruleDescValue === ''
+          ? 'Rule description is required'
+          : ruleDescValue.length > 2000
+          ? 'Maximum 2000 characters allowed'
+          : ''
+
+      case 'rule':
+        if (value) {
+          // Handle both File object and string URL cases
+          if (value instanceof File) {
+            return !value.name?.endsWith('.pdf')
+              ? 'Only PDF files are allowed'
+              : ''
+          } else if (typeof value === 'string') {
+            return !value.endsWith('.pdf') ? 'Invalid PDF URL' : ''
+          }
         }
-      }
-      return '';
-    
-    case 'videoLink':
-      if (typeof value === 'string' && value.trim() !== '') {
-        const isValid =
-          value.includes('youtube.com') ||
-          value.includes('youtu.be') ||
-          value.includes('vimeo.com');
-        return isValid ? '' : 'Only YouTube or Vimeo links are allowed';
-      }
-      return '';
-    
-    case 'sortOrder':
-      const numValue = Number(value);
-      return isNaN(numValue) || numValue < 0
-        ? 'Enter a valid positive number'
-        : '';
-    
-    default:
-      return '';
+        return ''
+
+      case 'videoLink':
+        if (typeof value === 'string' && value.trim() !== '') {
+          const isValid =
+            value.includes('youtube.com') ||
+            value.includes('youtu.be') ||
+            value.includes('vimeo.com')
+          return isValid ? '' : 'Only YouTube or Vimeo links are allowed'
+        }
+        return ''
+
+      case 'sortOrder':
+        const numValue = Number(value)
+        return isNaN(numValue) || numValue < 0
+          ? 'Enter a valid positive number'
+          : ''
+
+      default:
+        return ''
+    }
   }
-};
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target
@@ -224,7 +232,7 @@ export default function EditRulePage({ params }) {
         subTabRuleDescription: formData.subTabRuleDescription,
         ruleTitle: formData.ruleTitle,
         ruleDescription: formData.ruleDescription,
-        rule: ruleUrl,
+        rule: ruleUrl || null, // Ensure rule is null if no file is uploaded
         videoLink: formData.videoLink,
         sortOrder: formData.sortOrder,
         status: formData.status,
@@ -269,7 +277,7 @@ export default function EditRulePage({ params }) {
       ></div>
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex items-center gap-4 mb-6'>
-          <Link href='/admin/people'>
+          <Link href='/admin/rules'>
             <button className='mr-2 text-white'>
               <svg
                 xmlns='http://www.w3.org/2000/svg'
@@ -475,16 +483,31 @@ export default function EditRulePage({ params }) {
             </div>
 
             {/* PDF Preview */}
-            {formData.rule && typeof formData.rule == 'string' && (
+            {formData.rule && typeof formData.rule === 'string' && (
               <div className='my-4'>
                 <h4 className='text-sm text-gray-300 my-4'>Uploaded PDF :</h4>
-                <a
-                  href={formData.rule}
-                  target='_blank'
-                  className='w-full p-2 h-96 border border-gray-700 rounded'
-                >
-                  {formData.rule}
-                </a>
+                <div className='flex items-center justify-between p-2 border border-gray-700 rounded'>
+                  <a
+                    href={formData.rule}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-blue-400 underline break-all'
+                  >
+                    {formData.rule}
+                  </a>
+                  <button
+                    type='button'
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        rule: null,
+                      }))
+                    }
+                    className='text-red-400 text-sm hover:text-red-300 ml-4'
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             )}
 

@@ -74,7 +74,6 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
   const getFullName = (fighter) => {
     return [fighter.firstName, fighter.lastName].filter(Boolean).join(" ");
   };
-  console.log("fighters", fighters);
 
   const selectOptionsMap = {
     proClassification: classifications.map((c) => c.label),
@@ -99,7 +98,6 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
           },
         }
       );
-      console.log("Response:", response);
 
       if (response.status === apiConstants.create) {
         enqueueSnackbar(response.data.message, { variant: "success" });
@@ -152,15 +150,20 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
               { label: "Sport", name: "sport" },
               { label: "Age Class", name: "ageClass" },
               { label: "Weight Class", name: "weightClass" },
-              { label: "Title Name", name: "title" },
-              { label: "Date", name: "date", type: "date" },
-            ].map(({ label, name, type = "text" }, index, arr) => {
+              {
+                label: "Title Name",
+                name: "title",
+                placeholder: "Enter Title Name",
+              },
+              {
+                label: "Date",
+                name: "date",
+                type: "date",
+                placeholder: "YYYY-MM-DD",
+              },
+            ].map(({ label, name, type = "text", placeholder = "" }, index, arr) => {
               const isSelect = selectOptionsMap[name] !== undefined;
-
-              // Determine previous field name, or null if first
               const prevFieldName = index > 0 ? arr[index - 1].name : null;
-
-              // Disable current field if previous is not selected (and previous exists)
               const disabled = prevFieldName ? !formData[prevFieldName] : false;
 
               return (
@@ -178,7 +181,7 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
                       required={!disabled}
                       disabled={disabled}
                     >
-                      <option value="" className="text-black">
+                      <option value="" disabled className="text-black">
                         Select {label}
                       </option>
                       {selectOptionsMap[name].map((opt) => (
@@ -193,15 +196,17 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
                       name={name}
                       value={formData[name]}
                       onChange={handleChange}
-                      className="w-full bg-transparent outline-none"
+                      className="w-full bg-transparent outline-none text-white"
                       required={!disabled}
                       disabled={disabled}
+                      placeholder={placeholder}
                     />
                   )}
                 </div>
               );
             })}
 
+            {/* Fighter Dropdown */}
             <div className="bg-[#00000061] p-2 rounded">
               <label className="block text-sm font-medium mb-1">
                 Fighter <span className="text-red-500">*</span>
@@ -235,8 +240,9 @@ export const AddOfficialTitle = ({ setShowAddTitleForm }) => {
               value={formData.notes}
               onChange={handleChange}
               rows="3"
-              className="w-full bg-transparent outline-none resize-none"
+              className="w-full bg-transparent outline-none resize-none text-white"
               maxLength={500}
+              placeholder="Enter any notes (optional)"
             />
           </div>
 
