@@ -37,38 +37,38 @@ export function Sidebar() {
   const [reportsOpen, setReportsOpen] = useState(false);
 
   const navItems = [
-    // { href: "/admin/dashboard", icon: <Home size={18} />, title: "Dashboard" },
+    { href: "/admin/dashboard", icon: <Home size={18} />, title: "Dashboard" },
     {
       href: "/admin/events",
       icon: <Star size={18} />,
       title: "Events",
       highlight: true,
     },
-    // {
-    //   href: "/admin/spectator-ticket-redemption",
-    //   icon: <User size={18} />,
-    //   title: "Spectator Ticket Redemption",
-    // },
-    // {
-    //   href: "/admin/fighter-trainer-checkin",
-    //   icon: <UserCheck size={18} />,
-    //   title: "Fighter & Trainer Checkin",
-    // },
-    // {
-    //   href: "/admin/fighter-and-rankings",
-    //   icon: <Medal size={18} />,
-    //   title: "Fighter & Rankings",
-    // },
-    // {
-    //   href: "/admin/event-bout-list",
-    //   icon: <List size={18} />,
-    //   title: "Event Bout List",
-    // },
-    // {
-    //   href: "/admin/cash-payments-codes",
-    //   icon: <DollarSign size={18} />,
-    //   title: "Cash Payments & Codes",
-    // },
+    {
+      href: "/admin/spectator-ticket-redemption",
+      icon: <User size={18} />,
+      title: "Spectator Ticket Redemption",
+    },
+    {
+      href: "/admin/fighter-trainer-checkin",
+      icon: <UserCheck size={18} />,
+      title: "Fighter & Trainer Checkin",
+    },
+    {
+      href: "/admin/fighter-and-rankings",
+      icon: <Medal size={18} />,
+      title: "Fighter & Rankings",
+    },
+    {
+      href: "/admin/event-bout-list",
+      icon: <List size={18} />,
+      title: "Event Bout List",
+    },
+    {
+      href: "/admin/cash-payments-codes",
+      icon: <DollarSign size={18} />,
+      title: "Cash Payments & Codes",
+    },
     {
       href: "/admin/training-and-gym-facilities",
       icon: <Dumbbell size={18} />,
@@ -89,11 +89,11 @@ export function Sidebar() {
       title: "Promoters",
     },
     { href: "/admin/people", icon: <Users size={18} />, title: "People" },
-    // {
-    //   href: "/admin/access-control",
-    //   icon: <ShieldCheck size={18} />,
-    //   title: "User Roles And Permissions",
-    // },
+    {
+      href: "/admin/access-control",
+      icon: <ShieldCheck size={18} />,
+      title: "User Roles And Permissions",
+    },
     {
       href: "/admin/official-title-holders",
       icon: <Crown size={18} />,
@@ -208,7 +208,7 @@ export function Sidebar() {
 
           {reportsOpen && (
             <div className="ml-2 flex flex-col">
-              {/* <Link
+              <Link
                 href="/admin/reports/event-registrations"
                 className={`p-2 text-sm  hover:text-[#FFCA28] font-lato flex gap-2 ${
                   pathname === "/admin/reports/event-registrations"
@@ -218,7 +218,7 @@ export function Sidebar() {
               >
                 <ClipboardList size={18} />
                 Event Registrations (Fighters and Trainers)
-              </Link> */}
+              </Link>
               <Link
                 href="/admin/reports/contact-us"
                 className={`p-2 text-sm hover:text-[#FFCA28] font-lato flex gap-2 ${

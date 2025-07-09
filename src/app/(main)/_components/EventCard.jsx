@@ -15,8 +15,8 @@ const EventCard = ({
   description,
   className,
   status,
+  registrationDeadline, // <-- Optional: fallback to eventDate if not provided
 }) => {
-  // Status badge color mapping
   const statusColors = {
     live: 'bg-green-500',
     upcoming: 'bg-blue-500',
@@ -33,14 +33,18 @@ const EventCard = ({
   }
 
   function getMonth(dateString) {
-    return moment(dateString).format('MMMM') // e.g., "June"
+    return moment(dateString).format('MMMM')
   }
 
   function getDate(dateString) {
-    return moment(dateString).date() // e.g., 20
+    return moment(dateString).date()
   }
 
-  // Determine the badge color based on status
+  function isRegistrationOpen() {
+    const deadline = registrationDeadline || eventDate
+    return moment().isBefore(moment(deadline))
+  }
+
   const badgeColor = statusColors[status?.toLowerCase()] || 'bg-gray-500'
 
   return (
@@ -53,7 +57,6 @@ const EventCard = ({
           alt={imageAlt}
           className='h-full w-full object-cover'
         />
-        {/* Status badge - top right corner */}
         {status && (
           <div
             className={`absolute top-4 right-4 ${badgeColor} px-2 py-1 rounded text-xs font-bold`}
@@ -71,6 +74,7 @@ const EventCard = ({
           <span className='text-xs font-medium'>{location}</span>
         </div>
       </div>
+
       <div className='p-4 flex'>
         <div className='flex flex-col items-center justify-center mr-4'>
           <div className='text-yellow-500 text-xs font-bold'>
@@ -90,16 +94,21 @@ const EventCard = ({
                 View Details
               </button>
             </Link>
-            <Link href={`/events/fighter-registration/${id}`}>
-              <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
-                Register To Compete
-              </button>
-            </Link>
-            <Link href={`/events/trainer-registration/${id}`}>
-              <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
-                Register As Trainer
-              </button>
-            </Link>
+
+            {isRegistrationOpen() && (
+              <>
+                <Link href={`/events/fighter-registration/${id}`}>
+                  <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
+                    Register To Compete
+                  </button>
+                </Link>
+                <Link href={`/events/trainer-registration/${id}`}>
+                  <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
+                    Register As Trainer
+                  </button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

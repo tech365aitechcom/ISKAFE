@@ -52,24 +52,17 @@ const LoginPage = () => {
           );
         }
       }
-    } catch (err) {
-      const status = err?.response?.status;
-      const message = err?.response?.data?.message;
-
-      if (status === 404) {
-        enqueueSnackbar("Email not registered", { variant: "error" });
-      } else if (status === 401) {
-        enqueueSnackbar("Incorrect password", { variant: "error" });
-      } else if (status === 403) {
-        enqueueSnackbar("Account not verified. Please check your email.", {
-          variant: "warning",
-        });
-      } else {
-        enqueueSnackbar(message || "An error occurred during login", {
-          variant: "error",
-        });
-      }
-    } finally {
+    } catch (error) {
+  if (error.response?.status === 403) {
+    enqueueSnackbar(error.response.data.message || 'Suspended or unverified account.', { variant: 'error' })
+  } else if (error.response?.status === 404) {
+    enqueueSnackbar(error.response.data.message || 'Email not found.', { variant: 'error' })
+  } else if (error.response?.status === 401) {
+    enqueueSnackbar(error.response.data.message || 'Invalid credentials.', { variant: 'error' })
+  } else {
+    enqueueSnackbar('Login failed. Please try again.', { variant: 'error' })
+  }
+} finally {
       setIsLoading(false);
     }
   };

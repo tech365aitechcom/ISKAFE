@@ -4,12 +4,8 @@ import {
   Search,
   RefreshCw,
   Eye,
-  Edit,
-  Trash,
   ArrowUp,
   ArrowDown,
-  Check,
-  X,
   Mail,
   Phone,
   CheckCircle,
@@ -21,12 +17,12 @@ import Pagination from '../../../../_components/Pagination'
 import axios from 'axios'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
 import moment from 'moment'
-import ConfirmationModal from '../../../../_components/ConfirmationModal'
 import { enqueueSnackbar } from 'notistack'
 import Loader from '../../../../_components/Loader'
 import Link from 'next/link'
 
 export default function EventRegistrationListing() {
+  // State variables
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRegistrationType, setSelectedRegistrationType] = useState('')
   const [regStartDate, setRegStartDate] = useState('')
@@ -41,102 +37,82 @@ export default function EventRegistrationListing() {
   const [sortDirection, setSortDirection] = useState('desc')
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
-
   const [registrations, setRegistrations] = useState([])
-  const [isDelete, setIsDelete] = useState(false)
-  const [selectedRegistration, setSelectedRegistration] = useState(null)
 
-  // Sort registrations based on sortField and sortDirection
-  const sortedRegistrations = [...registrations].sort((a, b) => {
-    if (sortDirection === 'asc') {
-      return a[sortField] > b[sortField] ? 1 : -1
-    } else {
-      return a[sortField] < b[sortField] ? 1 : -1
-    }
-  })
-
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
-    }
-  }
-
-  const getEvents = async () => {
+  // Function to fetch all registrations with filters
+  const getAllRegistrations = async () => {
     setLoading(true)
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/events?page=1&limit=500`
-      )
-      console.log('Response:', response.data.data.items)
-      setEvents(response.data.data.items)
-    } catch (error) {
-      console.log('Error fetching events:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getAllRegistrations = async ({
-    searchQuery,
-    selectedRegistrationType,
-    regStartDate,
-    regEndDate,
-    selectedEvent,
-    eventDate,
-  }) => {
-    setLoading(true)
-    try {
-      let queryParams = `?page=${currentPage}&limit=${limit}`
-      if (searchQuery) queryParams += `&search=${searchQuery}`
-      if (selectedRegistrationType)
-        queryParams += `&registrationType=${selectedRegistrationType}`
-      if (regStartDate) queryParams += `&regStartDate=${regStartDate}`
-      if (regEndDate) queryParams += `&regEndDate=${regEndDate}`
-      if (selectedEvent) queryParams += `&eventId=${selectedEvent}`
-      if (eventDate) queryParams += `&eventDate=${eventDate}`
+      // Construct query parameters
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: limit,
+        sortField: sortField,
+        sortDirection: sortDirection,
+      })
+      
+      // Add filters only if they have values
+      if (searchQuery) params.append('search', searchQuery)
+      if (selectedRegistrationType) params.append('registrationType', selectedRegistrationType)
+      if (regStartDate) params.append('regStartDate', regStartDate)
+      if (regEndDate) params.append('regEndDate', regEndDate)
+      if (selectedEvent) params.append('eventId', selectedEvent)
+      if (eventDate) params.append('eventDate', eventDate)
 
       const response = await axios.get(
-        `${API_BASE_URL}/registrations${queryParams}`
+        `${API_BASE_URL}/registrations?${params.toString()}`
       )
+      
       setRegistrations(response.data.data.items)
       setTotalPages(response.data.data.pagination.totalPages)
       setTotalItems(response.data.data.pagination.totalItems)
     } catch (error) {
-      console.log(error)
+      console.error('Error fetching registrations:', error)
+      enqueueSnackbar('Failed to load registrations', { variant: 'error' })
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    getAllRegistrations({
-      searchQuery: '',
-      selectedRegistrationType: '',
-      regStartDate: '',
-      regEndDate: '',
-      selectedEvent: '',
-      eventDate: '',
-    })
-  }, [currentPage, limit])
+  // Fetch events on component mount
+  const getEvents = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/events?page=1&limit=500`)
+      setEvents(response.data.data.items)
+    } catch (error) {
+      console.error('Error fetching events:', error)
+      enqueueSnackbar('Failed to load events', { variant: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
 
+  // Fetch data when dependencies change
+  useEffect(() => {
+    getAllRegistrations()
+  }, [
+    currentPage, 
+    limit, 
+    sortField, 
+    sortDirection,
+    // Note: We're not including filter states here to prevent
+    // automatic refetches on every filter change
+  ])
+
+  // Fetch events on component mount
   useEffect(() => {
     getEvents()
   }, [])
 
+  // Handler for applying filters
   const handleGetForms = () => {
-    getAllRegistrations({
-      searchQuery,
-      selectedRegistrationType,
-      regStartDate,
-      regEndDate,
-      selectedEvent,
-      eventDate,
-    })
+    // Reset to first page when applying new filters
+    setCurrentPage(1)
+    getAllRegistrations()
   }
 
+  // Handler for resetting filters
   const handleResetFilters = () => {
     setSearchQuery('')
     setSelectedRegistrationType('')
@@ -144,88 +120,43 @@ export default function EventRegistrationListing() {
     setEventDate('')
     setRegStartDate('')
     setRegEndDate('')
-    getAllRegistrations({
-      searchQuery: '',
-      selectedRegistrationType: '',
-      regStartDate: '',
-      regEndDate: '',
-      selectedEvent: '',
-      eventDate: '',
-    })
+    // Reset to first page
+    setCurrentPage(1)
   }
 
-  const handleDeleteRegistration = async () => {
-    try {
-      const res = await axios.delete(
-        `${API_BASE_URL}/registrations/${selectedRegistration}`
-      )
-
-      if (res.status == apiConstants.success) {
-        enqueueSnackbar(res.data.message, {
-          variant: 'success',
-        })
-        setIsDelete(false)
-        getAllRegistrations({
-          searchQuery: '',
-          selectedRegistrationType: '',
-          regStartDate: '',
-          regEndDate: '',
-          selectedEvent: '',
-          eventDate: '',
-        })
-      }
-    } catch (error) {
-      enqueueSnackbar(
-        error?.response?.data?.message ??
-          'Failed to delete registrations,try again',
-        {
-          variant: 'error',
-        }
-      )
-      console.log('Failed to delete training facility:', error)
-    }
-  }
-
+  // Handler for toggling verification status
   const handleToggleVerification = async (registration, status) => {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/registrations/${registration._id}`,
-        {
-          status: status,
-        }
+        { status }
       )
 
       if (response.status === apiConstants.success) {
         enqueueSnackbar('Verification status updated successfully', {
           variant: 'success',
         })
-        getAllRegistrations({
-          searchQuery: '',
-          selectedRegistrationType: '',
-          regStartDate: '',
-          regEndDate: '',
-          selectedEvent: '',
-          eventDate: '',
-        })
+        getAllRegistrations()
       }
     } catch (error) {
       enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
+        error?.response?.data?.message || 'Failed to update status',
         { variant: 'error' }
       )
     }
   }
 
-  const getVerificationBadge = (verified) => {
-    const baseClasses =
-      'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap'
-    return verified === 'Verified'
+  // Helper to get verification badge styling
+  const getVerificationBadge = (status) => {
+    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap'
+    return status === 'Verified'
       ? `${baseClasses} bg-green-100 text-green-800`
-      : verified === 'Rejected'
+      : status === 'Rejected'
       ? `${baseClasses} bg-red-100 text-red-800`
       : `${baseClasses} bg-yellow-100 text-yellow-800`
   }
 
+  // Helper to render sortable table headers
   const renderHeader = (label, field) => (
     <th
       className='px-4 pb-3 whitespace-nowrap cursor-pointer'
@@ -246,6 +177,16 @@ export default function EventRegistrationListing() {
     </th>
   )
 
+  // Handler for sorting
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
   if (loading) return <Loader />
 
   return (
@@ -253,34 +194,29 @@ export default function EventRegistrationListing() {
       <div
         className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
         style={{
-          background:
-            'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
+          background: 'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
         }}
       ></div>
+      
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         <div className='flex justify-between items-center mb-6'>
-          <h2 className='text-2xl font-semibold leading-8'>
-            Registration Forms
-          </h2>
-          {/* Get Forms Button */}
+          <h2 className='text-2xl font-semibold leading-8'>Registration Forms</h2>
           <div className='mb-6'>
             <button
               className='text-white px-4 py-2 rounded-md flex items-center gap-2 transition'
               style={{
-                background:
-                  'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
+                background: 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
               }}
               onClick={handleGetForms}
             >
               <RefreshCw size={18} />
-              Get Forms
+              Apply Filters
             </button>
           </div>
         </div>
 
-        {/* Search and Filters Section */}
         <div className='mb-6 space-y-4'>
-          {/* Search Bar */}
+          {/* Search input */}
           <div className='relative'>
             <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
               <Search size={18} className='text-gray-400' />
@@ -294,7 +230,7 @@ export default function EventRegistrationListing() {
             />
           </div>
 
-          {/* Filter Grid */}
+          {/* Filter grid */}
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
             {/* Registration Date Range */}
             <div>
@@ -340,15 +276,9 @@ export default function EventRegistrationListing() {
                 value={selectedEvent}
                 onChange={(e) => setSelectedEvent(e.target.value)}
               >
-                <option value='' className='text-black'>
-                  Select Event
-                </option>
+                <option value='' className='text-black'>Select Event</option>
                 {events.map((event) => (
-                  <option
-                    key={event._id}
-                    value={event._id}
-                    className='text-black'
-                  >
+                  <option key={event._id} value={event._id} className='text-black'>
                     {event.name}
                   </option>
                 ))}
@@ -365,15 +295,9 @@ export default function EventRegistrationListing() {
                 value={selectedRegistrationType}
                 onChange={(e) => setSelectedRegistrationType(e.target.value)}
               >
-                <option value='' className='text-black'>
-                  All Types
-                </option>
-                <option value='fighter' className='text-black'>
-                  Fighter
-                </option>
-                <option value='trainer' className='text-black'>
-                  Trainer
-                </option>
+                <option value='' className='text-black'>All Types</option>
+                <option value='fighter' className='text-black'>Fighter</option>
+                <option value='trainer' className='text-black'>Trainer</option>
               </select>
             </div>
           </div>
@@ -381,12 +305,7 @@ export default function EventRegistrationListing() {
           {/* Action Buttons */}
           <div className='flex justify-end mb-6'>
             {/* Reset Filters Button */}
-            {(searchQuery ||
-              regStartDate ||
-              regEndDate ||
-              eventDate ||
-              selectedEvent ||
-              selectedRegistrationType) && (
+            {(searchQuery || regStartDate || regEndDate || eventDate || selectedEvent || selectedRegistrationType) && (
               <button
                 className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
                 onClick={handleResetFilters}
@@ -406,6 +325,7 @@ export default function EventRegistrationListing() {
             totalItems={totalItems}
             label='Event Registrations'
           />
+          
           <div className='overflow-x-auto custom-scrollbar'>
             <table className='w-full text-sm text-left'>
               <thead>
@@ -424,27 +344,22 @@ export default function EventRegistrationListing() {
                   <th className='px-4 pb-3 whitespace-nowrap'>Actions</th>
                 </tr>
               </thead>
+              
               <tbody>
-                {sortedRegistrations.length > 0 ? (
-                  sortedRegistrations.map((registration, index) => (
+                {registrations.length > 0 ? (
+                  registrations.map((registration, index) => (
                     <tr
                       key={registration._id}
-                      className={`${
-                        index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
-                      }`}
+                      className={`${index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'}`}
                     >
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        {moment(
-                          registration.event?.createdAt
-                        ).format('DD-MM-YYYY')}
+                        {moment(registration.createdAt).format('DD-MM-YYYY')}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        {moment(registration.event?.startDate).format(   
-                          'DD-MM-YYYY'
-                        )}
+                        {moment(registration.event?.startDate).format('DD-MM-YYYY')}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                        {registration.event?.name}
+                        {registration.event?.name || 'N/A'}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
                         {registration.firstName + ' ' + registration.lastName}
@@ -452,10 +367,7 @@ export default function EventRegistrationListing() {
                       <td className='px-4 py-3 whitespace-nowrap capitalize'>
                         {registration.registrationType}
                       </td>
-                      <td
-                        className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'
-                        title={registration.email}
-                      >
+                      <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
                         <a
                           href={`mailto:${registration.email}`}
                           className='flex items-center gap-1'
@@ -483,20 +395,17 @@ export default function EventRegistrationListing() {
                         {registration.weightClass || 'N/A'}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis'>
-                        {registration.event?.sportType}
+                        {registration.event?.sportType || 'N/A'}
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
-                        <span
-                          className={getVerificationBadge(registration.status)}
-                        >
+                        <span className={getVerificationBadge(registration.status)}>
                           {registration.status}
                         </span>
                       </td>
                       <td className='px-4 py-3 whitespace-nowrap'>
                         <div className='flex items-center justify-center gap-2'>
-                          <Link
-                            href={`/admin/event-registrations/view/${registration._id}`}
-                          >
+                          {/* View Button */}
+                          <Link href={`/admin/reports/event-registrations/view/${registration._id}`}>
                             <button
                               className='text-blue-400 hover:text-blue-300'
                               title='View Registration'
@@ -504,42 +413,32 @@ export default function EventRegistrationListing() {
                               <Eye size={18} />
                             </button>
                           </Link>
-                          <Link
-                            href={`/admin/event-registrations/edit${registration._id}`}
-                          >
+                          
+                          {/* Verification Toggle */}
+                          <div className='flex items-center gap-1'>
                             <button
-                              className='text-green-400 hover:text-green-300'
-                              title='Edit Registration'
+                              onClick={() => handleToggleVerification(registration, 'Verified')}
+                              className={`p-1 rounded-full ${
+                                registration.status === 'Verified' 
+                                  ? 'bg-green-500 text-white' 
+                                  : 'text-green-400 hover:text-green-300'
+                              }`}
+                              title='Mark as Verified'
                             >
-                              <Edit size={18} />
+                              <CheckCircle size={18} />
                             </button>
-                          </Link>
-                          <button
-                            onClick={() =>
-                              handleToggleVerification(registration, 'Verified')
-                            }
-                            className='text-green-400 hover:text-green-300'
-                          >
-                            <CheckCircle size={18} />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleToggleVerification(registration, 'Rejected')
-                            }
-                            className='text-red-400 hover:text-red-300'
-                          >
-                            <XCircle size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsDelete(true)
-                              setSelectedRegistration(registration._id)
-                            }}
-                            className='text-red-400 hover:text-red-300'
-                            title='Delete Registration'
-                          >
-                            <Trash size={18} />
-                          </button>
+                            <button
+                              onClick={() => handleToggleVerification(registration, 'Rejected')}
+                              className={`p-1 rounded-full ${
+                                registration.status === 'Rejected' 
+                                  ? 'bg-red-500 text-white' 
+                                  : 'text-red-400 hover:text-red-300'
+                              }`}
+                              title='Mark as Rejected'
+                            >
+                              <XCircle size={18} />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -554,15 +453,7 @@ export default function EventRegistrationListing() {
               </tbody>
             </table>
           </div>
-
-          {/* Confirmation Modal */}
-          <ConfirmationModal
-            isOpen={isDelete}
-            onClose={() => setIsDelete(false)}
-            onConfirm={() => handleDeleteRegistration(selectedRegistration)}
-            title='Delete Registration'
-            message='Are you sure you want to delete this registration?'
-          />
+          
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
