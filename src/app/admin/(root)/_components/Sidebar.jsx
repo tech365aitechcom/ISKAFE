@@ -24,6 +24,7 @@ import {
   PhoneCall,
   ShieldCheck,
   Globe,
+  Ticket,
 } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -48,6 +49,11 @@ export function Sidebar() {
       href: "/admin/spectator-ticket-redemption",
       icon: <User size={18} />,
       title: "Spectator Ticket Redemption",
+    },
+    {
+      href: "/admin/spectators-ticket-management",
+      icon: <Ticket size={18} />,
+      title: "Spectators Ticket Management",
     },
     {
       href: "/admin/fighter-trainer-checkin",

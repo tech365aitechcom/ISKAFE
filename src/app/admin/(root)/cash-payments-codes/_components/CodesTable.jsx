@@ -1,7 +1,6 @@
 'use client'
 
 import { ChevronsUpDown } from 'lucide-react'
-import Image from 'next/image'
 import { useState } from 'react'
 
 export function CodesTable({ users, handleFighterClick }) {
@@ -50,23 +49,38 @@ export function CodesTable({ users, handleFighterClick }) {
     </th>
   )
 
+  const formatStatus = (redeemed, redeemedAt) => {
+    if (redeemed) {
+      return (
+        <div className="flex items-center">
+          <span className="text-green-400 mr-1">✓</span>
+          <span>Redeemed</span>
+          {redeemedAt && <span className="ml-2 text-xs text-gray-400">({redeemedAt})</span>}
+        </div>
+      )
+    }
+    return <span className="text-red-400">Not Redeemed</span>
+  }
+
   return (
     <div className='border border-[#343B4F] rounded-lg overflow-hidden mt-6'>
       <div className='mb-4 pb-4 p-4 flex justify-between items-center border-b border-[#343B4F]'>
         <p className='text-sm'>Codes</p>
-        <p className='text-sm'>1 - 10 of {users.length}</p>
+        <p className='text-sm'>{users.length} records</p>
       </div>
       <div className='overflow-x-auto'>
         <table className='w-full text-sm text-left'>
           <thead>
             <tr className='text-gray-400 text-sm'>
-              {renderHeader('Payment Date', 'date')}
+              {renderHeader('Date', 'date')}
               {renderHeader('Player Name', 'name')}
               {renderHeader('Player Email', 'email')}
               {renderHeader('Ticket Code', 'code')}
-              {renderHeader('Amount Paid', 'amount')}
-              {renderHeader('Notes', 'notes')}
-              {renderHeader('Redeemed', 'redeemed')}
+              {renderHeader('💳 Payment Type', 'paymentType')}
+              {renderHeader('💲 Amount Paid', 'amount')}
+              {renderHeader('📅 Issued At', 'issuedAt')}
+              {renderHeader('🧑‍💻 Issued By', 'issuedBy')}
+              {renderHeader('🔖 Status', 'redeemed')}
               {renderHeader('Actions', 'actions')}
             </tr>
           </thead>
@@ -83,29 +97,24 @@ export function CodesTable({ users, handleFighterClick }) {
                   {user.name}
                 </td>
                 <td className='p-4'>{user.email}</td>
-                <td className='p-4'>{user.code}</td>
-                <td className='p-4'>{user.amount}</td>
-                <td className='p-4'>{user.notes}</td>
+                <td className='p-4 font-mono'>{user.code}</td>
+                <td className='p-4'>{user.paymentType}</td>
+                <td className='p-4'>${user.amount}</td>
+                <td className='p-4'>{user.issuedAt}</td>
+                <td className='p-4'>{user.issuedBy}</td>
                 <td className='p-4'>
-                  <button
-                    className={`w-10 h-5 flex items-center rounded-full p-1 duration-300 ease-in-out ${
-                      user.redeemed ? 'bg-violet-500' : 'bg-gray-300'
-                    }`}
-                    disabled
-                  >
-                    <div
-                      className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
-                        user.redeemed ? 'translate-x-6' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
+                  {formatStatus(user.redeemed, user.redeemedAt)}
                 </td>
                 <td className='p-4 flex space-x-4 items-center'>
                   <button
-                    className='bg-violet-500 block p-2 rounded text-sm transition-colors duration-200 min-w-min disabled:opacity-50'
+                    className={`block p-2 rounded text-sm transition-colors duration-200 min-w-min ${
+                      user.redeemed 
+                        ? 'bg-gray-500 cursor-not-allowed' 
+                        : 'bg-violet-500 hover:bg-violet-600'
+                    }`}
                     disabled={user.redeemed}
                   >
-                    Redeemed Code
+                    Redeem Code
                   </button>
                 </td>
               </tr>

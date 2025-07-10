@@ -6,8 +6,10 @@ import { useParams } from "next/navigation";
 import { API_BASE_URL } from "../../../../../../constants";
 import Loader from "../../../../../_components/Loader";
 import Image from "next/image";
+// import { useRouter } from "next/router";
 
 export default function EventDetailsPage() {
+  // const router = useRouter();
   const params = useParams();
   const [eventId, setEventId] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -60,11 +62,11 @@ export default function EventDetailsPage() {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleString("en-US", {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -72,9 +74,9 @@ export default function EventDetailsPage() {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -154,13 +156,18 @@ export default function EventDetailsPage() {
       description: event.sectioningBodyDescription || "N/A",
       image: event.sectioningBodyImage || null,
     },
-    ageCategories: event.ageCategories?.length > 0 ? event.ageCategories.join(", ") : "N/A",
-    weightClasses: event.weightClasses?.length > 0 ? event.weightClasses.join(", ") : "N/A",
+    ageCategories:
+      event.ageCategories?.length > 0 ? event.ageCategories.join(", ") : "N/A",
+    weightClasses:
+      event.weightClasses?.length > 0 ? event.weightClasses.join(", ") : "N/A",
     status: {
       isDraft: event.isDraft ? "Yes" : "No",
       publishBrackets: event.publishBrackets ? "Yes" : "No",
     },
-    createdBy: `${event.createdBy?.firstName || ""} ${event.createdBy?.lastName || ""}`.trim() || "N/A",
+    createdBy:
+      `${event.createdBy?.firstName || ""} ${
+        event.createdBy?.lastName || ""
+      }`.trim() || "N/A",
     createdAt: formatDateTime(event.createdAt),
     updatedAt: formatDateTime(event.updatedAt),
     stats: {
@@ -180,6 +187,24 @@ export default function EventDetailsPage() {
       participants: {
         value: event.registeredParticipants || 0,
         breakdown: `Fighters: ${event.registeredFighters?.length || 0}`,
+      },
+      spectatorPayments: {
+        totalFees: "$0.00",
+        totalCollected: "$0.00",
+        netRevenue: "$0.00",
+        breakdown: "No payments recorded",
+      },
+      registrationPayments: {
+        totalCollected: "$0.00",
+        totalParticipants: 0,
+        breakdown: "No payments recorded",
+      },
+      tournamentResults: {
+        bracketCount: event.brackets?.length || 0,
+        boutCount: event.matches?.length || 0,
+        breakdown: `${event.brackets?.length || 0} brackets, ${
+          event.matches?.length || 0
+        } bouts`,
       },
     },
   };
@@ -247,6 +272,11 @@ export default function EventDetailsPage() {
                     Cash Payment Tokens
                   </li>
                   <li className="mx-4 py-3">Reports</li>
+                  <Link href={`/admin/events/${eventId}/spectator-payments`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Spectator Payments
+                    </li>
+                  </Link>
                 </ul>
               </div>
             )}
@@ -268,6 +298,66 @@ export default function EventDetailsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="border border-[#343B4F] rounded-lg p-4 relative">
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-[#AEB9E1]">Tournament Results</span>
+              <Link href={`/admin/events/${eventId}/tournament-results`}>
+                <button className="">
+                  <Pencil size={16} />
+                </button>
+              </Link>
+            </div>
+            <div className="mt-2">
+              <h2 className="text-2xl font-bold">
+                {formattedEvent.stats.tournamentResults.bracketCount} Brackets
+              </h2>
+              <p className="text-sm text-[#AEB9E1] mt-2 whitespace-pre-line">
+                {formattedEvent.stats.tournamentResults.breakdown}
+              </p>
+            </div>
+          </div>
+          <div className="border border-[#343B4F] rounded-lg p-4 relative">
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-[#AEB9E1]">
+                Registration Payments
+              </span>
+              <Link href={`/admin/events/${eventId}/registration-payments`}>
+                <button className="">
+                  <Pencil size={16} />
+                </button>
+              </Link>
+            </div>
+            <div className="mt-2">
+              <h2 className="text-2xl font-bold">
+                {formattedEvent.stats.registrationPayments.totalCollected}
+              </h2>
+              <p className="text-sm text-[#AEB9E1] mt-2 whitespace-pre-line">
+                Participants:{" "}
+                {formattedEvent.stats.registrationPayments.totalParticipants}
+              </p>
+            </div>
+          </div>
+          <div className="border border-[#343B4F] rounded-lg p-4 relative">
+            <div className="flex justify-between items-start">
+              <span className="text-sm text-[#AEB9E1]">Spectator Payments</span>
+              <Link href={`/admin/events/${eventId}/spectator-payments`}>
+                <button className="">
+                  <Pencil size={16} />
+                </button>
+              </Link>
+            </div>
+            <div className="mt-2">
+              <h2 className="text-2xl font-bold">
+                {formattedEvent.stats.spectatorPayments.totalCollected}
+              </h2>
+              <p className="text-sm text-[#AEB9E1] mt-2 whitespace-pre-line">
+                Fees: {formattedEvent.stats.spectatorPayments.totalFees}
+                <br />
+                Net: {formattedEvent.stats.spectatorPayments.netRevenue}
+              </p>
+            </div>
+          </div>
+
           {/* Bracket Count */}
           <div className="border border-[#343B4F] rounded-lg p-4 relative">
             <div className="flex justify-between items-start">
@@ -391,13 +481,17 @@ export default function EventDetailsPage() {
             {/* Registration Start Date */}
             <div>
               <p className="text-sm mb-1">Registration Start Date</p>
-              <p className="font-medium">{formattedEvent.registrationStartDate}</p>
+              <p className="font-medium">
+                {formattedEvent.registrationStartDate}
+              </p>
             </div>
 
             {/* Registration Deadline */}
             <div>
               <p className="text-sm mb-1">Registration Deadline</p>
-              <p className="font-medium">{formattedEvent.registrationDeadline}</p>
+              <p className="font-medium">
+                {formattedEvent.registrationDeadline}
+              </p>
             </div>
 
             {/* Weigh-in Date/Time */}
@@ -415,7 +509,9 @@ export default function EventDetailsPage() {
             {/* Spectator Doors Open Time */}
             <div>
               <p className="text-sm mb-1">Spectator Doors Open Time</p>
-              <p className="font-medium">{formattedEvent.spectatorDoorsOpenTime}</p>
+              <p className="font-medium">
+                {formattedEvent.spectatorDoorsOpenTime}
+              </p>
             </div>
 
             {/* Fight Start Time */}
@@ -509,9 +605,9 @@ export default function EventDetailsPage() {
             <div className="md:col-span-2">
               <p className="text-sm mb-1">Map Link</p>
               {formattedEvent.venue.mapLink !== "N/A" ? (
-                <a 
-                  href={formattedEvent.venue.mapLink} 
-                  target="_blank" 
+                <a
+                  href={formattedEvent.venue.mapLink}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-blue-400 hover:underline"
                 >
@@ -540,16 +636,18 @@ export default function EventDetailsPage() {
             {/* Promoter Abbreviation */}
             <div>
               <p className="text-sm mb-1">Abbreviation</p>
-              <p className="font-medium">{formattedEvent.promoter.abbreviation}</p>
+              <p className="font-medium">
+                {formattedEvent.promoter.abbreviation}
+              </p>
             </div>
 
             {/* Promoter Website */}
             <div>
               <p className="text-sm mb-1">Website</p>
               {formattedEvent.promoter.website !== "N/A" ? (
-                <a 
-                  href={formattedEvent.promoter.website} 
-                  target="_blank" 
+                <a
+                  href={formattedEvent.promoter.website}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-blue-400 hover:underline"
                 >
@@ -563,13 +661,17 @@ export default function EventDetailsPage() {
             {/* Sanctioning Body */}
             <div>
               <p className="text-sm mb-1">Sanctioning Body</p>
-              <p className="font-medium">{formattedEvent.promoter.sanctioningBody}</p>
+              <p className="font-medium">
+                {formattedEvent.promoter.sanctioningBody}
+              </p>
             </div>
 
             {/* Contact Person */}
             <div>
               <p className="text-sm mb-1">Contact Person</p>
-              <p className="font-medium">{formattedEvent.promoter.contactPerson}</p>
+              <p className="font-medium">
+                {formattedEvent.promoter.contactPerson}
+              </p>
             </div>
 
             {/* Phone */}
@@ -581,7 +683,9 @@ export default function EventDetailsPage() {
             {/* Alternate Phone */}
             <div>
               <p className="text-sm mb-1">Alternate Phone</p>
-              <p className="font-medium">{formattedEvent.promoter.alternatePhone}</p>
+              <p className="font-medium">
+                {formattedEvent.promoter.alternatePhone}
+              </p>
             </div>
 
             {/* Email */}
@@ -628,7 +732,9 @@ export default function EventDetailsPage() {
             {/* Sanctioning Body Description */}
             <div className="md:col-span-2">
               <p className="text-sm mb-1">Description</p>
-              <p className="font-medium">{formattedEvent.sanctioning.description}</p>
+              <p className="font-medium">
+                {formattedEvent.sanctioning.description}
+              </p>
             </div>
           </div>
         </div>
@@ -688,7 +794,9 @@ export default function EventDetailsPage() {
             {/* Publish Brackets */}
             <div>
               <p className="text-sm mb-1">Publish Brackets</p>
-              <p className="font-medium">{formattedEvent.status.publishBrackets}</p>
+              <p className="font-medium">
+                {formattedEvent.status.publishBrackets}
+              </p>
             </div>
           </div>
         </div>
