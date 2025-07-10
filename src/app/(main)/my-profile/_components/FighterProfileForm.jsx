@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { User, Dumbbell, Phone, Camera, Trophy } from 'lucide-react'
 import { City, Country, State } from 'country-state-city'
 import {
@@ -26,6 +26,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     dateOfBirth: '',
     height: '',
     weight: '',
+    weightUnit: 'kg', // New field for weight unit
     weightClass: '',
     country: '',
     state: '',
@@ -51,7 +52,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     nationalRank: '',
     globalRank: '',
     achievements: '',
-    recordHighlight: '',
+    recordHighlight: '', // Changed back to text from URL
 
     // Media
     imageGallery: [],
@@ -62,10 +63,17 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     licenseDocument: null,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSaved, setIsSaved] = useState(false) // New state for save confirmation
   const [uploadedFiles, setUploadedFiles] = useState({
     medicalCertificate: null,
     licenseDocument: null,
     profilePhoto: null,
+    imageGallery: [],
+  })
+  const [selectedFileNames, setSelectedFileNames] = useState({ // New state for file names
+    profilePhoto: '',
+    medicalCertificate: '',
+    licenseDocument: '',
     imageGallery: [],
   })
 
@@ -125,6 +133,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
         ...rest,
         ...fighterProfile,
         dateOfBirth: formattedDOB,
+        weightUnit: fighterProfile.weightUnit || 'kg', // Initialize weight unit
       }
 
       setFormData(updatedFormData)
@@ -133,6 +142,14 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
         licenseDocument: fighterProfile.licenseDocument || null,
         profilePhoto: fighterProfile.profilePhoto || null,
         imageGallery: fighterProfile.imageGallery || [],
+      })
+      setSelectedFileNames({
+        profilePhoto: fighterProfile.profilePhoto ? 'Profile photo uploaded' : '',
+        medicalCertificate: fighterProfile.medicalCertificate ? 'Medical certificate uploaded' : '',
+        licenseDocument: fighterProfile.licenseDocument ? 'License document uploaded' : '',
+        imageGallery: fighterProfile.imageGallery?.length > 0 
+          ? Array(fighterProfile.imageGallery.length).fill('Image uploaded') 
+          : [],
       })
     }
   }, [userDetails])
@@ -153,10 +170,18 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
           ...prev,
           [name]: Array.from(files),
         }))
+        setSelectedFileNames(prev => ({
+          ...prev,
+          [name]: Array.from(files).map(file => file.name)
+        }))
       } else {
         setFormData((prev) => ({
           ...prev,
           [name]: files[0],
+        }))
+        setSelectedFileNames(prev => ({
+          ...prev,
+          [name]: files[0].name
         }))
 
         if (
@@ -183,6 +208,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setIsSaved(false)
 
     // Basic validations
     if (!formData.firstName.trim()) {
@@ -318,13 +344,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     }
 
     // URL validations
-    const urlFields = [
-      'instagram',
-      'youtube',
-      'facebook',
-      'videoHighlight',
-      'recordHighlight',
-    ]
+    const urlFields = ['instagram', 'youtube', 'facebook', 'videoHighlight']
     for (const field of urlFields) {
       if (formData[field] && !validateUrl(formData[field])) {
         enqueueSnackbar(
@@ -337,7 +357,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     }
 
     // Text field validations
-    const textFields = ['coachName', 'affiliations']
+    const textFields = ['coachName', 'affiliations', 'recordHighlight'] // Added recordHighlight
     for (const field of textFields) {
       if (formData[field] && !validateTextInput(formData[field])) {
         enqueueSnackbar(
@@ -353,7 +373,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     const rankFields = ['nationalRank', 'globalRank']
     for (const field of rankFields) {
       if (formData[field] && !validateNumericRank(formData[field])) {
-        enqueueSnackbar(`Please enter numbers only for ${field}`, {
+        enqueueSnackbar(`Please enter numbers only for ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`, { // Fixed message spacing
           variant: 'warning',
         })
         setIsSubmitting(false)
@@ -439,6 +459,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
 
       if (response.status === apiConstants.success) {
         enqueueSnackbar(response.data.message, { variant: 'success' })
+        setIsSaved(true)
         onSuccess()
       }
     } catch (error) {
@@ -456,6 +477,11 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       <div className='container mx-auto'>
         <div className='flex items-center gap-4 mb-6'>
           <h1 className='text-4xl font-bold'>Fighter Profile</h1>
+          {isSaved && (
+            <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm">
+              Saved Successfully
+            </span>
+          )}
         </div>
 
         {/* Basic Information */}
@@ -507,13 +533,20 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 )}
               </div>
 
-              <input
-                type='file'
-                name='profilePhoto'
-                onChange={handleFileChange}
-                accept='image/jpeg,image/jpg,image/png'
-                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-              />
+              <div className="flex flex-col">
+                <input
+                  type='file'
+                  name='profilePhoto'
+                  onChange={handleFileChange}
+                  accept='image/jpeg,image/jpg,image/png'
+                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                />
+                {selectedFileNames.profilePhoto && (
+                  <p className="text-sm text-gray-300 mt-1">
+                    Selected: {selectedFileNames.profilePhoto}
+                  </p>
+                )}
+              </div>
 
               <p className='text-xs text-gray-400 mt-1'>
                 Upload a high-resolution square photo (headshot preferred).
@@ -536,6 +569,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder='Enter first name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
@@ -550,6 +584,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder='Enter last name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
@@ -563,6 +598,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='Enter nickname'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
             </div>
 
@@ -575,6 +611,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.gender}
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
+                disabled={isSubmitting}
               >
                 <option value='' className='text-black'>
                   Select Gender
@@ -602,6 +639,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -617,6 +655,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder="e.g., 5'10 or 180 cm"
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -624,15 +663,28 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
               <label className='block font-medium mb-2'>
                 Weight<span className='text-red-400'>*</span>
               </label>
-              <input
-                type='text'
-                name='weight'
-                value={formData.weight ?? ''}
-                onChange={handleInputChange}
-                placeholder='e.g., 170 lbs or 77 kg'
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-                required
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type='text'
+                  name='weight'
+                  value={formData.weight ?? ''}
+                  onChange={handleInputChange}
+                  placeholder='e.g., 170'
+                  className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                  required
+                  disabled={isSubmitting}
+                />
+                <select
+                  name='weightUnit'
+                  value={formData.weightUnit}
+                  onChange={handleInputChange}
+                  className='outline-none bg-transparent text-white'
+                  disabled={isSubmitting}
+                >
+                  <option value='kg'>kg</option>
+                  <option value='lbs'>lbs</option>
+                </select>
+              </div>
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
@@ -645,6 +697,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
                 required
+                disabled={isSubmitting}
               >
                 <option value='' className='text-black'>
                   Select Weight Class
@@ -671,6 +724,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
                 required
+                disabled={isSubmitting}
               >
                 <option value='' className='text-black'>
                   Select Country
@@ -697,7 +751,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
                 required
-                disabled={!formData.country}
+                disabled={!formData.country || isSubmitting}
               >
                 <option value='' className='text-black'>
                   Select State
@@ -724,7 +778,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
                 required
-                disabled={!formData.state}
+                disabled={!formData.state || isSubmitting}
               >
                 <option value='' className='text-black'>
                   Select City
@@ -762,6 +816,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='+1 555-123-4567'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.phoneNumber &&
                 !validatePhoneNumber(formData.phoneNumber) && (
@@ -780,6 +835,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='fighter@example.com'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.email && !validateEmail(formData.email) && (
                 <p className='text-xs text-red-400 mt-1'>
@@ -797,6 +853,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='https://instagram.com/username'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.instagram && !validateUrl(formData.instagram) && (
                 <p className='text-xs text-red-400 mt-1'>
@@ -814,6 +871,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='https://youtube.com/channel'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.youtube && !validateUrl(formData.youtube) && (
                 <p className='text-xs text-red-400 mt-1'>
@@ -831,6 +889,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='https://facebook.com/username'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.facebook && !validateUrl(formData.facebook) && (
                 <p className='text-xs text-red-400 mt-1'>
@@ -863,6 +922,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 rows='6'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
                 maxLength={1000}
+                disabled={isSubmitting}
               />
               <div className='flex justify-between'>
                 <p className='text-xs text-gray-400 mt-1'>
@@ -885,6 +945,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='Enter gym/club name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
+                disabled={isSubmitting}
               />
             </div>
 
@@ -897,6 +958,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='Enter coach name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.coachName && !validateTextInput(formData.coachName) && (
                 <p className='text-xs text-red-400 mt-1'>
@@ -914,6 +976,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='Enter team or organization name'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.affiliations &&
                 !validateTextInput(formData.affiliations) && (
@@ -932,6 +995,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.trainingExperience}
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
+                disabled={isSubmitting}
               >
                 <option value='' className='text-black'>
                   Select Experience Level
@@ -951,6 +1015,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.trainingStyle}
                 onChange={handleInputChange}
                 className='w-full outline-none bg-transparent text-white'
+                disabled={isSubmitting}
               >
                 <option value='' className='text-black'>
                   Select Training Style
@@ -972,6 +1037,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder='Certifications, belts, rankings, special training...'
                 rows='3'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400 resize-none'
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -997,6 +1063,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder='Enter rank number'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 inputMode='numeric'
+                disabled={isSubmitting}
               />
               {formData.nationalRank &&
                 !validateNumericRank(formData.nationalRank) && (
@@ -1014,6 +1081,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder='Enter rank number'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 inputMode='numeric'
+                disabled={isSubmitting}
               />
               {formData.globalRank &&
                 !validateNumericRank(formData.globalRank) && (
@@ -1030,6 +1098,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='e.g., Top Lightweight 2023'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
             </div>
 
@@ -1038,19 +1107,14 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 Record-Setting Highlights
               </label>
               <input
-                type='url'
+                type='text' // Changed from 'url' to 'text'
                 name='recordHighlight'
                 value={formData.recordHighlight ?? ''}
                 onChange={handleInputChange}
-                placeholder='https://example.com/highlight'
+                placeholder='Describe your record highlights'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
-              {formData.recordHighlight &&
-                !validateUrl(formData.recordHighlight) && (
-                  <p className='text-xs text-red-400 mt-1'>
-                    Please enter a valid URL
-                  </p>
-                )}
             </div>
           </div>
         </div>
@@ -1067,14 +1131,27 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>Media Gallery</label>
-              <input
-                type='file'
-                name='imageGallery'
-                onChange={handleFileChange}
-                accept='image/*'
-                multiple
-                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-              />
+              <div className="flex flex-col">
+                <input
+                  type='file'
+                  name='imageGallery'
+                  onChange={handleFileChange}
+                  accept='image/*'
+                  multiple
+                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  disabled={isSubmitting}
+                />
+                {selectedFileNames.imageGallery.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-300">Selected files:</p>
+                    <ul className="text-xs text-gray-400">
+                      {selectedFileNames.imageGallery.map((name, idx) => (
+                        <li key={idx}>{name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
               <p className='text-xs text-gray-400 mt-1'>
                 Images only, Max 5MB each
               </p>
@@ -1112,6 +1189,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='https://youtube.com/watch?v=...'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                disabled={isSubmitting}
               />
               {formData.videoHighlight &&
                 !validateUrl(formData.videoHighlight) && (
@@ -1138,14 +1216,22 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 Upload Medical Certificate
                 <span className='text-red-500'>*</span>
               </label>
-              <input
-                type='file'
-                name='medicalCertificate'
-                onChange={handleFileChange}
-                accept='.pdf,.jpg,.jpeg,.png'
-                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                required
-              />
+              <div className="flex flex-col">
+                <input
+                  type='file'
+                  name='medicalCertificate'
+                  onChange={handleFileChange}
+                  accept='.pdf,.jpg,.jpeg,.png'
+                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  required
+                  disabled={isSubmitting}
+                />
+                {selectedFileNames.medicalCertificate && (
+                  <p className="text-sm text-gray-300 mt-1">
+                    Selected: {selectedFileNames.medicalCertificate}
+                  </p>
+                )}
+              </div>
               <p className='text-xs text-gray-400 mt-1'>PDF/Image, Max 5MB</p>
 
               {(formData.medicalCertificate ||
@@ -1176,14 +1262,22 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 Upload License Document
                 <span className='text-red-500'>*</span>
               </label>
-              <input
-                type='file'
-                name='licenseDocument'
-                onChange={handleFileChange}
-                accept='.pdf,.jpg,.jpeg,.png'
-                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-                required
-              />
+              <div className="flex flex-col">
+                <input
+                  type='file'
+                  name='licenseDocument'
+                  onChange={handleFileChange}
+                  accept='.pdf,.jpg,.jpeg,.png'
+                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  required
+                  disabled={isSubmitting}
+                />
+                {selectedFileNames.licenseDocument && (
+                  <p className="text-sm text-gray-300 mt-1">
+                    Selected: {selectedFileNames.licenseDocument}
+                  </p>
+                )}
+              </div>
               <p className='text-xs text-gray-400 mt-1'>PDF/Image, Max 5MB</p>
               {(formData.licenseDocument || uploadedFiles.licenseDocument) && (
                 <div className='mt-2'>
