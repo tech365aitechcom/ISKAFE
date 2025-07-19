@@ -26,6 +26,7 @@ import {
 } from '../../../../../constants'
 import { enqueueSnackbar } from 'notistack'
 import { useRouter } from 'next/navigation'
+import SquareComponent from '../../_components/SquareComponent'
 
 const steps = [
   'Personal Info',
@@ -1153,60 +1154,7 @@ const FighterRegistrationPage = ({ params }) => {
       </div>
 
       {formData.paymentMethod === 'card' && (
-        <div className='space-y-4'>
-          <div>
-            <label className='text-white font-medium'>
-              Card Number <span className='text-red-500'>*</span>
-            </label>
-            <input
-              type='text'
-              name='cardNumber'
-              value={formData.cardNumber}
-              onChange={handleChange}
-              placeholder='Card number'
-              className='w-full mt-1 p-2 rounded bg-[#2e1b47] text-white'
-            />
-            {errors.cardNumber && (
-              <p className='text-red-400 text-sm mt-1'>{errors.cardNumber}</p>
-            )}
-          </div>
-
-          <div className='grid grid-cols-2 gap-4'>
-            <div>
-              <label className='text-white font-medium'>
-                Expiry Date <span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                name='expiryDate'
-                value={formData.expiryDate}
-                onChange={handleChange}
-                placeholder='MM/YY'
-                className='w-full mt-1 p-2 rounded bg-[#2e1b47] text-white'
-              />
-              {errors.expiryDate && (
-                <p className='text-red-400 text-sm mt-1'>{errors.expiryDate}</p>
-              )}
-            </div>
-
-            <div>
-              <label className='text-white font-medium'>
-                CVV <span className='text-red-500'>*</span>
-              </label>
-              <input
-                type='text'
-                name='cvv'
-                value={formData.cvv}
-                onChange={handleChange}
-                placeholder='CVV'
-                className='w-full mt-1 p-2 rounded bg-[#2e1b47] text-white'
-              />
-              {errors.cvv && (
-                <p className='text-red-400 text-sm mt-1'>{errors.cvv}</p>
-              )}
-            </div>
-          </div>
-        </div>
+        <SquareComponent formData={formData} />
       )}
 
       {formData.paymentMethod === 'cash' && (
