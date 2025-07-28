@@ -7,15 +7,72 @@ import { API_BASE_URL } from "../../../../../../constants";
 import Loader from "../../../../../_components/Loader";
 import Image from "next/image";
 // import { useRouter } from "next/router";
+import TournamentSettingsModal from "../../_components/TournamentSettingsModal";
 
 export default function EventDetailsPage() {
   // const router = useRouter();
   const params = useParams();
   const [eventId, setEventId] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [tournamentSettings, setTournamentSettings] = useState({
+    simpleFees: {
+      fighterFee: 0,
+      trainerFee: 0,
+      currency: "$",
+    },
+    detailedFees: [],
+    bracketSettings: {
+      maxFightersPerBracket: 0,
+    },
+    ruleStyles: {
+      semiContact: [],
+      fullContact: [],
+    },
+    numBrackets: 0,
+  });
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const initializeTournamentSettings = async (eventId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tournament-setting`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId: eventId,
+          simpleFees: {
+            fighterFee: 0,
+            trainerFee: 0,
+            currency: "$",
+          },
+          detailedFees: [],
+          bracketSettings: {
+            maxFightersPerBracket: 0,
+          },
+          ruleStyles: {
+            semiContact: [],
+            fullContact: [],
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`API Error ${response.status}:`, errorData);
+        throw new Error(`Failed to initialize tournament settings: ${response.status} - ${errorData}`);
+      }
+      
+      const data = await response.json();
+      return data.data || data;
+    } catch (err) {
+      console.error("Error initializing tournament settings:", err);
+      throw err;
+    }
+  };
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -27,6 +84,86 @@ export default function EventDetailsPage() {
       fetchEventData(params.id);
     }
   }, [params]);
+
+  useEffect(() => {
+    if (eventId) {
+      fetchTournamentSettings(eventId);
+    }
+  }, [eventId]);
+
+  const fetchTournamentSettings = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tournament-setting/${id}`);
+
+      if (response.status === 404) {
+        // Settings don't exist, initialize them
+        try {
+          const initializedSettings = await initializeTournamentSettings(id);
+          setTournamentSettings({
+            simpleFees: initializedSettings.simpleFees || {
+              fighterFee: 0,
+              trainerFee: 0,
+              currency: "$",
+            },
+            bracketSettings: initializedSettings.bracketSettings || {
+              maxFightersPerBracket: 0,
+            },
+            numBrackets: initializedSettings.numBrackets || 0,
+          });
+        } catch (initError) {
+          console.error("Failed to initialize tournament settings:", initError);
+          // Set default values even if initialization fails
+          setTournamentSettings({
+            simpleFees: {
+              fighterFee: 0,
+              trainerFee: 0,
+              currency: "$",
+            },
+            bracketSettings: {
+              maxFightersPerBracket: 0,
+            },
+            numBrackets: 0,
+          });
+        }
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`API Error ${response.status}:`, errorData);
+        throw new Error(`Failed to fetch tournament settings: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setTournamentSettings({
+          simpleFees: data.data.simpleFees || {
+            fighterFee: 0,
+            trainerFee: 0,
+            currency: "$",
+          },
+          bracketSettings: data.data.bracketSettings || {
+            maxFightersPerBracket: 0,
+          },
+          numBrackets: data.data.numBrackets || 0,
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching tournament settings:", err);
+      // Set default values if everything fails
+      setTournamentSettings({
+        simpleFees: {
+          fighterFee: 0,
+          trainerFee: 0,
+          currency: "$",
+        },
+        bracketSettings: {
+          maxFightersPerBracket: 0,
+        },
+        numBrackets: 0,
+      });
+    }
+  };
 
   const fetchEventData = async (id) => {
     try {
@@ -206,6 +343,17 @@ export default function EventDetailsPage() {
           event.matches?.length || 0
         } bouts`,
       },
+      tournamentSettings: {
+        simpleFees: {
+          fighterFee: 0,
+          trainerFee: 0,
+          currency: "$",
+        },
+        bracketSettings: {
+          maxFightersPerBracket: "N/A",
+        },
+        numBrackets: "N/A",
+      },
     },
   };
 
@@ -259,9 +407,11 @@ export default function EventDetailsPage() {
             {isOpen && (
               <div className="absolute w-full mt-2 bg-[#081028] shadow-lg z-10">
                 <ul className="py-1">
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C]">
-                    Fighter Check-in
-                  </li>
+                  <Link href={`/admin/events/${eventId}/fighter-checkin`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Fighter Check-in
+                    </li>
+                  </Link>
                   <li className="mx-4 py-3 border-b border-[#6C6C6C]">
                     Bout List
                   </li>
@@ -282,19 +432,6 @@ export default function EventDetailsPage() {
             )}
           </div>
         </div>
-
-        {/* Event Poster */}
-        {formattedEvent.poster && (
-          <div className="mb-6">
-            <Image
-              src={formattedEvent.poster}
-              alt="Event poster"
-              width={300}
-              height={400}
-              className="rounded-lg"
-            />
-          </div>
-        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -399,26 +536,54 @@ export default function EventDetailsPage() {
           {/* Registration Fee */}
           <div className="border border-[#343B4F] rounded-lg p-4 relative">
             <div className="flex justify-between items-start">
-              <span className="text-sm text-[#AEB9E1]">Registration Fee</span>
-              <button className="">
+              <span className="text-sm text-[#AEB9E1]">
+                Tournament Settings
+              </span>
+              <button
+                onClick={() => setSettingsModalVisible(true)}
+                className="text-white hover:text-gray-300"
+              >
                 <Pencil size={16} />
               </button>
             </div>
-            <div className="mt-2">
-              <h2 className="text-2xl font-bold">
-                <span>{formattedEvent.stats.registrationFee.fighter}</span>
-                <span className="text-sm">/Fighter</span>
-                <span className="ml-2">
-                  {formattedEvent.stats.registrationFee.trainer}
-                </span>
-                <span className="text-sm">/Trainer</span>
-              </h2>
-              <p className="text-sm text-[#AEB9E1] mt-2 whitespace-pre-line">
-                {formattedEvent.stats.registrationFee.breakdown}
-              </p>
+            <div className="mt-2 space-y-2">
+              <div>
+                <p className="text-sm text-[#AEB9E1]">
+                  Fighter Registration Fee
+                </p>
+                <p className="font-medium">
+                  {tournamentSettings.simpleFees.currency}
+                  {tournamentSettings.simpleFees.fighterFee}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-[#AEB9E1]">
+                  Trainer Registration Fee
+                </p>
+                <p className="font-medium">
+                  {tournamentSettings.simpleFees.currency}
+                  {tournamentSettings.simpleFees.trainerFee}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-[#AEB9E1]">
+                  Max Fighters per Bracket
+                </p>
+                <p className="font-medium">
+                  {tournamentSettings.bracketSettings.maxFightersPerBracket ||
+                    "N/A"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-[#AEB9E1]">
+                  Num Registration Brackets
+                </p>
+                <p className="font-medium">
+                  {tournamentSettings.numBrackets || "N/A"}
+                </p>
+              </div>
             </div>
           </div>
-
           {/* Participants */}
           <div className="border border-[#343B4F] rounded-lg p-4 relative">
             <div className="flex justify-between items-start">
@@ -440,6 +605,18 @@ export default function EventDetailsPage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-lg">EVENT PROPERTIES</h2>
           </div>
+          {/* Event Poster */}
+          {formattedEvent.poster && (
+            <div className="mb-6">
+              <Image
+                src={formattedEvent.poster}
+                alt="Event poster"
+                width={300}
+                height={400}
+                className="rounded-lg"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
             {/* Event Name */}
@@ -801,6 +978,15 @@ export default function EventDetailsPage() {
           </div>
         </div>
       </div>
+      <TournamentSettingsModal
+        eventId={eventId}
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
+        onSave={(updatedSettings) => {
+          setTournamentSettings(updatedSettings);
+        }}
+        initialSettings={tournamentSettings} // Pass current settings to modal
+      />
     </div>
   );
 }
