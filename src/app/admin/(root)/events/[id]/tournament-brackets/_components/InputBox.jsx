@@ -8,7 +8,7 @@ export default function InputBox({ label, required = false, value, onChange }) {
       </div>
       <input
         type='text'
-        value={value}
+        value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         className='w-full bg-transparent text-white text-xl rounded py-1 focus:outline-none focus:border-white'
       />

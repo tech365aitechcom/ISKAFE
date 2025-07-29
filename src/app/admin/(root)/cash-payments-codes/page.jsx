@@ -11,9 +11,9 @@ export default function CashPaymentAndCodesPage() {
   const [selectedFighter, setSelectedFighter] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showRequestDemo, setShowRequestDemo] = useState(false)
+  const [currentUser] = useState({ name: "Admin_User" }) // Simulate logged-in user
 
   const handleFighterClick = (fighter) => {
-    console.log('fighter:', fighter)
     setSelectedFighter(fighter)
   }
 
@@ -34,6 +34,15 @@ export default function CashPaymentAndCodesPage() {
     setActiveButton(button)
   }
 
+  const handleAddCode = (newCode) => {
+    const updatedEvent = {
+      ...selectedEvent,
+      users: [...selectedEvent.users, newCode]
+    };
+    setSelectedEvent(updatedEvent);
+    setShowRequestDemo(false);
+  };
+
   if (selectedFighter) {
     return (
       <FighterDetails
@@ -50,13 +59,17 @@ export default function CashPaymentAndCodesPage() {
       <div
         className='absolute -left-10 top-1/2 transform -translate-y-1/2 w-60 h-96 rounded-full opacity-70 blur-xl'
         style={{
-          background:
-            'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
+          background: 'linear-gradient(317.9deg, #6F113E 13.43%, rgba(111, 17, 62, 0) 93.61%)',
         }}
       ></div>
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         {showRequestDemo ? (
-          <RequestCode onBack={() => setShowRequestDemo(false)} />
+          <RequestCode 
+            onBack={() => setShowRequestDemo(false)} 
+            onAddCode={handleAddCode}
+            selectedEvent={selectedEvent}
+            currentUser={currentUser}
+          />
         ) : (
           <>
             <div className='flex justify-between items-center mb-6'>
@@ -64,12 +77,12 @@ export default function CashPaymentAndCodesPage() {
                 Cash Payments & Codes
               </h2>
               <button
-                className='text-white px-4 py-2 rounded-md'
+                className='text-white px-4 py-2 rounded-md disabled:opacity-50'
                 style={{
-                  background:
-                    'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
+                  background: 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
                 }}
                 onClick={() => setShowRequestDemo(true)}
+                disabled={!selectedEvent}
               >
                 Request Code
               </button>

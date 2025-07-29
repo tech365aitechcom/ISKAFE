@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { City, Country, State } from 'country-state-city'
 import Link from 'next/link'
+import useStore from '../../../../../stores/useStore'
 
 const TrainerRegistrationPage = ({ params }) => {
   const { id } = use(params)

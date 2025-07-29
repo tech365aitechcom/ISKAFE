@@ -10,6 +10,7 @@ import Pagination from '../../../../_components/Pagination'
 import useStore from '../../../../../stores/useStore'
 import { Country } from 'country-state-city'
 import ActionButtons from '../../../../_components/ActionButtons'
+import Checkbox from './Checkbox'
 
 export function PeopleTable({
   people,
@@ -33,6 +34,8 @@ export function PeopleTable({
 
   const [isDelete, setIsDelete] = useState(false)
   const [selectedPerson, setSelectedPerson] = useState(null)
+  const [selectedEmails, setSelectedEmails] = useState([])
+  const [selectAll, setSelectAll] = useState(false)
 
   const handleDeletePerson = async (personId) => {
     try {
@@ -61,6 +64,39 @@ export function PeopleTable({
     setGender('')
     setRole('')
     onSuccess({ page: 1, limit, id: '', name: '', gender: '', role: '' })
+  }
+
+  // Handle email selection
+  const handleEmailSelect = (email, isSelected) => {
+    if (isSelected) {
+      setSelectedEmails([...selectedEmails, email])
+    } else {
+      setSelectedEmails(selectedEmails.filter(e => e !== email))
+    }
+  }
+
+  // Handle select all emails
+  const handleSelectAll = (isSelected) => {
+    setSelectAll(isSelected)
+    if (isSelected) {
+      const allEmails = people
+        .filter(person => person.email)
+        .map(person => person.email)
+      setSelectedEmails(allEmails)
+    } else {
+      setSelectedEmails([])
+    }
+  }
+
+  // Open email client with selected emails
+  const openEmailClient = () => {
+    if (selectedEmails.length === 0) {
+      enqueueSnackbar('Please select at least one email', { variant: 'warning' })
+      return
+    }
+
+    const mailtoLink = `mailto:?bcc=${selectedEmails.join(',')}`
+    window.open(mailtoLink, '_blank')
   }
 
   // Create column header
@@ -157,22 +193,34 @@ export function PeopleTable({
         </div>
       </div>
 
-      {/* Reset Filters Button */}
-      <div className='flex justify-end mb-6 gap-2'>
-        <button
-          onClick={handleSearch}
-          className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium'
-        >
-          Get People
-        </button>{' '}
-        {(id || name || gender || role) && (
+      {/* Reset Filters and Email Buttons */}
+      <div className='flex justify-between mb-6 gap-2'>
+        <div>
+          {selectedEmails.length > 0 && (
+            <button
+              onClick={openEmailClient}
+              className='px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium mr-2'
+            >
+              Email Selected ({selectedEmails.length})
+            </button>
+          )}
+        </div>
+        <div className='flex gap-2'>
           <button
-            className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
-            onClick={handleResetFilter}
+            onClick={handleSearch}
+            className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium'
           >
-            Reset Filters
+            Get People
           </button>
-        )}
+          {(id || name || gender || role) && (
+            <button
+              className='border border-gray-700 text-white rounded-lg px-4 py-2 hover:bg-gray-700 transition'
+              onClick={handleResetFilter}
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
       </div>
 
       <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
@@ -187,12 +235,19 @@ export function PeopleTable({
           <table className='w-full text-sm text-left'>
             <thead>
               <tr className='text-gray-400 text-sm'>
+                <th className='px-4 pb-3 whitespace-nowrap'>
+                  <Checkbox
+                    checked={selectAll}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  />
+                </th>
                 {renderHeader('Serial Number', 'serialNumber')}
                 {renderHeader('ID', 'personId')}
                 {renderHeader('Name', 'fullName')}
                 {renderHeader('Age', 'age')}
                 {renderHeader('Gender', 'gender')}
                 {renderHeader('Address', 'address')}
+                {renderHeader('Email', 'email')}
                 {renderHeader('User Type', 'userType')}
                 {renderHeader('Actions', 'actions')}
               </tr>
@@ -206,6 +261,15 @@ export function PeopleTable({
                       index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                     }`}
                   >
+                    <td className='p-4'>
+                      <Checkbox
+                        checked={selectedEmails.includes(person.email)}
+                        onChange={(e) => 
+                          handleEmailSelect(person.email, e.target.checked)
+                        }
+                        disabled={!person.email}
+                      />
+                    </td>
                     <td className='p-4'>
                       {(currentPage - 1) * limit + index + 1}
                     </td>
@@ -233,8 +297,11 @@ export function PeopleTable({
                     </td>
                     <td className='p-4'>{person.gender || 'Unspecified'}</td>
                     <td className='p-4'>
-                      {Country.getCountryByCode(person.country).name ||
+                      {Country.getCountryByCode(person.country)?.name ||
                         'No Address Provided'}
+                    </td>
+                    <td className='p-4'>
+                      {person.email || 'No email provided'}
                     </td>
                     <td className='p-4 capitalize'>{person.role}</td>
                     <td className='p-4 align-middle'>
@@ -251,7 +318,7 @@ export function PeopleTable({
                 ))
               ) : (
                 <tr className='text-center bg-[#0A1330]'>
-                  <td colSpan={8} className='p-4'>
+                  <td colSpan={10} className='p-4'>
                     No people found.
                   </td>
                 </tr>

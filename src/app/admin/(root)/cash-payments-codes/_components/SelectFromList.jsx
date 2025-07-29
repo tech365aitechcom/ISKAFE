@@ -1,7 +1,8 @@
+'use client'
 import { useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { CodesTable } from './CodesTable'
-import { cashPaymentAndCodesEvents } from '../../../../../constants/index'
+import { cashPaymentAndCodesEvents } from '../../../../../constants'
 
 export default function SelectFromList({
   selectedEvent,
@@ -9,6 +10,11 @@ export default function SelectFromList({
   handleFighterClick,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Filter events based on search query
+  const filteredEvents = cashPaymentAndCodesEvents.filter(event => 
+    event.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className='text-white mt-5 w-full'>
@@ -22,17 +28,18 @@ export default function SelectFromList({
           </div>
           <input
             type='text'
-            placeholder='Search for...'
+            placeholder='Search events...'
             className='w-full py-2 pl-10 pr-3 bg-transparent border border-[#343B4F] rounded-md focus:outline-none focus:[#343B4F] text-white'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
+      
       {selectedEvent ? (
         <div>
-          <div className='bg-[#AEBFFF33] flex items-center gap-12 px-3 w-fit '>
-            <button className=' text-left p-2 rounded text-sm transition-colors duration-200 min-w-min'>
+          <div className='bg-[#AEBFFF33] flex items-center gap-12 px-3 py-2 w-fit rounded mb-4'>
+            <button className='text-left rounded text-sm transition-colors duration-200'>
               {selectedEvent.name}
             </button>
             <X
@@ -48,16 +55,25 @@ export default function SelectFromList({
         </div>
       ) : (
         <div className='flex flex-wrap gap-4'>
-          {cashPaymentAndCodesEvents.map((event, index) => (
+          {filteredEvents.map((event, index) => (
             <button
               key={index}
-              className='bg-[#AEBFFF33] text-left p-2 rounded text-sm transition-colors duration-200 flex-grow min-w-min'
+              className='bg-[#AEBFFF33] text-left p-3 rounded text-sm transition-colors duration-200 flex-grow min-w-min hover:bg-[#2E3094]'
               style={{ maxWidth: 'fit-content' }}
               onClick={() => setSelectedEvent(event)}
             >
-              {event.name}
+              <div className='font-medium'>{event.name}</div>
+              <div className='text-xs text-gray-400 mt-1'>
+                {event.users.length} codes issued
+              </div>
             </button>
           ))}
+          
+          {filteredEvents.length === 0 && (
+            <div className='text-center w-full py-8 text-gray-400'>
+              No events match your search
+            </div>
+          )}
         </div>
       )}
     </div>
