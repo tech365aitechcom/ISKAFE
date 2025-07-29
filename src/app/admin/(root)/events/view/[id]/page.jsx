@@ -412,9 +412,26 @@ export default function EventDetailsPage() {
                       Fighter Check-in
                     </li>
                   </Link>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C]">
-                    Bout List
-                  </li>
+                  <Link href={`/admin/events/${eventId}/tournament-brackets`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Tournament Brackets
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/bout-list`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Bout List & Results
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/fight-card`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Fight Card Overview
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/fighter-card`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Fighter Card
+                    </li>
+                  </Link>
                   <li className="mx-4 py-3 border-b border-[#6C6C6C]">
                     Spectator Ticket Redemption
                   </li>
@@ -513,22 +530,22 @@ export default function EventDetailsPage() {
             </div>
           </div>
 
-          {/* Bout Count */}
+          {/* Bout Management */}
           <div className="border border-[#343B4F] rounded-lg p-4 relative">
             <div className="flex justify-between items-start">
-              <span className="text-sm text-[#AEB9E1]">Bout Count</span>
+              <span className="text-sm text-[#AEB9E1]">Tournament Brackets & Bouts</span>
               <Link href={`/admin/events/${eventId}/tournament-brackets`}>
-                <button className="">
+                <button className="hover:text-blue-400" title="Manage Tournament Brackets & Bouts">
                   <Pencil size={16} />
                 </button>
               </Link>
             </div>
             <div className="mt-2">
               <h2 className="text-2xl font-bold">
-                {formattedEvent.stats.boutCount.value}
+                {formattedEvent.stats.boutCount.value} Bouts
               </h2>
               <p className="text-sm text-[#AEB9E1] mt-2 whitespace-pre-line">
-                {formattedEvent.stats.boutCount.breakdown}
+                Click to manage brackets and bouts
               </p>
             </div>
           </div>

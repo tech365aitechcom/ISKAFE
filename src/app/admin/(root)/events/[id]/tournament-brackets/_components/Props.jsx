@@ -16,13 +16,13 @@ export default function Props({ expandedBracket, handleClose }) {
 
   useEffect(() => {
     if (expandedBracket) {
-      setBracketName(expandedBracket.title)
-      setStartDayNumber(expandedBracket.startDayNumber)
-      setGroup(expandedBracket.group)
-      setRingNumber(expandedBracket.ringNumber)
-      setBracketSequence(expandedBracket.bracketSequence)
-      setBoutRound(expandedBracket.boutRound)
-      setMaxCompetitors(expandedBracket.maxCompetitors)
+      setBracketName(expandedBracket.title || expandedBracket.divisionTitle || '')
+      setStartDayNumber(expandedBracket.startDayNumber || '')
+      setGroup(expandedBracket.group || '')
+      setRingNumber(expandedBracket.ringNumber || expandedBracket.ring || '')
+      setBracketSequence(expandedBracket.bracketSequence || expandedBracket.bracketNumber || '')
+      setBoutRound(expandedBracket.boutRound || '')
+      setMaxCompetitors(expandedBracket.maxCompetitors || expandedBracket.fighters?.length || '')
     }
   }, [expandedBracket])
 
@@ -37,7 +37,7 @@ export default function Props({ expandedBracket, handleClose }) {
             </div>
             <input
               type='text'
-              value={bracketName}
+              value={bracketName || ''}
               onChange={(e) => setBracketName(e.target.value)}
               className='w-full bg-transparent text-white text-xl rounded py-1 focus:outline-none focus:border-white'
             />
