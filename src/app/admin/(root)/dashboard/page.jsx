@@ -9,6 +9,7 @@ import {
   MapPin,
   DollarSign,
   ArrowUpRight,
+  ArrowDownRight,
   Filter,
   Download,
   Mail,
@@ -42,7 +43,7 @@ import {
 } from "recharts";
 
 // Top Cards Component
-export function DashboardStats() {
+function DashboardStats() {
   const [stats] = useState([
     {
       id: 1,
@@ -171,7 +172,7 @@ export function DashboardStats() {
 }
 
 // Graphs Section
-export function DashboardGraphs() {
+function DashboardGraphs() {
   const [activeFilter, setActiveFilter] = useState("monthly");
 
   // Event participation data
@@ -509,7 +510,7 @@ export function DashboardGraphs() {
 }
 
 // Tables Section
-export function DashboardTables() {
+function DashboardTables() {
   // Upcoming events data
   const upcomingEvents = [
     {
