@@ -95,7 +95,7 @@ const FighterRegistrationPage = ({ params }) => {
     trainerEmailConfirm: '',
 
     // Age Check
-    isAdult: '',
+    isAdult: null,
 
     // Waiver
     legalDisclaimerAccepted: false,
@@ -399,8 +399,8 @@ const FighterRegistrationPage = ({ params }) => {
         break
 
       case 8: // Age Check
-        if (formData.isAdult === undefined)
-          newErrors.isAdult = 'PAge confirmation is required'
+        if (formData.isAdult === null || formData.isAdult === undefined || formData.isAdult === '')
+          newErrors.isAdult = 'Age confirmation is required'
         break
 
       case 9: // Waiver
@@ -1193,7 +1193,7 @@ const FighterRegistrationPage = ({ params }) => {
 
       <div>
         <label className='text-white font-medium'>
-          Are You Under 18? <span className='text-red-500'>*</span>
+          Are You 18 or Older? <span className='text-red-500'>*</span>
         </label>
         <div className='flex space-x-4 mt-2'>
           <label className='text-white'>
