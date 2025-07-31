@@ -17,12 +17,41 @@ const MyPurchases = () => {
   useEffect(() => {
     const getTransactions = async () => {
       try {
-        // const response = await axios.get(`${API_BASE_URL}/transactions/user`)
+        // TODO: Replace with actual API endpoint for user transactions
+        // const response = await axios.get(`${API_BASE_URL}/spectator-ticket/user-purchases`, {
+        //   headers: { Authorization: `Bearer ${user?.token}` }
+        // })
         // console.log('Response:', response.data)
         // setTransactions(response.data.data.transactions)
 
-        // Mock data for demo
+        // Mock data for demo - including spectator tickets
         const mockTransactions = [
+          {
+            _id: 'TXN001234567893',
+            pageTitle: 'Spectator Ticket Purchase - Music City Combat',
+            instructionText:
+              'Purchase spectator tickets for the upcoming event',
+            purchaseDateTime: '2025-07-28T10:30:25.000Z',
+            transactionType: 'Spectator Tickets',
+            productName: 'Ringside Spectator Tickets',
+            eventDate: '2025-08-15T00:00:00.000Z',
+            amount: 149.98,
+            details: {
+              transactionId: 'TXN001234567893',
+              paymentMethod: 'Credit Card (Visa)',
+              itemName: 'Ringside Tickets x2',
+              eventName: 'Music City Combat',
+              entryType: 'Spectator',
+              purchaseStatus: 'Paid',
+              invoiceLink: true,
+              notes: 'QR code sent to email',
+              qrCode: true,
+              ticketCode: 'MC4X',
+              tickets: [
+                { tierName: 'Ringside', quantity: 2, price: 74.99 }
+              ]
+            },
+          },
           {
             _id: 'TXN001234567890',
             pageTitle: 'Fighter Registration - Championship 2024',
@@ -235,6 +264,9 @@ const MyPurchases = () => {
                     </option>
                     <option value='Event Attendance' className='bg-purple-900'>
                       Event Attendance
+                    </option>
+                    <option value='Spectator Tickets' className='bg-purple-900'>
+                      Spectator Tickets
                     </option>
                     <option value='Product Purchase' className='bg-purple-900'>
                       Product Purchase
@@ -506,6 +538,23 @@ const MyPurchases = () => {
                                           {transaction.details.notes}
                                         </p>
                                       </div>
+
+                                      {/* Show QR Code and Ticket Code for Spectator Tickets */}
+                                      {transaction.transactionType === 'Spectator Tickets' && transaction.details.qrCode && (
+                                        <div className='mt-4 pt-4 border-t border-gray-600'>
+                                          <div className='flex flex-col sm:flex-row gap-4'>
+                                            <div>
+                                              <span className='text-gray-300 text-sm'>Ticket Code:</span>
+                                              <p className='text-white font-mono text-lg font-bold'>
+                                                {transaction.details.ticketCode}
+                                              </p>
+                                            </div>
+                                            <button className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center transition-colors w-fit'>
+                                              View QR Code & Receipt
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>

@@ -14,7 +14,7 @@ import {
   Users,
 } from 'lucide-react'
 import useStore from '../../../../../stores/useStore'
-import React, { use, useEffect, useState } from 'react'
+import React, { use, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { City, Country, State } from 'country-state-city'
 import { uploadToS3 } from '../../../../../utils/uploadToS3'
@@ -26,7 +26,8 @@ import {
 } from '../../../../../constants'
 import { enqueueSnackbar } from 'notistack'
 import { useRouter } from 'next/navigation'
-import SquareComponent from '../../_components/SquareComponent'
+import Script from 'next/script'
+import { submitPayment } from '../../../../actions/actions'
 
 const steps = [
   'Personal Info',
@@ -102,11 +103,21 @@ const FighterRegistrationPage = ({ params }) => {
 
     // Payment
     paymentMethod: 'card',
-    purchase: '',
     cashCode: '',
   })
   const [errors, setErrors] = useState({})
+  const [processing, setProcessing] = useState(false)
   const router = useRouter()
+  
+  // Square payment integration
+  const cardRef = useRef(null)
+  const cardInstance = useRef(null)
+  const [squareLoaded, setSquareLoaded] = useState(false)
+  
+  const appId = process.env.NEXT_PUBLIC_SQUARE_APP_ID
+  const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID
+  const squareConfigValid = appId && locationId
+  
   console.log(user, 'user')
 
   const countries = Country.getAllCountries()
@@ -139,6 +150,88 @@ const FighterRegistrationPage = ({ params }) => {
       profilePhoto: user.profilePhoto || '',
     })
   }, [user])
+
+  // Square payment initialization
+  useEffect(() => {
+    if (!squareLoaded || formData.paymentMethod !== 'card' || currentStep !== 10) return
+
+    if (!squareConfigValid) {
+      console.warn('⚠️ Square configuration invalid - card payments disabled')
+      setErrors(prev => ({ 
+        ...prev, 
+        square: 'Payment system not configured. Please contact support.' 
+      }))
+      return
+    }
+
+    const initCard = async () => {
+      try {
+        console.log('Initializing Square payments for fighter registration')
+        
+        if (!window.Square) {
+          throw new Error('Square SDK not loaded')
+        }
+
+        const payments = window.Square.payments(appId, locationId)
+
+        if (cardInstance.current) {
+          await cardInstance.current.destroy()
+          cardInstance.current = null
+        }
+
+        const card = await payments.card({
+          style: {
+            input: {
+              backgroundColor: '#0A1330',
+              color: '#ffffff',
+              fontSize: '16px'
+            },
+            '.input-container': {
+              borderRadius: '8px',
+              borderColor: '#374151',
+              borderWidth: '1px'
+            },
+            '.input-container.is-focus': {
+              borderColor: '#8B5CF6'
+            },
+            '.input-container.is-error': {
+              borderColor: '#EF4444'
+            }
+          }
+        })
+        
+        const container = document.getElementById('fighter-square-card-container')
+        if (!container) {
+          console.error('❌ Fighter Square card container not found in DOM')
+          return
+        }
+
+        await card.attach('#fighter-square-card-container')
+        cardInstance.current = card
+        console.log('✅ Fighter Square card initialized')
+        
+        // Clear any previous errors if successful
+        setErrors(prev => ({ ...prev, square: null }))
+      } catch (error) {
+        console.error('❌ Fighter Square card initialization error:', error)
+        setErrors(prev => ({ 
+          ...prev, 
+          square: `Failed to initialize payment form: ${error.message}` 
+        }))
+      }
+    }
+
+    initCard()
+
+    return () => {
+      if (cardInstance.current) {
+        cardInstance.current.destroy()
+        cardInstance.current = null
+      }
+      const container = document.getElementById('fighter-square-card-container')
+      if (container) container.innerHTML = ''
+    }
+  }, [squareLoaded, formData.paymentMethod, currentStep, squareConfigValid, appId, locationId])
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
@@ -323,16 +416,11 @@ const FighterRegistrationPage = ({ params }) => {
         if (!formData.paymentMethod)
           newErrors.paymentMethod = 'Payment method is required'
 
-        if (formData.paymentMethod === 'card') {
-          if (!formData.cardNumber.trim())
-            newErrors.cardNumber = 'Card number is required'
-          if (!formData.expiryDate.trim())
-            newErrors.expiryDate = 'Expiry date is required'
-          if (!formData.cvv.trim()) newErrors.cvv = 'CVV is required'
-        } else if (formData.paymentMethod === 'cash') {
+        if (formData.paymentMethod === 'cash') {
           if (!formData.cashCode.trim())
             newErrors.cashCode = 'Cash code is required'
         }
+        // Note: Card validation is handled by Square SDK during tokenization
         break
     }
 
@@ -356,12 +444,49 @@ const FighterRegistrationPage = ({ params }) => {
     }
   }
 
+  const processSquarePayment = async () => {
+    if (!cardInstance.current) {
+      throw new Error('Payment form not ready. Please wait and try again.')
+    }
+
+    console.log('Processing Square payment for fighter registration...')
+    const result = await cardInstance.current.tokenize()
+
+    if (result.status !== 'OK') {
+      console.error('❌ Square tokenization failed:', result)
+      throw new Error(result.errors?.[0]?.detail || 'Card payment failed. Please check your card details.')
+    }
+
+    console.log('✅ Square tokenization successful')
+    
+    // Calculate amount in cents for Square (Fighter registration fee: $75)
+    const amountInCents = 7500  // $75.00
+    
+    // Submit payment to Square
+    const paymentData = {
+      note: `Fighter registration - Event ID: ${id}`
+    }
+    
+    console.log('Submitting payment to Square...', { amountInCents, paymentData })
+    const squareResult = await submitPayment(result.token, amountInCents, paymentData)
+    
+    if (!squareResult.success) {
+      console.error('❌ Square payment failed:', squareResult)
+      throw new Error(squareResult.error || 'Payment processing failed')
+    }
+
+    console.log('✅ Square payment successful:', squareResult)
+    return squareResult.transactionId
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!validateStep(10)) {
       return
     }
+
+    setProcessing(true)
 
     try {
       let payload = {
@@ -396,10 +521,11 @@ const FighterRegistrationPage = ({ params }) => {
         legalDisclaimerAccepted: formData.legalDisclaimerAccepted,
         waiverSignature: formData.waiverSignature,
         paymentMethod: formData.paymentMethod,
-        cashCode: formData.cashCode,
+        paymentStatus: 'Paid', // Set as paid since we're processing payment
         event: id,
       }
 
+      // Handle profile photo upload
       if (formData.profilePhoto) {
         if (typeof formData.profilePhoto !== 'string') {
           payload.profilePhoto = await uploadToS3(formData.profilePhoto)
@@ -407,7 +533,22 @@ const FighterRegistrationPage = ({ params }) => {
           payload.profilePhoto = formData.profilePhoto
         }
       }
-      console.log('Form submitted:', payload)
+
+      // Handle payment processing
+      if (formData.paymentMethod === 'cash') {
+        if (!formData.cashCode || !formData.cashCode.trim()) {
+          throw new Error('Cash code is required')
+        }
+        payload.cashCode = formData.cashCode.trim()
+      } else {
+        // For card payments, process Square payment first
+        console.log('Processing Square card payment for fighter registration...')
+        const transactionId = await processSquarePayment()
+        payload.transactionId = transactionId
+        console.log('Square payment completed, transaction ID:', transactionId)
+      }
+      
+      console.log('Fighter registration payload:', payload)
       const response = await axios.post(
         `${API_BASE_URL}/registrations`,
         payload,
@@ -425,13 +566,34 @@ const FighterRegistrationPage = ({ params }) => {
         handleCancel()
       }
     } catch (error) {
-      console.log('Error:', error)
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
-        {
-          variant: 'error',
+      console.error('Fighter registration error:', error)
+      
+      // Handle different error types
+      let errorMessage = 'Registration failed'
+      
+      if (error.response) {
+        // Server responded with error status
+        const { data, status } = error.response
+        if (data.message) {
+          errorMessage = data.message
+        } else if (data.error) {
+          errorMessage = data.error
+        } else if (status === 400) {
+          errorMessage = 'Invalid registration data. Please check your information and try again.'
+        } else if (status === 500) {
+          errorMessage = 'Server error. Please try again later.'
         }
-      )
+      } else if (error.request) {
+        // Network error
+        errorMessage = 'Network error. Please check your connection and try again.'
+      } else {
+        // Other error (including Square payment errors)
+        errorMessage = error.message
+      }
+      
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+    } finally {
+      setProcessing(false)
     }
   }
 
@@ -502,7 +664,7 @@ const FighterRegistrationPage = ({ params }) => {
             <input
               type='radio'
               name='gender'
-              value='Female'
+              value='Other'
               onChange={handleChange}
               checked={formData.gender === 'Other'}
             />
@@ -1119,61 +1281,103 @@ const FighterRegistrationPage = ({ params }) => {
   )
 
   const renderStep10 = () => (
-    <div className='space-y-4'>
-      <h3 className='text-xl font-semibold text-white mb-4'>Payment</h3>
+    <div className='space-y-6'>
+      <div className="text-center mb-8">
+        <h3 className='text-2xl font-bold mb-2'>Payment</h3>
+        <p className="text-gray-400">Registration Fee: <span className="text-green-400 font-bold text-xl">$75.00</span></p>
+      </div>
 
+      {/* Payment Method Selection */}
       <div>
-        <label className='text-white font-medium'>
-          Payment Method <span className='text-red-500'>*</span>
-        </label>
-        <div className='flex space-x-4 mt-2'>
-          <label className='text-white'>
-            <input
-              type='radio'
-              name='paymentMethod'
-              value='card'
-              onChange={handleChange}
-              checked={formData.paymentMethod === 'card'}
-            />
-            <span className='ml-2'>Credit Card</span>
-          </label>
-          <label className='text-white'>
-            <input
-              type='radio'
-              name='paymentMethod'
-              value='cash'
-              onChange={handleChange}
-              checked={formData.paymentMethod === 'cash'}
-            />
-            <span className='ml-2'>Cash</span>
-          </label>
+        <h4 className="text-lg font-bold mb-4">Payment Method</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'card' }))}
+            className={`p-4 rounded-lg border-2 transition-colors ${
+              formData.paymentMethod === 'card'
+                ? 'border-purple-500 bg-purple-500/20'
+                : 'border-gray-600 hover:border-gray-500'
+            }`}
+          >
+            <CreditCard className="mx-auto mb-2" size={24} />
+            <div className="text-sm font-medium">Credit/Debit Card</div>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cash' }))}
+            className={`p-4 rounded-lg border-2 transition-colors ${
+              formData.paymentMethod === 'cash'
+                ? 'border-purple-500 bg-purple-500/20'
+                : 'border-gray-600 hover:border-gray-500'
+            }`}
+          >
+            <DollarSign className="mx-auto mb-2" size={24} />
+            <div className="text-sm font-medium">Cash Code</div>
+          </button>
         </div>
         {errors.paymentMethod && (
-          <p className='text-red-400 text-sm mt-1'>{errors.paymentMethod}</p>
+          <p className='text-red-400 text-sm mt-2'>{errors.paymentMethod}</p>
         )}
       </div>
 
+      {/* Payment Details */}
       {formData.paymentMethod === 'card' && (
-        <SquareComponent formData={formData} />
+        <div>
+          <h4 className="text-lg font-bold mb-4">Card Details</h4>
+          
+          {!squareConfigValid && (
+            <div className="bg-red-900/20 border border-red-500 rounded-lg p-6 text-center">
+              <p className="text-red-400 mb-2">Card payments are currently unavailable</p>
+              <p className="text-gray-400 text-sm">Please use cash payment or contact support</p>
+            </div>
+          )}
+          
+          {squareConfigValid && !squareLoaded && (
+            <div className="bg-[#0A1330] rounded-lg p-6 text-center">
+              <p className="text-gray-400">Loading payment form...</p>
+            </div>
+          )}
+          
+          {squareConfigValid && squareLoaded && (
+            <div className="bg-[#0A1330] rounded-lg p-6">
+              <div id="fighter-square-card-container" ref={cardRef} className="mb-4" />
+              {errors.square && (
+                <p className="text-red-500 text-sm mt-2">{errors.square}</p>
+              )}
+              <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg">
+                <p className="text-blue-400 text-sm font-medium mb-1">Test Card Information:</p>
+                <p className="text-blue-300 text-xs">For testing: Use card number 4111 1111 1111 1111, any future expiry date, and CVV 111</p>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {formData.paymentMethod === 'cash' && (
         <div>
-          <label className='text-white font-medium'>
-            Cash Code <span className='text-red-500'>*</span>
-          </label>
+          <label className='block text-sm font-medium mb-2'>Cash Payment Code</label>
           <input
             type='text'
             name='cashCode'
             value={formData.cashCode}
-            onChange={handleChange}
-            placeholder='Enter code'
-            className='w-full mt-1 p-2 rounded bg-[#2e1b47] text-white'
+            onChange={(e) => {
+              const newValue = e.target.value.toUpperCase()
+              setFormData(prev => ({ ...prev, cashCode: newValue }))
+              if (errors.cashCode) {
+                setErrors(prev => ({ ...prev, cashCode: '' }))
+              }
+            }}
+            className={`w-full bg-[#0A1330] border ${
+              errors.cashCode ? 'border-red-500' : 'border-gray-600'
+            } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500`}
+            placeholder='Enter your cash code'
           />
-          <p className='text-gray-400 text-sm mt-1'>Verified on submission</p>
-          {errors.cashCode && (
-            <p className='text-red-400 text-sm mt-1'>{errors.cashCode}</p>
-          )}
+          {errors.cashCode && <p className='text-red-500 text-sm mt-1'>{errors.cashCode}</p>}
+          <p className='text-gray-400 text-sm mt-2'>
+            Enter the cash payment code provided to you
+          </p>
         </div>
       )}
     </div>
@@ -1234,6 +1438,21 @@ const FighterRegistrationPage = ({ params }) => {
   }
 
   return (
+    <>
+      {/* Square SDK Script */}
+      <Script
+        src='https://sandbox.web.squarecdn.com/v1/square.js'
+        strategy='afterInteractive'
+        onLoad={() => {
+          console.log('✅ Square script loaded for fighter registration')
+          setSquareLoaded(true)
+        }}
+        onError={(error) => {
+          console.error('❌ Square script failed to load for fighter registration:', error)
+          setErrors(prev => ({ ...prev, square: 'Payment system failed to load' }))
+        }}
+      />
+    
     <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
       <div className='w-full container mx-auto'>
         <div className='mb-6'>
@@ -1334,22 +1553,13 @@ const FighterRegistrationPage = ({ params }) => {
                       Cancel
                     </button>
                   </Link>
-                  {formData.paymentMethod === 'card' && (
-                    <button
-                      type='submit'
-                      className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                    >
-                      Pay Now
-                    </button>
-                  )}
-                  {formData.paymentMethod === 'cash' && (
-                    <button
-                      type='submit'
-                      className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                    >
-                      Submit Registration
-                    </button>
-                  )}
+                  <button
+                    type='submit'
+                    disabled={processing || (formData.paymentMethod === 'card' && (!squareLoaded || !cardInstance.current))}
+                    className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    {processing ? 'Processing...' : formData.paymentMethod === 'card' ? 'Pay $75.00' : 'Submit Registration'}
+                  </button>
                 </div>
               )}
             </div>
@@ -1374,6 +1584,7 @@ const FighterRegistrationPage = ({ params }) => {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

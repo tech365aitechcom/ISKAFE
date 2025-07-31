@@ -2,17 +2,20 @@
 import { useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { CodesTable } from './CodesTable'
-import { cashPaymentAndCodesEvents } from '../../../../../constants'
 
 export default function SelectFromList({
+  events,
   selectedEvent,
   setSelectedEvent,
   handleFighterClick,
+  loading,
+  error,
+  onRedeemCode,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
 
   // Filter events based on search query
-  const filteredEvents = cashPaymentAndCodesEvents.filter(event => 
+  const filteredEvents = events.filter(event => 
     event.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -51,10 +54,17 @@ export default function SelectFromList({
           <CodesTable
             users={selectedEvent.users}
             handleFighterClick={handleFighterClick}
+            onRedeemCode={onRedeemCode}
           />
         </div>
       ) : (
-        <div className='flex flex-wrap gap-4'>
+        <>
+          {error && (
+            <div className='mb-4 p-4 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg'>
+              <p className='text-red-400'>Error: {error}</p>
+            </div>
+          )}
+          <div className='flex flex-wrap gap-4'>
           {filteredEvents.map((event, index) => (
             <button
               key={index}
@@ -69,12 +79,13 @@ export default function SelectFromList({
             </button>
           ))}
           
-          {filteredEvents.length === 0 && (
+          {filteredEvents.length === 0 && !loading && (
             <div className='text-center w-full py-8 text-gray-400'>
-              No events match your search
+              {events.length === 0 ? 'No events found' : 'No events match your search'}
             </div>
           )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   )

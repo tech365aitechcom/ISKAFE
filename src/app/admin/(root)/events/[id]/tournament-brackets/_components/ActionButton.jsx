@@ -1,11 +1,13 @@
 import React from 'react'
 
-export default function ActionButton({ icon, label, bg, border }) {
+export default function ActionButton({ icon, label, bg, border, onClick, disabled }) {
   return (
     <button
-      className={`px-3 py-2 text-sm rounded flex items-center gap-2 ${
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-3 py-2 text-sm rounded flex items-center gap-2 transition-colors ${
         border ? 'border border-white' : ''
-      }`}
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
       style={{ background: bg }}
     >
       {icon}

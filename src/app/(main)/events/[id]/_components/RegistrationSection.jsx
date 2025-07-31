@@ -48,9 +48,12 @@ export default function RegistrationSection({ eventId, padding, registrationDead
       )}
 
       <div className='mt-6 w-full'>
-        <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 my-2 w-full rounded-sm text-xl font-semibold'>
-          Buy Spectator Ticket
-        </Button>
+        <Link 
+          href={`/events/${eventId}/spectator-tickets`}
+          className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 my-2 w-full rounded-sm text-xl inline-block text-center font-semibold'
+        >
+          Buy Spectator Tickets
+        </Link>
       </div>
     </div>
   )

@@ -1,17 +1,101 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SelectFromList from './_components/SelectFromList'
 import SpecifyEventID from './_components/SpecifyEventID'
 import FighterDetails from './_components/FighterDetails'
 import RequestCode from './_components/RequestCode'
+import { API_BASE_URL } from '../../../../constants'
+import useStore from '../../../../stores/useStore'
+import Loader from '../../../_components/Loader'
 
 export default function CashPaymentAndCodesPage() {
   const [activeButton, setActiveButton] = useState('select')
   const [selectedFighter, setSelectedFighter] = useState(null)
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showRequestDemo, setShowRequestDemo] = useState(false)
-  const [currentUser] = useState({ name: "Admin_User" }) // Simulate logged-in user
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const user = useStore((state) => state.user)
+
+  useEffect(() => {
+    if (user?.token) {
+      fetchEvents()
+    } else {
+      // If no token, use fallback or show login message
+      setLoading(false)
+      setError('Please log in to access cash payment codes')
+    }
+  }, [user?.token])
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/events`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Events API response:', data) // Debug log
+        
+        if (data.success && Array.isArray(data.data?.items)) {
+          const eventsWithCodes = await Promise.all(
+            data.data.items.map(async (event) => {
+              const codesResponse = await fetch(`${API_BASE_URL}/cash-codes?eventId=${event._id}`, {
+                headers: {
+                  Authorization: `Bearer ${user?.token}`,
+                },
+              })
+              let codes = []
+              if (codesResponse.ok) {
+                const codesData = await codesResponse.json()
+                if (codesData.success && Array.isArray(codesData.data)) {
+                  codes = codesData.data
+                }
+              }
+              return {
+                ...event,
+                id: event._id,
+                name: event.name, // The API response already has 'name' field
+                date: event.startDate ? new Date(event.startDate).toLocaleDateString() : 'Date not set',
+                users: codes
+              }
+            })
+          )
+          setEvents(eventsWithCodes)
+        } else if (data.success && !Array.isArray(data.data?.items)) {
+          // Handle case where data.data.items is not an array but success is true
+          console.warn('Events data is not an array:', data.data)
+          setEvents([])
+          setError('No events found')
+        } else {
+          setError(data.message || 'Failed to fetch events')
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        setError(errorData.message || `Failed to fetch events (${response.status})`)
+      }
+    } catch (err) {
+      console.error('Error fetching events:', err)
+      
+      // Fallback to mock data if API is not available
+      console.log('Falling back to mock data...')
+      try {
+        const { cashPaymentAndCodesEvents } = await import('../../../../constants')
+        setEvents(cashPaymentAndCodesEvents || [])
+        setError(null) // Clear error since we have fallback data
+      } catch (importErr) {
+        console.error('Failed to load mock data:', importErr)
+        setError('Unable to load events. Please check your connection and try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleFighterClick = (fighter) => {
     setSelectedFighter(fighter)
@@ -34,14 +118,97 @@ export default function CashPaymentAndCodesPage() {
     setActiveButton(button)
   }
 
-  const handleAddCode = (newCode) => {
-    const updatedEvent = {
-      ...selectedEvent,
-      users: [...selectedEvent.users, newCode]
-    };
-    setSelectedEvent(updatedEvent);
-    setShowRequestDemo(false);
+  const handleAddCode = async (codeData) => {
+    if (!user?.token) {
+      alert('Please log in to create codes')
+      return
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/cash-codes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          eventId: selectedEvent.id,
+          ...codeData
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Refresh events to get updated code list
+          await fetchEvents()
+          // Update selected event with new code
+          const updatedEvent = events.find(e => e.id === selectedEvent.id)
+          if (updatedEvent) {
+            setSelectedEvent(updatedEvent)
+          }
+          setShowRequestDemo(false)
+          alert('Code created successfully!')
+        } else {
+          alert('Error creating code: ' + data.message)
+        }
+      } else {
+        alert('Error creating code')
+      }
+    } catch (err) {
+      alert('Error creating code: ' + err.message)
+    }
   };
+
+  const handleRedeemCode = async (code) => {
+    if (!user?.token) {
+      alert('Please log in to redeem codes')
+      return
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/cash-codes/${code._id || code.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          status: 'redeemed',
+          redeemedAt: new Date().toISOString(),
+          redeemedBy: user?.firstName + ' ' + user?.lastName || 'Admin'
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          // Refresh events to get updated code list
+          await fetchEvents()
+          // Update selected event with new code status
+          const updatedEvent = events.find(e => e.id === selectedEvent.id)
+          if (updatedEvent) {
+            setSelectedEvent(updatedEvent)
+          }
+          alert('Code redeemed successfully!')
+        } else {
+          alert('Error redeeming code: ' + data.message)
+        }
+      } else {
+        alert('Error redeeming code')
+      }
+    } catch (err) {
+      alert('Error redeeming code: ' + err.message)
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full bg-[#07091D]">
+        <Loader />
+      </div>
+    )
+  }
 
   if (selectedFighter) {
     return (
@@ -68,7 +235,7 @@ export default function CashPaymentAndCodesPage() {
             onBack={() => setShowRequestDemo(false)} 
             onAddCode={handleAddCode}
             selectedEvent={selectedEvent}
-            currentUser={currentUser}
+            currentUser={user}
           />
         ) : (
           <>
@@ -87,6 +254,21 @@ export default function CashPaymentAndCodesPage() {
                 Request Code
               </button>
             </div>
+            
+            {error && (
+              <div className='mb-4 p-4 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg'>
+                <p className='text-red-400'>Error: {error}</p>
+                <button 
+                  onClick={() => {
+                    setError(null)
+                    fetchEvents()
+                  }}
+                  className='mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700'
+                >
+                  Retry
+                </button>
+              </div>
+            )}
             <div className='flex bg-blue-950 p-1 rounded-md w-fit'>
               <button
                 onClick={() => handleToggle('select')}
@@ -108,9 +290,13 @@ export default function CashPaymentAndCodesPage() {
             </div>
             {activeButton === 'select' ? (
               <SelectFromList
+                events={events}
                 selectedEvent={selectedEvent}
                 setSelectedEvent={setSelectedEvent}
                 handleFighterClick={handleFighterClick}
+                loading={loading}
+                error={error}
+                onRedeemCode={handleRedeemCode}
               />
             ) : (
               <SpecifyEventID />

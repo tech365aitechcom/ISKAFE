@@ -284,10 +284,10 @@ export default function TournamentBrackets() {
             </button>
           </Link>
           <div>
-            <h1 className='text-2xl font-bold'>Tournament Brackets</h1>
+            <h1 className='text-2xl font-bold'>Tournament Bracket Management</h1>
             {event && (
               <p className='text-sm text-gray-300'>
-                {event.title} ({new Date(event.eventDate).toLocaleDateString()})
+                {event.title} ({event.eventDate ? new Date(event.eventDate).toLocaleDateString() : 'Date not set'})
               </p>
             )}
           </div>
