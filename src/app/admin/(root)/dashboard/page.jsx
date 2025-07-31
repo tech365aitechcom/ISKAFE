@@ -44,7 +44,7 @@ import {
 } from 'recharts'
 
 // Top Cards Component
-export function DashboardStats({ dashboardData }) {
+function DashboardStats({ dashboardData }) {
   const formatValue = (value) => {
     if (value >= 1000) {
       return `${(value / 1000).toFixed(1)}K`
@@ -202,7 +202,7 @@ export function DashboardStats({ dashboardData }) {
 }
 
 // Graphs Section
-export function DashboardGraphs({ dashboardData }) {
+function DashboardGraphs({ dashboardData }) {
   const [activeFilter, setActiveFilter] = useState('monthly')
 
   if (!dashboardData) {
@@ -549,7 +549,7 @@ export function DashboardGraphs({ dashboardData }) {
 }
 
 // Tables Section
-export function DashboardTables() {
+function DashboardTables() {
   const [selectedAction, setSelectedAction] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
 
@@ -1205,7 +1205,7 @@ function ExportControls({ onRefresh, loading, dashboardData }) {
 }
 
 // Main Dashboard Page
-const DashboardPage = () => {
+export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -1305,5 +1305,3 @@ const DashboardPage = () => {
     </div>
   )
 }
-
-export default DashboardPage
