@@ -1,6 +1,6 @@
 // src/app/dashboard/page.jsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Users,
   Calendar,
@@ -9,6 +9,7 @@ import {
   MapPin,
   DollarSign,
   ArrowUpRight,
+  ArrowDownRight,
   Filter,
   Download,
   Mail,
@@ -24,6 +25,7 @@ import {
   User,
   GanttChart,
   CreditCard,
+  MapIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -42,55 +44,77 @@ import {
 } from "recharts";
 
 // Top Cards Component
-export function DashboardStats() {
-  const [stats] = useState([
+export function DashboardStats({ dashboardData }) {
+  const formatValue = (value) => {
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K`;
+    }
+    return value.toString();
+  };
+
+  const formatCurrency = (value) => {
+    if (value >= 1000) {
+      return `$${(value / 1000).toFixed(1)}K`;
+    }
+    return `$${value}`;
+  };
+
+  if (!dashboardData) {
+    return (
+      <div className="flex flex-wrap gap-4 w-full bg-slate-950 p-6">
+        <div className="flex-1 min-w-64 bg-slate-900 rounded-xl border border-slate-800 p-5 animate-pulse">
+          <div className="h-4 bg-slate-800 rounded mb-2"></div>
+          <div className="h-8 bg-slate-800 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = [
     {
       id: 1,
       title: "Total Fighters",
-      value: "12.4K",
-      change: 8.5,
-      increase: true,
+      value: formatValue(dashboardData.totalFightersData.total),
       icon: Users,
-      breakdown: { male: 8240, female: 4160 },
+      breakdown: {
+        male: dashboardData.totalFightersData.genderSplit.male,
+        female: dashboardData.totalFightersData.genderSplit.female,
+        other: dashboardData.totalFightersData.genderSplit.other,
+      },
     },
     {
       id: 2,
       title: "Total Events",
-      value: "24",
+      value: dashboardData.totalEvents.toString(),
       icon: Calendar,
-      statuses: { upcoming: 8, ongoing: 6, completed: 10 },
     },
     {
       id: 3,
       title: "Bouts Today",
-      value: "86",
+      value: dashboardData.todaysBoutCount.toString(),
       live: true,
       icon: Sword,
     },
     {
       id: 4,
       title: "Total Revenue",
-      value: "$240.8K",
-      change: 14.8,
-      increase: true,
+      value: formatCurrency(dashboardData.totalRevenue),
       icon: DollarSign,
     },
     {
       id: 5,
       title: "Tickets Sold",
-      value: "8.3K",
-      change: 12.6,
-      increase: true,
+      value: dashboardData.totalTickets.toString(),
       icon: Ticket,
-      breakdown: { general: 5200, vip: 2100, student: 1000 },
     },
     {
       id: 6,
       title: "Total Venues",
-      value: "42",
+      value: dashboardData.totalVenues.toString(),
       icon: MapPin,
+      hasMap: true,
     },
-  ]);
+  ];
 
   return (
     <div className="flex flex-wrap gap-4 w-full bg-slate-950 p-6">
@@ -163,6 +187,13 @@ export function DashboardStats() {
             </div>
           )}
 
+          {stat.hasMap && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+              <MapIcon size={12} className="text-blue-400" />
+              <span>View on map</span>
+            </div>
+          )}
+
           <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full opacity-20 blur-xl bg-[#0B1739]" />
         </div>
       ))}
@@ -171,74 +202,70 @@ export function DashboardStats() {
 }
 
 // Graphs Section
-export function DashboardGraphs() {
+export function DashboardGraphs({ dashboardData }) {
   const [activeFilter, setActiveFilter] = useState("monthly");
 
-  // Event participation data
-  const participationData = [
-    { month: "Jan", fighters: 1200 },
-    { month: "Feb", fighters: 1800 },
-    { month: "Mar", fighters: 1500 },
-    { month: "Apr", fighters: 2400 },
-    { month: "May", fighters: 2800 },
-    { month: "Jun", fighters: 3200 },
-    { month: "Jul", fighters: 3000 },
-    { month: "Aug", fighters: 3400 },
-    { month: "Sep", fighters: 2900 },
-    { month: "Oct", fighters: 3500 },
-    { month: "Nov", fighters: 3800 },
-    { month: "Dec", fighters: 4200 },
-  ];
+  if (!dashboardData) {
+    return (
+      <div className="bg-slate-900 p-6 rounded-xl m-6">
+        <div className="animate-pulse">
+          <div className="h-6 bg-slate-800 rounded mb-6 w-48"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-slate-800 p-4 rounded-lg">
+                <div className="h-4 bg-slate-700 rounded mb-4 w-32"></div>
+                <div className="h-64 bg-slate-700 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // Ticket types data
-  const ticketTypes = [
-    { name: "General", value: 5200, color: "#3b82f6" },
-    { name: "VIP", value: 2100, color: "#8b5cf6" },
-    { name: "Student", value: 1000, color: "#ec4899" },
-    { name: "Press", value: 300, color: "#f43f5e" },
-  ];
+  // Event participation data - format API data
+  const participationData = dashboardData.eventParticipationTrend.map(item => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    count: item.count
+  }));
 
-  // Daily ticket sales
-  const dailySales = [
-    { day: "1", sales: 120 },
-    { day: "2", sales: 150 },
-    { day: "3", sales: 200 },
-    { day: "4", sales: 180 },
-    { day: "5", sales: 240 },
-    { day: "6", sales: 300 },
-    { day: "7", sales: 350 },
-    { day: "8", sales: 420 },
-    { day: "9", sales: 500 },
-    { day: "10", sales: 600 },
-  ];
+  // Ticket types data - format API data
+  const ticketTypes = dashboardData.ticketTypeBreakdown.map((item, index) => {
+    const colors = ["#3b82f6", "#8b5cf6", "#ec4899", "#f43f5e", "#10b981", "#f59e0b"];
+    return {
+      name: item.type,
+      value: item.count,
+      color: colors[index % colors.length]
+    };
+  });
 
-  // Revenue vs redemption
-  const revenueData = [
-    { day: "Mon", revenue: 12000, redemption: 8000 },
-    { day: "Tue", revenue: 18000, redemption: 12000 },
-    { day: "Wed", revenue: 15000, redemption: 10000 },
-    { day: "Thu", revenue: 22000, redemption: 18000 },
-    { day: "Fri", revenue: 28000, redemption: 22000 },
-    { day: "Sat", revenue: 32000, redemption: 28000 },
-    { day: "Sun", revenue: 30000, redemption: 25000 },
-  ];
+  // Daily ticket sales - format API data
+  const dailySales = dashboardData.dailyTicketSales.map(item => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    sales: item.count
+  }));
 
-  // Weight class distribution
-  const weightClasses = [
-    { class: "Flyweight", male: 420, female: 180 },
-    { class: "Bantamweight", male: 680, female: 220 },
-    { class: "Featherweight", male: 720, female: 280 },
-    { class: "Lightweight", male: 840, female: 160 },
-    { class: "Welterweight", male: 780, female: 120 },
-    { class: "Middleweight", male: 650, female: 50 },
-    { class: "Heavyweight", male: 480, female: 20 },
-  ];
+  // Revenue vs redemption - format API data
+  const revenueData = dashboardData.redemptionStats.map(item => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    revenue: item.totalRevenue,
+    redemption: item.redeemedRevenue
+  }));
 
-  // Bout progress
+  // Weight class distribution - format API data
+  const weightClasses = dashboardData.weightClassDistribution.map(item => ({
+    class: item.weightClass.split(' (')[0], // Remove weight details for display
+    male: item.male,
+    female: item.female,
+    other: item.other
+  }));
+
+  // Bout progress - format API data
+  const completedPercent = parseFloat(dashboardData.boutProgress.completed);
+  const pendingPercent = parseFloat(dashboardData.boutProgress.pending);
   const boutProgress = [
-    { name: "Completed", value: 70, color: "#10b981" },
-    { name: "Scheduled", value: 20, color: "#3b82f6" },
-    { name: "Pending Result", value: 10, color: "#f59e0b" },
+    { name: "Completed", value: completedPercent, color: "#10b981" },
+    { name: "Pending", value: pendingPercent, color: "#f59e0b" },
   ];
 
   return (
@@ -280,14 +307,13 @@ export function DashboardGraphs() {
               <LineChart data={participationData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis
-                  dataKey="month"
+                  dataKey="date"
                   stroke="#64748b"
                   tick={{ fill: "#94a3b8" }}
                 />
                 <YAxis
                   stroke="#64748b"
                   tick={{ fill: "#94a3b8" }}
-                  tickFormatter={(value) => `${value / 1000}k`}
                 />
                 <Tooltip
                   contentStyle={{
@@ -299,7 +325,7 @@ export function DashboardGraphs() {
                 />
                 <Line
                   type="monotone"
-                  dataKey="fighters"
+                  dataKey="count"
                   stroke="#22d3ee"
                   strokeWidth={2}
                   activeDot={{ r: 6, fill: "#082f49" }}
@@ -360,7 +386,7 @@ export function DashboardGraphs() {
               <BarChart data={dailySales}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis
-                  dataKey="day"
+                  dataKey="date"
                   stroke="#64748b"
                   tick={{ fill: "#94a3b8" }}
                 />
@@ -390,7 +416,7 @@ export function DashboardGraphs() {
               <BarChart data={revenueData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis
-                  dataKey="day"
+                  dataKey="date"
                   stroke="#64748b"
                   tick={{ fill: "#94a3b8" }}
                 />
@@ -408,7 +434,7 @@ export function DashboardGraphs() {
                 <Bar
                   dataKey="redemption"
                   fill="#f59e0b"
-                  name="Redemption (%)"
+                  name="Redeemed ($)"
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -441,7 +467,7 @@ export function DashboardGraphs() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold">86%</span>
+                <span className="text-3xl font-bold">{completedPercent.toFixed(0)}%</span>
                 <span className="text-slate-400 text-sm">Completed</span>
               </div>
             </div>
@@ -499,6 +525,12 @@ export function DashboardGraphs() {
                   fill="#ec4899"
                   name="Female"
                 />
+                <Bar
+                  dataKey="other"
+                  stackId="a"
+                  fill="#10b981"
+                  name="Other"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -510,6 +542,50 @@ export function DashboardGraphs() {
 
 // Tables Section
 export function DashboardTables() {
+  const [selectedAction, setSelectedAction] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const handleAddResult = (bout) => {
+    setSelectedItem(bout);
+    setSelectedAction('addResult');
+    // TODO: Open Add Result modal
+    alert(`Add result for bout ${bout.id}: ${bout.fighter1} vs ${bout.fighter2}`);
+  };
+
+  const handleFixFighter = (fighter) => {
+    setSelectedItem(fighter);
+    setSelectedAction('fix');
+    // TODO: Open Fix Fighter modal
+    alert(`Fix issues for fighter: ${fighter.name} - ${fighter.issue}`);
+  };
+
+  const handleSuspendFighter = (fighter) => {
+    setSelectedItem(fighter);
+    setSelectedAction('suspend');
+    // TODO: Open Suspend Fighter modal
+    alert(`Suspend fighter: ${fighter.name} - ${fighter.issue}`);
+  };
+
+  const handleViewProfile = (fighter) => {
+    setSelectedItem(fighter);
+    setSelectedAction('viewProfile');
+    // TODO: Navigate to fighter profile
+    alert(`View profile for fighter: ${fighter.name}`);
+  };
+
+  const handleManageBrackets = (event) => {
+    setSelectedItem(event);
+    setSelectedAction('manageBrackets');
+    // TODO: Navigate to bracket management
+    alert(`Manage brackets for event: ${event.name}`);
+  };
+
+  const handleViewDetails = (ticket) => {
+    setSelectedItem(ticket);
+    setSelectedAction('viewDetails');
+    // TODO: Open ticket details modal
+    alert(`View details for ticket: ${ticket.type} - ${ticket.event}`);
+  };
   // Upcoming events data
   const upcomingEvents = [
     {
@@ -675,15 +751,42 @@ export function DashboardTables() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Operational Data</h2>
         <div className="flex gap-4">
-          <button className="flex items-center gap-2 text-slate-400 hover:text-white text-sm">
+          <button 
+            onClick={() => {
+              // Export table data to CSV
+              const csvData = [
+                ['Table', 'Count'],
+                ['Upcoming Events', upcomingEvents.length],
+                ['Recent Registrations', fighterRegistrations.length],
+                ['Missing Results', missingResults.length],
+                ['Fighter Alerts', fighterAlerts.length],
+                ['Ticket Logs', ticketLogs.length],
+              ];
+              const csvContent = csvData.map(row => row.join(',')).join('\n');
+              const blob = new Blob([csvContent], { type: 'text/csv' });
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `dashboard-tables-${new Date().toISOString().split('T')[0]}.csv`;
+              a.click();
+              window.URL.revokeObjectURL(url);
+            }}
+            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm"
+          >
             <Download size={16} />
             <span>Export CSV</span>
           </button>
-          <button className="flex items-center gap-2 text-slate-400 hover:text-white text-sm">
+          <button 
+            onClick={() => alert('PDF export functionality will be implemented with a PDF library')}
+            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm"
+          >
             <Download size={16} />
             <span>Export PDF</span>
           </button>
-          <button className="flex items-center gap-2 text-slate-400 hover:text-white text-sm">
+          <button 
+            onClick={() => alert('Email report functionality will be implemented with email service integration')}
+            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm"
+          >
             <Mail size={16} />
             <span>Email Report</span>
           </button>
@@ -731,7 +834,10 @@ export function DashboardTables() {
                     <td className="px-4 py-3">{event.venue}</td>
                     <td className="px-4 py-3">{event.fighters}</td>
                     <td className="px-4 py-3">
-                      <button className="text-blue-500 hover:text-blue-400 text-sm">
+                      <button 
+                        onClick={() => handleManageBrackets(event)}
+                        className="text-blue-500 hover:text-blue-400 text-sm"
+                      >
                         Manage Brackets
                       </button>
                     </td>
@@ -786,7 +892,10 @@ export function DashboardTables() {
                     <td className="px-4 py-3">{fighter.gym}</td>
                     <td className="px-4 py-3">{fighter.date}</td>
                     <td className="px-4 py-3">
-                      <button className="text-blue-500 hover:text-blue-400 text-sm">
+                      <button 
+                        onClick={() => handleViewProfile(fighter)}
+                        className="text-blue-500 hover:text-blue-400 text-sm"
+                      >
                         View Profile
                       </button>
                     </td>
@@ -837,7 +946,10 @@ export function DashboardTables() {
                     <td className="px-4 py-3">{bout.fighter2}</td>
                     <td className="px-4 py-3">{bout.time}</td>
                     <td className="px-4 py-3">
-                      <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm">
+                      <button 
+                        onClick={() => handleAddResult(bout)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm"
+                      >
                         Add Result
                       </button>
                     </td>
@@ -895,10 +1007,16 @@ export function DashboardTables() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button className="text-blue-500 hover:text-blue-400 text-sm">
+                        <button 
+                          onClick={() => handleFixFighter(fighter)}
+                          className="text-blue-500 hover:text-blue-400 text-sm"
+                        >
                           Fix
                         </button>
-                        <button className="text-red-500 hover:text-red-400 text-sm">
+                        <button 
+                          onClick={() => handleSuspendFighter(fighter)}
+                          className="text-red-500 hover:text-red-400 text-sm"
+                        >
                           Suspend
                         </button>
                       </div>
@@ -954,7 +1072,10 @@ export function DashboardTables() {
                     <td className="px-4 py-3">{ticket.event}</td>
                     <td className="px-4 py-3">{ticket.time}</td>
                     <td className="px-4 py-3">
-                      <button className="text-blue-500 hover:text-blue-400 text-sm">
+                      <button 
+                        onClick={() => handleViewDetails(ticket)}
+                        className="text-blue-500 hover:text-blue-400 text-sm"
+                      >
                         Details
                       </button>
                     </td>
@@ -969,14 +1090,57 @@ export function DashboardTables() {
   );
 }
 
+// Export functionality
+const exportToCSV = (dashboardData) => {
+  if (!dashboardData) return;
+  
+  const csvData = [
+    ['Metric', 'Value'],
+    ['Total Fighters', dashboardData.totalFightersData.total],
+    ['Male Fighters', dashboardData.totalFightersData.genderSplit.male],
+    ['Female Fighters', dashboardData.totalFightersData.genderSplit.female],
+    ['Other Fighters', dashboardData.totalFightersData.genderSplit.other],
+    ['Total Events', dashboardData.totalEvents],
+    ['Bouts Today', dashboardData.todaysBoutCount],
+    ['Total Revenue', dashboardData.totalRevenue],
+    ['Tickets Sold', dashboardData.totalTickets],
+    ['Total Venues', dashboardData.totalVenues],
+    ['Bout Progress - Completed', dashboardData.boutProgress.completed + '%'],
+    ['Bout Progress - Pending', dashboardData.boutProgress.pending + '%'],
+  ];
+  
+  const csvContent = csvData.map(row => row.join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dashboard-data-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+
+const exportToPDF = (dashboardData) => {
+  if (!dashboardData) return;
+  alert('PDF export functionality will be implemented with a PDF library like jsPDF or react-pdf');
+};
+
+const sendEmailReport = (dashboardData) => {
+  if (!dashboardData) return;
+  alert('Email report functionality will be implemented with email service integration');
+};
+
 // Export Controls
-function ExportControls() {
+function ExportControls({ onRefresh, loading, dashboardData }) {
   return (
     <div className="fixed top-4 right-6 z-50">
       <div className="bg-slate-900 border border-slate-700 rounded-lg shadow-lg p-3">
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 text-slate-300 hover:text-white text-sm px-3 py-1.5 bg-slate-800 rounded-md">
-            <RefreshCw size={16} />
+          <button 
+            onClick={onRefresh}
+            disabled={loading}
+            className={`flex items-center gap-2 text-slate-300 hover:text-white text-sm px-3 py-1.5 bg-slate-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
           </button>
 
@@ -987,15 +1151,24 @@ function ExportControls() {
               <ChevronDown size={16} />
             </button>
             <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-lg hidden group-hover:block">
-              <button className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2">
+              <button 
+                onClick={() => exportToCSV(dashboardData)}
+                className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
+              >
                 <Download size={14} />
                 <span>Export CSV</span>
               </button>
-              <button className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2">
+              <button 
+                onClick={() => exportToPDF(dashboardData)}
+                className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
+              >
                 <Download size={14} />
                 <span>Export PDF</span>
               </button>
-              <button className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2">
+              <button 
+                onClick={() => sendEmailReport(dashboardData)}
+                className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
+              >
                 <Mail size={14} />
                 <span>Email Report</span>
               </button>
@@ -1009,23 +1182,86 @@ function ExportControls() {
 
 // Main Dashboard Page
 const DashboardPage = () => {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const currentDate = new Date();
+      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString().split('T')[0];
+      const endDate = currentDate.toISOString().split('T')[0];
+      
+      const response = await fetch(`http://localhost:5000/api/dashboard?startDate=${startDate}&endDate=${endDate}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setDashboardData(result.data);
+        setLastUpdated(new Date());
+        setError(null);
+      } else {
+        setError(result.message || 'Failed to fetch dashboard data');
+      }
+    } catch (err) {
+      setError('Error connecting to server');
+      console.error('Dashboard API Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const handleRefresh = () => {
+    fetchDashboardData();
+  };
+
+  if (error) {
+    return (
+      <div className="bg-slate-950 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 text-lg mb-4">Error loading dashboard</div>
+          <div className="text-slate-400 mb-4">{error}</div>
+          <button 
+            onClick={handleRefresh}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-slate-950 min-h-screen">
       <div className="container mx-auto">
         <div className="flex justify-between items-center p-6">
           <h1 className="text-2xl font-bold text-white">IKF Admin Dashboard</h1>
-          <div className="text-sm text-slate-400">
-            Last updated: {new Date().toLocaleDateString()} at{" "}
-            {new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+          <div className="flex items-center gap-4">
+            {loading && (
+              <div className="flex items-center gap-2 text-slate-400">
+                <RefreshCw size={16} className="animate-spin" />
+                <span className="text-sm">Loading...</span>
+              </div>
+            )}
+            <div className="text-sm text-slate-400">
+              Last updated: {lastUpdated.toLocaleDateString()} at{" "}
+              {lastUpdated.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
           </div>
         </div>
 
-        <ExportControls />
-        <DashboardStats />
-        <DashboardGraphs />
+        <ExportControls onRefresh={handleRefresh} loading={loading} dashboardData={dashboardData} />
+        <DashboardStats dashboardData={dashboardData} />
+        <DashboardGraphs dashboardData={dashboardData} />
         <DashboardTables />
       </div>
     </div>
