@@ -23,30 +23,39 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
     setActiveButton(button)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const newCode = {
-        id: Date.now(),
-        date: new Date().toLocaleDateString(),
-        name,
-        email,
+    try {
+      const codeData = {
+        participantName: name,
+        participantEmail: email,
+        participantMobile: mobile,
+        participantType: activeButton, // 'fighter' or 'trainer'
         code: generatedCode,
         amount: parseFloat(amount),
         paymentType,
-        issuedAt: new Date().toLocaleString(),
-        issuedBy: currentUser.name,
-        redeemed: false,
-        redeemedAt: "",
-        notes: paymentNotes
+        paymentNotes,
+        issuedBy: currentUser?.firstName + ' ' + currentUser?.lastName || 'Admin'
       };
       
-      onAddCode(newCode);
+      await onAddCode(codeData);
+      
+      // Reset form
+      setName('');
+      setEmail('');
+      setMobile('');
+      setAmount('');
+      setPaymentNotes('');
+      // Generate new code for next use
+      const newCode = Math.random().toString(36).substr(2, 5).toUpperCase();
+      setGeneratedCode(newCode);
+    } catch (error) {
+      console.error('Error submitting code:', error);
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -78,6 +87,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
           <h2 className='text-lg font-bold mb-2'>Selected Event</h2>
           <p className='text-blue-300'>{selectedEvent.name}</p>
           <p className='text-sm text-gray-400'>Date: {selectedEvent.date}</p>
+          <p className='text-sm text-gray-400'>Event ID: {selectedEvent.id}</p>
         </div>
       )}
 
@@ -208,7 +218,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         {/* Issued By */}
         <div className='bg-[#00000061] p-3 rounded-lg'>
           <label className='block text-sm text-gray-400 mb-1'>Issued By</label>
-          <p className='text-white'>{currentUser.name}</p>
+          <p className='text-white'>{currentUser?.firstName + ' ' + currentUser?.lastName || 'Admin'}</p>
         </div>
 
         {/* Request Code Button */}

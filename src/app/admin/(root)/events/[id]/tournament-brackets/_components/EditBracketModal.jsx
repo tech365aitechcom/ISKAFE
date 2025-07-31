@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 
-export default function NewBracketModal({ eventId, onClose, onCreate }) {
+export default function EditBracketModal({ bracket, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
     bracketNumber: '',
     divisionTitle: '',
@@ -25,6 +25,32 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
   })
 
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (bracket) {
+      setFormData({
+        bracketNumber: bracket.bracketNumber || '',
+        divisionTitle: bracket.divisionTitle || '',
+        group: bracket.group || '',
+        proClass: bracket.proClass || '',
+        title: bracket.title || '',
+        status: bracket.status || 'Open',
+        ageClass: bracket.ageClass || '',
+        sport: bracket.sport || '',
+        ruleStyle: bracket.ruleStyle || '',
+        ring: bracket.ring || '',
+        weightClass: {
+          min: bracket.weightClass?.min || '',
+          max: bracket.weightClass?.max || '',
+          unit: bracket.weightClass?.unit || 'lbs'
+        },
+        fightStartTime: bracket.fightStartTime ? 
+          new Date(bracket.fightStartTime).toISOString().slice(0, 16) : '',
+        weighInTime: bracket.weighInTime ? 
+          new Date(bracket.weighInTime).toISOString().slice(0, 16) : ''
+      })
+    }
+  }, [bracket])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -50,7 +76,7 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
     e.preventDefault()
     setLoading(true)
 
-    // Clean the form data to remove empty strings which might cause validation issues
+    // Clean the form data to remove empty strings
     const cleanedFormData = { ...formData }
     
     // Remove empty optional fields
@@ -66,22 +92,22 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
         min: parseFloat(formData.weightClass.min) || 0,
         max: parseFloat(formData.weightClass.max) || 999,
         unit: formData.weightClass.unit
-      },
-      fighters: []
+      }
     }
 
-    // Debug log to see what we're sending
-    console.log('Bracket data being sent:', bracketData)
-
-    await onCreate(bracketData)
+    const result = await onUpdate(bracketData)
     setLoading(false)
+    
+    if (result.success) {
+      onClose()
+    }
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-[#0B1739] rounded-lg p-6 w-full max-w-4xl max-h-[85vh] overflow-y-auto my-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">Create New Bracket</h2>
+          <h2 className="text-xl font-bold text-white">Edit Bracket</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white"
@@ -359,7 +385,7 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
               className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? 'Creating...' : 'Create Bracket'}
+              {loading ? 'Updating...' : 'Update Bracket'}
             </button>
           </div>
         </form>

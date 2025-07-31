@@ -5,6 +5,7 @@ import React, { useState } from 'react'
 import Props from './Props'
 import Fighters from './Fighters'
 import BoutsAndResults from './Bouts&Results'
+import EditBracketModal from './EditBracketModal'
 
 export default function BracketList({ 
   brackets, 
@@ -16,6 +17,7 @@ export default function BracketList({
 }) {
   const [activeTab, setActiveTab] = useState('props')
   const [expandedBracket, setExpandedBracket] = useState(null)
+  const [editingBracket, setEditingBracket] = useState(null)
 
   const handleToggle = (button) => {
     setActiveTab(button)
@@ -49,7 +51,7 @@ export default function BracketList({
       case 'edit':
         return (
           <button
-            onClick={() => {/* TODO: Implement edit modal */}}
+            onClick={() => setEditingBracket(bracket)}
             className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             <Edit size={14} />
@@ -188,6 +190,22 @@ export default function BracketList({
           </div>
         </div>
       ))}
+      
+      {/* Edit Bracket Modal */}
+      {editingBracket && (
+        <EditBracketModal
+          bracket={editingBracket}
+          onClose={() => setEditingBracket(null)}
+          onUpdate={async (updatedData) => {
+            const result = await onUpdate(editingBracket._id, updatedData)
+            if (result.success) {
+              setEditingBracket(null)
+              onRefresh()
+            }
+            return result
+          }}
+        />
+      )}
     </div>
   )
 }
