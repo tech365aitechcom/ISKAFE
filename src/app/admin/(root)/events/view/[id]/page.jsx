@@ -438,7 +438,7 @@ export default function EventDetailsPage() {
                   <li className="mx-4 py-3 border-b border-[#6C6C6C]">
                     Cash Payment Tokens
                   </li>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C]">Reports</li>
+                  <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500">Reports</li>
                   <Link href={`/admin/events/${eventId}/spectator-payments`}>
                     <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
                       Spectator Payments

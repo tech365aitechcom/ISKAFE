@@ -297,28 +297,28 @@ export default function TournamentBrackets() {
         <div className='flex justify-between items-center mb-6'>
           <div className='flex space-x-2'>
             <button 
-              onClick={() => setMode('edit')}
+              onClick={() => setMode(mode === 'edit' ? 'view' : 'edit')}
               className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('edit')}`}
             >
               <Settings size={14} />
               Edit Brackets
             </button>
             <button 
-              onClick={() => setMode('move')}
+              onClick={() => setMode(mode === 'move' ? 'view' : 'move')}
               className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('move')}`}
             >
               <Users size={14} />
               Move Fighters
             </button>
             <button 
-              onClick={() => setMode('reorder')}
+              onClick={() => setMode(mode === 'reorder' ? 'view' : 'reorder')}
               className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('reorder')}`}
             >
               <ArrowUpDown size={14} />
               Reseed Brackets
             </button>
             <button 
-              onClick={() => setMode('delete')}
+              onClick={() => setMode(mode === 'delete' ? 'view' : 'delete')}
               className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('delete')}`}
             >
               <Trash size={14} />
