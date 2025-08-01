@@ -6,6 +6,8 @@ import Props from './Props'
 import Fighters from './Fighters'
 import BoutsAndResults from './Bouts&Results'
 import EditBracketModal from './EditBracketModal'
+import { API_BASE_URL } from '../../../../../../../constants'
+import useStore from '../../../../../../../stores/useStore'
 
 export default function BracketList({ 
   brackets, 
@@ -15,9 +17,36 @@ export default function BracketList({
   onDelete, 
   onUpdate 
 }) {
+  const user = useStore((state) => state.user)
   const [activeTab, setActiveTab] = useState('props')
   const [expandedBracket, setExpandedBracket] = useState(null)
   const [editingBracket, setEditingBracket] = useState(null)
+
+  // Function to refresh the expanded bracket data
+  const refreshExpandedBracket = async () => {
+    if (expandedBracket?._id) {
+      try {
+        console.log('Refreshing expanded bracket:', expandedBracket._id)
+        const response = await fetch(`${API_BASE_URL}/brackets/${expandedBracket._id}`, {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Refreshed bracket data:', data)
+          if (data.success) {
+            setExpandedBracket(data.data)
+            console.log('Updated expanded bracket with fighters:', data.data.fighters)
+          }
+        } else {
+          console.error('Failed to refresh bracket:', response.status)
+        }
+      } catch (err) {
+        console.error('Error refreshing bracket:', err)
+      }
+    }
+  }
 
   const handleToggle = (button) => {
     setActiveTab(button)
@@ -159,7 +188,7 @@ export default function BracketList({
                         activeTab === tab ? 'bg-[#2E3094] shadow-md' : ''
                       }`}
                     >
-                      {tab === 'props' && 'Props'}
+                      {tab === 'props' && 'Bracket Properties'}
                       {tab === 'fighters' && 'Fighters'}
                       {tab === 'bouts&results' && 'Bouts & Results'}
                     </button>
@@ -177,7 +206,18 @@ export default function BracketList({
                   <Fighters 
                     expandedBracket={expandedBracket}
                     eventId={eventId}
-                    onUpdate={onUpdate}
+                    onUpdate={async () => {
+                      // First refresh the expanded bracket
+                      await refreshExpandedBracket()
+                      // Then refresh the main bracket list
+                      if (onRefresh) {
+                        await onRefresh()
+                      }
+                      // Finally call parent update
+                      if (onUpdate) {
+                        onUpdate()
+                      }
+                    }}
                   />
                 ) : (
                   <BoutsAndResults 

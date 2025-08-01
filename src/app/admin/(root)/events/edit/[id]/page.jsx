@@ -514,19 +514,45 @@ const handleSubmit = async (e) => {
             {isOpen && (
               <div className="absolute w-full mt-2 bg-[#081028] shadow-lg z-10">
                 <ul className="py-1">
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C]">
-                    Fighter Check-in
-                  </li>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C]">
-                    Bout List
-                  </li>
+                  <Link href={`/admin/events/${eventId}/fighter-checkin`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Fighter Check-in
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/tournament-brackets`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Tournament Brackets
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/bout-list`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Bout List & Results
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/fight-card`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Fight Card Overview
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/fighter-card`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Fighter Card
+                    </li>
+                  </Link>
                   <li className="mx-4 py-3 border-b border-[#6C6C6C]">
                     Spectator Ticket Redemption
                   </li>
                   <li className="mx-4 py-3 border-b border-[#6C6C6C]">
                     Cash Payment Tokens
                   </li>
-                  <li className="mx-4 py-3">Reports</li>
+                  <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500">
+                    Reports
+                  </li>
+                  <Link href={`/admin/events/${eventId}/spectator-payments`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Spectator Payments
+                    </li>
+                  </Link>
                 </ul>
               </div>
             )}

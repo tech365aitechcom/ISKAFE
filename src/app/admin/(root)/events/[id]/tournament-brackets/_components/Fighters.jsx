@@ -2,6 +2,7 @@ import { Plus, User, Trash, Edit } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
+import AddFighterModal from './AddFighterModal'
 
 export default function Fighters({ expandedBracket, eventId, onUpdate }) {
   const user = useStore((state) => state.user)
@@ -18,7 +19,31 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
   const fetchBracketFighters = async () => {
     try {
       setLoading(true)
-      // Fetch fighters assigned to this bracket
+      
+      console.log('=== Fetching Bracket Fighters Debug ===')
+      console.log('Expanded bracket:', expandedBracket)
+      console.log('Event ID:', eventId)
+      
+      // First, get the latest bracket data to ensure we have updated fighters list
+      const bracketResponse = await fetch(`${API_BASE_URL}/brackets/${expandedBracket._id}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
+      
+      let currentBracket = expandedBracket
+      if (bracketResponse.ok) {
+        const bracketData = await bracketResponse.json()
+        console.log('Fresh bracket data from API:', bracketData)
+        console.log('Fresh bracket data.data structure:', JSON.stringify(bracketData.data, null, 2))
+        if (bracketData.success) {
+          currentBracket = bracketData.data
+        }
+      } else {
+        console.error('Failed to fetch bracket data:', bracketResponse.status)
+      }
+      
+      // Fetch all fighters for this event
       const response = await fetch(`${API_BASE_URL}/registrations/event/${eventId}?registrationType=fighter`, {
         headers: {
           Authorization: `Bearer ${user?.token}`,
@@ -27,17 +52,31 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
       
       if (response.ok) {
         const data = await response.json()
+        console.log('All fighters response:', data)
         if (data.success && data.data.items) {
-          // Filter fighters that belong to this bracket (if bracket has fighters array)
-          const bracketFighters = expandedBracket.fighters || []
-          const assignedFighters = data.data.items.filter(fighter => 
-            bracketFighters.includes(fighter._id)
-          )
+          // Filter fighters that belong to this bracket using the updated bracket data
+          const bracketFighters = currentBracket.fighters || []
+          console.log('Current bracket fighters IDs:', bracketFighters)
+          console.log('All available fighters:', data.data.items.length)
+          console.log('Sample fighter IDs:', data.data.items.slice(0, 3).map(f => f._id))
+          
+          const assignedFighters = data.data.items.filter(fighter => {
+            const isAssigned = bracketFighters.includes(fighter._id)
+            if (isAssigned) {
+              console.log(`Fighter ${fighter.firstName} ${fighter.lastName} (${fighter._id}) is assigned to bracket`)
+            }
+            return isAssigned
+          })
+          console.log('Assigned fighters found:', assignedFighters.length)
+          console.log('Assigned fighters:', assignedFighters.map(f => `${f.firstName} ${f.lastName}`))
           setFighters(assignedFighters)
         }
+      } else {
+        console.error('Failed to fetch fighters:', response.status)
       }
     } catch (err) {
       console.error('Error fetching fighters:', err)
+      setFighters([])
     } finally {
       setLoading(false)
     }
@@ -47,10 +86,27 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
     setShowAddModal(true)
   }
 
+  const handleFighterAdded = async () => {
+    // Refresh fighters list after adding
+    await fetchBracketFighters()
+    // Also notify parent to refresh bracket data
+    if (onUpdate) {
+      onUpdate()
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-white">Loading fighters...</div>
+      </div>
+    )
+  }
+
+  if (!expandedBracket) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-gray-400">No bracket data available</div>
       </div>
     )
   }
@@ -147,6 +203,16 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
           ))}
         </div>
       )}
+
+      {/* Add Fighter Modal */}
+      <AddFighterModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        eventId={eventId}
+        bracketId={expandedBracket?._id}
+        bracket={expandedBracket}
+        onFighterAdded={handleFighterAdded}
+      />
     </div>
   )
 }

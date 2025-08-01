@@ -79,7 +79,7 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0B1739] rounded-lg p-6 w-full max-w-4xl max-h-[85vh] overflow-y-auto my-auto">
+      <div className="bg-[#0B1739] rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto my-auto relative top-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-white">Create New Bracket</h2>
           <button
@@ -102,7 +102,8 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 name="bracketNumber"
                 value={formData.bracketNumber}
                 onChange={handleChange}
-                className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+                placeholder="e.g., 1"
+                className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400"
                 required
               />
             </div>
@@ -116,7 +117,8 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 name="divisionTitle"
                 value={formData.divisionTitle}
                 onChange={handleChange}
-                className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+                placeholder="e.g., Boys Novice 60 LBS"
+                className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400"
                 required
               />
             </div>
