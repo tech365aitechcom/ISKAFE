@@ -1,11 +1,33 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '../../../../../../components/ui/button'
 import Link from 'next/link'
 import moment from 'moment'
+import { fetchTournamentSettings } from '../../../../../utils/eventUtils'
 
 export default function RegistrationSection({ eventId, padding, registrationDeadline }) {
+  const [tournamentSettings, setTournamentSettings] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadTournamentSettings = async () => {
+      try {
+        setLoading(true)
+        const settings = await fetchTournamentSettings(eventId)
+        setTournamentSettings(settings)
+      } catch (error) {
+        console.error('Error loading tournament settings:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (eventId) {
+      loadTournamentSettings()
+    }
+  }, [eventId])
+
   const isBeforeDeadline = () => {
     if (!registrationDeadline) return true // always show if deadline not set
     const now = moment()
@@ -25,7 +47,7 @@ export default function RegistrationSection({ eventId, padding, registrationDead
           <p className='mt-2 text-base text-gray-400 text-center'>
             Fighter Fee Amount:
             <span className='text-white font-semibold text-xl ml-2'>
-              $75.00
+              {loading ? '$75.00' : `${tournamentSettings?.simpleFees?.currency || '$'}${(tournamentSettings?.simpleFees?.fighterFee || 75).toFixed(2)}`}
             </span>
           </p>
         </div>
@@ -41,7 +63,7 @@ export default function RegistrationSection({ eventId, padding, registrationDead
           <p className='mt-2 text-base text-gray-400 text-center'>
             Trainer Fee Amount:
             <span className='text-white font-semibold text-xl ml-2'>
-              $75.00
+              {loading ? '$75.00' : `${tournamentSettings?.simpleFees?.currency || '$'}${(tournamentSettings?.simpleFees?.trainerFee || 75).toFixed(2)}`}
             </span>
           </p>
         </div>

@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../../stores/useStore'
+import { fetchTournamentSettings } from '../../../../../utils/eventUtils'
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 const TrainerRegistrationPage = ({ params }) => {
@@ -27,6 +28,8 @@ const TrainerRegistrationPage = ({ params }) => {
   const user = useStore((state) => state.user)
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [tournamentSettings, setTournamentSettings] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: '',
@@ -87,6 +90,25 @@ const TrainerRegistrationPage = ({ params }) => {
       }))
     }
   }, [user])
+
+  // Fetch tournament settings
+  useEffect(() => {
+    const loadTournamentSettings = async () => {
+      try {
+        setLoading(true)
+        const settings = await fetchTournamentSettings(id)
+        setTournamentSettings(settings)
+      } catch (error) {
+        console.error('Error loading tournament settings:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (id) {
+      loadTournamentSettings()
+    }
+  }, [id])
 
   // Square payment initialization
   useEffect(() => {
@@ -330,8 +352,9 @@ const TrainerRegistrationPage = ({ params }) => {
 
     console.log('✅ Square tokenization successful')
     
-    // Calculate amount in cents for Square (Trainer registration fee: $75)
-    const amountInCents = 7500  // $75.00
+    // Calculate amount in cents for Square (Trainer registration fee)
+    const trainerFee = tournamentSettings?.simpleFees?.trainerFee || 75
+    const amountInCents = trainerFee * 100  // Convert to cents
     
     // Submit payment to Square
     const paymentData = {
@@ -783,7 +806,9 @@ const TrainerRegistrationPage = ({ params }) => {
     <div className='space-y-6'>
       <div className="text-center mb-8">
         <h3 className='text-2xl font-bold mb-2'>Payment</h3>
-        <p className="text-gray-400">Trainer Registration Fee: <span className="text-green-400 font-bold text-xl">$75.00</span></p>
+        <p className="text-gray-400">Trainer Registration Fee: <span className="text-green-400 font-bold text-xl">
+          {tournamentSettings?.simpleFees?.currency || '$'}{(tournamentSettings?.simpleFees?.trainerFee || 75).toFixed(2)}
+        </span></p>
       </div>
 
       {/* Payment Method Selection */}
@@ -1025,7 +1050,9 @@ const TrainerRegistrationPage = ({ params }) => {
                   disabled={isSubmitting || (formData.paymentMethod === 'card' && (!squareLoaded || !cardInstance.current))}
                   className='flex items-center space-x-2 bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-600 transition-colors'
                 >
-                  {isSubmitting ? 'Processing...' : formData.paymentMethod === 'card' ? 'Pay $75.00' : 'Complete Registration'}
+                  {isSubmitting ? 'Processing...' : formData.paymentMethod === 'card' ? 
+                    `Pay ${tournamentSettings?.simpleFees?.currency || '$'}${(tournamentSettings?.simpleFees?.trainerFee || 75).toFixed(2)}` : 
+                    'Complete Registration'}
                 </button>
               )}
             </div>
