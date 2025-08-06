@@ -17,6 +17,7 @@ export default function AddFighterModal({
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFighters, setSelectedFighters] = useState([])
+  const [activeGenderTab, setActiveGenderTab] = useState('Male')
 
   useEffect(() => {
     if (isOpen && eventId) {
@@ -25,19 +26,23 @@ export default function AddFighterModal({
   }, [isOpen, eventId])
 
   useEffect(() => {
-    // Filter fighters based on search query
+    // Filter fighters based on search query and gender
     const filtered = availableFighters.filter(fighter => {
       const fullName = `${fighter.firstName} ${fighter.lastName}`.toLowerCase()
       const gym = (fighter.gymName || '').toLowerCase()
       const weightClass = (fighter.weightClass || '').toLowerCase()
       const query = searchQuery.toLowerCase()
+      const gender = fighter.gender || 'Male'
       
-      return fullName.includes(query) || 
-             gym.includes(query) || 
-             weightClass.includes(query)
+      const matchesSearch = fullName.includes(query) || 
+                           gym.includes(query) || 
+                           weightClass.includes(query)
+      const matchesGender = gender === activeGenderTab
+      
+      return matchesSearch && matchesGender
     })
     setFilteredFighters(filtered)
-  }, [searchQuery, availableFighters])
+  }, [searchQuery, availableFighters, activeGenderTab])
 
   const fetchAvailableFighters = async () => {
     try {
@@ -173,6 +178,25 @@ export default function AddFighterModal({
           >
             <X size={24} />
           </button>
+        </div>
+
+        {/* Gender Tabs */}
+        <div className="border-b border-gray-600">
+          <div className="flex">
+            {['Male', 'Female'].map((gender) => (
+              <button
+                key={gender}
+                onClick={() => setActiveGenderTab(gender)}
+                className={`px-6 py-3 text-sm font-medium transition-colors ${
+                  activeGenderTab === gender
+                    ? 'text-blue-400 border-b-2 border-blue-400 bg-[#07091D]'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {gender}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Search */}

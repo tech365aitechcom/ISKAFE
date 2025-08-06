@@ -10,6 +10,27 @@ export default function InputBox({
   min,
   max 
 }) {
+  const handleChange = (e) => {
+    let newValue = e.target.value
+    
+    // Input restrictions based on type
+    if (type === 'number') {
+      // Only allow positive numbers
+      if (newValue && (isNaN(newValue) || parseFloat(newValue) < 0)) {
+        return // Don't update if invalid
+      }
+    }
+    
+    onChange(newValue)
+  }
+
+  const handleKeyPress = (e) => {
+    // Prevent negative numbers for number inputs
+    if (type === 'number' && (e.key === '-' || e.key === 'e' || e.key === 'E')) {
+      e.preventDefault()
+    }
+  }
+
   return (
     <div className='bg-[#00000061] p-3 rounded'>
       <div className='text-xs mb-1'>
@@ -18,7 +39,8 @@ export default function InputBox({
       <input
         type={type}
         value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
+        onKeyPress={handleKeyPress}
         placeholder={placeholder}
         min={min}
         max={max}

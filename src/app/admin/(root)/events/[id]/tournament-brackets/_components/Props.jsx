@@ -55,27 +55,37 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
   const handleSaveChanges = async () => {
     if (!onUpdate || !expandedBracket) return
     
-    // Validation
+    // Enhanced validation
     const validationErrors = []
     
+    // Bracket name validation - only allow alphanumeric and spaces
     if (!bracketName || bracketName.trim() === '') {
       validationErrors.push('Bracket name is required')
+    } else if (!/^[a-zA-Z0-9\s]+$/.test(bracketName.trim())) {
+      validationErrors.push('Bracket name can only contain letters, numbers, and spaces')
     }
     
-    if (boutRound && (isNaN(parseInt(boutRound)) || parseInt(boutRound) <= 0)) {
-      validationErrors.push('Bout Round Duration must be a positive number')
-    }
-    
-    if (maxCompetitors && (isNaN(parseInt(maxCompetitors)) || parseInt(maxCompetitors) <= 0)) {
-      validationErrors.push('Max Competitors must be a positive number')
-    }
-    
-    if (startDayNumber && (isNaN(parseInt(startDayNumber)) || parseInt(startDayNumber) <= 0)) {
+    // Mandatory field validation for numeric fields
+    if (!startDayNumber || startDayNumber.trim() === '') {
+      validationErrors.push('Start on Day Number is required')
+    } else if (isNaN(parseInt(startDayNumber)) || parseInt(startDayNumber) <= 0) {
       validationErrors.push('Start on Day Number must be a positive number')
     }
     
+    if (!boutRound || boutRound.trim() === '') {
+      validationErrors.push('Bout Round Duration is required')
+    } else if (isNaN(parseInt(boutRound)) || parseInt(boutRound) <= 0) {
+      validationErrors.push('Bout Round Duration must be a positive number')
+    }
+    
+    if (!maxCompetitors || maxCompetitors.trim() === '') {
+      validationErrors.push('Max Competitors is required')
+    } else if (isNaN(parseInt(maxCompetitors)) || parseInt(maxCompetitors) <= 0) {
+      validationErrors.push('Max Competitors must be a positive number')
+    }
+    
     if (validationErrors.length > 0) {
-      alert('Validation errors:\n' + validationErrors.join('\n'))
+      alert('Please fix the following errors:\n• ' + validationErrors.join('\n• '))
       return
     }
     
@@ -83,35 +93,34 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
     try {
       const updateData = {
         title: bracketName.trim(),
-        group: group || undefined,
-        ringNumber: ringNumber || undefined,
+        startDayNumber: parseInt(startDayNumber),
+        boutRound: parseInt(boutRound), 
+        maxCompetitors: parseInt(maxCompetitors),
+        group: group || '',
+        ringNumber: ringNumber || '',
         bracketNumber: parseInt(bracketSequence) || expandedBracket.bracketNumber,
+        // Include title component fields
+        gender: gender || '',
+        ruleStyle: ruleStyle || '',
+        weightClass: weightClass || '',
+        ageClass: ageClass || ''
       }
       
-      // Only add optional numeric fields if they have valid values
-      if (startDayNumber && !isNaN(parseInt(startDayNumber))) {
-        updateData.startDayNumber = parseInt(startDayNumber)
-      }
-      if (boutRound && !isNaN(parseInt(boutRound))) {
-        updateData.boutRound = parseInt(boutRound)
-      }
-      if (maxCompetitors && !isNaN(parseInt(maxCompetitors))) {
-        updateData.maxCompetitors = parseInt(maxCompetitors)
-      }
-      
-      // Remove undefined values
-      Object.keys(updateData).forEach(key => 
-        updateData[key] === undefined && delete updateData[key]
-      )
+      console.log('Updating bracket with data:', updateData)
       
       const result = await onUpdate(expandedBracket._id, updateData)
       if (result.success) {
-        alert('Changes saved successfully!')
+        alert('✓ Changes saved successfully!')
+        // Refresh the component state to reflect saved changes
+        setStartDayNumber(updateData.startDayNumber.toString())
+        setBoutRound(updateData.boutRound.toString())
+        setMaxCompetitors(updateData.maxCompetitors.toString())
       } else {
-        alert('Error saving changes: ' + (result.error || 'Unknown error'))
+        alert('❌ Error saving changes: ' + (result.error || 'Unknown error'))
       }
     } catch (error) {
-      alert('Error saving changes: ' + error.message)
+      console.error('Save error:', error)
+      alert('❌ Error saving changes: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -123,19 +132,26 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
     if (confirm('Are you sure you want to duplicate this bracket?')) {
       setLoading(true)
       try {
-        // Create a copy of the bracket data
+        // Create a copy of the bracket data with proper validation
         const duplicateData = {
-          ...expandedBracket,
           bracketNumber: (expandedBracket.bracketNumber || 0) + 1,
-          title: `${expandedBracket.title} (Copy)`,
-          fighters: [] // Start with no fighters
+          title: `${expandedBracket.title || 'Bracket'} (Copy)`,
+          divisionTitle: expandedBracket.divisionTitle || '',
+          sport: expandedBracket.sport || '',
+          ruleStyle: expandedBracket.ruleStyle || '',
+          ageClass: expandedBracket.ageClass || '',
+          weightClass: expandedBracket.weightClass || { min: 0, max: 999, unit: 'lbs' },
+          group: expandedBracket.group || '',
+          ringNumber: expandedBracket.ringNumber || '',
+          startDayNumber: expandedBracket.startDayNumber || 1,
+          boutRound: expandedBracket.boutRound || 90,
+          maxCompetitors: expandedBracket.maxCompetitors || 16,
+          status: 'Open',
+          fighters: [], // Start with no fighters
+          event: expandedBracket.event
         }
         
-        // Remove fields that shouldn't be duplicated
-        delete duplicateData._id
-        delete duplicateData.__v
-        delete duplicateData.createdAt
-        delete duplicateData.updatedAt
+        console.log('Duplicating bracket with data:', duplicateData)
         
         const response = await fetch(`${API_BASE_URL}/brackets`, {
           method: 'POST',
@@ -146,14 +162,20 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
           body: JSON.stringify(duplicateData)
         })
         
-        if (response.ok) {
-          alert('Bracket duplicated successfully!')
+        const responseData = await response.json()
+        console.log('Duplicate response:', responseData)
+        
+        if (response.ok && responseData.success) {
+          alert('✓ Bracket duplicated successfully!')
           window.location.reload() // Refresh to show the new bracket
         } else {
-          alert('Error duplicating bracket')
+          const errorMsg = responseData.message || `HTTP ${response.status}`
+          alert('❌ Error duplicating bracket: ' + errorMsg)
+          console.error('Duplicate error details:', responseData)
         }
       } catch (error) {
-        alert('Error duplicating bracket: ' + error.message)
+        console.error('Duplicate bracket error:', error)
+        alert('❌ Error duplicating bracket: ' + error.message)
       } finally {
         setLoading(false)
       }
@@ -314,10 +336,36 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                   className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
                 >
                   <option value=''>Select Rule Style</option>
-                  <option value='Muay Thai'>Muay Thai</option>
-                  <option value='Olympic'>Olympic</option>
-                  <option value='Point Sparring'>Point Sparring</option>
-                  <option value='Continuous'>Continuous</option>
+                  {/* Youth and Junior rules */}
+                  {(ageClass === 'Youth' || ageClass === 'Junior') && (
+                    <>
+                      <option value='Point Sparring'>Point Sparring</option>
+                      <option value='Light Contact'>Light Contact</option>
+                      <option value='Continuous Sparring'>Continuous Sparring</option>
+                    </>
+                  )}
+                  {/* Adult rules */}
+                  {(ageClass === 'Adult' || ageClass === 'Senior' || !ageClass) && (
+                    <>
+                      <option value='Muay Thai'>Muay Thai</option>
+                      <option value='K-1'>K-1</option>
+                      <option value='Olympic'>Olympic</option>
+                      <option value='Point Sparring'>Point Sparring</option>
+                      <option value='Continuous'>Continuous</option>
+                      <option value='Full Contact'>Full Contact</option>
+                      <option value='Semi Contact'>Semi Contact</option>
+                      <option value='Low Kick'>Low Kick</option>
+                    </>
+                  )}
+                  {/* Default options */}
+                  {!ageClass && (
+                    <>
+                      <option value='Point Sparring'>Point Sparring</option>
+                      <option value='Continuous'>Continuous</option>
+                      <option value='Full Contact'>Full Contact</option>
+                      <option value='Semi Contact'>Semi Contact</option>
+                    </>
+                  )}
                 </select>
               </div>
               
@@ -329,12 +377,53 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                   className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
                 >
                   <option value=''>Select Weight Class</option>
-                  <option value='60-65 lbs'>60-65 lbs</option>
-                  <option value='65-70 lbs'>65-70 lbs</option>
-                  <option value='70-75 lbs'>70-75 lbs</option>
-                  <option value='75-80 lbs'>75-80 lbs</option>
-                  <option value='80-85 lbs'>80-85 lbs</option>
-                  <option value='85+ lbs'>85+ lbs</option>
+                  {/* Youth Weight Classes */}
+                  {ageClass === 'Youth' && (
+                    <>
+                      <option value='40-45 lbs'>40-45 lbs</option>
+                      <option value='45-50 lbs'>45-50 lbs</option>
+                      <option value='50-55 lbs'>50-55 lbs</option>
+                      <option value='55-60 lbs'>55-60 lbs</option>
+                      <option value='60-65 lbs'>60-65 lbs</option>
+                    </>
+                  )}
+                  {/* Junior Weight Classes */}
+                  {ageClass === 'Junior' && (
+                    <>
+                      <option value='60-65 lbs'>60-65 lbs</option>
+                      <option value='65-70 lbs'>65-70 lbs</option>
+                      <option value='70-75 lbs'>70-75 lbs</option>
+                      <option value='75-80 lbs'>75-80 lbs</option>
+                      <option value='80-85 lbs'>80-85 lbs</option>
+                      <option value='85-90 lbs'>85-90 lbs</option>
+                    </>
+                  )}
+                  {/* Adult Weight Classes */}
+                  {(ageClass === 'Adult' || ageClass === 'Senior' || !ageClass) && (
+                    <>
+                      <option value='100-110 lbs'>100-110 lbs</option>
+                      <option value='110-120 lbs'>110-120 lbs</option>
+                      <option value='120-130 lbs'>120-130 lbs</option>
+                      <option value='130-140 lbs'>130-140 lbs</option>
+                      <option value='140-150 lbs'>140-150 lbs</option>
+                      <option value='150-160 lbs'>150-160 lbs</option>
+                      <option value='160-170 lbs'>160-170 lbs</option>
+                      <option value='170-180 lbs'>170-180 lbs</option>
+                      <option value='180-200 lbs'>180-200 lbs</option>
+                      <option value='200+ lbs'>200+ lbs</option>
+                    </>
+                  )}
+                  {/* Default options if no age class selected */}
+                  {!ageClass && (
+                    <>
+                      <option value='60-65 lbs'>60-65 lbs</option>
+                      <option value='65-70 lbs'>65-70 lbs</option>
+                      <option value='70-75 lbs'>70-75 lbs</option>
+                      <option value='75-80 lbs'>75-80 lbs</option>
+                      <option value='80-85 lbs'>80-85 lbs</option>
+                      <option value='85+ lbs'>85+ lbs</option>
+                    </>
+                  )}
                 </select>
               </div>
             </div>

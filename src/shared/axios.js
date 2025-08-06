@@ -10,11 +10,28 @@ const instance = axios.create({
 })
 
 instance.interceptors.request.use(async (config) => {
-  let token =
-    typeof window !== 'undefined' ? window.localStorage.getItem('_token') : ''
+  let token = ''
+  
+  if (typeof window !== 'undefined') {
+    // First try localStorage
+    token = window.localStorage.getItem('_token')
+    
+    // If not found, try to get from Zustand store
+    if (!token) {
+      try {
+        const userStorage = window.localStorage.getItem('user-storage')
+        if (userStorage) {
+          const parsed = JSON.parse(userStorage)
+          token = parsed?.state?.user?.token
+        }
+      } catch (e) {
+        console.error('Error parsing user storage:', e)
+      }
+    }
+  }
 
   if (token) {
-    config.headers['Authorization'] = `${token}`
+    config.headers['Authorization'] = `Bearer ${token}`
   }
   return Promise.resolve(config)
 })
