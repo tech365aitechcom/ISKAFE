@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Download, Search, Filter } from "lucide-react";
 import Link from "next/link";
 import Loader from "../../../../../_components/Loader";
+import axios from "../../../../../../shared/axios";
 
 const SpectatorPaymentsPage = () => {
   const params = useParams();
@@ -13,6 +14,7 @@ const SpectatorPaymentsPage = () => {
   const eventId = params.id;
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState([]);
+  const [filteredPayments, setFilteredPayments] = useState([]);
   const [filters, setFilters] = useState({
     name: "",
     email: "",
@@ -32,50 +34,118 @@ const SpectatorPaymentsPage = () => {
     netRevenue: 0,
   });
 
-  // Mock data - replace with actual API calls
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockData = [
-        {
-          id: 1,
-          date: "2025-04-10T14:30:00Z",
-          payer: "John Smith",
-          email: "john@example.com",
-          ticketInfo: "Adult - IKF PKB Sparring Moncks Corner, SC - April 13th, 2025",
-          quantity: 2,
-          unitPrice: 30,
-          fee: 2.50,
-          total: 62.50,
-        },
-        // ... more mock data ...
-      ];
+  // Fetch spectator payments data
+  const fetchSpectatorPayments = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`/spectator-ticket/purchase/event/${eventId}`);
       
-      setPayments(mockData);
-      
-      // Calculate stats
-      const totalFees = mockData.reduce((sum, item) => sum + item.fee, 0);
-      const totalCollected = mockData.reduce((sum, item) => sum + item.total, 0);
-      
-      setStats({
-        totalFees: totalFees.toFixed(2),
-        totalCollected: totalCollected.toFixed(2),
-        netRevenue: (totalCollected - totalFees).toFixed(2),
-      });
-      
+      if (response.data.success) {
+        const rawData = response.data.data.items || [];
+        
+        // Transform API data to match UI requirements
+        const transformedData = rawData.map((item, index) => ({
+          id: item._id,
+          serialNumber: index + 1,
+          date: item.createdAt,
+          payer: item.user ? `${item.user.firstName} ${item.user.lastName}` : 
+                 (item.guestDetails ? `${item.guestDetails.firstName} ${item.guestDetails.lastName}` : 'Guest'),
+          email: item.user ? item.user.email : 
+                 (item.guestDetails ? item.guestDetails.email : ''),
+          ticketDescription: `${item.tier} - Event Ticket`,
+          quantity: item.quantity,
+          unitPrice: item.totalAmount / item.quantity,
+          // Custom fee calculation (not Square logic - as per requirements)
+          fee: item.totalAmount * 0.05, // 5% fee as per IKF custom logic
+          total: item.totalAmount,
+          net: item.totalAmount - (item.totalAmount * 0.05),
+          paymentStatus: item.paymentStatus,
+          paymentMethod: item.paymentMethod,
+          ticketCode: item.ticketCode,
+          redemptionStatus: item.redemptionStatus
+        }));
+        
+        setPayments(transformedData);
+        setFilteredPayments(transformedData);
+      }
+    } catch (error) {
+      console.error('Error fetching spectator payments:', error);
+      setPayments([]);
+      setFilteredPayments([]);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
-  // Apply filters
-  const filteredPayments = payments.filter(payment => {
-    return (
-      (!filters.name || payment.payer.toLowerCase().includes(filters.name.toLowerCase())) &&
-      (!filters.email || payment.email.toLowerCase().includes(filters.email.toLowerCase())) &&
-      (!filters.ticketType || filters.ticketType === "all" || 
-        payment.ticketInfo.toLowerCase().includes(filters.ticketType.toLowerCase()))
-    );
-  });
+  useEffect(() => {
+    if (eventId) {
+      fetchSpectatorPayments();
+    }
+  }, [eventId]);
+
+  // Apply filters and calculate stats whenever payments or filters change
+  useEffect(() => {
+    let filtered = payments.filter(payment => {
+      // Name filter
+      const nameMatch = !filters.name || 
+        payment.payer.toLowerCase().includes(filters.name.toLowerCase());
+      
+      // Email filter
+      const emailMatch = !filters.email || 
+        payment.email.toLowerCase().includes(filters.email.toLowerCase());
+      
+      // Date range filter
+      let dateMatch = true;
+      if (filters.startDate || filters.endDate) {
+        const paymentDate = new Date(payment.date);
+        if (filters.startDate) {
+          const startDate = new Date(filters.startDate);
+          dateMatch = dateMatch && paymentDate >= startDate;
+        }
+        if (filters.endDate) {
+          const endDate = new Date(filters.endDate);
+          dateMatch = dateMatch && paymentDate <= endDate;
+        }
+      }
+      
+      // Ticket type filter
+      const ticketTypeMatch = !filters.ticketType || filters.ticketType === "all" || 
+        payment.ticketDescription.toLowerCase().includes(filters.ticketType.toLowerCase());
+      
+      // Total amount range filter
+      let totalMatch = true;
+      if (filters.minTotal) {
+        totalMatch = totalMatch && payment.total >= parseFloat(filters.minTotal);
+      }
+      if (filters.maxTotal) {
+        totalMatch = totalMatch && payment.total <= parseFloat(filters.maxTotal);
+      }
+      
+      // Net revenue range filter
+      let netMatch = true;
+      if (filters.minNet) {
+        netMatch = netMatch && payment.net >= parseFloat(filters.minNet);
+      }
+      if (filters.maxNet) {
+        netMatch = netMatch && payment.net <= parseFloat(filters.maxNet);
+      }
+      
+      return nameMatch && emailMatch && dateMatch && ticketTypeMatch && totalMatch && netMatch;
+    });
+
+    setFilteredPayments(filtered);
+    
+    // Calculate summary stats
+    const totalFees = filtered.reduce((sum, item) => sum + item.fee, 0);
+    const totalCollected = filtered.reduce((sum, item) => sum + item.total, 0);
+    const netRevenue = filtered.reduce((sum, item) => sum + item.net, 0);
+    
+    setStats({
+      totalFees: totalFees.toFixed(2),
+      totalCollected: totalCollected.toFixed(2),
+      netRevenue: netRevenue.toFixed(2),
+    });
+  }, [payments, filters]);
 
   if (loading) {
     return (
@@ -98,7 +168,8 @@ const SpectatorPaymentsPage = () => {
               <ChevronLeft size={24} />
               <span className="ml-2">Back</span>
             </button>
-            <h1 className="text-2xl font-bold">Spectator Payments</h1>
+            <h1 className="text-2xl font-bold">Tournament Results</h1>
+            <div className="text-sm text-[#AEB9E1] mt-1">Spectator-Only Payments</div>
           </div>
           <div className="flex space-x-4">
             <button className="flex items-center px-4 py-2 bg-blue-600 rounded-lg">
@@ -127,7 +198,7 @@ const SpectatorPaymentsPage = () => {
         {/* Filters */}
         <div className="bg-[#122046] rounded-lg p-6 mb-8">
           <h2 className="text-lg font-bold mb-4">Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Name Filter */}
             <div>
               <label className="block text-sm text-[#AEB9E1] mb-1">Search by Name</label>
@@ -168,7 +239,7 @@ const SpectatorPaymentsPage = () => {
                   value={filters.startDate}
                   onChange={(e) => setFilters({...filters, startDate: e.target.value})}
                 />
-                <span className="self-center">to</span>
+                <span className="self-center text-xs">to</span>
                 <input
                   type="date"
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
@@ -187,10 +258,55 @@ const SpectatorPaymentsPage = () => {
                 onChange={(e) => setFilters({...filters, ticketType: e.target.value})}
               >
                 <option value="all">All Types</option>
-                <option value="adult">Adult</option>
+                <option value="general">General Admission</option>
                 <option value="vip">VIP</option>
+                <option value="adult">Adult</option>
                 <option value="child">Child</option>
               </select>
+            </div>
+
+            {/* Total Amount Range Filter */}
+            <div>
+              <label className="block text-sm text-[#AEB9E1] mb-1">Total Amount Range</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  placeholder="Min"
+                  value={filters.minTotal}
+                  onChange={(e) => setFilters({...filters, minTotal: e.target.value})}
+                />
+                <span className="self-center text-xs">to</span>
+                <input
+                  type="number"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  placeholder="Max"
+                  value={filters.maxTotal}
+                  onChange={(e) => setFilters({...filters, maxTotal: e.target.value})}
+                />
+              </div>
+            </div>
+
+            {/* Net Revenue Range Filter */}
+            <div>
+              <label className="block text-sm text-[#AEB9E1] mb-1">Net Revenue Range</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  placeholder="Min"
+                  value={filters.minNet}
+                  onChange={(e) => setFilters({...filters, minNet: e.target.value})}
+                />
+                <span className="self-center text-xs">to</span>
+                <input
+                  type="number"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  placeholder="Max"
+                  value={filters.maxNet}
+                  onChange={(e) => setFilters({...filters, maxNet: e.target.value})}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -219,19 +335,19 @@ const SpectatorPaymentsPage = () => {
                   </td>
                 </tr>
               ) : (
-                filteredPayments.map((payment, index) => (
+                filteredPayments.map((payment) => (
                   <tr key={payment.id} className="border-b border-[#343B4F] hover:bg-[#122046]">
-                    <td className="p-4">{index + 1}</td>
+                    <td className="p-4">{payment.serialNumber}</td>
                     <td className="p-4">
                       {new Date(payment.date).toLocaleDateString()} {new Date(payment.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </td>
                     <td className="p-4">{payment.payer}</td>
                     <td className="p-4">{payment.email}</td>
-                    <td className="p-4">{payment.ticketInfo}</td>
+                    <td className="p-4">{payment.ticketDescription}</td>
                     <td className="p-4">{payment.quantity} @ ${payment.unitPrice.toFixed(2)}</td>
                     <td className="p-4">${payment.fee.toFixed(2)}</td>
                     <td className="p-4">${payment.total.toFixed(2)}</td>
-                    <td className="p-4">${(payment.total - payment.fee).toFixed(2)}</td>
+                    <td className="p-4">${payment.net.toFixed(2)}</td>
                   </tr>
                 ))
               )}

@@ -549,7 +549,7 @@ function DashboardGraphs({ dashboardData }) {
 }
 
 // Tables Section
-function DashboardTables() {
+function DashboardTables({ dashboardData }) {
   const [selectedAction, setSelectedAction] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
 
@@ -596,165 +596,35 @@ function DashboardTables() {
     // TODO: Open ticket details modal
     alert(`View details for ticket: ${ticket.type} - ${ticket.event}`)
   }
-  // Upcoming events data
-  const upcomingEvents = [
-    {
-      id: 1,
-      name: 'IKF World Championship',
-      date: '2023-11-15',
-      venue: 'Madison Square Garden',
-      fighters: 128,
-    },
-    {
-      id: 2,
-      name: 'European Open',
-      date: '2023-11-22',
-      venue: 'O2 Arena London',
-      fighters: 96,
-    },
-    {
-      id: 3,
-      name: 'Asian Qualifiers',
-      date: '2023-11-30',
-      venue: 'Tokyo Dome',
-      fighters: 84,
-    },
-    {
-      id: 4,
-      name: 'North American Cup',
-      date: '2023-12-05',
-      venue: 'Staples Center',
-      fighters: 112,
-    },
-  ]
+  // Use API data or show loading state
+  if (!dashboardData) {
+    return (
+      <div className='bg-slate-900 p-6 rounded-xl m-6'>
+        <div className='animate-pulse'>
+          <div className='h-6 bg-slate-800 rounded mb-6 w-48'></div>
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className='bg-slate-800 p-4 rounded-lg'>
+                <div className='h-4 bg-slate-700 rounded mb-4 w-32'></div>
+                <div className='h-32 bg-slate-700 rounded'></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  // Recent fighter registrations
-  const fighterRegistrations = [
-    {
-      id: 1,
-      name: 'Alex Johnson',
-      age: 24,
-      class: 'Welterweight',
-      gym: 'Elite MMA',
-      date: '2023-11-05',
-    },
-    {
-      id: 2,
-      name: 'Maria Rodriguez',
-      age: 22,
-      class: 'Featherweight',
-      gym: 'Team Alpha',
-      date: '2023-11-04',
-    },
-    {
-      id: 3,
-      name: 'James Wilson',
-      age: 28,
-      class: 'Lightweight',
-      gym: 'Tiger Muay Thai',
-      date: '2023-11-03',
-    },
-    {
-      id: 4,
-      name: 'Li Wei',
-      age: 21,
-      class: 'Flyweight',
-      gym: 'Dragon Gym',
-      date: '2023-11-02',
-    },
-  ]
+  // Extract data from API response
+  const upcomingEvents = dashboardData.upcomingEvents || []
 
-  // Bouts missing results
-  const missingResults = [
-    {
-      id: 'B-245',
-      fighter1: 'Alex Johnson',
-      fighter2: 'Mike Chen',
-      time: '14:30',
-    },
-    {
-      id: 'B-248',
-      fighter1: 'Sarah Miller',
-      fighter2: 'Jessica Lee',
-      time: '15:15',
-    },
-    {
-      id: 'B-252',
-      fighter1: 'Carlos Silva',
-      fighter2: 'David Kim',
-      time: '16:45',
-    },
-    {
-      id: 'B-256',
-      fighter1: 'Thomas Wright',
-      fighter2: 'Ryan Park',
-      time: '17:30',
-    },
-  ]
+  const fighterRegistrations = dashboardData.recentFighterRegistrations || []
 
-  // Fighters with alerts
-  const fighterAlerts = [
-    {
-      id: 1,
-      name: 'Robert Garcia',
-      issue: 'Medical Expired',
-      status: 'Critical',
-    },
-    {
-      id: 2,
-      name: 'Emma Thompson',
-      issue: 'Weight Verification',
-      status: 'Warning',
-    },
-    {
-      id: 3,
-      name: 'Daniel Kim',
-      issue: 'Suspension Active',
-      status: 'Critical',
-    },
-    {
-      id: 4,
-      name: 'Sophia Martinez',
-      issue: 'Documentation Incomplete',
-      status: 'Warning',
-    },
-  ]
+  const missingResults = dashboardData.boutsMissingResults || []
 
-  // Ticket logs
-  const ticketLogs = [
-    {
-      id: 1,
-      type: 'VIP',
-      qty: 2,
-      revenue: '$450',
-      event: 'IKF World Championship',
-      time: '2023-11-05 10:23',
-    },
-    {
-      id: 2,
-      type: 'General',
-      qty: 4,
-      revenue: '$280',
-      event: 'European Open',
-      time: '2023-11-04 14:45',
-    },
-    {
-      id: 3,
-      type: 'Student',
-      qty: 1,
-      revenue: '$50',
-      event: 'Asian Qualifiers',
-      time: '2023-11-04 09:12',
-    },
-    {
-      id: 4,
-      type: 'Press',
-      qty: 1,
-      revenue: '$0',
-      event: 'North American Cup',
-      time: '2023-11-03 16:30',
-    },
-  ]
+  const fighterAlerts = dashboardData.fightersWithAlerts || []
+
+  const ticketLogs = dashboardData.spectatorTicketLogs || []
 
   return (
     <div className='bg-slate-900 p-6 rounded-xl m-6'>
@@ -842,17 +712,17 @@ function DashboardTables() {
                 </tr>
               </thead>
               <tbody>
-                {upcomingEvents.map((event) => (
+                {upcomingEvents.map((event, index) => (
                   <tr
-                    key={event.id}
+                    key={event.id || event._id || `event-${index}`}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {event.name}
+                      {event.eventName || event.name}
                     </td>
-                    <td className='px-4 py-3'>{event.date}</td>
-                    <td className='px-4 py-3'>{event.venue}</td>
-                    <td className='px-4 py-3'>{event.fighters}</td>
+                    <td className='px-4 py-3'>{event.eventDate ? new Date(event.eventDate).toLocaleDateString() : (event.date ? new Date(event.date).toLocaleDateString() : 'N/A')}</td>
+                    <td className='px-4 py-3'>{event.venueName || (event.venue?.name || event.venue)}</td>
+                    <td className='px-4 py-3'>{event.fighterCount || event.fighters}</td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleManageBrackets(event)}
@@ -899,18 +769,18 @@ function DashboardTables() {
                 </tr>
               </thead>
               <tbody>
-                {fighterRegistrations.map((fighter) => (
+                {fighterRegistrations.map((fighter, index) => (
                   <tr
-                    key={fighter.id}
+                    key={fighter.id || fighter._id || `fighter-${index}`}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {fighter.name}
+                      {fighter.fighterName || fighter.name}
                     </td>
                     <td className='px-4 py-3'>{fighter.age}</td>
-                    <td className='px-4 py-3'>{fighter.class}</td>
-                    <td className='px-4 py-3'>{fighter.gym}</td>
-                    <td className='px-4 py-3'>{fighter.date}</td>
+                    <td className='px-4 py-3'>{fighter.weightClass || fighter.class}</td>
+                    <td className='px-4 py-3'>{fighter.gymName || (fighter.gym?.name || fighter.gym)}</td>
+                    <td className='px-4 py-3'>{fighter.registrationDate ? new Date(fighter.registrationDate).toLocaleDateString() : (fighter.date ? new Date(fighter.date).toLocaleDateString() : 'N/A')}</td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleViewProfile(fighter)}
@@ -954,17 +824,17 @@ function DashboardTables() {
                 </tr>
               </thead>
               <tbody>
-                {missingResults.map((bout) => (
+                {missingResults.map((bout, index) => (
                   <tr
-                    key={bout.id}
+                    key={bout.id || bout._id || bout.boutId || `bout-${index}`}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {bout.id}
+                      {bout.boutId || bout.id}
                     </td>
-                    <td className='px-4 py-3'>{bout.fighter1}</td>
-                    <td className='px-4 py-3'>{bout.fighter2}</td>
-                    <td className='px-4 py-3'>{bout.time}</td>
+                    <td className='px-4 py-3'>{bout.fighter1Name || bout.fighter1}</td>
+                    <td className='px-4 py-3'>{bout.fighter2Name || bout.fighter2}</td>
+                    <td className='px-4 py-3'>{bout.scheduledTime || bout.time}</td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleAddResult(bout)}
@@ -1005,24 +875,24 @@ function DashboardTables() {
                 </tr>
               </thead>
               <tbody>
-                {fighterAlerts.map((fighter) => (
+                {fighterAlerts.map((fighter, index) => (
                   <tr
-                    key={fighter.id}
+                    key={fighter.id || fighter._id || `alert-${index}`}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {fighter.name}
+                      {fighter.fighterName || fighter.name}
                     </td>
-                    <td className='px-4 py-3'>{fighter.issue}</td>
+                    <td className='px-4 py-3'>{fighter.alertType || fighter.issue}</td>
                     <td className='px-4 py-3'>
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          fighter.status === 'Critical'
+                          (fighter.alertLevel || fighter.status) === 'Critical'
                             ? 'bg-red-500/20 text-red-400'
                             : 'bg-yellow-500/20 text-yellow-400'
                         }`}
                       >
-                        {fighter.status}
+                        {fighter.alertLevel || fighter.status}
                       </span>
                     </td>
                     <td className='px-4 py-3'>
@@ -1079,18 +949,18 @@ function DashboardTables() {
                 </tr>
               </thead>
               <tbody>
-                {ticketLogs.map((ticket) => (
+                {ticketLogs.map((ticket, index) => (
                   <tr
-                    key={ticket.id}
+                    key={ticket.id || ticket._id || `ticket-${index}`}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {ticket.type}
+                      {ticket.ticketType || ticket.type}
                     </td>
-                    <td className='px-4 py-3'>{ticket.qty}</td>
-                    <td className='px-4 py-3'>{ticket.revenue}</td>
-                    <td className='px-4 py-3'>{ticket.event}</td>
-                    <td className='px-4 py-3'>{ticket.time}</td>
+                    <td className='px-4 py-3'>{ticket.quantity || ticket.qty}</td>
+                    <td className='px-4 py-3'>{ticket.totalAmount ? `$${ticket.totalAmount}` : ticket.revenue}</td>
+                    <td className='px-4 py-3'>{ticket.eventName || (ticket.event?.name || ticket.event)}</td>
+                    <td className='px-4 py-3'>{ticket.purchaseTime ? new Date(ticket.purchaseTime).toLocaleString() : (ticket.time ? new Date(ticket.time).toLocaleString() : 'N/A')}</td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleViewDetails(ticket)}
@@ -1300,7 +1170,7 @@ export default function DashboardPage() {
         />
         <DashboardStats dashboardData={dashboardData} />
         <DashboardGraphs dashboardData={dashboardData} />
-        <DashboardTables />
+        <DashboardTables dashboardData={dashboardData} />
       </div>
     </div>
   )

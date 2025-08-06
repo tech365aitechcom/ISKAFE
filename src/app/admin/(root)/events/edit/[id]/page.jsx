@@ -524,6 +524,11 @@ const handleSubmit = async (e) => {
                       Tournament Brackets
                     </li>
                   </Link>
+                  <Link href={`/admin/events/${eventId}/participants`}>
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Event Participants
+                    </li>
+                  </Link>
                   <Link href={`/admin/events/${eventId}/bout-list`}>
                     <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
                       Bout List & Results
@@ -540,14 +545,9 @@ const handleSubmit = async (e) => {
                     </li>
                   </Link>
                   <li className="mx-4 py-3 border-b border-[#6C6C6C]">
-                    Spectator Ticket Redemption
-                  </li>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C]">
                     Cash Payment Tokens
                   </li>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500">
-                    Reports
-                  </li>
+                  <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500">Reports</li>
                   <Link href={`/admin/events/${eventId}/spectator-payments`}>
                     <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
                       Spectator Payments
@@ -556,7 +556,7 @@ const handleSubmit = async (e) => {
                 </ul>
               </div>
             )}
-          </div>
+        </div>
         </div>
 
         <form onSubmit={handleSubmit}>

@@ -75,6 +75,40 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
 
   const handleStep1Submit = (e) => {
     e.preventDefault()
+    
+    // Validate required fields
+    const errors = []
+    
+    if (!formData.sport) {
+      errors.push('Sport is required')
+    }
+    
+    if (!formData.ruleStyle) {
+      errors.push('Rule Style is required')
+    }
+    
+    if (!formData.ageClass) {
+      errors.push('Age Class is required')
+    }
+    
+    if (!formData.title) {
+      errors.push('Title is required')
+    }
+    
+    // Weight class validation - at least min weight required
+    if (!formData.weightClass.min && !formData.weightClass.max) {
+      errors.push('Weight class range is required')
+    }
+    
+    if (!formData.roundDuration) {
+      errors.push('Round Duration is required')
+    }
+    
+    if (errors.length > 0) {
+      alert('Please fix the following errors:\n• ' + errors.join('\n• '))
+      return
+    }
+    
     setStep(2)
   }
 
@@ -122,7 +156,7 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
             value={formData.boutNumber}
             onChange={handleChange}
             className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
-            placeholder="Optional"
+            placeholder="Enter bout number (e.g., 1)"
           />
         </div>
 
@@ -145,6 +179,45 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
           </select>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">
+            Select Title <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="title"
+            value={formData.title || ''}
+            onChange={handleChange}
+            className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+            required
+          >
+            <option value="">Select Title</option>
+            <option value="World Championship">World Championship</option>
+            <option value="National Championship">National Championship</option>
+            <option value="Regional Championship">Regional Championship</option>
+            <option value="Local Championship">Local Championship</option>
+            <option value="Exhibition">Exhibition</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-white mb-2">
+            Select Pro Class
+          </label>
+          <select
+            name="proClass"
+            value={formData.proClass || ''}
+            onChange={handleChange}
+            className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+          >
+            <option value="">Select Pro Class</option>
+            <option value="Professional">Professional</option>
+            <option value="Amateur">Amateur</option>
+            <option value="Semi-Professional">Semi-Professional</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-white mb-2">
             Rule Style / Disciplines
@@ -195,7 +268,7 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
             className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
             min="1"
             max="12"
-            placeholder="Optional"
+            placeholder="Enter number of rounds (1-12)"
           />
         </div>
 
@@ -276,7 +349,7 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
           onChange={handleChange}
           rows="3"
           className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
-          placeholder="Optional bout notes..."
+          placeholder="Add any additional notes or special instructions for this bout"
         />
       </div>
 
