@@ -17,6 +17,9 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
   const [bracketSequence, setBracketSequence] = useState('')
   const [boutRound, setBoutRound] = useState('')
   const [maxCompetitors, setMaxCompetitors] = useState('')
+  const [validationErrors, setValidationErrors] = useState({})
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [originalData, setOriginalData] = useState({})
   
   // Title component fields for auto-generating bracket name
   const [gender, setGender] = useState('')
@@ -26,21 +29,39 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
 
   useEffect(() => {
     if (expandedBracket) {
-      setBracketName(expandedBracket.title || expandedBracket.divisionTitle || '')
-      setStartDayNumber(expandedBracket.startDayNumber || '')
-      setGroup(expandedBracket.group || '')
-      setRingNumber(expandedBracket.ringNumber || expandedBracket.ring || '')
-      setBracketSequence(expandedBracket.bracketSequence || expandedBracket.bracketNumber || '')
-      setBoutRound(expandedBracket.boutRound || '')
-      setMaxCompetitors(expandedBracket.maxCompetitors || expandedBracket.fighters?.length || '')
+      const initialData = {
+        bracketName: expandedBracket.title || expandedBracket.divisionTitle || '',
+        startDayNumber: expandedBracket.startDayNumber?.toString() || '',
+        group: expandedBracket.group || '',
+        ringNumber: expandedBracket.ringNumber || expandedBracket.ring || '',
+        bracketSequence: expandedBracket.bracketSequence?.toString() || expandedBracket.bracketNumber?.toString() || '',
+        boutRound: expandedBracket.boutRound?.toString() || '',
+        maxCompetitors: expandedBracket.maxCompetitors?.toString() || expandedBracket.fighters?.length?.toString() || '',
+        gender: expandedBracket.gender || '',
+        ruleStyle: expandedBracket.ruleStyle || '',
+        weightClass: expandedBracket.weightClass ? `${expandedBracket.weightClass.min}-${expandedBracket.weightClass.max} ${expandedBracket.weightClass.unit}` : '',
+        ageClass: expandedBracket.ageClass || ''
+      }
       
-      // Initialize title component fields from bracket data
-      setGender(expandedBracket.gender || '')
-      setRuleStyle(expandedBracket.ruleStyle || '')
-      setWeightClass(expandedBracket.weightClass ? `${expandedBracket.weightClass.min}-${expandedBracket.weightClass.max} ${expandedBracket.weightClass.unit}` : '')
-      setAgeClass(expandedBracket.ageClass || '')
+      // Store original data for comparison
+      setOriginalData(initialData)
+      
+      // Only update form fields if we don't have unsaved changes
+      if (!hasUnsavedChanges) {
+        setBracketName(initialData.bracketName)
+        setStartDayNumber(initialData.startDayNumber)
+        setGroup(initialData.group)
+        setRingNumber(initialData.ringNumber)
+        setBracketSequence(initialData.bracketSequence)
+        setBoutRound(initialData.boutRound)
+        setMaxCompetitors(initialData.maxCompetitors)
+        setGender(initialData.gender)
+        setRuleStyle(initialData.ruleStyle)
+        setWeightClass(initialData.weightClass)
+        setAgeClass(initialData.ageClass)
+      }
     }
-  }, [expandedBracket])
+  }, [expandedBracket, hasUnsavedChanges])
 
   // Auto-generate bracket name when title components change
   useEffect(() => {
@@ -52,41 +73,93 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
     }
   }, [gender, ruleStyle, weightClass, ageClass])
 
+  // Track changes to detect unsaved modifications
+  useEffect(() => {
+    const currentData = {
+      bracketName,
+      startDayNumber,
+      group, 
+      ringNumber,
+      bracketSequence,
+      boutRound,
+      maxCompetitors,
+      gender,
+      ruleStyle,
+      weightClass,
+      ageClass
+    }
+    
+    const hasChanges = Object.keys(originalData).some(key => 
+      originalData[key] !== currentData[key]
+    )
+    
+    setHasUnsavedChanges(hasChanges)
+  }, [bracketName, startDayNumber, group, ringNumber, bracketSequence, boutRound, maxCompetitors, gender, ruleStyle, weightClass, ageClass, originalData])
+
+  // Warn user about unsaved changes when leaving page
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        return 'You have unsaved changes. Are you sure you want to leave?'
+      }
+    }
+
+    if (hasUnsavedChanges) {
+      window.addEventListener('beforeunload', handleBeforeUnload)
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [hasUnsavedChanges])
+
   const handleSaveChanges = async () => {
     if (!onUpdate || !expandedBracket) return
     
+    // Clear previous validation errors
+    setValidationErrors({})
+    
     // Enhanced validation
-    const validationErrors = []
+    const errors = {}
     
     // Bracket name validation - only allow alphanumeric and spaces
     if (!bracketName || bracketName.trim() === '') {
-      validationErrors.push('Bracket name is required')
+      errors.bracketName = 'Bracket name is required'
     } else if (!/^[a-zA-Z0-9\s]+$/.test(bracketName.trim())) {
-      validationErrors.push('Bracket name can only contain letters, numbers, and spaces')
+      errors.bracketName = 'Bracket name can only contain letters, numbers, and spaces'
     }
     
     // Mandatory field validation for numeric fields
     if (!startDayNumber || startDayNumber.trim() === '') {
-      validationErrors.push('Start on Day Number is required')
-    } else if (isNaN(parseInt(startDayNumber)) || parseInt(startDayNumber) <= 0) {
-      validationErrors.push('Start on Day Number must be a positive number')
+      errors.startDayNumber = 'Start on Day Number is required'
+    } else if (!/^\d+$/.test(startDayNumber.trim()) || parseInt(startDayNumber) <= 0) {
+      errors.startDayNumber = 'Start on Day Number must be a positive number'
     }
     
     if (!boutRound || boutRound.trim() === '') {
-      validationErrors.push('Bout Round Duration is required')
-    } else if (isNaN(parseInt(boutRound)) || parseInt(boutRound) <= 0) {
-      validationErrors.push('Bout Round Duration must be a positive number')
+      errors.boutRound = 'Bout Round Duration is required'
+    } else if (!/^\d+$/.test(boutRound.trim()) || parseInt(boutRound) <= 0) {
+      errors.boutRound = 'Bout Round Duration must be a positive number (seconds)'
     }
     
     if (!maxCompetitors || maxCompetitors.trim() === '') {
-      validationErrors.push('Max Competitors is required')
-    } else if (isNaN(parseInt(maxCompetitors)) || parseInt(maxCompetitors) <= 0) {
-      validationErrors.push('Max Competitors must be a positive number')
+      errors.maxCompetitors = 'Max Competitors is required'
+    } else if (!/^\d+$/.test(maxCompetitors.trim()) || parseInt(maxCompetitors) <= 0) {
+      errors.maxCompetitors = 'Max Competitors must be a positive number'
     }
     
-    if (validationErrors.length > 0) {
-      alert('Please fix the following errors:\n• ' + validationErrors.join('\n• '))
-      return
+    // Bracket Sequence validation
+    if (bracketSequence && (!/^\d+$/.test(bracketSequence.trim()) || parseInt(bracketSequence) <= 0)) {
+      errors.bracketSequence = 'Bracket Sequence must be a positive number'
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      // Show first error as main feedback
+      const firstError = Object.values(errors)[0]
+      return // Don't proceed with save
     }
     
     setLoading(true)
@@ -111,10 +184,25 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
       const result = await onUpdate(expandedBracket._id, updateData)
       if (result.success) {
         alert('✓ Changes saved successfully!')
-        // Refresh the component state to reflect saved changes
-        setStartDayNumber(updateData.startDayNumber.toString())
-        setBoutRound(updateData.boutRound.toString())
-        setMaxCompetitors(updateData.maxCompetitors.toString())
+        
+        // Update original data to match saved data
+        const savedData = {
+          bracketName: updateData.title,
+          startDayNumber: updateData.startDayNumber.toString(),
+          group: updateData.group,
+          ringNumber: updateData.ringNumber,
+          bracketSequence: updateData.bracketNumber.toString(),
+          boutRound: updateData.boutRound.toString(),
+          maxCompetitors: updateData.maxCompetitors.toString(),
+          gender: updateData.gender,
+          ruleStyle: updateData.ruleStyle,
+          weightClass: updateData.weightClass,
+          ageClass: updateData.ageClass
+        }
+        
+        setOriginalData(savedData)
+        setHasUnsavedChanges(false)
+        setValidationErrors({}) // Clear any validation errors
       } else {
         alert('❌ Error saving changes: ' + (result.error || 'Unknown error'))
       }
@@ -183,14 +271,23 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
   }
 
   const handleReset = () => {
-    if (confirm('Are you sure you want to reset all changes? This will revert to the original values.')) {
-      setBracketName(expandedBracket.title || expandedBracket.divisionTitle || '')
-      setStartDayNumber(expandedBracket.startDayNumber || '')
-      setGroup(expandedBracket.group || '')
-      setRingNumber(expandedBracket.ringNumber || expandedBracket.ring || '')
-      setBracketSequence(expandedBracket.bracketSequence || expandedBracket.bracketNumber || '')
-      setBoutRound(expandedBracket.boutRound || '')
-      setMaxCompetitors(expandedBracket.maxCompetitors || expandedBracket.fighters?.length || '')
+    if (confirm('Are you sure you want to reset all changes? This will revert to the last saved values.')) {
+      // Reset to original data
+      setBracketName(originalData.bracketName || '')
+      setStartDayNumber(originalData.startDayNumber || '')
+      setGroup(originalData.group || '')
+      setRingNumber(originalData.ringNumber || '')
+      setBracketSequence(originalData.bracketSequence || '')
+      setBoutRound(originalData.boutRound || '')
+      setMaxCompetitors(originalData.maxCompetitors || '')
+      setGender(originalData.gender || '')
+      setRuleStyle(originalData.ruleStyle || '')
+      setWeightClass(originalData.weightClass || '')
+      setAgeClass(originalData.ageClass || '')
+      
+      // Clear validation errors and unsaved changes flag
+      setValidationErrors({})
+      setHasUnsavedChanges(false)
     }
   }
 
@@ -277,10 +374,31 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
             <input
               type='text'
               value={bracketName || ''}
-              onChange={(e) => setBracketName(e.target.value)}
+              onChange={(e) => {
+                // Only allow alphanumeric and spaces
+                const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')
+                setBracketName(cleanValue)
+                // Clear validation error when user starts typing
+                if (validationErrors.bracketName) {
+                  setValidationErrors(prev => ({ ...prev, bracketName: undefined }))
+                }
+              }}
+              onKeyPress={(e) => {
+                // Prevent invalid characters
+                if (!/[a-zA-Z0-9\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                  e.preventDefault()
+                }
+              }}
               placeholder='Auto-generated or enter manually'
-              className='w-full bg-transparent text-white text-xl rounded py-1 focus:outline-none focus:border-white placeholder-gray-400'
+              className={`w-full bg-transparent text-white text-xl rounded py-1 focus:outline-none placeholder-gray-400 ${
+                validationErrors.bracketName ? 'border-b-2 border-red-500' : 'focus:border-white'
+              }`}
             />
+            {validationErrors.bracketName && (
+              <div className='text-red-400 text-xs mt-1'>
+                ⚠ {validationErrors.bracketName}
+              </div>
+            )}
           </div>
         </div>
         <button onClick={handleClose} className='ml-4 p-2 hover:bg-gray-700 rounded'>
@@ -434,13 +552,15 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               label='Group' 
               placeholder='e.g., Group A'
               value={group} 
-              onChange={setGroup} 
+              onChange={setGroup}
+              validation='alphanumeric'
             />
             <InputBox
               label='Ring Number'
               placeholder='e.g., Ring 1'
               value={ringNumber}
               onChange={setRingNumber}
+              validation='alphanumeric'
             />
             <InputBox
               label='Bracket Sequence Number'
@@ -449,6 +569,8 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               min='1'
               value={bracketSequence}
               onChange={setBracketSequence}
+              validation='numeric'
+              required
             />
           </div>
         </div>
@@ -461,12 +583,13 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
           <div className='grid grid-cols-4 gap-6'>
             <InputBox
               label='Start on Day Number'
-              required={false}
+              required
               type='number'
               placeholder='e.g., 1'
               min='1'
               value={startDayNumber}
               onChange={setStartDayNumber}
+              validation='numeric'
             />
             <InputBox
               label='Bout Round Duration (sec)'
@@ -476,6 +599,7 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               min='1'
               value={boutRound}
               onChange={setBoutRound}
+              validation='numeric'
             />
             <InputBox
               label='Max Competitors'
@@ -485,6 +609,7 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               min='1'
               value={maxCompetitors}
               onChange={setMaxCompetitors}
+              validation='numeric'
             />
           </div>
           
@@ -494,14 +619,43 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
           </div>
         </div>
 
+        {/* Unsaved Changes Indicator */}
+        {hasUnsavedChanges && Object.keys(validationErrors).length === 0 && (
+          <div className='bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4'>
+            <div className='flex items-center text-yellow-400 text-sm'>
+              <span className='mr-2'>⚠</span>
+              <span>You have unsaved changes. Click "Update Settings" to save or "Reset" to discard.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Validation Error Display */}
+        {Object.keys(validationErrors).length > 0 && (
+          <div className='bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-6'>
+            <div className='flex items-center mb-2'>
+              <span className='text-red-400 text-sm font-medium'>⚠ Validation Errors:</span>
+            </div>
+            <ul className='list-disc list-inside space-y-1'>
+              {Object.entries(validationErrors).map(([field, error]) => (
+                <li key={field} className='text-red-300 text-sm'>
+                  {error}
+                </li>
+              ))}
+            </ul>
+            <div className='text-xs text-red-400 mt-2'>
+              Please fix the above errors before saving changes.
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className='flex space-x-4 my-8 justify-center'>
           <ActionButton
             icon={<CircleCheck size={14} />}
-            label='Update Settings'
-            bg='linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)'
+            label={hasUnsavedChanges ? 'Save Changes' : 'Update Settings'}
+            bg={hasUnsavedChanges ? '#4CAF50' : 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)'}
             onClick={handleSaveChanges}
-            disabled={loading}
+            disabled={loading || Object.keys(validationErrors).length > 0}
           />
           <ActionButton
             icon={<Play size={14} />}
