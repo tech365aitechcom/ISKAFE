@@ -6,7 +6,21 @@ import { Pencil } from "lucide-react";
 const TournamentSettingsModal = ({ eventId, visible, onClose, onSave, initialSettings }) => {
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState(null);
- const [formData, setFormData] = useState(initialSettings);
+ const [formData, setFormData] = useState(initialSettings || {
+    simpleFees: {
+      fighterFee: 0,
+      trainerFee: 0,
+      currency: "$",
+    },
+    detailedFees: [],
+    bracketSettings: {
+      maxFightersPerBracket: 0,
+    },
+    ruleStyles: {
+      semiContact: [],
+      fullContact: []
+    }
+  });
 
   useEffect(() => {
     if (visible && eventId) {
@@ -32,9 +46,14 @@ const TournamentSettingsModal = ({ eventId, visible, onClose, onSave, initialSet
             trainerFee: 0,
             currency: "$",
           },
+          detailedFees: data.data.detailedFees || [],
           bracketSettings: data.data.bracketSettings || {
             maxFightersPerBracket: 0,
           },
+          ruleStyles: data.data.ruleStyles || {
+            semiContact: [],
+            fullContact: []
+          }
         });
       } else {
         alert(data.message || "Error fetching settings");
@@ -68,6 +87,8 @@ const TournamentSettingsModal = ({ eventId, visible, onClose, onSave, initialSet
   const handleSave = async () => {
     try {
       setLoading(true);
+      
+      console.log('Sending tournament settings:', formData);
       
       const response = await fetch(
         `${API_BASE_URL}/tournament-setting/${eventId}`,
@@ -103,8 +124,8 @@ const TournamentSettingsModal = ({ eventId, visible, onClose, onSave, initialSet
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0B1739] rounded-lg p-6 shadow-lg w-full max-w-2xl">
-        <div className="flex justify-between items-center mb-6">
+      <div className="bg-[#0B1739] rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 pb-0">
           <h2 className="text-xl font-bold">Tournament Settings</h2>
           <button 
             onClick={onClose} 
@@ -114,6 +135,7 @@ const TournamentSettingsModal = ({ eventId, visible, onClose, onSave, initialSet
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">Simple Fees</h3>
@@ -183,93 +205,260 @@ const TournamentSettingsModal = ({ eventId, visible, onClose, onSave, initialSet
             </div>
           </div>
 
-          {settings?.detailedFees && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Detailed Fees</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full border border-[#343B4F] rounded-lg">
-                  <thead>
-                    <tr className="border-b border-[#343B4F]">
-                      <th className="p-3 text-left">Type</th>
-                      <th className="p-3 text-left">Name</th>
-                      <th className="p-3 text-left">Fee Amount</th>
-                      <th className="p-3 text-left">Min Purchase</th>
-                      <th className="p-3 text-left">Max Purchase</th>
-                      <th className="p-3 text-left">Sport</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {settings.detailedFees.map((fee) => (
-                      <tr 
-                        key={`${fee.type}-${fee.name}-${fee.sport}`} 
-                        className="border-b border-[#343B4F]"
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Detailed Fees</h3>
+              <button
+                onClick={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    detailedFees: [
+                      ...prev.detailedFees,
+                      {
+                        type: 'Bracket',
+                        name: '',
+                        feeAmount: 0,
+                        minPurchase: 1,
+                        maxPurchase: null,
+                        sport: ''
+                      }
+                    ]
+                  }));
+                }}
+                className="px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-700"
+              >
+                + Add Fee
+              </button>
+            </div>
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {formData.detailedFees?.map((fee, index) => (
+                <div key={index} className="bg-[#0A1330] p-4 rounded-lg border border-[#343B4F]">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs mb-1">Type</label>
+                      <select
+                        value={fee.type}
+                        onChange={(e) => {
+                          const newFees = [...formData.detailedFees];
+                          newFees[index] = { ...newFees[index], type: e.target.value };
+                          setFormData(prev => ({ ...prev, detailedFees: newFees }));
+                        }}
+                        className="w-full bg-[#0B1739] border border-[#343B4F] rounded p-1 text-sm"
                       >
-                        <td className="p-3">{fee.type}</td>
-                        <td className="p-3">{fee.name}</td>
-                        <td className="p-3">{fee.feeAmount}</td>
-                        <td className="p-3">{fee.minPurchase}</td>
-                        <td className="p-3">{fee.maxPurchase || "-"}</td>
-                        <td className="p-3">{fee.sport}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {settings?.ruleStyles && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Rule Styles</h3>
-              <div className="mb-6">
-                <h4 className="font-medium mb-2">Semi Contact</h4>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {settings.ruleStyles.semiContact?.map((style, index) => (
-                    <span
-                      key={`semi-${index}-${style}`}
-                      className="bg-gray-700 px-3 py-1 rounded-full text-sm"
-                    >
-                      {style}
-                    </span>
-                  ))}
+                        <option value="Bracket">Bracket</option>
+                        <option value="Single Bout">Single Bout</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={fee.name}
+                        onChange={(e) => {
+                          const newFees = [...formData.detailedFees];
+                          newFees[index] = { ...newFees[index], name: e.target.value };
+                          setFormData(prev => ({ ...prev, detailedFees: newFees }));
+                        }}
+                        className="w-full bg-[#0B1739] border border-[#343B4F] rounded p-1 text-sm"
+                        placeholder="Fee name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Fee Amount</label>
+                      <input
+                        type="number"
+                        value={fee.feeAmount}
+                        onChange={(e) => {
+                          const newFees = [...formData.detailedFees];
+                          newFees[index] = { ...newFees[index], feeAmount: Number(e.target.value) };
+                          setFormData(prev => ({ ...prev, detailedFees: newFees }));
+                        }}
+                        className="w-full bg-[#0B1739] border border-[#343B4F] rounded p-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs mb-1">Min Purchase</label>
+                      <input
+                        type="number"
+                        value={fee.minPurchase}
+                        onChange={(e) => {
+                          const newFees = [...formData.detailedFees];
+                          newFees[index] = { ...newFees[index], minPurchase: Number(e.target.value) };
+                          setFormData(prev => ({ ...prev, detailedFees: newFees }));
+                        }}
+                        className="w-full bg-[#0B1739] border border-[#343B4F] rounded p-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Max Purchase</label>
+                      <input
+                        type="number"
+                        value={fee.maxPurchase || ''}
+                        onChange={(e) => {
+                          const newFees = [...formData.detailedFees];
+                          newFees[index] = { ...newFees[index], maxPurchase: e.target.value ? Number(e.target.value) : null };
+                          setFormData(prev => ({ ...prev, detailedFees: newFees }));
+                        }}
+                        className="w-full bg-[#0B1739] border border-[#343B4F] rounded p-1 text-sm"
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Sport</label>
+                      <input
+                        type="text"
+                        value={fee.sport}
+                        onChange={(e) => {
+                          const newFees = [...formData.detailedFees];
+                          newFees[index] = { ...newFees[index], sport: e.target.value };
+                          setFormData(prev => ({ ...prev, detailedFees: newFees }));
+                        }}
+                        className="w-full bg-[#0B1739] border border-[#343B4F] rounded p-1 text-sm"
+                        placeholder="Sport"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => {
+                          const newFees = formData.detailedFees.filter((_, i) => i !== index);
+                          setFormData(prev => ({ ...prev, detailedFees: newFees }));
+                        }}
+                        className="px-2 py-1 bg-red-600 rounded text-xs hover:bg-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <h4 className="font-medium mb-2">Full Contact</h4>
-                <div className="flex flex-wrap gap-2">
-                  {settings.ruleStyles.fullContact?.map((style, index) => (
-                    <span
-                      key={`full-${index}-${style}`}
-                      className="bg-gray-700 px-3 py-1 rounded-full text-sm"
-                    >
-                      {style}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-          )}
-
-          <div className="flex justify-end gap-4 mt-6">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-[#343B4F] rounded-lg hover:bg-[#0f1a40]"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                "Saving..."
-              ) : (
-                <>
-                  <Pencil size={16} />
-                  Save Settings
-                </>
-              )}
-            </button>
           </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Rule Styles</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium">Semi Contact</h4>
+                  <button
+                    onClick={() => {
+                      const newStyle = prompt('Enter new semi contact style:');
+                      if (newStyle?.trim()) {
+                        setFormData(prev => ({
+                          ...prev,
+                          ruleStyles: {
+                            ...prev.ruleStyles,
+                            semiContact: [...(prev.ruleStyles.semiContact || []), newStyle.trim()]
+                          }
+                        }));
+                      }
+                    }}
+                    className="px-2 py-1 bg-blue-600 rounded text-xs hover:bg-blue-700"
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.ruleStyles?.semiContact?.map((style, index) => (
+                    <div
+                      key={`semi-${index}-${style}`}
+                      className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                    >
+                      <span>{style}</span>
+                      <button
+                        onClick={() => {
+                          const newStyles = formData.ruleStyles.semiContact.filter((_, i) => i !== index);
+                          setFormData(prev => ({
+                            ...prev,
+                            ruleStyles: {
+                              ...prev.ruleStyles,
+                              semiContact: newStyles
+                            }
+                          }));
+                        }}
+                        className="text-red-400 hover:text-red-300 text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium">Full Contact</h4>
+                  <button
+                    onClick={() => {
+                      const newStyle = prompt('Enter new full contact style:');
+                      if (newStyle?.trim()) {
+                        setFormData(prev => ({
+                          ...prev,
+                          ruleStyles: {
+                            ...prev.ruleStyles,
+                            fullContact: [...(prev.ruleStyles.fullContact || []), newStyle.trim()]
+                          }
+                        }));
+                      }
+                    }}
+                    className="px-2 py-1 bg-blue-600 rounded text-xs hover:bg-blue-700"
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.ruleStyles?.fullContact?.map((style, index) => (
+                    <div
+                      key={`full-${index}-${style}`}
+                      className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                    >
+                      <span>{style}</span>
+                      <button
+                        onClick={() => {
+                          const newStyles = formData.ruleStyles.fullContact.filter((_, i) => i !== index);
+                          setFormData(prev => ({
+                            ...prev,
+                            ruleStyles: {
+                              ...prev.ruleStyles,
+                              fullContact: newStyles
+                            }
+                          }));
+                        }}
+                        className="text-red-400 hover:text-red-300 text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        </div>
+        <div className="flex justify-end gap-4 p-6 pt-4 border-t border-[#343B4F]">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-[#343B4F] rounded-lg hover:bg-[#0f1a40]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+          >
+            {loading ? (
+              "Saving..."
+            ) : (
+              <>
+                <Pencil size={16} />
+                Save Settings
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
