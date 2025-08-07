@@ -39,8 +39,8 @@ export default function InputBox({
         break
       
       case 'alphanumeric':
-        if (!/^[a-zA-Z0-9\s]+$/.test(inputValue.trim())) {
-          return `${label} can only contain letters, numbers, and spaces`
+        if (!/^[a-zA-Z0-9\s'&.-]+$/.test(inputValue.trim())) {
+          return `${label} can only contain letters, numbers, spaces, and common punctuation (', &, ., -)`
         }
         break
       
@@ -75,7 +75,7 @@ export default function InputBox({
     
     // For alphanumeric, filter out invalid characters
     if (validation === 'alphanumeric' && newValue) {
-      newValue = newValue.replace(/[^a-zA-Z0-9\s]/g, '')
+      newValue = newValue.replace(/[^a-zA-Z0-9\s'&.-]/g, '')
     }
     
     onChange(newValue)
@@ -89,8 +89,8 @@ export default function InputBox({
         e.preventDefault()
       }
     } else if (validation === 'alphanumeric') {
-      // Allow letters, numbers, spaces, and control keys
-      if (!/[a-zA-Z0-9\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      // Allow letters, numbers, spaces, punctuation, and control keys
+      if (!/[a-zA-Z0-9\s'&.-]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault()
       }
     }

@@ -36,25 +36,59 @@ export default function CompetitorTable({
     return phone
   }
 
+  const formatHeight = (height, heightUnit) => {
+    if (!height) return 'N/A'
+    
+    if (heightUnit === 'inches' || !heightUnit) {
+      // Convert inches to feet and inches format
+      const feet = Math.floor(height / 12)
+      const inches = height % 12
+      return `${feet}'${inches}"`
+    }
+    
+    return `${height} ${heightUnit}`
+  }
+
+  const formatWeight = (weight, weightUnit) => {
+    if (!weight) return 'N/A'
+    return `${weight} ${(weightUnit || 'LBS').toUpperCase()}`
+  }
+
+  const formatNameWithDetails = (competitor) => {
+    const age = calculateAge(competitor.dateOfBirth)
+    const height = formatHeight(competitor.height, competitor.heightUnit)
+    const weight = formatWeight(competitor.walkAroundWeight || competitor.weight, competitor.weightUnit)
+    const gender = competitor.gender || 'N/A'
+    
+    const details = []
+    if (age && age !== 'N/A') details.push(`Age: ${age}`)
+    if (gender && gender !== 'N/A') details.push(`Gender: ${gender}`)
+    if (height && height !== 'N/A') details.push(`Height: ${height}`)
+    if (weight && weight !== 'N/A') details.push(`Weight: ${weight}`)
+    
+    return {
+      fullName: `${competitor.firstName || ''} ${competitor.lastName || ''}`.trim() || 'N/A',
+      details: details.join(', ')
+    }
+  }
+
   return (
     <div className='overflow-x-auto'>
       <table className='w-full border-collapse'>
         <thead>
           <tr className='bg-[#0A1330] text-left border-b border-gray-700'>
             <th className='p-4 text-sm font-medium text-gray-300'>Type</th>
-            <th className='p-4 text-sm font-medium text-gray-300'>First Name</th>
-            <th className='p-4 text-sm font-medium text-gray-300'>Last Name</th>
-            <th className='p-4 text-sm font-medium text-gray-300'>Age</th>
+            <th className='p-4 text-sm font-medium text-gray-300'>Name</th>
             <th className='p-4 text-sm font-medium text-gray-300'>Phone</th>
             <th className='p-4 text-sm font-medium text-gray-300'>Email</th>
             <th className='p-4 text-sm font-medium text-gray-300'>Status</th>
-            <th className='p-4 text-sm font-medium text-gray-300'>Reg Form</th>
+            <th className='p-4 text-sm font-medium text-gray-300'>Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={8} className='p-8 text-center'>
+              <td colSpan={6} className='p-8 text-center'>
                 <div className='flex items-center justify-center'>
                   <div className='animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500'></div>
                   <span className='ml-3'>Loading participants...</span>
@@ -63,57 +97,70 @@ export default function CompetitorTable({
             </tr>
           ) : competitors.length === 0 ? (
             <tr>
-              <td colSpan={8} className='p-8 text-center text-gray-400'>
+              <td colSpan={6} className='p-8 text-center text-gray-400'>
                 No participants found
               </td>
             </tr>
           ) : (
-            competitors.map((competitor, index) => (
-              <tr 
-                key={competitor._id || index} 
-                className='border-b border-gray-700 hover:bg-[#0A1330]/50 transition-colors'
-              >
-                <td className='p-4'>
-                  <div className='flex items-center gap-2'>
-                    <User size={16} className='text-gray-400' />
-                    <span className='font-medium'>
-                      {formatType(competitor.registrationType)}
-                    </span>
-                  </div>
-                </td>
-                <td className='p-4 font-medium'>{competitor.firstName || 'N/A'}</td>
-                <td className='p-4 font-medium'>{competitor.lastName || 'N/A'}</td>
-                <td className='p-4'>{calculateAge(competitor.dateOfBirth)}</td>
-                <td className='p-4'>
-                  <div className='flex items-center gap-2'>
-                    <Phone size={14} className='text-gray-400' />
-                    <span className='text-sm'>
-                      {formatPhoneNumber(competitor.phoneNumber)}
-                    </span>
-                  </div>
-                </td>
-                <td className='p-4'>
-                  <div className='flex items-center gap-2'>
-                    <Mail size={14} className='text-gray-400' />
-                    <span className='text-sm break-all'>
-                      {competitor.email || 'N/A'}
-                    </span>
-                  </div>
-                </td>
-                <td className='p-4'>
-                  {getStatusBadge(competitor.status)}
-                </td>
-                <td className='p-4'>
-                  <button
-                    onClick={() => onViewRegistration(competitor)}
-                    className='flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors'
-                  >
-                    <FileText size={14} />
-                    View Details
-                  </button>
-                </td>
-              </tr>
-            ))
+            competitors.map((competitor, index) => {
+              const nameInfo = formatNameWithDetails(competitor)
+              
+              return (
+                <tr 
+                  key={competitor._id || index} 
+                  className='border-b border-gray-700 hover:bg-[#0A1330]/50 transition-colors'
+                >
+                  <td className='p-4'>
+                    <div className='flex items-center gap-2'>
+                      <User size={16} className='text-gray-400' />
+                      <span className='font-medium'>
+                        {formatType(competitor.registrationType)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className='p-4'>
+                    <div className='cursor-pointer' onClick={() => onViewRegistration(competitor)}>
+                      <div className='font-medium text-blue-400 hover:text-blue-300 transition-colors'>
+                        {nameInfo.fullName}
+                      </div>
+                      {nameInfo.details && (
+                        <div className='text-sm text-gray-400 mt-1'>
+                          {nameInfo.details}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className='p-4'>
+                    <div className='flex items-center gap-2'>
+                      <Phone size={14} className='text-gray-400' />
+                      <span className='text-sm'>
+                        {formatPhoneNumber(competitor.phoneNumber)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className='p-4'>
+                    <div className='flex items-center gap-2'>
+                      <Mail size={14} className='text-gray-400' />
+                      <span className='text-sm break-all'>
+                        {competitor.email || 'N/A'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className='p-4'>
+                    {getStatusBadge(competitor.status)}
+                  </td>
+                  <td className='p-4'>
+                    <button
+                      onClick={() => onViewRegistration(competitor)}
+                      className='flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors'
+                    >
+                      <FileText size={14} />
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              )
+            })
           )}
         </tbody>
       </table>

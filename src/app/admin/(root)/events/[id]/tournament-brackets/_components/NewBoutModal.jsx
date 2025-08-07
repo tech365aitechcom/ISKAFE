@@ -284,6 +284,7 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
             className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
             min="30"
             max="600"
+            placeholder="Enter duration in seconds (e.g., 90, 120, 180)"
             required
           />
         </div>
@@ -304,6 +305,7 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
               value={formData.weightClass.min}
               onChange={handleChange}
               className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+              placeholder="Enter minimum weight (e.g., 135)"
             />
           </div>
 
@@ -318,6 +320,7 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
               value={formData.weightClass.max}
               onChange={handleChange}
               className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+              placeholder="Enter maximum weight (e.g., 145)"
             />
           </div>
 

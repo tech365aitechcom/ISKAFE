@@ -140,17 +140,33 @@ export default function BracketList({
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-sm text-gray-400">#{bracket.bracketNumber || index + 1}</span>
-                  <h2 className='font-medium text-xl'>{bracket.title || bracket.divisionTitle}</h2>
+                  <h2 className='font-medium text-xl'>{bracket.divisionTitle || bracket.title}</h2>
+                  {bracket.group && (
+                    <span className="text-xs px-2 py-1 bg-blue-600/20 text-blue-300 rounded">
+                      {bracket.group}
+                    </span>
+                  )}
                 </div>
                 <p className='text-gray-300'>
                   {bracket.ageClass} • {bracket.sport} • {bracket.ruleStyle}
                   {bracket.weightClass && (
-                    <> • {bracket.weightClass.min}-{bracket.weightClass.max} {bracket.weightClass.unit}</>
+                    <> • {bracket.weightClass.min}-{bracket.weightClass.max} {bracket.weightClass.unit || 'lbs'}</>
                   )}
                 </p>
-                {bracket.ring && (
-                  <p className='text-sm text-gray-400 mt-1'>Ring: {bracket.ring}</p>
-                )}
+                <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+                  {bracket.ring && (
+                    <span>Ring: {bracket.ring}</span>
+                  )}
+                  {bracket.fighters && bracket.fighters.length > 0 && (
+                    <span>
+                      Fighters: {bracket.fighters.length}
+                      {bracket.maxCompetitors && ` / ${bracket.maxCompetitors} max`}
+                    </span>
+                  )}
+                  {bracket.bouts && bracket.bouts.length > 0 && (
+                    <span>Bouts: {bracket.bouts.length}</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <span className={`text-sm px-2 py-1 rounded ${getStatusColor(bracket.status)}`}>
@@ -207,7 +223,7 @@ export default function BracketList({
                     expandedBracket={expandedBracket}
                     eventId={eventId}
                     onUpdate={async () => {
-                      // First refresh the expanded bracket
+                      // First refresh the expanded bracket to get latest data
                       await refreshExpandedBracket()
                       // Then refresh the main bracket list
                       if (onRefresh) {
