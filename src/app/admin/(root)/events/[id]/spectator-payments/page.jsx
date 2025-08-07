@@ -3,10 +3,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Download, Search, Filter } from "lucide-react";
-import Link from "next/link";
+import { ChevronLeft, Download, Search } from "lucide-react";
 import Loader from "../../../../../_components/Loader";
 import axios from "../../../../../../shared/axios";
+import { jsPDF } from "jspdf";
 
 const SpectatorPaymentsPage = () => {
   const params = useParams();
@@ -55,7 +55,6 @@ const SpectatorPaymentsPage = () => {
           ticketDescription: `${item.tier} - Event Ticket`,
           quantity: item.quantity,
           unitPrice: item.totalAmount / item.quantity,
-          // Custom fee calculation (not Square logic - as per requirements)
           fee: item.totalAmount * 0.05, // 5% fee as per IKF custom logic
           total: item.totalAmount,
           net: item.totalAmount - (item.totalAmount * 0.05),
@@ -147,6 +146,100 @@ const SpectatorPaymentsPage = () => {
     });
   }, [payments, filters]);
 
+  // Export to CSV function
+  const exportToCSV = () => {
+    const headers = [
+      "S. No.",
+      "Date",
+      "Payer",
+      "Email",
+      "Ticket Description",
+      "Ticket(s)",
+      "Fee",
+      "Total",
+      "Net"
+    ];
+    
+    const data = filteredPayments.map(payment => [
+      payment.serialNumber,
+      new Date(payment.date).toLocaleString(),
+      payment.payer,
+      payment.email,
+      payment.ticketDescription,
+      `${payment.quantity} @ $${payment.unitPrice.toFixed(2)}`,
+      `$${payment.fee.toFixed(2)}`,
+      `$${payment.total.toFixed(2)}`,
+      `$${payment.net.toFixed(2)}`
+    ]);
+    
+    let csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n" 
+      + data.map(row => row.join(",")).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `spectator_payments_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export to PDF function
+  const exportToPDF = async () => {
+    try {
+      // Dynamically import both jsPDF and jspdf-autotable
+      const [{ jsPDF }, autoTableModule] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+      ]);
+      
+      const doc = new jsPDF();
+      const title = "Spectator Payments Report";
+      const headers = [
+        ["S. No.", "Date", "Payer", "Email", "Ticket Description", "Ticket(s)", "Fee", "Total", "Net"]
+      ];
+      
+      const data = filteredPayments.map(payment => [
+        payment.serialNumber,
+        new Date(payment.date).toLocaleString(),
+        payment.payer,
+        payment.email,
+        payment.ticketDescription,
+        `${payment.quantity} @ $${payment.unitPrice.toFixed(2)}`,
+        `$${payment.fee.toFixed(2)}`,
+        `$${payment.total.toFixed(2)}`,
+        `$${payment.net.toFixed(2)}`
+      ]);
+      
+      doc.text(title, 14, 15);
+      
+      // Use the autoTable function from the module
+      autoTableModule.default(doc, {
+        head: headers,
+        body: data,
+        startY: 20,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [18, 32, 70], // #122046
+          textColor: 255, // White text
+          fontStyle: 'bold'
+        },
+        styles: {
+          cellPadding: 4,
+          fontSize: 10,
+          textColor: [0, 0, 0] // Black text for body
+        },
+        margin: { top: 20 }
+      });
+      
+      doc.save(`spectator_payments_${new Date().toISOString().slice(0,10)}.pdf`);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      alert("Error generating PDF. Please try again.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-[#07091D]">
@@ -172,9 +265,19 @@ const SpectatorPaymentsPage = () => {
             <div className="text-sm text-[#AEB9E1] mt-1">Spectator-Only Payments</div>
           </div>
           <div className="flex space-x-4">
-            <button className="flex items-center px-4 py-2 bg-blue-600 rounded-lg">
+            <button 
+              onClick={exportToPDF}
+              className="flex items-center px-4 py-2 bg-blue-600 rounded-lg mr-2 hover:bg-blue-700 transition-colors"
+            >
               <Download size={16} className="mr-2" />
-              Export
+              PDF
+            </button>
+            <button 
+              onClick={exportToCSV}
+              className="flex items-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Download size={16} className="mr-2" />
+              CSV
             </button>
           </div>
         </div>
@@ -205,7 +308,7 @@ const SpectatorPaymentsPage = () => {
               <div className="relative">
                 <input
                   type="text"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 pl-10"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 pl-10 text-white"
                   placeholder="Search by name"
                   value={filters.name}
                   onChange={(e) => setFilters({...filters, name: e.target.value})}
@@ -220,7 +323,7 @@ const SpectatorPaymentsPage = () => {
               <div className="relative">
                 <input
                   type="email"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 pl-10"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 pl-10 text-white"
                   placeholder="Search by email"
                   value={filters.email}
                   onChange={(e) => setFilters({...filters, email: e.target.value})}
@@ -235,14 +338,14 @@ const SpectatorPaymentsPage = () => {
               <div className="flex space-x-2">
                 <input
                   type="date"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 text-white"
                   value={filters.startDate}
                   onChange={(e) => setFilters({...filters, startDate: e.target.value})}
                 />
                 <span className="self-center text-xs">to</span>
                 <input
                   type="date"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 text-white"
                   value={filters.endDate}
                   onChange={(e) => setFilters({...filters, endDate: e.target.value})}
                 />
@@ -253,7 +356,7 @@ const SpectatorPaymentsPage = () => {
             <div>
               <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Type</label>
               <select
-                className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 text-white"
                 value={filters.ticketType}
                 onChange={(e) => setFilters({...filters, ticketType: e.target.value})}
               >
@@ -271,7 +374,7 @@ const SpectatorPaymentsPage = () => {
               <div className="flex space-x-2">
                 <input
                   type="number"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 text-white"
                   placeholder="Min"
                   value={filters.minTotal}
                   onChange={(e) => setFilters({...filters, minTotal: e.target.value})}
@@ -279,7 +382,7 @@ const SpectatorPaymentsPage = () => {
                 <span className="self-center text-xs">to</span>
                 <input
                   type="number"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 text-white"
                   placeholder="Max"
                   value={filters.maxTotal}
                   onChange={(e) => setFilters({...filters, maxTotal: e.target.value})}
@@ -293,7 +396,7 @@ const SpectatorPaymentsPage = () => {
               <div className="flex space-x-2">
                 <input
                   type="number"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 text-white"
                   placeholder="Min"
                   value={filters.minNet}
                   onChange={(e) => setFilters({...filters, minNet: e.target.value})}
@@ -301,7 +404,7 @@ const SpectatorPaymentsPage = () => {
                 <span className="self-center text-xs">to</span>
                 <input
                   type="number"
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded-lg px-4 py-2 text-white"
                   placeholder="Max"
                   value={filters.maxNet}
                   onChange={(e) => setFilters({...filters, maxNet: e.target.value})}
@@ -316,7 +419,7 @@ const SpectatorPaymentsPage = () => {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-[#122046]">
-                <th className="p-4 text-left">#</th>
+                <th className="p-4 text-left">S. No.</th>
                 <th className="p-4 text-left">Date</th>
                 <th className="p-4 text-left">Payer</th>
                 <th className="p-4 text-left">Email</th>
