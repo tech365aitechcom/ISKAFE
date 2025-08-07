@@ -1,6 +1,6 @@
 'use client'
 
-import { Phone, Mail, FileText, User } from 'lucide-react'
+import { Phone, Mail, FileText, User, CheckCircle, XCircle } from 'lucide-react'
 
 export default function CompetitorTable({ 
   competitors, 
@@ -72,6 +72,26 @@ export default function CompetitorTable({
     }
   }
 
+  const getWeighInStatus = (competitor) => {
+    // Check if competitor has been weighed in - using checkInStatus as a proxy for now
+    const isWeighedIn = competitor.checkInStatus === 'Checked In' || competitor.weighedIn === true
+    return {
+      status: isWeighedIn,
+      icon: isWeighedIn ? <CheckCircle className="text-green-400" size={16} /> : <XCircle className="text-red-400" size={16} />,
+      text: isWeighedIn ? 'Weighed In' : 'Not Weighed'
+    }
+  }
+
+  const getMedExamStatus = (competitor) => {
+    // Check medical exam status
+    const hasExam = competitor.medicalExamDone === true
+    return {
+      status: hasExam,
+      icon: hasExam ? <CheckCircle className="text-green-400" size={16} /> : <XCircle className="text-red-400" size={16} />,
+      text: hasExam ? 'Completed' : 'Pending'
+    }
+  }
+
   return (
     <div className='overflow-x-auto'>
       <table className='w-full border-collapse'>
@@ -82,13 +102,15 @@ export default function CompetitorTable({
             <th className='p-4 text-sm font-medium text-gray-300'>Phone</th>
             <th className='p-4 text-sm font-medium text-gray-300'>Email</th>
             <th className='p-4 text-sm font-medium text-gray-300'>Status</th>
+            <th className='p-4 text-sm font-medium text-gray-300'>Weighed In</th>
+            <th className='p-4 text-sm font-medium text-gray-300'>Med Exams</th>
             <th className='p-4 text-sm font-medium text-gray-300'>Actions</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={6} className='p-8 text-center'>
+              <td colSpan={8} className='p-8 text-center'>
                 <div className='flex items-center justify-center'>
                   <div className='animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500'></div>
                   <span className='ml-3'>Loading participants...</span>
@@ -97,13 +119,15 @@ export default function CompetitorTable({
             </tr>
           ) : competitors.length === 0 ? (
             <tr>
-              <td colSpan={6} className='p-8 text-center text-gray-400'>
+              <td colSpan={8} className='p-8 text-center text-gray-400'>
                 No participants found
               </td>
             </tr>
           ) : (
             competitors.map((competitor, index) => {
               const nameInfo = formatNameWithDetails(competitor)
+              const weighInStatus = getWeighInStatus(competitor)
+              const medExamStatus = getMedExamStatus(competitor)
               
               return (
                 <tr 
@@ -155,6 +179,22 @@ export default function CompetitorTable({
                   </td>
                   <td className='p-4'>
                     {getStatusBadge(competitor.status)}
+                  </td>
+                  <td className='p-4'>
+                    <div className='flex items-center gap-2'>
+                      {weighInStatus.icon}
+                      <span className='text-sm'>
+                        {weighInStatus.text}
+                      </span>
+                    </div>
+                  </td>
+                  <td className='p-4'>
+                    <div className='flex items-center gap-2'>
+                      {medExamStatus.icon}
+                      <span className='text-sm'>
+                        {medExamStatus.text}
+                      </span>
+                    </div>
                   </td>
                   <td className='p-4'>
                     <button
