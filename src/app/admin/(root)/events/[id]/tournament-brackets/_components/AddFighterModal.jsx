@@ -92,58 +92,49 @@ export default function AddFighterModal({
       console.log('Selected fighters:', selectedFighters)
       
       // Get existing fighters in bracket and add new ones
-      const existingFighters = bracket?.fighters || []
+      const existingFighterIds = (bracket?.fighters || []).map(f => f._id || f)
       const newFighterIds = selectedFighters.map(f => f._id)
-      const allFighterIds = [...existingFighters, ...newFighterIds]
+      // Remove duplicates by using Set
+      const allFighterIds = [...new Set([...existingFighterIds, ...newFighterIds])]
       
-      console.log('Existing fighters:', existingFighters)
+      console.log('Existing fighter IDs:', existingFighterIds)
       console.log('New fighter IDs:', newFighterIds)
       console.log('All fighter IDs:', allFighterIds)
 
-      // Try sending the complete bracket object with fighters
+      // Create clean update data with only essential fields
       const updateData = {
-        ...bracket,
-        fighters: allFighterIds
+        // Keep essential bracket properties
+        bracketNumber: bracket.bracketNumber,
+        divisionTitle: bracket.divisionTitle || bracket.title,
+        title: bracket.title,
+        group: bracket.group,
+        proClass: bracket.proClass,
+        status: bracket.status,
+        ageClass: bracket.ageClass,
+        sport: bracket.sport,
+        ruleStyle: bracket.ruleStyle,
+        ring: bracket.ring,
+        weightClass: bracket.weightClass,
+        fightStartTime: bracket.fightStartTime,
+        weighInTime: bracket.weighInTime,
+        fighters: allFighterIds, // Updated fighters list
+        // Preserve event association
+        event: bracket.event?._id || bracket.event || eventId
       }
-      
-      // Clean up any problematic fields
-      if (updateData.event && typeof updateData.event === 'object') {
-        updateData.event = updateData.event._id || updateData.event
-      }
-      if (updateData.createdAt) delete updateData.createdAt
-      if (updateData.updatedAt) delete updateData.updatedAt
-      if (updateData.__v) delete updateData.__v
-      if (updateData._id) delete updateData._id
       
       console.log('Update data being sent (full bracket):', updateData)
 
-      // Try different API approaches
-      console.log('Trying multiple API approaches...')
+      // Try PUT with clean bracket data
+      console.log('Updating bracket with new fighters...')
       
-      // Approach 1: Try PATCH instead of PUT
-      let response = await fetch(`${API_BASE_URL}/brackets/${bracketId}`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_BASE_URL}/brackets/${bracketId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user?.token}`,
         },
-        body: JSON.stringify({ fighters: allFighterIds })
+        body: JSON.stringify(updateData)
       })
-      
-      console.log('PATCH response:', response.status)
-      
-      // If PATCH doesn't work, try PUT with original approach
-      if (!response.ok) {
-        console.log('PATCH failed, trying PUT with full data...')
-        response = await fetch(`${API_BASE_URL}/brackets/${bracketId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${user?.token}`,
-          },
-          body: JSON.stringify(updateData)
-        })
-      }
 
       console.log('Final response status:', response?.status)
       const responseData = response ? await response.json() : { success: false, message: 'No response received' }

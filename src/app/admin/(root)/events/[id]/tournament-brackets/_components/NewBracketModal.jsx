@@ -138,6 +138,9 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 <option value="Championship">Championship</option>
                 <option value="Exhibition">Exhibition</option>
                 <option value="Local Championship">Local Championship</option>
+                <option value="Regional Championship">Regional Championship</option>
+                <option value="National Championship">National Championship</option>
+                <option value="International Championship">International Championship</option>
               </select>
             </div>
 
@@ -169,9 +172,10 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 required
               >
                 <option value="">Select Age Class</option>
-                <option value="youth">Youth</option>
-                <option value="adult">Adult</option>
-                <option value="senior">Senior</option>
+                <option value="Youth">Youth</option>
+                <option value="Junior">Junior</option>
+                <option value="Adult">Adult</option>
+                <option value="Senior">Senior</option>
               </select>
             </div>
 
@@ -187,10 +191,12 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 required
               >
                 <option value="">Select Sport</option>
-                <option value="kickboxing">Kickboxing</option>
-                <option value="boxing">Boxing</option>
-                <option value="mma">MMA</option>
-                <option value="muay thai">Muay Thai</option>
+                <option value="Kickboxing">Kickboxing</option>
+                <option value="Boxing">Boxing</option>
+                <option value="MMA">MMA</option>
+                <option value="Muay Thai">Muay Thai</option>
+                <option value="Karate">Karate</option>
+                <option value="Taekwondo">Taekwondo</option>
               </select>
             </div>
 
@@ -206,10 +212,36 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 required
               >
                 <option value="">Select Rule Style</option>
-                <option value="muay thai">Muay Thai</option>
-                <option value="olympic">Olympic</option>
-                <option value="point sparring">Point Sparring</option>
-                <option value="continuous">Continuous</option>
+                {/* Youth and Junior specific rules */}
+                {(formData.ageClass === 'Youth' || formData.ageClass === 'Junior') && (
+                  <>
+                    <option value="Point Sparring">Point Sparring</option>
+                    <option value="Light Contact">Light Contact</option>
+                    <option value="Continuous Sparring">Continuous Sparring</option>
+                  </>
+                )}
+                {/* Adult and Senior rules */}
+                {(formData.ageClass === 'Adult' || formData.ageClass === 'Senior' || !formData.ageClass) && (
+                  <>
+                    <option value="Muay Thai">Muay Thai</option>
+                    <option value="K-1">K-1</option>
+                    <option value="Olympic">Olympic</option>
+                    <option value="Point Sparring">Point Sparring</option>
+                    <option value="Continuous">Continuous</option>
+                    <option value="Full Contact">Full Contact</option>
+                    <option value="Semi Contact">Semi Contact</option>
+                    <option value="Low Kick">Low Kick</option>
+                  </>
+                )}
+                {/* Default options when no age class selected */}
+                {!formData.ageClass && (
+                  <>
+                    <option value="Point Sparring">Point Sparring</option>
+                    <option value="Continuous">Continuous</option>
+                    <option value="Full Contact">Full Contact</option>
+                    <option value="Semi Contact">Semi Contact</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -272,33 +304,102 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
-                  Min Weight
+                  Weight Class Range
                 </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="weightClass.min"
-                  value={formData.weightClass.min}
-                  onChange={handleChange}
+                <select
+                  name="weightClassRange"
+                  value={`${formData.weightClass.min}-${formData.weightClass.max}`}
+                  onChange={(e) => {
+                    const [min, max] = e.target.value.split('-').map(v => parseFloat(v) || 0)
+                    setFormData(prev => ({
+                      ...prev,
+                      weightClass: { ...prev.weightClass, min, max }
+                    }))
+                  }}
                   className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
-                  placeholder="0"
-                />
+                >
+                  <option value="0-999">Select Weight Range</option>
+                  
+                  {/* Youth Weight Classes */}
+                  {formData.ageClass === 'Youth' && (
+                    <>
+                      <option value="40-45">40-45 lbs</option>
+                      <option value="45-50">45-50 lbs</option>
+                      <option value="50-55">50-55 lbs</option>
+                      <option value="55-60">55-60 lbs</option>
+                      <option value="60-65">60-65 lbs</option>
+                      <option value="65-70">65-70 lbs</option>
+                    </>
+                  )}
+                  
+                  {/* Junior Weight Classes */}
+                  {formData.ageClass === 'Junior' && (
+                    <>
+                      <option value="60-65">60-65 lbs</option>
+                      <option value="65-70">65-70 lbs</option>
+                      <option value="70-75">70-75 lbs</option>
+                      <option value="75-80">75-80 lbs</option>
+                      <option value="80-85">80-85 lbs</option>
+                      <option value="85-90">85-90 lbs</option>
+                      <option value="90-95">90-95 lbs</option>
+                    </>
+                  )}
+                  
+                  {/* Adult Weight Classes */}
+                  {(formData.ageClass === 'Adult' || formData.ageClass === 'Senior') && (
+                    <>
+                      <option value="100-110">100-110 lbs</option>
+                      <option value="110-120">110-120 lbs</option>
+                      <option value="120-130">120-130 lbs</option>
+                      <option value="130-140">130-140 lbs</option>
+                      <option value="140-150">140-150 lbs</option>
+                      <option value="150-160">150-160 lbs</option>
+                      <option value="160-170">160-170 lbs</option>
+                      <option value="170-180">170-180 lbs</option>
+                      <option value="180-200">180-200 lbs</option>
+                      <option value="200-999">200+ lbs</option>
+                    </>
+                  )}
+                  
+                  {/* Custom range input */}
+                  <option value="custom">Custom Range</option>
+                </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Max Weight
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="weightClass.max"
-                  value={formData.weightClass.max}
-                  onChange={handleChange}
-                  className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
-                  placeholder="999"
-                />
-              </div>
+              {/* Show custom inputs if custom is selected */}
+              {(formData.weightClass.min === 0 && formData.weightClass.max === 999) && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Min Weight
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="weightClass.min"
+                      value={formData.weightClass.min || ''}
+                      onChange={handleChange}
+                      className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Max Weight
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      name="weightClass.max"
+                      value={formData.weightClass.max || ''}
+                      onChange={handleChange}
+                      className="w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white"
+                      placeholder="999"
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-white mb-2">

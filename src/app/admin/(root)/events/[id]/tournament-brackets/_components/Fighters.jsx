@@ -12,9 +12,14 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
 
   useEffect(() => {
     if (expandedBracket?._id) {
+      console.log('useEffect triggered - expandedBracket changed:', {
+        id: expandedBracket._id,
+        fighters: expandedBracket.fighters,
+        fightersLength: expandedBracket.fighters?.length
+      })
       fetchBracketFighters()
     }
-  }, [expandedBracket?._id])
+  }, [expandedBracket?._id, JSON.stringify(expandedBracket?.fighters)])
 
   const fetchBracketFighters = async () => {
     try {
@@ -61,9 +66,14 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
           console.log('Sample fighter IDs:', data.data.items.slice(0, 3).map(f => f._id))
           
           const assignedFighters = data.data.items.filter(fighter => {
-            const isAssigned = bracketFighters.includes(fighter._id)
+            const fighterId = fighter._id
+            const isAssigned = bracketFighters.includes(fighterId)
+            console.log(`Checking fighter ${fighter.firstName} ${fighter.lastName}:`)
+            console.log(`  Fighter ID: "${fighterId}" (type: ${typeof fighterId})`)
+            console.log(`  Bracket fighters: [${bracketFighters.map(id => `"${id}"`).join(', ')}]`)
+            console.log(`  Is assigned: ${isAssigned}`)
             if (isAssigned) {
-              console.log(`Fighter ${fighter.firstName} ${fighter.lastName} (${fighter._id}) is assigned to bracket`)
+              console.log(`✓ Fighter ${fighter.firstName} ${fighter.lastName} (${fighterId}) is assigned to bracket`)
             }
             return isAssigned
           })
@@ -87,12 +97,15 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
   }
 
   const handleFighterAdded = async () => {
-    // Refresh fighters list after adding
-    await fetchBracketFighters()
-    // Also notify parent to refresh bracket data
+    console.log('handleFighterAdded called')
+    // Notify parent to refresh bracket data
     if (onUpdate) {
-      onUpdate()
+      console.log('Calling parent onUpdate...')
+      await onUpdate()
     }
+    // Also manually trigger a refresh as backup
+    console.log('Manually triggering fetchBracketFighters...')
+    await fetchBracketFighters()
   }
 
   if (loading) {

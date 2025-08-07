@@ -39,7 +39,10 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
         maxCompetitors: expandedBracket.maxCompetitors?.toString() || expandedBracket.fighters?.length?.toString() || '',
         gender: expandedBracket.gender || '',
         ruleStyle: expandedBracket.ruleStyle || '',
-        weightClass: expandedBracket.weightClass ? `${expandedBracket.weightClass.min}-${expandedBracket.weightClass.max} ${expandedBracket.weightClass.unit}` : '',
+        weightClass: expandedBracket.weightClass ? 
+          (typeof expandedBracket.weightClass === 'string' ? 
+            expandedBracket.weightClass.replace(' undefined', ' lbs') : 
+            `${expandedBracket.weightClass.min}-${expandedBracket.weightClass.max} ${expandedBracket.weightClass.unit || 'lbs'}`) : '',
         ageClass: expandedBracket.ageClass || ''
       }
       
@@ -66,7 +69,9 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
   // Auto-generate bracket name when title components change
   useEffect(() => {
     if (gender || ruleStyle || weightClass || ageClass) {
-      const nameParts = [gender, ageClass, ruleStyle, weightClass].filter(part => part && part.trim())
+      const nameParts = [gender, ageClass, ruleStyle, weightClass]
+        .filter(part => part && part.trim() && part !== 'undefined')
+        .map(part => part.toString().trim().replace(' undefined', ' lbs'))
       if (nameParts.length > 0) {
         setBracketName(nameParts.join(' '))
       }
@@ -124,11 +129,13 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
     // Enhanced validation
     const errors = {}
     
-    // Bracket name validation - only allow alphanumeric and spaces
+    // Bracket name validation - allow a wider range of characters for real bracket names
     if (!bracketName || bracketName.trim() === '') {
       errors.bracketName = 'Bracket name is required'
-    } else if (!/^[a-zA-Z0-9\s]+$/.test(bracketName.trim())) {
-      errors.bracketName = 'Bracket name can only contain letters, numbers, and spaces'
+    } else if (bracketName.trim().length > 100) {
+      errors.bracketName = 'Bracket name must be less than 100 characters'
+    } else if (!/^[a-zA-Z0-9\s'&.+\-()/#]+$/.test(bracketName.trim())) {
+      errors.bracketName = 'Bracket name contains invalid characters. Allowed: letters, numbers, spaces, and ( ) \' & . + - / #'
     }
     
     // Mandatory field validation for numeric fields
@@ -165,7 +172,8 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
     setLoading(true)
     try {
       const updateData = {
-        title: bracketName.trim(),
+        title: bracketName.trim(), // Use the actual bracket name for the title
+        divisionTitle: bracketName.trim(), // Store actual name in divisionTitle
         startDayNumber: parseInt(startDayNumber),
         boutRound: parseInt(boutRound), 
         maxCompetitors: parseInt(maxCompetitors),
@@ -174,9 +182,14 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
         bracketNumber: parseInt(bracketSequence) || expandedBracket.bracketNumber,
         // Include title component fields
         gender: gender || '',
-        ruleStyle: ruleStyle || '',
-        weightClass: weightClass || '',
-        ageClass: ageClass || ''
+        ruleStyle: ruleStyle || expandedBracket.ruleStyle || '',
+        // Keep existing weightClass object structure for API
+        weightClass: expandedBracket.weightClass || {min: 0, max: 999, unit: 'lbs'},
+        ageClass: ageClass || expandedBracket.ageClass || '',
+        // Preserve other bracket data to avoid overwrites
+        sport: expandedBracket.sport,
+        status: expandedBracket.status,
+        event: expandedBracket.event
       }
       
       console.log('Updating bracket with data:', updateData)
@@ -185,24 +198,94 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
       if (result.success) {
         alert('✓ Changes saved successfully!')
         
-        // Update original data to match saved data
-        const savedData = {
-          bracketName: updateData.title,
-          startDayNumber: updateData.startDayNumber.toString(),
-          group: updateData.group,
-          ringNumber: updateData.ringNumber,
-          bracketSequence: updateData.bracketNumber.toString(),
-          boutRound: updateData.boutRound.toString(),
-          maxCompetitors: updateData.maxCompetitors.toString(),
-          gender: updateData.gender,
-          ruleStyle: updateData.ruleStyle,
-          weightClass: updateData.weightClass,
-          ageClass: updateData.ageClass
+        // Fetch the updated bracket data from the server
+        try {
+          const response = await fetch(`${API_BASE_URL}/brackets/${expandedBracket._id}`, {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          })
+          
+          if (response.ok) {
+            const refreshedData = await response.json()
+            if (refreshedData.success && refreshedData.data) {
+              // Update form fields with fresh data from server
+              const refreshedBracket = refreshedData.data
+              
+              const updatedData = {
+                bracketName: refreshedBracket.divisionTitle || refreshedBracket.title || '',
+                startDayNumber: refreshedBracket.startDayNumber?.toString() || startDayNumber || '1', // Keep user input if API doesn't save
+                group: refreshedBracket.group || '',
+                ringNumber: refreshedBracket.ringNumber || refreshedBracket.ring || '',
+                bracketSequence: refreshedBracket.bracketSequence?.toString() || refreshedBracket.bracketNumber?.toString() || '',
+                boutRound: refreshedBracket.boutRound?.toString() || boutRound || '120', // Keep user input if API doesn't save
+                maxCompetitors: refreshedBracket.maxCompetitors?.toString() || maxCompetitors || refreshedBracket.fighters?.length?.toString() || '16', // Keep user input if API doesn't save
+                gender: refreshedBracket.gender || '',
+                ruleStyle: refreshedBracket.ruleStyle || '',
+                weightClass: refreshedBracket.weightClass ? 
+                  (typeof refreshedBracket.weightClass === 'string' ? 
+                    refreshedBracket.weightClass.replace(' undefined', ' lbs') : 
+                    `${refreshedBracket.weightClass.min}-${refreshedBracket.weightClass.max} ${refreshedBracket.weightClass.unit || 'lbs'}`) : '',
+                ageClass: refreshedBracket.ageClass || ''
+              }
+              
+              console.log('Updating form fields with:', updatedData)
+              
+              // Update all form fields with refreshed data
+              setBracketName(updatedData.bracketName)
+              setStartDayNumber(updatedData.startDayNumber)
+              setGroup(updatedData.group)
+              setRingNumber(updatedData.ringNumber)
+              setBracketSequence(updatedData.bracketSequence)
+              setBoutRound(updatedData.boutRound)
+              setMaxCompetitors(updatedData.maxCompetitors)
+              setGender(updatedData.gender)
+              setRuleStyle(updatedData.ruleStyle)
+              setWeightClass(updatedData.weightClass)
+              setAgeClass(updatedData.ageClass)
+              
+              // Update original data for comparison
+              setOriginalData(updatedData)
+              
+              console.log('Form fields updated. Current values:', {
+                bracketName: updatedData.bracketName,
+                startDayNumber: updatedData.startDayNumber,
+                boutRound: updatedData.boutRound,
+                maxCompetitors: updatedData.maxCompetitors
+              })
+            }
+          }
+        } catch (fetchError) {
+          console.error('Error fetching updated bracket data:', fetchError)
+          // If fetch fails, use the data we sent as fallback
+          const savedData = {
+            bracketName: updateData.divisionTitle || updateData.title,
+            startDayNumber: updateData.startDayNumber.toString(),
+            group: updateData.group,
+            ringNumber: updateData.ringNumber,
+            bracketSequence: updateData.bracketNumber.toString(),
+            boutRound: updateData.boutRound.toString(),
+            maxCompetitors: updateData.maxCompetitors.toString(),
+            gender: updateData.gender,
+            ruleStyle: updateData.ruleStyle,
+            weightClass: updateData.weightClass,
+            ageClass: updateData.ageClass
+          }
+          setOriginalData(savedData)
         }
         
-        setOriginalData(savedData)
         setHasUnsavedChanges(false)
         setValidationErrors({}) // Clear any validation errors
+        
+        // Force a small delay to ensure state updates are applied
+        setTimeout(() => {
+          console.log('Final form state check:', {
+            startDayNumber,
+            boutRound, 
+            maxCompetitors,
+            bracketName
+          })
+        }, 100)
       } else {
         alert('❌ Error saving changes: ' + (result.error || 'Unknown error'))
       }
@@ -375,8 +458,8 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               type='text'
               value={bracketName || ''}
               onChange={(e) => {
-                // Only allow alphanumeric and spaces
-                const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '')
+                // Allow a wider range of characters for real bracket names
+                const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s'&.+\-()/#]/g, '')
                 setBracketName(cleanValue)
                 // Clear validation error when user starts typing
                 if (validationErrors.bracketName) {
@@ -384,8 +467,8 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                 }
               }}
               onKeyPress={(e) => {
-                // Prevent invalid characters
-                if (!/[a-zA-Z0-9\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                // Prevent invalid characters - allow more realistic bracket name characters
+                if (!/[a-zA-Z0-9\s'&.+\-()/#]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                   e.preventDefault()
                 }
               }}
