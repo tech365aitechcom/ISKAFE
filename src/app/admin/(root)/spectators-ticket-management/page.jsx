@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Ticket, Plus, Trash2, Save, Calendar, Info, DollarSign, Search, Download } from "lucide-react";
+import { Ticket, Plus, Trash2, Save, Calendar, Info, DollarSign, Search, Download, Edit } from "lucide-react";
 
 export default function SpectatorsTicketManagement() {
   const [ticketTiers, setTicketTiers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [savedTiers, setSavedTiers] = useState(new Set());
 
   // Load sample data
   useEffect(() => {
@@ -82,8 +83,19 @@ export default function SpectatorsTicketManagement() {
       return;
     }
 
+    // Mark tier as saved (disable editing)
+    setSavedTiers(prev => new Set([...prev, id]));
     alert(`${tier.name} has been successfully saved`);
     setHasChanges(false);
+  };
+
+  const handleEditTier = (id) => {
+    // Remove from saved tiers to enable editing
+    setSavedTiers(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
   };
 
   const handleSaveAll = () => {
@@ -183,38 +195,53 @@ export default function SpectatorsTicketManagement() {
                   <h5 className="text-[#AEB9E1] mb-2">Ticket Configuration</h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Order*</label>
+                      <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Order <span className="text-red-400">*</span></label>
                       <input
                         type="number"
                         min="1"
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.order}
                         onChange={(e) =>
                           handleFieldChange(tier.id, "order", parseInt(e.target.value))
                         }
+                        disabled={savedTiers.has(tier.id)}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Name*</label>
+                      <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Name <span className="text-red-400">*</span></label>
                       <input
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.name}
                         onChange={(e) =>
                           handleFieldChange(tier.id, "name", e.target.value)
                         }
                         placeholder="e.g., General Admission"
+                        disabled={savedTiers.has(tier.id)}
                       />
                     </div>
                   </div>
                   <div className="mb-4">
                     <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Description</label>
                     <textarea
-                      className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                      className={`w-full border text-white rounded px-3 py-2 ${
+                        savedTiers.has(tier.id) 
+                          ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                          : 'bg-[#0B1739] border-[#343B4F]'
+                      }`}
                       value={tier.description}
                       onChange={(e) =>
                         handleFieldChange(tier.id, "description", e.target.value)
                       }
                       rows={2}
+                      disabled={savedTiers.has(tier.id)}
                     />
                   </div>
                 </div>
@@ -223,27 +250,37 @@ export default function SpectatorsTicketManagement() {
                   <h5 className="text-[#AEB9E1] mb-2">Pricing & Inventory</h5>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm text-[#AEB9E1] mb-1">Price ($)*</label>
+                      <label className="block text-sm text-[#AEB9E1] mb-1">Price ($) <span className="text-red-400">*</span></label>
                       <input
                         type="number"
                         min="0"
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.price}
                         onChange={(e) =>
                           handleFieldChange(tier.id, "price", parseFloat(e.target.value))
                         }
+                        disabled={savedTiers.has(tier.id)}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-[#AEB9E1] mb-1">Capacity*</label>
+                      <label className="block text-sm text-[#AEB9E1] mb-1">Capacity <span className="text-red-400">*</span></label>
                       <input
                         type="number"
                         min="1"
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.capacity}
                         onChange={(e) =>
                           handleFieldChange(tier.id, "capacity", parseInt(e.target.value))
                         }
+                        disabled={savedTiers.has(tier.id)}
                       />
                     </div>
                     <div>
@@ -266,13 +303,18 @@ export default function SpectatorsTicketManagement() {
                   <h5 className="text-[#AEB9E1] mb-2">Availability & Restrictions</h5>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm text-[#AEB9E1] mb-1">Online/ On-Site*</label>
+                      <label className="block text-sm text-[#AEB9E1] mb-1">Online/ On-Site <span className="text-red-400">*</span></label>
                       <select
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.saleMode}
                         onChange={(e) =>
                           handleFieldChange(tier.id, "saleMode", e.target.value)
                         }
+                        disabled={savedTiers.has(tier.id)}
                       >
                         <option value="Online Only">Online Only</option>
                         <option value="On-Site">On-Site Only</option>
@@ -280,25 +322,35 @@ export default function SpectatorsTicketManagement() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm text-[#AEB9E1] mb-1">Sales Start Date*</label>
+                      <label className="block text-sm text-[#AEB9E1] mb-1">Sales Start Date <span className="text-red-400">*</span></label>
                       <input
                         type="date"
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.startDate.split('-').reverse().join('-')}
                         onChange={(e) =>
                           handleFieldChange(tier.id, "startDate", e.target.value.split('-').reverse().join('-'))
                         }
+                        disabled={savedTiers.has(tier.id)}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-[#AEB9E1] mb-1">Sales End Date*</label>
+                      <label className="block text-sm text-[#AEB9E1] mb-1">Sales End Date <span className="text-red-400">*</span></label>
                       <input
                         type="date"
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.endDate.split('-').reverse().join('-')}
                         onChange={(e) =>
                           handleFieldChange(tier.id, "endDate", e.target.value.split('-').reverse().join('-'))
                         }
+                        disabled={savedTiers.has(tier.id)}
                       />
                     </div>
                     <div>
@@ -306,7 +358,11 @@ export default function SpectatorsTicketManagement() {
                       <input
                         type="number"
                         min="0"
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-white rounded px-3 py-2"
+                        className={`w-full border text-white rounded px-3 py-2 ${
+                          savedTiers.has(tier.id) 
+                            ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : 'bg-[#0B1739] border-[#343B4F]'
+                        }`}
                         value={tier.limitPerUser || ""}
                         onChange={(e) =>
                           handleFieldChange(
@@ -315,6 +371,7 @@ export default function SpectatorsTicketManagement() {
                             e.target.value ? parseInt(e.target.value) : null
                           )
                         }
+                        disabled={savedTiers.has(tier.id)}
                       />
                     </div>
                   </div>
@@ -332,13 +389,24 @@ export default function SpectatorsTicketManagement() {
                     >
                       <Trash2 size={18} />
                     </button>
-                    <button
-                      className="text-[#AEB9E1] hover:text-purple-400 p-1"
-                      onClick={() => handleSaveTier(tier.id)}
-                      disabled={!hasChanges}
-                    >
-                      <Save size={18} />
-                    </button>
+                    {savedTiers.has(tier.id) ? (
+                      <button
+                        className="text-[#AEB9E1] hover:text-blue-400 p-1"
+                        onClick={() => handleEditTier(tier.id)}
+                        title="Edit tier"
+                      >
+                        <Edit size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        className="text-[#AEB9E1] hover:text-purple-400 p-1"
+                        onClick={() => handleSaveTier(tier.id)}
+                        disabled={!hasChanges}
+                        title="Save tier"
+                      >
+                        <Save size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

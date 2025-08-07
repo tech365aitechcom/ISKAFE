@@ -1172,7 +1172,7 @@ export default function EventDetailsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
               {spectatorTickets.tiers.map((tier, index) => (
                 <div key={index} className="flex justify-between items-center">
-                  <div>
+                  <div className="flex-1 mr-4">
                     <p className="text-sm mb-1">Tier {tier.order} - {tier.name}</p>
                     <p className="font-medium">
                       ${(tier.price / 100).toFixed(2)} • {tier.remaining}/{tier.capacity} remaining
@@ -1180,7 +1180,8 @@ export default function EventDetailsPage() {
                   </div>
                   <button
                     onClick={() => handleEditTier(tier, index)}
-                    className="text-white hover:text-gray-300"
+                    className="text-white hover:text-gray-300 p-2 rounded-lg hover:bg-[#343B4F] transition-colors"
+                    title="Edit tier"
                   >
                     <Edit size={16} />
                   </button>
@@ -1343,7 +1344,7 @@ export default function EventDetailsPage() {
                   <button
                     onClick={deleteTier}
                     disabled={ticketsLoading}
-                    className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm disabled:opacity-50"
+                    className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
                   >
                     <Trash2 size={16} className="mr-2" />
                     Delete
@@ -1351,14 +1352,14 @@ export default function EventDetailsPage() {
                 )}
                 <button
                   onClick={() => setShowTierForm(false)}
-                  className="px-4 py-2 text-gray-400 hover:text-white"
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors border border-gray-500"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveTier}
                   disabled={ticketsLoading}
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-[#CB3CFF] to-[#7F25FB] rounded-lg text-sm hover:opacity-90 disabled:opacity-50"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-[#CB3CFF] to-[#7F25FB] rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-all shadow-lg"
                 >
                   <Save size={16} className="mr-2" />
                   {editingTier ? 'Update' : 'Save'}

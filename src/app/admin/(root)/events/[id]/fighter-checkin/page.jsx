@@ -249,12 +249,29 @@ function CheckinForm({ fighter, onCheckin }) {
       errors.category = 'Category is required';
     }
 
+    if (!formData.trainingFacility || formData.trainingFacility.trim() === '') {
+      errors.trainingFacility = 'Training facility is required';
+    }
+
     if (!formData.emergencyContact.name || formData.emergencyContact.name.trim() === '') {
       errors.emergencyContactName = 'Emergency contact name is required';
     }
 
     if (!formData.emergencyContact.phone || formData.emergencyContact.phone.trim() === '') {
       errors.emergencyContactPhone = 'Emergency contact phone is required';
+    }
+
+    if (!formData.countryOfOrigin || formData.countryOfOrigin.trim() === '') {
+      errors.countryOfOrigin = 'Country of origin is required';
+    }
+
+    // Parental consent required if under 18
+    const fighterAge = fighter.dateOfBirth 
+      ? new Date().getFullYear() - new Date(fighter.dateOfBirth).getFullYear()
+      : null;
+    
+    if (fighterAge && fighterAge < 18 && !formData.parentalConsentUploaded) {
+      errors.parentalConsentUploaded = 'Parental consent is required for fighters under 18';
     }
 
     // NEW: Skill Rank required
@@ -444,7 +461,7 @@ function CheckinForm({ fighter, onCheckin }) {
                 <h3 className="font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2">Weigh-in Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm mb-1">Weight (lbs) *</label>
+                    <label className="block text-sm mb-1">Weight (lbs) <span className="text-red-400">*</span></label>
                     <input
                       type="number"
                       name="weighInValue"
@@ -464,7 +481,7 @@ function CheckinForm({ fighter, onCheckin }) {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm mb-1">Weigh-in Date *</label>
+                    <label className="block text-sm mb-1">Weigh-in Date <span className="text-red-400">*</span></label>
                     <input
                       type="date"
                       name="weighInDate"
@@ -521,7 +538,7 @@ function CheckinForm({ fighter, onCheckin }) {
                   </div>
 
                   <div>
-                    <label className="block text-sm mb-1">Category *</label>
+                    <label className="block text-sm mb-1">Category <span className="text-red-400">*</span></label>
                     <select
                       name="category"
                       value={formData.category}
@@ -554,18 +571,26 @@ function CheckinForm({ fighter, onCheckin }) {
                 <h3 className="font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2">Training Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm mb-1">Training Facility</label>
+                    <label className="block text-sm mb-1">Training Facility <span className="text-red-400">*</span></label>
                     <input
                       type="text"
                       name="trainingFacility"
                       value={formData.trainingFacility}
                       onChange={handleChange}
-                      className="w-full bg-[#07091D] border border-[#343B4F] rounded px-3 py-2"
+                      className={`w-full bg-[#07091D] border rounded px-3 py-2 ${
+                        validationErrors.trainingFacility 
+                          ? 'border-red-500 focus:border-red-500' 
+                          : 'border-[#343B4F] focus:border-blue-500'
+                      }`}
                       placeholder="e.g., Elite MMA Gym, Champions Dojo"
+                      required
                     />
+                    {validationErrors.trainingFacility && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.trainingFacility}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm mb-1">Skill Rank/Belt Level *</label>
+                    <label className="block text-sm mb-1">Skill Rank/Belt Level <span className="text-red-400">*</span></label>
                     <input
                       type="text"
                       name="skillRank"
@@ -682,7 +707,7 @@ function CheckinForm({ fighter, onCheckin }) {
                 <h3 className="font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2">Medical & Payments</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm mb-1">Payments Status *</label>
+                    <label className="block text-sm mb-1">Payments Status <span className="text-red-400">*</span></label>
                     <select
                       name="requiredPaymentsPaid"
                       value={formData.requiredPaymentsPaid}
@@ -726,7 +751,7 @@ function CheckinForm({ fighter, onCheckin }) {
                       className={`mr-2 ${validationErrors.medicalExamDone ? 'border-red-500' : ''}`}
                       required
                     />
-                    <label className="text-sm">Medical Exam Completed *</label>
+                    <label className="text-sm">Medical Exam Completed <span className="text-red-400">*</span></label>
                   </div>
                   {validationErrors.medicalExamDone && (
                     <p className="text-red-500 text-xs mt-1">{validationErrors.medicalExamDone}</p>
@@ -774,10 +799,13 @@ function CheckinForm({ fighter, onCheckin }) {
                       name="parentalConsentUploaded"
                       checked={formData.parentalConsentUploaded}
                       onChange={handleChange}
-                      className="mr-2"
+                      className={`mr-2 ${validationErrors.parentalConsentUploaded ? 'border-red-500' : ''}`}
                     />
-                    <label className="text-sm">Parental Consent Uploaded (if under 18)</label>
+                    <label className="text-sm">Parental Consent Uploaded (if under 18) <span className="text-red-400">*</span></label>
                   </div>
+                  {validationErrors.parentalConsentUploaded && (
+                    <p className="text-red-500 text-xs mt-1">{validationErrors.parentalConsentUploaded}</p>
+                  )}
                 </div>
               </div>
 
@@ -786,7 +814,7 @@ function CheckinForm({ fighter, onCheckin }) {
                 <h3 className="font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2">Emergency Contact</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm mb-1">Name *</label>
+                    <label className="block text-sm mb-1">Name <span className="text-red-400">*</span></label>
                     <input
                       type="text"
                       name="emergencyContactName"
@@ -820,7 +848,7 @@ function CheckinForm({ fighter, onCheckin }) {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm mb-1">Phone *</label>
+                    <label className="block text-sm mb-1">Phone <span className="text-red-400">*</span></label>
                     <input
                       type="tel"
                       name="emergencyContactPhone"
@@ -862,15 +890,23 @@ function CheckinForm({ fighter, onCheckin }) {
                 <h3 className="font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2">Additional Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm mb-1">Country of Origin</label>
+                    <label className="block text-sm mb-1">Country of Origin <span className="text-red-400">*</span></label>
                     <input
                       type="text"
                       name="countryOfOrigin"
                       value={formData.countryOfOrigin || ''}
                       onChange={handleChange}
                       placeholder="e.g., USA, Canada"
-                      className="w-full bg-[#07091D] border border-[#343B4F] rounded px-3 py-2"
+                      className={`w-full bg-[#07091D] border rounded px-3 py-2 ${
+                        validationErrors.countryOfOrigin 
+                          ? 'border-red-500 focus:border-red-500' 
+                          : 'border-[#343B4F] focus:border-blue-500'
+                      }`}
+                      required
                     />
+                    {validationErrors.countryOfOrigin && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.countryOfOrigin}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm mb-1">Last Event Participated</label>
