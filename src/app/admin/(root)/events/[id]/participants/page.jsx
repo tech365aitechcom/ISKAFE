@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { Search, Filter, Users, UserCheck, Phone, Mail, FileText, ArrowLeft, X, ChevronDown } from 'lucide-react'
+import { Search, Filter, Users, UserCheck, Phone, Mail, FileText, ArrowLeft, X, ChevronDown, User, MapPin, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { API_BASE_URL } from '../../../../../../constants'
 import useStore from '../../../../../../stores/useStore'
@@ -45,6 +45,12 @@ export default function CompetitorList() {
   })
 
   useEffect(() => {
+    console.log('=== Main useEffect Triggered ===')
+    console.log('params:', params?.id)
+    console.log('activeTab:', activeTab)
+    console.log('searchTerm:', searchTerm)
+    console.log('filters:', filters)
+    
     if (params?.id) {
       setEventId(params.id)
       fetchEvent(params.id)
@@ -75,19 +81,23 @@ export default function CompetitorList() {
     try {
       setLoading(true)
       
-      // Build query parameters
+      // Build query parameters - only use working backend filters
       const queryParams = new URLSearchParams()
       
-      if (activeTab === 'fighters') queryParams.append('type', 'fighter')
-      if (activeTab === 'trainers') queryParams.append('type', 'trainer')
-      if (searchTerm) queryParams.append('search', searchTerm)
-      if (filters.ageMin) queryParams.append('ageMin', filters.ageMin)
-      if (filters.ageMax) queryParams.append('ageMax', filters.ageMax)
-      if (filters.phone) queryParams.append('phone', filters.phone)
-      if (filters.email) queryParams.append('email', filters.email)
+      // Only add filters that work on the backend
+      if (activeTab === 'fighters') queryParams.append('registrationType', 'fighter')
+      if (activeTab === 'trainers') queryParams.append('registrationType', 'trainer')
+      if (filters.type) queryParams.append('registrationType', filters.type)
       if (filters.eventParticipation) queryParams.append('participated', 'true')
       queryParams.append('page', page.toString())
-      queryParams.append('limit', pagination.pageSize.toString())
+      queryParams.append('limit', '100') // Get more records for client-side filtering
+      
+      console.log('=== Fetching Participants Debug ===')
+      console.log('Active Tab:', activeTab)
+      console.log('Search Term:', searchTerm)
+      console.log('Filters:', filters)
+      console.log('Query Params:', queryParams.toString())
+      console.log('API URL:', `${API_BASE_URL}/registrations/event/${id}?${queryParams}`)
       
       const response = await fetch(`${API_BASE_URL}/registrations/event/${id}?${queryParams}`, {
         headers: {
@@ -95,18 +105,130 @@ export default function CompetitorList() {
         },
       })
       
+      console.log('API Response Status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('API Response Data:', data)
         if (data.success) {
-          setCompetitors(data.data.items || [])
-          setPagination(data.data.pagination)
+          let allItems = data.data.items || []
+          console.log('Raw API competitors:', allItems.length)
+          
+          // Apply client-side filtering for parameters that don't work on backend
+          let filteredItems = allItems
+          console.log('=== Starting Client-Side Filtering ===')
+          console.log('Initial items:', filteredItems.length)
+          
+          // Search filter (name, email, phone)
+          if (searchTerm && searchTerm.trim()) {
+            console.log('Applying search filter for:', searchTerm)
+            const searchLower = searchTerm.trim().toLowerCase()
+            const beforeCount = filteredItems.length
+            
+            filteredItems = filteredItems.filter(competitor => {
+              const fullName = `${competitor.firstName || ''} ${competitor.lastName || ''}`.toLowerCase()
+              const email = (competitor.email || '').toLowerCase()
+              const phone = (competitor.phoneNumber || '').replace(/\D/g, '') // Remove non-digits for phone search
+              const searchPhone = searchTerm.replace(/\D/g, '')
+              
+              const matches = fullName.includes(searchLower) || 
+                             email.includes(searchLower) || 
+                             (searchPhone && phone.includes(searchPhone))
+              
+              if (matches) {
+                console.log(`✓ Search match: ${fullName} (${email})`)
+              }
+              
+              return matches
+            })
+            
+            console.log(`Search filter: ${beforeCount} → ${filteredItems.length}`)
+          }
+          
+          // Email filter
+          if (filters.email && filters.email.trim()) {
+            console.log('Applying email filter for:', filters.email)
+            const emailFilter = filters.email.trim().toLowerCase()
+            const beforeCount = filteredItems.length
+            
+            filteredItems = filteredItems.filter(competitor => {
+              const matches = (competitor.email || '').toLowerCase().includes(emailFilter)
+              if (matches) {
+                console.log(`✓ Email match: ${competitor.email}`)
+              }
+              return matches
+            })
+            
+            console.log(`Email filter: ${beforeCount} → ${filteredItems.length}`)
+          }
+          
+          // Phone filter
+          if (filters.phone && filters.phone.trim()) {
+            console.log('Applying phone filter for:', filters.phone)
+            const phoneFilter = filters.phone.replace(/\D/g, '') // Remove non-digits
+            const beforeCount = filteredItems.length
+            
+            filteredItems = filteredItems.filter(competitor => {
+              const phone = (competitor.phoneNumber || '').replace(/\D/g, '')
+              const matches = phone.includes(phoneFilter)
+              if (matches) {
+                console.log(`✓ Phone match: ${competitor.phoneNumber} → ${phone}`)
+              }
+              return matches
+            })
+            
+            console.log(`Phone filter: ${beforeCount} → ${filteredItems.length}`)
+          }
+          
+          // Age filter
+          if (filters.ageMin || filters.ageMax) {
+            console.log('Applying age filter:', { ageMin: filters.ageMin, ageMax: filters.ageMax })
+            const beforeCount = filteredItems.length
+            
+            filteredItems = filteredItems.filter(competitor => {
+              const age = calculateAge(competitor.dateOfBirth)
+              if (age === 'N/A' || isNaN(age)) return false
+              
+              let matchesAge = true
+              if (filters.ageMin && age < parseInt(filters.ageMin)) matchesAge = false
+              if (filters.ageMax && age > parseInt(filters.ageMax)) matchesAge = false
+              
+              if (matchesAge) {
+                console.log(`✓ Age match: ${competitor.firstName} ${competitor.lastName} (age ${age})`)
+              }
+              
+              return matchesAge
+            })
+            
+            console.log(`Age filter: ${beforeCount} → ${filteredItems.length}`)
+          }
+          
+          console.log('Filtered competitors:', filteredItems.length)
+          console.log('Applied filters:', {
+            searchTerm: searchTerm,
+            email: filters.email,
+            phone: filters.phone,
+            ageMin: filters.ageMin,
+            ageMax: filters.ageMax
+          })
+          
+          setCompetitors(filteredItems)
+          setPagination({
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: filteredItems.length,
+            pageSize: filteredItems.length
+          })
         } else {
+          console.log('API returned unsuccessful response')
           setCompetitors([])
         }
       } else {
+        console.log('API request failed with status:', response.status)
         setCompetitors([])
       }
     } catch (err) {
+      console.error('Error fetching competitors:', err)
       setError(err.message)
       setCompetitors([])
     } finally {
@@ -129,8 +251,11 @@ export default function CompetitorList() {
   }
 
   const handleViewRegistration = (competitor) => {
+    console.log('=== Opening Participant Detail Modal ===')
+    console.log('Selected competitor:', competitor)
     setSelectedCompetitor(competitor)
     setShowDetailModal(true)
+    console.log('Modal state set to true')
   }
 
   const handleTabChange = (tab) => {
@@ -144,6 +269,16 @@ export default function CompetitorList() {
   }
 
   const handleFilterChange = (newFilters) => {
+    console.log('=== Parent: Received Filter Change ===')
+    console.log('Previous filters:', filters)
+    console.log('New filters:', newFilters)
+    console.log('Filter changes:')
+    Object.keys(newFilters).forEach(key => {
+      if (filters[key] !== newFilters[key]) {
+        console.log(`  - ${key}: "${filters[key]}" → "${newFilters[key]}"`)
+      }
+    })
+    
     setFilters(newFilters)
     setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
@@ -218,13 +353,121 @@ export default function CompetitorList() {
           {activeTab !== 'all' && ` (${activeTab} only)`}
         </div>
 
-        {/* Competitor Table */}
-        <CompetitorTable
-          competitors={competitors}
-          calculateAge={calculateAge}
-          onViewRegistration={handleViewRegistration}
-          loading={loading}
-        />
+        {/* Results Display - Toggle between table and card view based on search/filter activity */}
+        {(searchTerm || Object.values(filters).some(value => value !== '' && value !== false)) && !loading ? (
+          /* Detailed Card View for Search Results */
+          <div className='space-y-4'>
+            {competitors.length === 0 ? (
+              <div className='text-center py-12'>
+                <Users size={48} className='mx-auto mb-4 text-gray-600' />
+                <p className='text-gray-400 mb-2'>No participants found matching your criteria</p>
+                <p className='text-sm text-gray-500'>Try adjusting your search terms or filters</p>
+              </div>
+            ) : (
+              competitors.map((competitor, index) => {
+                const age = calculateAge(competitor.dateOfBirth)
+                const location = [competitor.city, competitor.state, competitor.country]
+                  .filter(Boolean).join(', ') || 'Location not provided'
+                
+                return (
+                  <div 
+                    key={competitor._id || index}
+                    className='bg-[#0A1330] border border-gray-600 rounded-lg p-4 hover:bg-[#0D1640] transition-colors'
+                  >
+                    <div className='flex items-center gap-4'>
+                      {/* Thumbnail */}
+                      <div className='flex-shrink-0'>
+                        {competitor.profilePhoto ? (
+                          <img
+                            src={competitor.profilePhoto}
+                            alt={`${competitor.firstName} ${competitor.lastName}`}
+                            className='w-16 h-16 rounded-full object-cover border-2 border-gray-600'
+                          />
+                        ) : (
+                          <div className='w-16 h-16 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 border-2 border-gray-600 flex items-center justify-center'>
+                            <User className='w-8 h-8 text-gray-300' />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Main Content */}
+                      <div className='flex-1 min-w-0'>
+                        <div className='flex items-start justify-between'>
+                          <div className='flex-1'>
+                            {/* Name with Link */}
+                            <button
+                              onClick={() => handleViewRegistration(competitor)}
+                              className='text-left hover:text-blue-300 transition-colors group'
+                            >
+                              <h3 className='text-lg font-semibold text-blue-400 group-hover:underline'>
+                                {competitor.firstName} {competitor.lastName}
+                              </h3>
+                            </button>
+                            
+                            {/* Auto-fill Info (Type, Status) */}
+                            <div className='flex items-center gap-3 mt-1'>
+                              <span className='text-sm text-gray-300 bg-gray-700 px-2 py-1 rounded'>
+                                {competitor.registrationType?.charAt(0).toUpperCase() + competitor.registrationType?.slice(1)}
+                              </span>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                competitor.status === 'Approved' ? 'bg-green-500/20 text-green-400' :
+                                competitor.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                'bg-red-500/20 text-red-400'
+                              }`}>
+                                {competitor.status}
+                              </span>
+                            </div>
+                            
+                            {/* Location and Age */}
+                            <div className='flex items-center gap-4 mt-2 text-sm text-gray-400'>
+                              <div className='flex items-center gap-1'>
+                                <MapPin size={14} />
+                                <span className='truncate max-w-xs' title={location}>
+                                  {location}
+                                </span>
+                              </div>
+                              <div className='flex items-center gap-1'>
+                                <Calendar size={14} />
+                                <span>Age: {age}</span>
+                              </div>
+                            </div>
+                            
+                            {/* Email */}
+                            <div className='flex items-center gap-1 mt-1 text-sm text-gray-400'>
+                              <Mail size={14} />
+                              <span className='truncate max-w-sm' title={competitor.email}>
+                                {competitor.email}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Action Buttons */}
+                          <div className='flex items-center gap-2 ml-4'>
+                            <button
+                              onClick={() => handleViewRegistration(competitor)}
+                              className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors flex items-center gap-2'
+                            >
+                              <FileText size={16} />
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        ) : (
+          /* Default Table View */
+          <CompetitorTable
+            competitors={competitors}
+            calculateAge={calculateAge}
+            onViewRegistration={handleViewRegistration}
+            loading={loading}
+          />
+        )}
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (

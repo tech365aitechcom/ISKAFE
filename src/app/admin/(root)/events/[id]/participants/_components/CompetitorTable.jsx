@@ -119,8 +119,15 @@ export default function CompetitorTable({
                     </div>
                   </td>
                   <td className='p-4'>
-                    <div className='cursor-pointer' onClick={() => onViewRegistration(competitor)}>
-                      <div className='font-medium text-blue-400 hover:text-blue-300 transition-colors'>
+                    <div 
+                      className='cursor-pointer hover:bg-blue-500/10 p-2 rounded-lg transition-colors' 
+                      onClick={() => {
+                        console.log('Clicked on participant:', competitor)
+                        onViewRegistration(competitor)
+                      }}
+                      title="Click to view participant details"
+                    >
+                      <div className='font-medium text-blue-400 hover:text-blue-300 transition-colors underline'>
                         {nameInfo.fullName}
                       </div>
                       {nameInfo.details && (

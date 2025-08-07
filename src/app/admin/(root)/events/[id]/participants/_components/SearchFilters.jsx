@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Filter, X, ChevronDown } from 'lucide-react'
 
 export default function SearchFilters({ 
@@ -12,12 +12,28 @@ export default function SearchFilters({
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [localFilters, setLocalFilters] = useState(filters)
 
+  // Sync localFilters with props when filters change
+  useEffect(() => {
+    console.log('SearchFilters: filters prop changed:', filters)
+    setLocalFilters(filters)
+  }, [filters])
+
   const handleSearchSubmit = (e) => {
     e.preventDefault()
     onSearchChange(searchTerm)
   }
 
   const handleFilterSubmit = () => {
+    console.log('=== Applying Filters ===')
+    console.log('Local filters being applied:', localFilters)
+    console.log('Current form values:')
+    console.log('  - ageMin:', localFilters.ageMin)
+    console.log('  - ageMax:', localFilters.ageMax) 
+    console.log('  - phone:', localFilters.phone)
+    console.log('  - email:', localFilters.email)
+    console.log('  - type:', localFilters.type)
+    console.log('  - eventParticipation:', localFilters.eventParticipation)
+    
     onFilterChange(localFilters)
     setShowAdvancedFilters(false)
   }
@@ -48,7 +64,10 @@ export default function SearchFilters({
           <input
             type='text'
             value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => {
+              console.log('Search term changed to:', e.target.value)
+              onSearchChange(e.target.value)
+            }}
             placeholder='Search by name, email, or phone...'
             className='w-full bg-[#0A1330] border border-gray-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500'
           />
