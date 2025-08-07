@@ -129,13 +129,13 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
     // Enhanced validation
     const errors = {}
     
-    // Bracket name validation - allow a wider range of characters for real bracket names
+    // Bracket name validation - allow characters commonly used in auto-generation and manual entry
     if (!bracketName || bracketName.trim() === '') {
       errors.bracketName = 'Bracket name is required'
     } else if (bracketName.trim().length > 100) {
       errors.bracketName = 'Bracket name must be less than 100 characters'
-    } else if (!/^[a-zA-Z0-9\s'&.+\-()/#]+$/.test(bracketName.trim())) {
-      errors.bracketName = 'Bracket name contains invalid characters. Allowed: letters, numbers, spaces, and ( ) \' & . + - / #'
+    } else if (!/^[a-zA-Z0-9\s'&.+\-()/#:,_]+$/.test(bracketName.trim())) {
+      errors.bracketName = 'Bracket name contains invalid characters. Allowed: letters, numbers, spaces, and common punctuation'
     }
     
     // Mandatory field validation for numeric fields
@@ -458,8 +458,8 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               type='text'
               value={bracketName || ''}
               onChange={(e) => {
-                // Allow a wider range of characters for real bracket names
-                const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s'&.+\-()/#]/g, '')
+                // Allow characters commonly used in auto-generation and manual entry
+                const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s'&.+\-()/#:,_]/g, '')
                 setBracketName(cleanValue)
                 // Clear validation error when user starts typing
                 if (validationErrors.bracketName) {
@@ -467,8 +467,8 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                 }
               }}
               onKeyPress={(e) => {
-                // Prevent invalid characters - allow more realistic bracket name characters
-                if (!/[a-zA-Z0-9\s'&.+\-()/#]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                // Prevent invalid characters - allow characters used in auto-generation
+                if (!/[a-zA-Z0-9\s'&.+\-()/#:,_]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
                   e.preventDefault()
                 }
               }}
@@ -653,7 +653,8 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               value={bracketSequence}
               onChange={setBracketSequence}
               validation='numeric'
-              required
+              required={true}
+              error={validationErrors.bracketSequence}
             />
           </div>
         </div>
@@ -666,33 +667,36 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
           <div className='grid grid-cols-4 gap-6'>
             <InputBox
               label='Start on Day Number'
-              required
+              required={true}
               type='number'
               placeholder='e.g., 1'
               min='1'
               value={startDayNumber}
               onChange={setStartDayNumber}
               validation='numeric'
+              error={validationErrors.startDayNumber}
             />
             <InputBox
               label='Bout Round Duration (sec)'
-              required
+              required={true}
               type='number'
               placeholder='e.g., 120'
               min='1'
               value={boutRound}
               onChange={setBoutRound}
               validation='numeric'
+              error={validationErrors.boutRound}
             />
             <InputBox
               label='Max Competitors'
-              required
+              required={true}
               type='number'
               placeholder='e.g., 16'
               min='1'
               value={maxCompetitors}
               onChange={setMaxCompetitors}
               validation='numeric'
+              error={validationErrors.maxCompetitors}
             />
           </div>
           

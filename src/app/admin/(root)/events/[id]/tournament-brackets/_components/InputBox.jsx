@@ -9,9 +9,13 @@ export default function InputBox({
   placeholder = '',
   min,
   max,
-  validation = 'alphanumeric' // 'numeric', 'alphanumeric', 'text'
+  validation = 'alphanumeric', // 'numeric', 'alphanumeric', 'text'
+  error: externalError // Error passed from parent component
 }) {
-  const [error, setError] = useState('')
+  const [internalError, setInternalError] = useState('')
+  
+  // Use external error if provided, otherwise use internal error
+  const error = externalError || internalError
 
   const validateInput = (inputValue, validationType) => {
     if (!inputValue || inputValue.trim() === '') {
@@ -61,9 +65,11 @@ export default function InputBox({
   const handleChange = (e) => {
     let newValue = e.target.value
     
-    // Real-time validation
-    const validationError = validateInput(newValue, validation)
-    setError(validationError)
+    // Real-time validation - only set internal error if no external error
+    if (!externalError) {
+      const validationError = validateInput(newValue, validation)
+      setInternalError(validationError)
+    }
     
     // For numeric inputs, prevent invalid characters completely
     if (validation === 'numeric' || type === 'number') {
@@ -97,9 +103,11 @@ export default function InputBox({
   }
 
   const handleBlur = () => {
-    // Final validation on blur
-    const validationError = validateInput(value, validation)
-    setError(validationError)
+    // Final validation on blur - only set internal error if no external error
+    if (!externalError) {
+      const validationError = validateInput(value, validation)
+      setInternalError(validationError)
+    }
   }
 
   return (

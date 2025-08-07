@@ -172,10 +172,10 @@ const TournamentResultsPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div className="flex items-center">
-            <Link href={`/admin/events/${eventId}`}>
+            <Link href={`/admin/events/view/${eventId}`}>
               <button className="flex items-center px-4 py-2 bg-[#1E3A8A] hover:bg-[#2D4AB2] rounded-lg transition-all">
                 <ChevronLeft size={20} />
-                <span className="ml-2">Back to Event</span>
+                <span className="ml-2">Back to Event Page</span>
               </button>
             </Link>
             <div className="ml-6">
