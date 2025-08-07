@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { Search, Filter, Users, UserCheck, Phone, Mail, FileText, ArrowLeft, X, ChevronDown, User, MapPin, Calendar } from 'lucide-react'
+import { Search, Filter, Users, UserCheck, Phone, Mail, FileText, ArrowLeft, X, ChevronDown, User, MapPin, Calendar, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { API_BASE_URL } from '../../../../../../constants'
 import useStore from '../../../../../../stores/useStore'
@@ -10,6 +10,7 @@ import Loader from '../../../../../_components/Loader'
 import CompetitorTable from './_components/CompetitorTable'
 import SearchFilters from './_components/SearchFilters'
 import CompetitorDetailModal from './_components/CompetitorDetailModal'
+import AddParticipantModal from './_components/AddParticipantModal'
 
 export default function CompetitorList() {
   const params = useParams()
@@ -35,6 +36,7 @@ export default function CompetitorList() {
   // Modal state
   const [selectedCompetitor, setSelectedCompetitor] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showAddParticipantModal, setShowAddParticipantModal] = useState(false)
   
   // Pagination
   const [pagination, setPagination] = useState({
@@ -85,9 +87,14 @@ export default function CompetitorList() {
       const queryParams = new URLSearchParams()
       
       // Only add filters that work on the backend
-      if (activeTab === 'fighters') queryParams.append('registrationType', 'fighter')
-      if (activeTab === 'trainers') queryParams.append('registrationType', 'trainer')
-      if (filters.type) queryParams.append('registrationType', filters.type)
+      // Priority: Advanced filter type > Tab filter > No filter
+      if (filters.type) {
+        queryParams.append('registrationType', filters.type)
+      } else if (activeTab === 'fighters') {
+        queryParams.append('registrationType', 'fighter')
+      } else if (activeTab === 'trainers') {
+        queryParams.append('registrationType', 'trainer')
+      }
       if (filters.eventParticipation) queryParams.append('participated', 'true')
       queryParams.append('page', page.toString())
       queryParams.append('limit', '100') // Get more records for client-side filtering
@@ -253,9 +260,10 @@ export default function CompetitorList() {
   const handleViewRegistration = (competitor) => {
     console.log('=== Opening Participant Detail Modal ===')
     console.log('Selected competitor:', competitor)
+    console.log('Modal will show for:', `${competitor.firstName} ${competitor.lastName}`)
     setSelectedCompetitor(competitor)
     setShowDetailModal(true)
-    console.log('Modal state set to true')
+    console.log('Modal state set to true, showDetailModal:', true)
   }
 
   const handleTabChange = (tab) => {
@@ -283,6 +291,14 @@ export default function CompetitorList() {
     setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
+  const handleParticipantAdded = () => {
+    console.log('Participant added successfully, refreshing list...')
+    // Refresh the participants list
+    if (eventId) {
+      fetchCompetitors(eventId)
+    }
+  }
+
   if (loading && competitors.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-[#07091D]">
@@ -303,19 +319,32 @@ export default function CompetitorList() {
       
       <div className='bg-[#0B1739] bg-opacity-80 rounded-lg p-10 shadow-lg w-full z-50'>
         {/* Header */}
-        <div className='flex items-center gap-4 mb-6'>
-          <Link href={`/admin/events/view/${eventId}`}>
-            <button className='mr-2 hover:bg-gray-700 p-2 rounded'>
-              <ArrowLeft className='h-6 w-6' />
+        <div className='flex items-center justify-between mb-6'>
+          <div className='flex items-center gap-4'>
+            <Link href={`/admin/events/view/${eventId}`}>
+              <button className='mr-2 hover:bg-gray-700 p-2 rounded'>
+                <ArrowLeft className='h-6 w-6' />
+              </button>
+            </Link>
+            <div>
+              <h1 className='text-2xl font-bold'>Event Participants</h1>
+              {event && (
+                <p className='text-sm text-gray-300'>
+                  {event.name} ({event.startDate ? new Date(event.startDate).toLocaleDateString() : 'Date not set'})
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* Toolbar Actions */}
+          <div className='flex items-center gap-3'>
+            <button
+              onClick={() => setShowAddParticipantModal(true)}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors'
+            >
+              <UserPlus size={16} />
+              Add Participant to Event
             </button>
-          </Link>
-          <div>
-            <h1 className='text-2xl font-bold'>Event Participants</h1>
-            {event && (
-              <p className='text-sm text-gray-300'>
-                {event.name} ({event.startDate ? new Date(event.startDate).toLocaleDateString() : 'Date not set'})
-              </p>
-            )}
           </div>
         </div>
 
@@ -519,6 +548,16 @@ export default function CompetitorList() {
               setSelectedCompetitor(null)
             }}
             calculateAge={calculateAge}
+          />
+        )}
+
+        {/* Add Participant Modal */}
+        {showAddParticipantModal && (
+          <AddParticipantModal
+            isOpen={showAddParticipantModal}
+            onClose={() => setShowAddParticipantModal(false)}
+            eventId={eventId}
+            onParticipantAdded={handleParticipantAdded}
           />
         )}
       </div>
