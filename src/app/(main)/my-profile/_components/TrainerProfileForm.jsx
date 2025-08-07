@@ -79,9 +79,18 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
   const [events, setEvents] = useState([]);
   const [existingTrainerProfile, setExistingTrainerProfile] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [buttonStates, setButtonStates] = useState({
+    draft: false,
+    submit: false,
+    publish: false
+  });
 
-  const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number);
+  const validatePhoneNumber = (number) => {
+    if (!number) return false;
+    // More comprehensive phone validation - allows spaces, dashes, parentheses
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,20}$/;
+    return phoneRegex.test(number.replace(/\s/g, ''));
+  };
 
   const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name);
 
@@ -324,14 +333,14 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     }
 
     if (!validatePhoneNumber(formData.phoneNumber)) {
-      enqueueSnackbar("Please enter a valid phone number.", {
+      enqueueSnackbar("Please enter a valid phone number (10-15 digits, with optional country code).", {
         variant: "warning",
       });
       return false;
     }
 
     if (!formData.dateOfBirth || getAge(formData.dateOfBirth) < 18) {
-      enqueueSnackbar("You must be at least 18 years old.", {
+      enqueueSnackbar("Age must be at least 18 years old. Please check your date of birth.", {
         variant: "warning",
       });
       return false;
@@ -391,7 +400,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     }
 
     if (!validatePhoneNumber(formData.emergencyContactNumber)) {
-      enqueueSnackbar("Please enter a valid emergency contact number.", {
+      enqueueSnackbar("Please enter a valid emergency contact number (10-15 digits, with optional country code).", {
         variant: "warning",
       });
       return false;
@@ -455,10 +464,12 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
 
   const handleSubmit = async (e, action) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    
+    // Set loading state for specific button
+    setButtonStates(prev => ({ ...prev, [action]: true }));
 
     if (!validateForm()) {
-      setIsSubmitting(false);
+      setButtonStates(prev => ({ ...prev, [action]: false }));
       return;
     }
 
@@ -590,7 +601,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
         { variant: "error" }
       );
     } finally {
-      setIsSubmitting(false);
+      // Reset loading state for specific button
+      setButtonStates(prev => ({ ...prev, [action]: false }));
     }
   };
 
@@ -1247,18 +1259,18 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
               type="button"
               className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105 disabled:opacity-50"
               onClick={(e) => handleSubmit(e, "draft")}
-              disabled={isSubmitting}
+              disabled={buttonStates.draft || buttonStates.submit || buttonStates.publish}
             >
-              {isSubmitting ? "Saving..." : "Save as Draft"}
+              {buttonStates.draft ? "Saving..." : "Save as Draft"}
             </button>
 
             <button
               type="button"
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105 disabled:opacity-50"
               onClick={(e) => handleSubmit(e, "submit")}
-              disabled={isSubmitting}
+              disabled={buttonStates.draft || buttonStates.submit || buttonStates.publish}
             >
-              {isSubmitting ? "Submitting..." : "Submit Profile"}
+              {buttonStates.submit ? "Submitting..." : "Submit Profile"}
             </button>
 
             {existingTrainerProfile && (
@@ -1266,9 +1278,9 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 type="button"
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105 disabled:opacity-50"
                 onClick={(e) => handleSubmit(e, "publish")}
-                disabled={isSubmitting}
+                disabled={buttonStates.draft || buttonStates.submit || buttonStates.publish}
               >
-                {isSubmitting ? "Updating..." : "Update Profile"}
+                {buttonStates.publish ? "Updating..." : "Update Profile"}
               </button>
             )}
           </div>

@@ -73,7 +73,7 @@ export function EventTable({
 
       if (res.status === apiConstants.success) {
         enqueueSnackbar(
-          `Event ${newStatus ? 'published' : 'unpublished'} successfully`,
+          `Event ${newStatus ? 'unpublished' : 'published'} successfully`,
           {
             variant: 'success',
           }
@@ -242,6 +242,8 @@ export function EventTable({
                 {renderHeader('Registered Participants')}
                 {renderHeader('Status')}
                 {renderHeader('Promoter')}
+                {renderHeader('Created By')}
+                {renderHeader('Created Date')}
                 {renderHeader('Actions')}
               </tr>
             </thead>
@@ -274,6 +276,13 @@ export function EventTable({
                       <td className='p-4 whitespace-nowrap'>
                         {event.promoter?.userId?.firstName}{' '}
                         {event.promoter?.userId?.lastName}
+                      </td>
+                      <td className='p-4 whitespace-nowrap'>
+                        {event.createdBy?.firstName || 'N/A'}{' '}
+                        {event.createdBy?.lastName || ''}
+                      </td>
+                      <td className='p-4 whitespace-nowrap'>
+                        {event.createdAt ? moment(event.createdAt).format('YYYY/MM/DD') : 'N/A'}
                       </td>
                       <td className='p-4 flex space-x-4 items-center'>
                         {/* View */}
@@ -324,7 +333,7 @@ export function EventTable({
                 })
               ) : (
                 <tr className='text-center bg-[#0A1330]'>
-                  <td colSpan='9' className='p-4'>
+                  <td colSpan='10' className='p-4'>
                     No events found.
                   </td>
                 </tr>

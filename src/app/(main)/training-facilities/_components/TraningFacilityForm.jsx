@@ -15,6 +15,8 @@ import {
 const TrainingFacilityForm = () => {
   const [currentStep, setCurrentStep] = useState(1)
   const [isOpen, setIsOpen] = useState(true)
+  const [errors, setErrors] = useState({})
+  const [fighterErrors, setFighterErrors] = useState({})
   const [formData, setFormData] = useState({
     // Basic Info
     facilityName: '',
@@ -87,6 +89,40 @@ const TrainingFacilityForm = () => {
     'Other',
   ]
 
+  // Validation functions
+  const isValidYouTubeURL = (url) => {
+    if (!url) return true // Allow empty
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/)[\w-]+/
+    return youtubeRegex.test(url)
+  }
+
+  const isValidWebsiteURL = (url) => {
+    if (!url) return true // Allow empty
+    try {
+      const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`)
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
+  const validateFighterAge = (age) => {
+    if (!age || age.trim() === '') {
+      return 'Age is required'
+    }
+    if (!/^\d+$/.test(age.trim())) {
+      return 'Age must be a valid number'
+    }
+    const ageNum = parseInt(age)
+    if (ageNum < 18) {
+      return 'Fighter must be at least 18 years old'
+    }
+    if (ageNum > 100) {
+      return 'Please enter a valid age'
+    }
+    return null
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData((prev) => ({
@@ -156,22 +192,41 @@ const TrainingFacilityForm = () => {
   }
 
   const addFighter = () => {
-    if (currentFighter.name || currentFighter.existingId) {
-      setFormData((prev) => ({
-        ...prev,
-        fighters: [...prev.fighters, { ...currentFighter, id: Date.now() }],
-      }))
-      setCurrentFighter({
-        type: 'new',
-        existingId: '',
-        name: '',
-        gender: '',
-        age: '',
-        record: '',
-        bio: '',
-        image: null,
-      })
+    // Validate fighter data
+    const newErrors = {}
+    
+    if (!currentFighter.name && !currentFighter.existingId) {
+      newErrors.name = 'Fighter name is required'
     }
+    
+    if (currentFighter.type === 'new') {
+      const ageError = validateFighterAge(currentFighter.age)
+      if (ageError) {
+        newErrors.age = ageError
+      }
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setFighterErrors(newErrors)
+      return
+    }
+
+    // Clear errors and add fighter
+    setFighterErrors({})
+    setFormData((prev) => ({
+      ...prev,
+      fighters: [...prev.fighters, { ...currentFighter, id: Date.now() }],
+    }))
+    setCurrentFighter({
+      type: 'new',
+      existingId: '',
+      name: '',
+      gender: '',
+      age: '',
+      record: '',
+      bio: '',
+      image: null,
+    })
   }
 
   const removeFighter = (id) => {
@@ -188,8 +243,32 @@ const TrainingFacilityForm = () => {
     // Handle different submission types (draft, review, etc.)
   }
 
+  const validateStep2 = () => {
+    const newErrors = {}
+    
+    if (formData.externalWebsite && !isValidWebsiteURL(formData.externalWebsite)) {
+      newErrors.externalWebsite = 'Please enter a valid website URL (e.g., https://yourgym.com)'
+    }
+    
+    if (formData.videoIntroduction && !isValidYouTubeURL(formData.videoIntroduction)) {
+      newErrors.videoIntroduction = 'Introduction video URL must be a valid YouTube link'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1)
+    if (currentStep === 2) {
+      if (!validateStep2()) {
+        return // Don't proceed if validation fails
+      }
+    }
+    
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1)
+      setErrors({}) // Clear errors when moving to next step
+    }
   }
 
   const prevStep = () => {
@@ -472,8 +551,15 @@ const TrainingFacilityForm = () => {
                       value={formData.externalWebsite}
                       onChange={handleChange}
                       placeholder='https://yourgym.com'
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                      className={`w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border focus:outline-none ${
+                        errors.externalWebsite 
+                          ? 'border-red-500 focus:border-red-500' 
+                          : 'border-gray-600 focus:border-yellow-500'
+                      }`}
                     />
+                    {errors.externalWebsite && (
+                      <p className='text-red-400 text-sm mt-1'>{errors.externalWebsite}</p>
+                    )}
                   </div>
 
                   <div>
@@ -529,11 +615,19 @@ const TrainingFacilityForm = () => {
                       value={formData.videoIntroduction}
                       onChange={handleChange}
                       placeholder='https://youtube.com/...'
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                      className={`w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border focus:outline-none ${
+                        errors.videoIntroduction 
+                          ? 'border-red-500 focus:border-red-500' 
+                          : 'border-gray-600 focus:border-yellow-500'
+                      }`}
                     />
-                    <span className='text-xs text-gray-400'>
-                      Must be an embeddable video URL
-                    </span>
+                    {errors.videoIntroduction ? (
+                      <p className='text-red-400 text-sm mt-1'>{errors.videoIntroduction}</p>
+                    ) : (
+                      <span className='text-xs text-gray-400'>
+                        Must be an embeddable video URL
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -880,16 +974,27 @@ const TrainingFacilityForm = () => {
                           <input
                             type='number'
                             value={currentFighter.age}
-                            onChange={(e) =>
+                            onChange={(e) => {
                               setCurrentFighter((prev) => ({
                                 ...prev,
                                 age: e.target.value,
                               }))
-                            }
+                              // Clear age error when user starts typing
+                              if (fighterErrors.age) {
+                                setFighterErrors(prev => ({ ...prev, age: undefined }))
+                              }
+                            }}
                             placeholder='e.g., 23'
                             min='18'
-                            className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none'
+                            className={`w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border focus:outline-none ${
+                              fighterErrors.age 
+                                ? 'border-red-500 focus:border-red-500' 
+                                : 'border-gray-600 focus:border-yellow-500'
+                            }`}
                           />
+                          {fighterErrors.age && (
+                            <p className='text-red-400 text-sm mt-1'>{fighterErrors.age}</p>
+                          )}
                         </div>
 
                         <div>

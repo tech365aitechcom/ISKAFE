@@ -74,7 +74,12 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
   const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
   const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPostalCode = (postalCode) => {
+    if (!postalCode || postalCode.trim() === '') return false;
+    // More flexible postal code validation - allows letters, numbers, spaces, dashes
+    // Covers US ZIP codes, Canadian postal codes, UK postcodes, etc.
+    return /^[A-Za-z0-9\s\-]{3,10}$/.test(postalCode.trim());
+  }
   const validPassword = (password) =>
     /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
   const validateSuffix = (suffix) => /^[A-Za-z]+$/.test(suffix)
@@ -153,7 +158,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
       return
     }
     if (!validPostalCode(formData.postalCode)) {
-      enqueueSnackbar('Please enter a valid zip code.', {
+      enqueueSnackbar('Please enter a valid postal/zip code (3-10 characters, letters and numbers allowed).', {
         variant: 'warning',
       })
       setIsSubmitting(false)

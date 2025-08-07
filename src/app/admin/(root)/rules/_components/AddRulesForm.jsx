@@ -320,8 +320,7 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
                 required
               />
               <p className='text-xs text-gray-400 mt-1'>
-                {formData.subTabRuleDescription.length}/1500 chars (Max
-                1000-1500 characters)
+                {formData.subTabRuleDescription.length}/1500 characters
               </p>
               {errors.subTabRuleDescription && (
                 <p className='text-red-500 text-xs mt-1'>

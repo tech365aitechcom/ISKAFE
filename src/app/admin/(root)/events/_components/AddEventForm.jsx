@@ -909,10 +909,12 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                   className={`cursor-pointer inline-block py-2 px-4 rounded-full text-sm font-semibold ${
                     !formData.venue || !formData.promoter || submitting
                       ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : formData.sectioningBodyImage
+                      ? 'bg-green-600 text-white hover:bg-green-700'
                       : 'bg-purple-600 text-white hover:bg-purple-700'
                   }`}
                 >
-                  Choose Image
+                  {formData.sectioningBodyImage ? 'Change Image' : 'Choose Image'}
                 </label>
                 <input
                   id='sectioningBodyImage'
@@ -926,7 +928,13 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 />
               </div>
 
-              <p className='text-xs text-gray-400 mt-1'>Upload Logo/Image</p>
+              {formData.sectioningBodyImage ? (
+                <p className='text-xs text-green-400 mt-1'>
+                  ✓ Selected: {formData.sectioningBodyImage.name || 'Image selected'}
+                </p>
+              ) : (
+                <p className='text-xs text-gray-400 mt-1'>Upload Logo/Image</p>
+              )}
             </div>
 
             {/* description */}
