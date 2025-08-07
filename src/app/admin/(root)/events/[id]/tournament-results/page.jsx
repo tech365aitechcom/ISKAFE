@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, Download, ChevronDown, ChevronUp, Trophy, Award, User, Shield, Scale } from "lucide-react";
+import { ChevronLeft, Download, ChevronDown, ChevronUp, Trophy, Award, User, Shield, Scale, Search, X, FileText, Users, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { API_BASE_URL } from "../../../../../../constants/index";
@@ -17,6 +17,16 @@ const TournamentResultsPage = () => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   
+  // Competitor management state
+  const [competitors, setCompetitors] = useState([]);
+  const [filteredCompetitors, setFilteredCompetitors] = useState([]);
+  const [competitorFilters, setCompetitorFilters] = useState({
+    name: '', ageMin: '', ageMax: '', phone: '', email: '', type: 'all', eventParticipation: false
+  });
+  const [showCompetitorList, setShowCompetitorList] = useState(false);
+  const [selectedCompetitor, setSelectedCompetitor] = useState(null);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  
   const params = useParams();
   const eventId = params.id;
   const user = useStore((state) => state.user);
@@ -27,6 +37,109 @@ const TournamentResultsPage = () => {
       fetchTournamentResults();
     }
   }, [eventId, user?.token]);
+
+  // Fetch competitors data
+  const fetchCompetitors = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/registrations?event=${eventId}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data && data.data.items) {
+          const competitorsData = data.data.items;
+          
+          const processedCompetitors = competitorsData.map((competitor, index) => {
+            // Calculate age from dateOfBirth
+            let age = 'N/A';
+            if (competitor.dateOfBirth) {
+              const birthDate = new Date(competitor.dateOfBirth);
+              const today = new Date();
+              age = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+              }
+            }
+
+            return {
+              id: competitor._id || index,
+              firstName: competitor.firstName || '',
+              lastName: competitor.lastName || '',
+              name: `${competitor.firstName || ''} ${competitor.lastName || ''}`.trim(),
+              email: competitor.email || 'N/A',
+              phone: competitor.phoneNumber || 'N/A',
+              age: age,
+              type: competitor.registrationType ? 
+                competitor.registrationType.charAt(0).toUpperCase() + competitor.registrationType.slice(1) : 'Fighter',
+              registrationDate: competitor.createdAt,
+              status: competitor.status || 'Pending',
+              checkInStatus: competitor.checkInStatus || 'Not Checked',
+              paymentStatus: competitor.paymentStatus || 'Pending',
+              registrationId: competitor._id,
+              // Event participation - check if they have checkInStatus as "Checked In"
+              hasEventParticipation: competitor.checkInStatus === 'Checked In',
+              // Store full registration data for modal
+              registrationDetails: competitor
+            };
+          });
+          
+          setCompetitors(processedCompetitors);
+          setFilteredCompetitors(processedCompetitors);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching competitors:', error);
+    }
+  };
+
+  // Filter competitors based on current filters
+  useEffect(() => {
+    let filtered = competitors.filter(competitor => {
+      const nameMatch = !competitorFilters.name || 
+        competitor.name.toLowerCase().includes(competitorFilters.name.toLowerCase());
+      
+      const emailMatch = !competitorFilters.email || 
+        competitor.email.toLowerCase().includes(competitorFilters.email.toLowerCase());
+        
+      const phoneMatch = !competitorFilters.phone || 
+        competitor.phone.includes(competitorFilters.phone);
+        
+      const typeMatch = competitorFilters.type === 'all' || 
+        competitor.type.toLowerCase() === competitorFilters.type.toLowerCase();
+        
+      let ageMatch = true;
+      if (competitorFilters.ageMin || competitorFilters.ageMax) {
+        const age = parseInt(competitor.age);
+        if (!isNaN(age)) {
+          if (competitorFilters.ageMin) {
+            ageMatch = ageMatch && age >= parseInt(competitorFilters.ageMin);
+          }
+          if (competitorFilters.ageMax) {
+            ageMatch = ageMatch && age <= parseInt(competitorFilters.ageMax);
+          }
+        }
+      }
+
+      // Event participation filter
+      const participationMatch = !competitorFilters.eventParticipation || 
+        competitor.hasEventParticipation;
+      
+      return nameMatch && emailMatch && phoneMatch && typeMatch && ageMatch && participationMatch;
+    });
+    
+    setFilteredCompetitors(filtered);
+  }, [competitors, competitorFilters]);
+
+  // Load competitors when tab is switched
+  useEffect(() => {
+    if (activeTab === "competitors" && competitors.length === 0 && user?.token) {
+      fetchCompetitors();
+    }
+  }, [activeTab, user?.token]);
 
   const fetchEventData = async () => {
     try {
@@ -430,18 +543,427 @@ const TournamentResultsPage = () => {
 
           {/* Competitors Tab */}
           {activeTab === "competitors" && (
-            <div className="text-center py-12">
-              <div className="inline-block p-8 bg-[#122046] rounded-2xl border-2 border-dashed border-[#2D3A6D]">
-                <User size={64} className="mx-auto text-blue-400 mb-4" />
-                <h2 className="text-2xl font-bold mb-2">Competitor Management</h2>
-                <p className="text-[#AEB9E1] max-w-md mx-auto">
-                  View and manage all competitors participating in this tournament.
-                  Detailed competitor information will appear here.
-                </p>
-                <button className="mt-6 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all">
-                  View Competitor List
+            <div>
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold flex items-center">
+                  <User className="mr-3 text-blue-400" size={28} />
+                  Competitors List
+                </h2>
+                <button 
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg hover:from-blue-700 hover:to-indigo-800 transition-all flex items-center"
+                  onClick={() => fetchCompetitors()}
+                >
+                  <RefreshCw className="mr-2" size={18} />
+                  Refresh List
                 </button>
               </div>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <div className="bg-[#122046] rounded-lg p-4 text-center">
+                  <p className="text-[#AEB9E1] text-sm">Total Registrations</p>
+                  <p className="text-2xl font-bold mt-1">{competitors.length}</p>
+                </div>
+                <div className="bg-[#122046] rounded-lg p-4 text-center">
+                  <p className="text-[#AEB9E1] text-sm">Fighters</p>
+                  <p className="text-2xl font-bold mt-1">{competitors.filter(c => c.type === 'Fighter').length}</p>
+                </div>
+                <div className="bg-[#122046] rounded-lg p-4 text-center">
+                  <p className="text-[#AEB9E1] text-sm">Trainers</p>
+                  <p className="text-2xl font-bold mt-1">{competitors.filter(c => c.type === 'Trainer').length}</p>
+                </div>
+                <div className="bg-[#122046] rounded-lg p-4 text-center">
+                  <p className="text-[#AEB9E1] text-sm">Event Participants</p>
+                  <p className="text-2xl font-bold mt-1">{competitors.filter(c => c.hasEventParticipation).length}</p>
+                </div>
+                <div className="bg-[#122046] rounded-lg p-4 text-center">
+                  <p className="text-[#AEB9E1] text-sm">Filtered Results</p>
+                  <p className="text-2xl font-bold mt-1">{filteredCompetitors.length}</p>
+                </div>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="bg-[#122046] rounded-xl p-6 mb-6">
+                <h3 className="text-lg font-bold mb-4">Search & Filter</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Name (First/Last)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="w-full bg-[#0F1A3F] border border-[#2D3A6D] rounded-lg px-4 py-2 pl-10 text-white"
+                        placeholder="Search by first or last name..."
+                        value={competitorFilters.name}
+                        onChange={(e) => setCompetitorFilters({...competitorFilters, name: e.target.value})}
+                      />
+                      <Search size={16} className="absolute left-3 top-3 text-[#AEB9E1]" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Phone</label>
+                    <input
+                      type="text"
+                      className="w-full bg-[#0F1A3F] border border-[#2D3A6D] rounded-lg px-4 py-2 text-white"
+                      placeholder="Exact match"
+                      value={competitorFilters.phone}
+                      onChange={(e) => setCompetitorFilters({...competitorFilters, phone: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Email</label>
+                    <input
+                      type="text"
+                      className="w-full bg-[#0F1A3F] border border-[#2D3A6D] rounded-lg px-4 py-2 text-white"
+                      placeholder="Partial/Exact"
+                      value={competitorFilters.email}
+                      onChange={(e) => setCompetitorFilters({...competitorFilters, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Type</label>
+                    <select
+                      className="w-full bg-[#0F1A3F] border border-[#2D3A6D] rounded-lg px-4 py-2 text-white"
+                      value={competitorFilters.type}
+                      onChange={(e) => setCompetitorFilters({...competitorFilters, type: e.target.value})}
+                    >
+                      <option value="all">All Types</option>
+                      <option value="fighter">Fighter</option>
+                      <option value="trainer">Trainer</option>
+                      <option value="coach">Coach</option>
+                      <option value="official">Official</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Age Min</label>
+                    <input
+                      type="number"
+                      className="w-full bg-[#0F1A3F] border border-[#2D3A6D] rounded-lg px-4 py-2 text-white"
+                      placeholder="Min"
+                      value={competitorFilters.ageMin}
+                      onChange={(e) => setCompetitorFilters({...competitorFilters, ageMin: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Event Participation</label>
+                    <label className="flex items-center mt-2">
+                      <input
+                        type="checkbox"
+                        className="mr-2"
+                        checked={competitorFilters.eventParticipation}
+                        onChange={(e) => setCompetitorFilters({...competitorFilters, eventParticipation: e.target.checked})}
+                      />
+                      <span className="text-sm text-[#AEB9E1]">In Bouts Only</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Competitors Table */}
+              <div className="bg-[#122046] rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-[#1E3A8A]">
+                      <tr>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-white">First Name</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-white">Last Name</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-white">Age</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-white">Phone</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-white">Email</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-white">Type</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-white">Reg Form</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#2D3A6D]">
+                      {filteredCompetitors.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="px-6 py-12 text-center">
+                            <div className="flex flex-col items-center">
+                              <User size={48} className="text-gray-400 mb-4" />
+                              <p className="text-[#AEB9E1] text-lg">No competitors found</p>
+                              <p className="text-[#AEB9E1] text-sm mt-1">
+                                {competitors.length === 0 
+                                  ? "No registrations for this event yet"
+                                  : "Try adjusting your search filters"}
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredCompetitors.map((competitor) => (
+                          <tr key={competitor.id} className="hover:bg-[#1A2A5F] transition-colors">
+                            <td className="px-4 py-4 text-white font-medium">{competitor.firstName}</td>
+                            <td className="px-4 py-4 text-white font-medium">{competitor.lastName}</td>
+                            <td className="px-4 py-4 text-[#AEB9E1]">{competitor.age}</td>
+                            <td className="px-4 py-4 text-[#AEB9E1]">{competitor.phone}</td>
+                            <td className="px-4 py-4 text-[#AEB9E1]">{competitor.email}</td>
+                            <td className="px-4 py-4">
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                competitor.type === 'Fighter' 
+                                  ? 'bg-red-900/30 text-red-300 border border-red-500/30'
+                                  : competitor.type === 'Trainer'
+                                  ? 'bg-blue-900/30 text-blue-300 border border-blue-500/30'
+                                  : competitor.type === 'Coach'
+                                  ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                                  : competitor.type === 'Official'
+                                  ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
+                                  : 'bg-purple-900/30 text-purple-300 border border-purple-500/30'
+                              }`}>
+                                {competitor.type}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <button
+                                onClick={() => {
+                                  setSelectedCompetitor(competitor);
+                                  setShowRegistrationModal(true);
+                                }}
+                                className="text-blue-400 hover:text-blue-300 underline text-sm font-medium"
+                                title="View full registration form"
+                              >
+                                Registration
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Results Summary */}
+              {filteredCompetitors.length > 0 && (
+                <div className="mt-6 text-center text-[#AEB9E1] text-sm">
+                  Showing {filteredCompetitors.length} of {competitors.length} competitors
+                </div>
+              )}
+
+              {/* Registration Details Modal */}
+              {showRegistrationModal && selectedCompetitor && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-[#0B1739] rounded-xl p-6 max-w-4xl max-h-[90vh] overflow-y-auto m-4 border border-[#2D3A6D]">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-2xl font-bold text-white">Registration Details</h3>
+                      <button
+                        onClick={() => {
+                          setShowRegistrationModal(false);
+                          setSelectedCompetitor(null);
+                        }}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <X size={24} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Personal Information */}
+                      <div className="bg-[#122046] rounded-lg p-6">
+                        <h4 className="text-lg font-bold text-white mb-4 flex items-center">
+                          <User className="mr-2 text-blue-400" size={20} />
+                          Personal Information
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Name:</label>
+                            <p className="text-white font-medium">
+                              {selectedCompetitor.firstName} {selectedCompetitor.lastName}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Email:</label>
+                            <p className="text-white">{selectedCompetitor.email}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Phone:</label>
+                            <p className="text-white">{selectedCompetitor.phone}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Age:</label>
+                            <p className="text-white">{selectedCompetitor.age}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Gender:</label>
+                            <p className="text-white">{selectedCompetitor.registrationDetails.gender || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Date of Birth:</label>
+                            <p className="text-white">
+                              {selectedCompetitor.registrationDetails.dateOfBirth 
+                                ? new Date(selectedCompetitor.registrationDetails.dateOfBirth).toLocaleDateString()
+                                : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Registration Information */}
+                      <div className="bg-[#122046] rounded-lg p-6">
+                        <h4 className="text-lg font-bold text-white mb-4 flex items-center">
+                          <FileText className="mr-2 text-green-400" size={20} />
+                          Registration Information
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Registration Type:</label>
+                            <p className="text-white font-medium">{selectedCompetitor.type}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Status:</label>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              selectedCompetitor.status === 'Verified' || selectedCompetitor.status === 'Active'
+                                ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                                : selectedCompetitor.status === 'Pending'
+                                ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
+                                : 'bg-red-900/30 text-red-300 border border-red-500/30'
+                            }`}>
+                              {selectedCompetitor.status}
+                            </span>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Payment Status:</label>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              selectedCompetitor.paymentStatus === 'Paid'
+                                ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                                : 'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30'
+                            }`}>
+                              {selectedCompetitor.paymentStatus}
+                            </span>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Check-in Status:</label>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              selectedCompetitor.checkInStatus === 'Checked In'
+                                ? 'bg-green-900/30 text-green-300 border border-green-500/30'
+                                : 'bg-gray-900/30 text-gray-300 border border-gray-500/30'
+                            }`}>
+                              {selectedCompetitor.checkInStatus}
+                            </span>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Registration Date:</label>
+                            <p className="text-white">
+                              {new Date(selectedCompetitor.registrationDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Fighter Specific Information */}
+                      {selectedCompetitor.type === 'Fighter' && selectedCompetitor.registrationDetails && (
+                        <>
+                          <div className="bg-[#122046] rounded-lg p-6">
+                            <h4 className="text-lg font-bold text-white mb-4 flex items-center">
+                              <Trophy className="mr-2 text-yellow-400" size={20} />
+                              Fighter Details
+                            </h4>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Weight Class:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.weightClass || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Rule Style:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.ruleStyle || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Skill Level:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.skillLevel || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Walk Around Weight:</label>
+                                <p className="text-white">
+                                  {selectedCompetitor.registrationDetails.walkAroundWeight ? 
+                                    `${selectedCompetitor.registrationDetails.walkAroundWeight} ${selectedCompetitor.registrationDetails.weightUnit || 'lbs'}` 
+                                    : 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Height:</label>
+                                <p className="text-white">
+                                  {selectedCompetitor.registrationDetails.height ? 
+                                    `${selectedCompetitor.registrationDetails.height} ${selectedCompetitor.registrationDetails.heightUnit || 'inches'}` 
+                                    : 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Pro Fighter:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.proFighter ? 'Yes' : 'No'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Fight Record:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.systemRecord || 'N/A'}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-[#122046] rounded-lg p-6">
+                            <h4 className="text-lg font-bold text-white mb-4 flex items-center">
+                              <Users className="mr-2 text-purple-400" size={20} />
+                              Trainer & Gym
+                            </h4>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Trainer Name:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.trainerName || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Trainer Email:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.trainerEmail || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Trainer Phone:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.trainerPhone || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm text-[#AEB9E1]">Gym Name:</label>
+                                <p className="text-white">{selectedCompetitor.registrationDetails.gymName || 'N/A'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Address Information */}
+                      <div className="bg-[#122046] rounded-lg p-6">
+                        <h4 className="text-lg font-bold text-white mb-4 flex items-center">
+                          <MapPin className="mr-2 text-red-400" size={20} />
+                          Address
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Street Address:</label>
+                            <p className="text-white">
+                              {selectedCompetitor.registrationDetails.street1 || 'N/A'}
+                              {selectedCompetitor.registrationDetails.street2 && (
+                                <>
+                                  <br />
+                                  {selectedCompetitor.registrationDetails.street2}
+                                </>
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">City:</label>
+                            <p className="text-white">{selectedCompetitor.registrationDetails.city || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">State:</label>
+                            <p className="text-white">{selectedCompetitor.registrationDetails.state || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Postal Code:</label>
+                            <p className="text-white">{selectedCompetitor.registrationDetails.postalCode || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-[#AEB9E1]">Country:</label>
+                            <p className="text-white">{selectedCompetitor.registrationDetails.country || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
