@@ -43,7 +43,13 @@ export default function SelectFromList({
         <div>
           <div className='bg-[#AEBFFF33] flex items-center gap-12 px-3 py-2 w-fit rounded mb-4'>
             <button className='text-left rounded text-sm transition-colors duration-200'>
-              {selectedEvent.name}
+              <div className='font-medium'>{selectedEvent.name}</div>
+              <div className='text-xs text-gray-400'>
+                {selectedEvent.startDate ? 
+                  new Date(selectedEvent.startDate).toLocaleDateString() : 
+                  selectedEvent.date
+                }
+              </div>
             </button>
             <X
               size={18}
@@ -74,7 +80,10 @@ export default function SelectFromList({
             >
               <div className='font-medium'>{event.name}</div>
               <div className='text-xs text-gray-400 mt-1'>
-                {event.users.length} codes issued
+                {event.startDate ? 
+                  new Date(event.startDate).toLocaleDateString() : 
+                  event.date
+                } • {event.users.length} codes issued
               </div>
             </button>
           ))}
