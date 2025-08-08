@@ -11,6 +11,7 @@ const TicketSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purchas
   const [ticketTypes, setTicketTypes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   const [selectedTickets, setSelectedTickets] = useState(
     purchaseData.tickets || []
@@ -68,14 +69,25 @@ const TicketSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purchas
         }
       } catch (err) {
         console.error('Error fetching spectator tickets:', err)
-        setError('Failed to load spectator tickets. Please try again.')
+        
+        let errorMessage = 'Failed to load spectator tickets. Please try again.'
+        
+        if (err.response?.status === 404) {
+          errorMessage = err.response.data?.message || 'No spectator tickets found for this event.'
+        } else if (err.response?.data?.message) {
+          errorMessage = err.response.data.message
+        } else if (err.message) {
+          errorMessage = `Error: ${err.message}`
+        }
+        
+        setError(errorMessage)
       } finally {
         setLoading(false)
       }
     }
 
     fetchSpectatorTickets()
-  }, [params.id, purchaseData.tickets])
+  }, [params.id, purchaseData.tickets, retryCount])
 
   const updateQuantity = (ticketId, newQuantity) => {
     console.log('updateQuantity called:', { ticketId, newQuantity, selectedTickets, ticketTypes })
@@ -147,13 +159,34 @@ const TicketSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purchas
     return (
       <div className="bg-[#1b0c2e] rounded-lg p-8">
         <div className="text-center py-12">
-          <p className="text-red-400 mb-4">{error}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            Try Again
-          </Button>
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L5.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Unable to Load Tickets</h3>
+            <p className="text-red-400 mb-6">{error}</p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              onClick={() => {
+                setError(null)
+                setRetryCount(prev => prev + 1)
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              Try Again
+            </Button>
+            <Button
+              onClick={onBack}
+              variant="outline"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              Go Back
+            </Button>
+          </div>
         </div>
       </div>
     )

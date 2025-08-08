@@ -149,7 +149,7 @@ export default function EventDetailsPage() {
   };
 
   const handleEditTier = (tier, index) => {
-    setCurrentTier({ ...tier, price: tier.price / 100 }); // Convert cents to dollars for display
+    setCurrentTier({ ...tier, price: tier.price / 100 }); // Convert cents to dollars for editing
     setEditingTier(tier);
     setEditingTierIndex(index);
     // Initialize date tracking - mark as unmodified when editing starts
@@ -1014,11 +1014,11 @@ export default function EventDetailsPage() {
                       Bout List & Results
                     </li>
                   </Link>
-                  <Link href={`/admin/events/${eventId}/fight-card`}>
+                  {/* <Link href={`/admin/events/${eventId}/fight-card`}>
                     <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
                       Fight Card Overview
                     </li>
-                  </Link>
+                  </Link> */}
                   <Link href={`/admin/events/${eventId}/fighter-card`}>
                     <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
                       Fighter Card
@@ -1033,10 +1033,14 @@ export default function EventDetailsPage() {
                   >
                     Spectator Ticket Redemption
                   </li>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C]">
-                    Cash Payment Tokens
-                  </li>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500">Reports</li>
+                  <Link href="/admin/cash-payments-codes">
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
+                      Cash Payment and Codes
+                    </li>
+                  </Link>
+                  <Link href="/admin/reports/event-registrations">
+                    <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500 hover:bg-[#0f1a40] cursor-pointer">Reports</li>
+                  </Link>
                   <Link href={`/admin/events/${eventId}/spectator-payments`}>
                     <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
                       Spectator Payments
@@ -1384,14 +1388,15 @@ export default function EventDetailsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-[#AEB9E1] mb-1">Price ($)</label>
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Price ($) - Required, must be greater than 0</label>
                     <input
                       type="number"
-                      min="0"
+                      min="0.01"
                       step="0.01"
                       className="w-full bg-[#0A1330] border border-[#343B4F] text-white rounded px-3 py-2 text-sm"
-                      value={currentTier.price / 100}
-                      onChange={(e) => setCurrentTier({...currentTier, price: Math.round((parseFloat(e.target.value) || 0) * 100)})}
+                      value={currentTier.price}
+                      onChange={(e) => setCurrentTier({...currentTier, price: parseFloat(e.target.value) || 0})}
+                      placeholder="Enter price greater than 0"
                     />
                   </div>
                 </div>
@@ -1441,16 +1446,16 @@ export default function EventDetailsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-[#AEB9E1] mb-1">Description (Required - 128 characters max)</label>
+                  <label className="block text-sm text-[#AEB9E1] mb-1">Description (Optional - 250 characters max)</label>
                   <textarea
-                    maxLength="128"
+                    maxLength="250"
                     rows="3"
                     className="w-full bg-[#0A1330] border border-[#343B4F] text-white rounded px-3 py-2 text-sm"
                     value={currentTier.description}
                     onChange={(e) => setCurrentTier({...currentTier, description: e.target.value})}
-                    placeholder="Brief description of what this ticket includes"
+                    placeholder="Optional description of what this ticket includes"
                   />
-                  <p className="text-xs text-[#AEB9E1] mt-1">{currentTier.description.length}/128 characters</p>
+                  <p className="text-xs text-[#AEB9E1] mt-1">{currentTier.description.length}/250 characters</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

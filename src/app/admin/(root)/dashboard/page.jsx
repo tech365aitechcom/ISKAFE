@@ -1,6 +1,8 @@
 // src/app/dashboard/page.jsx
 'use client'
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Users,
   Calendar,
@@ -210,7 +212,7 @@ function DashboardGraphs({ dashboardData }) {
       <div className='bg-slate-900 p-6 rounded-xl m-6'>
         <div className='animate-pulse'>
           <div className='h-6 bg-slate-800 rounded mb-6 w-48'></div>
-          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6'>
             {[...Array(6)].map((_, i) => (
               <div key={i} className='bg-slate-800 p-4 rounded-lg'>
                 <div className='h-4 bg-slate-700 rounded mb-4 w-32'></div>
@@ -313,14 +315,14 @@ function DashboardGraphs({ dashboardData }) {
         </div>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6'>
         {/* Event Participation Trend */}
-        <div className='lg:col-span-2 bg-slate-800 p-4 rounded-lg'>
+        <div className='md:col-span-2 lg:col-span-2 bg-slate-800 p-4 rounded-lg'>
           <div className='flex items-center gap-2 mb-4 text-slate-300'>
             <LineChartIcon size={16} />
             <h3 className='font-medium'>Event Participation Trend</h3>
           </div>
-          <div className='h-64'>
+          <div className='h-48 sm:h-64'>
             <ResponsiveContainer width='100%' height='100%'>
               <LineChart data={participationData}>
                 <CartesianGrid strokeDasharray='3 3' stroke='#334155' />
@@ -356,7 +358,7 @@ function DashboardGraphs({ dashboardData }) {
             <PieChartIcon size={16} />
             <h3 className='font-medium'>Ticket Types Breakdown</h3>
           </div>
-          <div className='h-64'>
+          <div className='h-48 sm:h-64'>
             <ResponsiveContainer width='100%' height='100%'>
               <PieChart>
                 <Pie
@@ -396,7 +398,7 @@ function DashboardGraphs({ dashboardData }) {
             <LineChart size={16} />
             <h3 className='font-medium'>Daily Ticket Sales</h3>
           </div>
-          <div className='h-64'>
+          <div className='h-48 sm:h-64'>
             <ResponsiveContainer width='100%' height='100%'>
               <BarChart data={dailySales}>
                 <CartesianGrid strokeDasharray='3 3' stroke='#334155' />
@@ -426,7 +428,7 @@ function DashboardGraphs({ dashboardData }) {
             <BarChart2 size={16} />
             <h3 className='font-medium'>Revenue vs Redemption</h3>
           </div>
-          <div className='h-64'>
+          <div className='h-48 sm:h-64'>
             <ResponsiveContainer width='100%' height='100%'>
               <BarChart data={revenueData}>
                 <CartesianGrid strokeDasharray='3 3' stroke='#334155' />
@@ -504,7 +506,7 @@ function DashboardGraphs({ dashboardData }) {
             <BarChart2 size={16} />
             <h3 className='font-medium'>Weight Class Distribution</h3>
           </div>
-          <div className='h-64'>
+          <div className='h-48 sm:h-64'>
             <ResponsiveContainer width='100%' height='100%'>
               <BarChart
                 data={weightClasses}
@@ -548,6 +550,35 @@ function DashboardGraphs({ dashboardData }) {
   )
 }
 
+// Helper function for consistent date formatting
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  try {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  } catch {
+    return 'Invalid Date'
+  }
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'N/A'
+  try {
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return 'Invalid Date'
+  }
+}
+
 // Tables Section
 function DashboardTables({ dashboardData }) {
   const [selectedAction, setSelectedAction] = useState(null)
@@ -556,45 +587,43 @@ function DashboardTables({ dashboardData }) {
   const handleAddResult = (bout) => {
     setSelectedItem(bout)
     setSelectedAction('addResult')
-    // TODO: Open Add Result modal
-    alert(
-      `Add result for bout ${bout.id}: ${bout.fighter1} vs ${bout.fighter2}`
-    )
+    // Navigate to bout result page
+    window.location.href = `/admin/events/${bout.eventId || 'event'}/tournament-results?boutId=${bout.id || bout.boutId}`
   }
 
   const handleFixFighter = (fighter) => {
     setSelectedItem(fighter)
     setSelectedAction('fix')
-    // TODO: Open Fix Fighter modal
-    alert(`Fix issues for fighter: ${fighter.name} - ${fighter.issue}`)
+    // Navigate to fighter profile edit
+    window.location.href = `/admin/people/edit/${fighter.id || fighter._id}`
   }
 
   const handleSuspendFighter = (fighter) => {
     setSelectedItem(fighter)
     setSelectedAction('suspend')
-    // TODO: Open Suspend Fighter modal
-    alert(`Suspend fighter: ${fighter.name} - ${fighter.issue}`)
+    // Navigate to suspensions page
+    window.location.href = `/admin/suspensions?fighterId=${fighter.id || fighter._id}`
   }
 
   const handleViewProfile = (fighter) => {
     setSelectedItem(fighter)
     setSelectedAction('viewProfile')
-    // TODO: Navigate to fighter profile
-    alert(`View profile for fighter: ${fighter.name}`)
+    // Navigate to fighter profile
+    window.location.href = `/admin/people/view/${fighter.id || fighter._id}`
   }
 
   const handleManageBrackets = (event) => {
     setSelectedItem(event)
     setSelectedAction('manageBrackets')
-    // TODO: Navigate to bracket management
-    alert(`Manage brackets for event: ${event.name}`)
+    // Navigate to tournament brackets
+    window.location.href = `/admin/events/${event.id || event._id}/tournament-brackets`
   }
 
   const handleViewDetails = (ticket) => {
     setSelectedItem(ticket)
     setSelectedAction('viewDetails')
-    // TODO: Open ticket details modal
-    alert(`View details for ticket: ${ticket.type} - ${ticket.event}`)
+    // Navigate to spectator ticket management
+    window.location.href = `/admin/spectators-ticket-management?ticketId=${ticket.id || ticket._id}`
   }
   // Use API data or show loading state
   if (!dashboardData) {
@@ -720,7 +749,7 @@ function DashboardTables({ dashboardData }) {
                     <td className='px-4 py-3 font-medium text-white'>
                       {event.eventName || event.name}
                     </td>
-                    <td className='px-4 py-3'>{event.eventDate ? new Date(event.eventDate).toLocaleDateString() : (event.date ? new Date(event.date).toLocaleDateString() : 'N/A')}</td>
+                    <td className='px-4 py-3'>{formatDate(event.eventDate || event.date)}</td>
                     <td className='px-4 py-3'>{event.venueName || (event.venue?.name || event.venue)}</td>
                     <td className='px-4 py-3'>{event.fighterCount || event.fighters}</td>
                     <td className='px-4 py-3'>
@@ -780,7 +809,7 @@ function DashboardTables({ dashboardData }) {
                     <td className='px-4 py-3'>{fighter.age}</td>
                     <td className='px-4 py-3'>{fighter.weightClass || fighter.class}</td>
                     <td className='px-4 py-3'>{fighter.gymName || (fighter.gym?.name || fighter.gym)}</td>
-                    <td className='px-4 py-3'>{fighter.registrationDate ? new Date(fighter.registrationDate).toLocaleDateString() : (fighter.date ? new Date(fighter.date).toLocaleDateString() : 'N/A')}</td>
+                    <td className='px-4 py-3'>{formatDate(fighter.registrationDate || fighter.date)}</td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleViewProfile(fighter)}
@@ -960,7 +989,7 @@ function DashboardTables({ dashboardData }) {
                     <td className='px-4 py-3'>{ticket.quantity || ticket.qty}</td>
                     <td className='px-4 py-3'>{ticket.totalAmount ? `$${ticket.totalAmount}` : ticket.revenue}</td>
                     <td className='px-4 py-3'>{ticket.eventName || (ticket.event?.name || ticket.event)}</td>
-                    <td className='px-4 py-3'>{ticket.purchaseTime ? new Date(ticket.purchaseTime).toLocaleString() : (ticket.time ? new Date(ticket.time).toLocaleString() : 'N/A')}</td>
+                    <td className='px-4 py-3'>{formatDateTime(ticket.purchaseTime || ticket.time)}</td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleViewDetails(ticket)}
@@ -1011,20 +1040,75 @@ const exportToCSV = (dashboardData) => {
 
 const exportToPDF = (dashboardData) => {
   if (!dashboardData) return
-  alert(
-    'PDF export functionality will be implemented with a PDF library like jsPDF or react-pdf'
-  )
+  
+  // Create PDF content as HTML and print
+  const printContent = `
+    <html>
+    <head>
+      <title>IKF Dashboard Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f5f5f5; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>IKF Admin Dashboard Report</h1>
+        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+      </div>
+      <div class="stats">
+        <div class="stat-card">
+          <h3>Total Fighters</h3>
+          <p>${dashboardData.totalFightersData.total}</p>
+        </div>
+        <div class="stat-card">
+          <h3>Total Events</h3>
+          <p>${dashboardData.totalEvents}</p>
+        </div>
+        <div class="stat-card">
+          <h3>Total Revenue</h3>
+          <p>$${dashboardData.totalRevenue}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+  
+  const printWindow = window.open('', '_blank')
+  printWindow.document.write(printContent)
+  printWindow.document.close()
+  printWindow.print()
 }
 
 const sendEmailReport = (dashboardData) => {
   if (!dashboardData) return
-  alert(
-    'Email report functionality will be implemented with email service integration'
-  )
+  
+  // Create email body with dashboard summary
+  const emailBody = `Dashboard Report - ${new Date().toLocaleDateString()}
+
+Key Statistics:
+- Total Fighters: ${dashboardData.totalFightersData.total}
+- Total Events: ${dashboardData.totalEvents}
+- Bouts Today: ${dashboardData.todaysBoutCount}
+- Total Revenue: $${dashboardData.totalRevenue}
+- Tickets Sold: ${dashboardData.totalTickets}
+- Total Venues: ${dashboardData.totalVenues}
+
+Generated from IKF Admin Dashboard`
+  
+  const mailtoLink = `mailto:?subject=IKF Dashboard Report - ${new Date().toLocaleDateString()}&body=${encodeURIComponent(emailBody)}`
+  window.location.href = mailtoLink
 }
 
 // Export Controls
 function ExportControls({ onRefresh, loading, dashboardData }) {
+  const [showExportMenu, setShowExportMenu] = useState(false)
+
   return (
     <div className='fixed top-4 right-6 z-50'>
       <div className='bg-slate-900 border border-slate-700 rounded-lg shadow-lg p-3'>
@@ -1038,35 +1122,49 @@ function ExportControls({ onRefresh, loading, dashboardData }) {
             <span>Refresh</span>
           </button>
 
-          <div className='relative group'>
-            <button className='flex items-center gap-2 text-slate-300 hover:text-white text-sm px-3 py-1.5 bg-slate-800 rounded-md'>
+          <div className='relative'>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className='flex items-center gap-2 text-slate-300 hover:text-white text-sm px-3 py-1.5 bg-slate-800 rounded-md'
+            >
               <Download size={16} />
               <span>Export</span>
-              <ChevronDown size={16} />
+              <ChevronDown size={16} className={showExportMenu ? 'rotate-180' : ''} />
             </button>
-            <div className='absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-lg hidden group-hover:block'>
-              <button
-                onClick={() => exportToCSV(dashboardData)}
-                className='w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2'
-              >
-                <Download size={14} />
-                <span>Export CSV</span>
-              </button>
-              <button
-                onClick={() => exportToPDF(dashboardData)}
-                className='w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2'
-              >
-                <Download size={14} />
-                <span>Export PDF</span>
-              </button>
-              <button
-                onClick={() => sendEmailReport(dashboardData)}
-                className='w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2'
-              >
-                <Mail size={14} />
-                <span>Email Report</span>
-              </button>
-            </div>
+            {showExportMenu && (
+              <div className='absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-10'>
+                <button
+                  onClick={() => {
+                    exportToCSV(dashboardData)
+                    setShowExportMenu(false)
+                  }}
+                  className='w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2'
+                >
+                  <Download size={14} />
+                  <span>Export CSV</span>
+                </button>
+                <button
+                  onClick={() => {
+                    exportToPDF(dashboardData)
+                    setShowExportMenu(false)
+                  }}
+                  className='w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2'
+                >
+                  <Download size={14} />
+                  <span>Export PDF</span>
+                </button>
+                <button
+                  onClick={() => {
+                    sendEmailReport(dashboardData)
+                    setShowExportMenu(false)
+                  }}
+                  className='w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2'
+                >
+                  <Mail size={14} />
+                  <span>Email Report</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1144,8 +1242,8 @@ export default function DashboardPage() {
   return (
     <div className='bg-slate-950 min-h-screen'>
       <div className='container mx-auto'>
-        <div className='flex justify-between items-center p-6'>
-          <h1 className='text-2xl font-bold text-white'>IKF Admin Dashboard</h1>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6'>
+          <h1 className='text-xl sm:text-2xl font-bold text-white'>IKF Admin Dashboard</h1>
           <div className='flex items-center gap-4'>
             {loading && (
               <div className='flex items-center gap-2 text-slate-400'>

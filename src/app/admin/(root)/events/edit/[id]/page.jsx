@@ -131,73 +131,90 @@ export default function EditEventPage() {
       [name]: value,
     }));
   };
-const normalizeDate = (dateString) => {
-  const date = new Date(dateString);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-};
- const validateDates = () => {
-  const errors = {};
-  let isValid = true;
+  const normalizeDate = (dateString) => {
+    const date = new Date(dateString);
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  };
+  const validateDates = () => {
+    const errors = {};
+    let isValid = true;
 
-  // Required fields validation
-  if (!event.startDate) {
-    errors.startDate = "Start date is required";
-    isValid = false;
-  }
-
-  if (!event.endDate) {
-    errors.endDate = "End date is required";
-    isValid = false;
-  }
-
-  if (!event.registrationStartDate) {
-    errors.registrationStartDate = "Registration start date is required";
-    isValid = false;
-  }
-
-  if (!event.registrationDeadline) {
-    errors.registrationDeadline = "Registration deadline is required";
-    isValid = false;
-  }
-
-  // Only proceed with comparisons if we have all dates
-  if (event.startDate && event.endDate && event.registrationStartDate && event.registrationDeadline) {
-    const startDate = new Date(event.startDate);
-    const endDate = new Date(event.endDate);
-    const regStart = new Date(event.registrationStartDate);
-    const regDeadline = new Date(event.registrationDeadline);
-
-    console.log("Date validation - Start:", startDate, "End:", endDate, "RegStart:", regStart, "RegDeadline:", regDeadline);
-
-    // Backend validation rules:
-    // 1. Registration start must be before registration deadline
-    if (regStart >= regDeadline) {
-      errors.registrationStartDate = "Registration start must be before deadline";
+    // Required fields validation
+    if (!event.startDate) {
+      errors.startDate = "Start date is required";
       isValid = false;
     }
 
-    // 2. Registration deadline must be before event start
-    if (regDeadline >= startDate) {
-      errors.registrationDeadline = "Registration deadline must be before event start";
+    if (!event.endDate) {
+      errors.endDate = "End date is required";
       isValid = false;
     }
 
-    // 3. Registration start must be before event start
-    if (regStart >= startDate) {
-      errors.registrationStartDate = "Registration start must be before event start";
+    if (!event.registrationStartDate) {
+      errors.registrationStartDate = "Registration start date is required";
       isValid = false;
     }
 
-    // 4. End date must be after start date
-    if (endDate <= startDate) {
-      errors.endDate = "End date must be after start date";
+    if (!event.registrationDeadline) {
+      errors.registrationDeadline = "Registration deadline is required";
       isValid = false;
     }
-  }
 
-  console.log("Date validation result:", { isValid, errors });
-  return { isValid, errors };
-};
+    // Only proceed with comparisons if we have all dates
+    if (
+      event.startDate &&
+      event.endDate &&
+      event.registrationStartDate &&
+      event.registrationDeadline
+    ) {
+      const startDate = new Date(event.startDate);
+      const endDate = new Date(event.endDate);
+      const regStart = new Date(event.registrationStartDate);
+      const regDeadline = new Date(event.registrationDeadline);
+
+      console.log(
+        "Date validation - Start:",
+        startDate,
+        "End:",
+        endDate,
+        "RegStart:",
+        regStart,
+        "RegDeadline:",
+        regDeadline
+      );
+
+      // Backend validation rules:
+      // 1. Registration start must be before registration deadline
+      if (regStart >= regDeadline) {
+        errors.registrationStartDate =
+          "Registration start must be before deadline";
+        isValid = false;
+      }
+
+      // 2. Registration deadline must be before event start
+      if (regDeadline >= startDate) {
+        errors.registrationDeadline =
+          "Registration deadline must be before event start";
+        isValid = false;
+      }
+
+      // 3. Registration start must be before event start
+      if (regStart >= startDate) {
+        errors.registrationStartDate =
+          "Registration start must be before event start";
+        isValid = false;
+      }
+
+      // 4. End date must be after start date
+      if (endDate <= startDate) {
+        errors.endDate = "End date must be after start date";
+        isValid = false;
+      }
+    }
+
+    console.log("Date validation result:", { isValid, errors });
+    return { isValid, errors };
+  };
 
   const handleDateBlur = (e) => {
     const { isValid, errors } = validateDates();
@@ -210,167 +227,183 @@ const normalizeDate = (dateString) => {
     console.log("- End Date:", event.endDate);
     console.log("- Registration Start:", event.registrationStartDate);
     console.log("- Registration Deadline:", event.registrationDeadline);
-    
+
     const { isValid, errors } = validateDates();
     setValidationErrors(errors);
-    
+
     if (!isValid) {
       console.log("Frontend validation failed:", errors);
-      enqueueSnackbar("Please fix date validation errors: " + Object.values(errors).join(", "), { variant: "error" });
+      enqueueSnackbar(
+        "Please fix date validation errors: " +
+          Object.values(errors).join(", "),
+        { variant: "error" }
+      );
       return false;
     }
-    
+
     // Check required fields
     if (!event.name?.trim()) {
       enqueueSnackbar("Event name is required", { variant: "error" });
       return false;
     }
-    
+
     console.log("Frontend validation passed");
     return true;
   };
 
   const normalizeDateForServer = (date) =>
-  new Date(new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000).toISOString();
+    new Date(
+      new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000
+    ).toISOString();
 
+  const normalizeEventDates = (event) => ({
+    ...event,
+    startDate: normalizeDateForServer(event.startDate),
+    endDate: normalizeDateForServer(event.endDate),
+    registrationStartDate: normalizeDateForServer(event.registrationStartDate),
+    registrationDeadline: normalizeDateForServer(event.registrationDeadline),
+    weighInDateTime: normalizeDateForServer(event.weighInDateTime),
+  });
 
-const normalizeEventDates = (event) => ({
-  ...event,
-  startDate: normalizeDateForServer(event.startDate),
-  endDate: normalizeDateForServer(event.endDate),
-  registrationStartDate: normalizeDateForServer(event.registrationStartDate),
-  registrationDeadline: normalizeDateForServer(event.registrationDeadline),
-  weighInDateTime: normalizeDateForServer(event.weighInDateTime),
-});
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("Form submitted, starting validation...");
 
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  console.log("Form submitted, starting validation...");
-
-  const normalizeDateForServer = (date) => {
-    if (!date) return null;
-    // Simply convert to ISO string without complex timezone manipulation
-    return new Date(date).toISOString();
-  };
-
-  console.log("Validating event...");
-  if (!validateEvent()) {
-    console.log("Validation failed, returning early");
-    return;
-  }
-
-  console.log("Validation passed, setting isEditing to true");
-  setIsEditing(true);
-  try {
-    // Create a normalized event with all necessary fields
-    const normalizedEvent = {
-      // Basic fields
-      name: event.name,
-      format: event.format,
-      koPolicy: event.koPolicy,
-      sportType: event.sportType,
-      poster: event.poster,
-      
-      // Dates
-      startDate: normalizeDateForServer(event.startDate),
-      endDate: normalizeDateForServer(event.endDate),
-      registrationStartDate: normalizeDateForServer(event.registrationStartDate),
-      registrationDeadline: normalizeDateForServer(event.registrationDeadline),
-      weighInDateTime: normalizeDateForServer(event.weighInDateTime),
-      
-      // Times (as strings)
-      rulesMeetingTime: event.rulesMeetingTime || "",
-      spectatorDoorsOpenTime: event.spectatorDoorsOpenTime || "",
-      fightStartTime: event.fightStartTime,
-      
-      // References (send only the IDs)
-      venue: event.venue?._id || event.venue,
-      promoter: event.promoter?._id || event.promoter,
-      
-      // Contact info
-      iskaRepName: event.iskaRepName || "",
-      iskaRepPhone: event.iskaRepPhone || "",
-      
-      // Descriptions
-      briefDescription: event.briefDescription,
-      fullDescription: event.fullDescription || "",
-      rules: event.rules || "",
-      
-      // Other fields
-      matchingMethod: event.matchingMethod,
-      externalURL: event.externalURL || "",
-      ageCategories: event.ageCategories || [],
-      weightClasses: event.weightClasses || [],
-      
-      // Sectioning body
-      sectioningBodyName: event.sectioningBodyName,
-      sectioningBodyDescription: event.sectioningBodyDescription || "",
-      sectioningBodyImage: event.sectioningBodyImage || "",
-      
-      // Publishing options
-      isDraft: event.isDraft,
-      publishBrackets: event.publishBrackets,
+    const normalizeDateForServer = (date) => {
+      if (!date) return null;
+      // Simply convert to ISO string without complex timezone manipulation
+      return new Date(date).toISOString();
     };
 
-    console.log("Checking required fields:");
-    console.log("- weighInDateTime:", normalizedEvent.weighInDateTime);
-    console.log("- venue (ID):", normalizedEvent.venue);
-    console.log("- promoter (ID):", normalizedEvent.promoter);
-    console.log("- briefDescription:", normalizedEvent.briefDescription);
-    console.log("- sectioningBodyName:", normalizedEvent.sectioningBodyName);
-
-    console.log("Making API call to:", `${API_BASE_URL}/events/${eventId}`);
-    console.log("Current user:", user);
-    console.log("Event creator:", event?.createdBy);
-    console.log("Normalized dates being sent:");
-    console.log("- Start Date:", normalizedEvent.startDate);
-    console.log("- End Date:", normalizedEvent.endDate);
-    console.log("- Registration Start:", normalizedEvent.registrationStartDate);
-    console.log("- Registration Deadline:", normalizedEvent.registrationDeadline);
-    console.log("Full Payload:", normalizedEvent);
-
-    const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${user.token}`,
-      },
-      body: JSON.stringify(normalizedEvent),
-    });
-
-    const data = await response.json();
-    console.log("Server response:", data);
-
-    if (!response.ok) {
-      console.log("Server error response:", response.status, data);
-      // Handle validation errors specifically
-      if (response.status === 400 && data.error) {
-        throw new Error(data.error);
-      }
-      // Handle 500 errors with more detail
-      if (response.status === 500) {
-        throw new Error(data.error || data.message || "Internal server error occurred");
-      }
-      throw new Error(data.message || "Failed to update event");
+    console.log("Validating event...");
+    if (!validateEvent()) {
+      console.log("Validation failed, returning early");
+      return;
     }
 
-    if (data.success) {
-      enqueueSnackbar("Event updated successfully", { variant: "success" });
-      // Optionally redirect back to events list
-      // router.push("/admin/events");
-    } else {
-      throw new Error(data.message || "Failed to update event");
+    console.log("Validation passed, setting isEditing to true");
+    setIsEditing(true);
+    try {
+      // Create a normalized event with all necessary fields
+      const normalizedEvent = {
+        // Basic fields
+        name: event.name,
+        format: event.format,
+        koPolicy: event.koPolicy,
+        sportType: event.sportType,
+        poster: event.poster,
+
+        // Dates
+        startDate: normalizeDateForServer(event.startDate),
+        endDate: normalizeDateForServer(event.endDate),
+        registrationStartDate: normalizeDateForServer(
+          event.registrationStartDate
+        ),
+        registrationDeadline: normalizeDateForServer(
+          event.registrationDeadline
+        ),
+        weighInDateTime: normalizeDateForServer(event.weighInDateTime),
+
+        // Times (as strings)
+        rulesMeetingTime: event.rulesMeetingTime || "",
+        spectatorDoorsOpenTime: event.spectatorDoorsOpenTime || "",
+        fightStartTime: event.fightStartTime,
+
+        // References (send only the IDs)
+        venue: event.venue?._id || event.venue,
+        promoter: event.promoter?._id || event.promoter,
+
+        // Contact info
+        iskaRepName: event.iskaRepName || "",
+        iskaRepPhone: event.iskaRepPhone || "",
+
+        // Descriptions
+        briefDescription: event.briefDescription,
+        fullDescription: event.fullDescription || "",
+        rules: event.rules || "",
+
+        // Other fields
+        matchingMethod: event.matchingMethod,
+        externalURL: event.externalURL || "",
+        ageCategories: event.ageCategories || [],
+        weightClasses: event.weightClasses || [],
+
+        // Sectioning body
+        sectioningBodyName: event.sectioningBodyName,
+        sectioningBodyDescription: event.sectioningBodyDescription || "",
+        sectioningBodyImage: event.sectioningBodyImage || "",
+
+        // Publishing options
+        isDraft: event.isDraft,
+        publishBrackets: event.publishBrackets,
+      };
+
+      console.log("Checking required fields:");
+      console.log("- weighInDateTime:", normalizedEvent.weighInDateTime);
+      console.log("- venue (ID):", normalizedEvent.venue);
+      console.log("- promoter (ID):", normalizedEvent.promoter);
+      console.log("- briefDescription:", normalizedEvent.briefDescription);
+      console.log("- sectioningBodyName:", normalizedEvent.sectioningBodyName);
+
+      console.log("Making API call to:", `${API_BASE_URL}/events/${eventId}`);
+      console.log("Current user:", user);
+      console.log("Event creator:", event?.createdBy);
+      console.log("Normalized dates being sent:");
+      console.log("- Start Date:", normalizedEvent.startDate);
+      console.log("- End Date:", normalizedEvent.endDate);
+      console.log(
+        "- Registration Start:",
+        normalizedEvent.registrationStartDate
+      );
+      console.log(
+        "- Registration Deadline:",
+        normalizedEvent.registrationDeadline
+      );
+      console.log("Full Payload:", normalizedEvent);
+
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify(normalizedEvent),
+      });
+
+      const data = await response.json();
+      console.log("Server response:", data);
+
+      if (!response.ok) {
+        console.log("Server error response:", response.status, data);
+        // Handle validation errors specifically
+        if (response.status === 400 && data.error) {
+          throw new Error(data.error);
+        }
+        // Handle 500 errors with more detail
+        if (response.status === 500) {
+          throw new Error(
+            data.error || data.message || "Internal server error occurred"
+          );
+        }
+        throw new Error(data.message || "Failed to update event");
+      }
+
+      if (data.success) {
+        enqueueSnackbar("Event updated successfully", { variant: "success" });
+        // Optionally redirect back to events list
+        // router.push("/admin/events");
+      } else {
+        throw new Error(data.message || "Failed to update event");
+      }
+    } catch (error) {
+      console.error("Error updating event:", error);
+      enqueueSnackbar(error.message || "Failed to update event", {
+        variant: "error",
+      });
+    } finally {
+      setIsEditing(false);
     }
-  } catch (error) {
-    console.error("Error updating event:", error);
-    enqueueSnackbar(error.message || "Failed to update event", { variant: "error" });
-  } finally {
-    setIsEditing(false);
-  }
-};
-
-
+  };
 
   const handleImageUpload = async (e, fieldName) => {
     const file = e.target.files[0];
@@ -465,8 +498,6 @@ const handleSubmit = async (e) => {
     );
   }
 
-
-  
   return (
     <div className="text-white p-8 flex justify-center relative overflow-hidden">
       <div
@@ -499,7 +530,7 @@ const handleSubmit = async (e) => {
             </Link>
             <h1 className="text-2xl font-bold">Edit Event: {event.name}</h1>
           </div>
-          <div className="relative w-64">
+          {/* <div className="relative w-64">
             <button
               onClick={toggleDropdown}
               className="flex items-center justify-between w-full px-4 py-2 bg-[#0A1330] border border-white rounded-lg"
@@ -547,7 +578,9 @@ const handleSubmit = async (e) => {
                   <li className="mx-4 py-3 border-b border-[#6C6C6C]">
                     Cash Payment Tokens
                   </li>
-                  <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500">Reports</li>
+                  <li className="mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500">
+                    Reports
+                  </li>
                   <Link href={`/admin/events/${eventId}/spectator-payments`}>
                     <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
                       Spectator Payments
@@ -556,7 +589,7 @@ const handleSubmit = async (e) => {
                 </ul>
               </div>
             )}
-        </div>
+          </div> */}
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -694,7 +727,7 @@ const handleSubmit = async (e) => {
                       : ""
                   }
                   onChange={handleInputChange}
-                   onBlur={handleDateBlur}
+                  onBlur={handleDateBlur}
                   className={`w-full bg-[#0A1330] border ${
                     validationErrors.endDate
                       ? "border-red-500"
@@ -725,7 +758,7 @@ const handleSubmit = async (e) => {
                       : ""
                   }
                   onChange={handleInputChange}
-                   onBlur={handleDateBlur}
+                  onBlur={handleDateBlur}
                   className={`w-full bg-[#0A1330] border ${
                     validationErrors.registrationStartDate
                       ? "border-red-500"
@@ -755,7 +788,7 @@ const handleSubmit = async (e) => {
                       : ""
                   }
                   onChange={handleInputChange}
-                   onBlur={handleDateBlur}
+                  onBlur={handleDateBlur}
                   className={`w-full bg-[#0A1330] border ${
                     validationErrors.registrationDeadline
                       ? "border-red-500"

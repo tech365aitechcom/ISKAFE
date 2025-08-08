@@ -132,12 +132,13 @@ export default function CashPaymentAndCodesPage() {
           Authorization: `Bearer ${user.token}`,
         },
         body: JSON.stringify({
-          eventId: selectedEvent.id,
           name: codeData.participantName,
           email: codeData.participantEmail,
-          phoneNumber: codeData.participantMobile,
+          phoneNumber: parseInt(codeData.participantMobile) || codeData.participantMobile,
           role: codeData.participantType === 'trainer' ? 'trainer' : 'spectator',
-          eventDate: new Date().toISOString().split('T')[0],
+          eventId: selectedEvent.id,
+          userId: codeData.userId || user?._id || user?.id,
+          eventDate: codeData.eventDate,
           amountPaid: codeData.amount,
           paymentType: codeData.paymentType.toLowerCase(),
           paymentNotes: codeData.paymentNotes
@@ -181,11 +182,17 @@ export default function CashPaymentAndCodesPage() {
           Authorization: `Bearer ${user.token}`,
         },
         body: JSON.stringify({
-          redemptionStatus: 'Checked-In',
-          eventDate: code.eventDateCode || new Date().toISOString().split('T')[0],
+          name: code.name,
+          email: code.email,
+          phoneNumber: parseInt(code.phoneNumber) || code.phoneNumber,
+          role: code.role,
+          eventId: selectedEvent.id,
+          userId: code.userId,
+          eventDate: code.eventDate || new Date().toISOString().split('T')[0],
           amountPaid: code.amountPaid || code.amount,
           paymentType: (code.paymentType || 'cash').toLowerCase(),
-          paymentNotes: code.paymentNotes || 'Redeemed by admin'
+          paymentNotes: code.paymentNotes || 'Redeemed by admin',
+          redemptionStatus: 'Checked-In'
         })
       })
       
