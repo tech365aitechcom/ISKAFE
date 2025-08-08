@@ -1,6 +1,16 @@
 "use client";
 import React, { useState } from "react";
-import { Search, Camera, X, Download, User, Ticket, Clock, Check, AlertCircle } from "lucide-react";
+import {
+  Search,
+  Camera,
+  X,
+  Download,
+  User,
+  Ticket,
+  Clock,
+  Check,
+  AlertCircle,
+} from "lucide-react";
 
 export default function SpectatorTicketRedemption() {
   // State management
@@ -13,8 +23,18 @@ export default function SpectatorTicketRedemption() {
 
   // Mock data - replace with API calls
   const events = [
-    { id: 1, name: "IKF Point Muay Thai - Mexico (03/22/2025)", date: "2025-03-22", location: "Mexico City" },
-    { id: 2, name: "ISCF MMA Technical Bouts (03/29/2025)", date: "2025-03-29", location: "Las Vegas" },
+    {
+      id: 1,
+      name: "IKF Point Muay Thai - Mexico (03/22/2025)",
+      date: "2025-03-22",
+      location: "Mexico City",
+    },
+    {
+      id: 2,
+      name: "ISCF MMA Technical Bouts (03/29/2025)",
+      date: "2025-03-29",
+      location: "Las Vegas",
+    },
     // More events...
   ];
 
@@ -28,15 +48,16 @@ export default function SpectatorTicketRedemption() {
       redeemedAt: "2025-05-10T10:02:00",
       redeemedBy: "Amanda (Staff-02)",
       status: "checked-in",
-      entryMode: "qr-scan"
+      entryMode: "qr-scan",
     },
     // More tickets...
   ];
 
   // Filter tickets based on status
-  const filteredTickets = filterStatus === "all" 
-    ? tickets 
-    : tickets.filter(ticket => ticket.status === filterStatus);
+  const filteredTickets =
+    filterStatus === "all"
+      ? tickets
+      : tickets.filter((ticket) => ticket.status === filterStatus);
 
   // Handle QR code scan
   const handleScan = () => {
@@ -47,7 +68,7 @@ export default function SpectatorTicketRedemption() {
   // Redeem ticket
   const handleRedeem = () => {
     if (!redeemCode) return;
-    
+
     // In a real app, this would call an API
     const newTicket = {
       id: Date.now().toString(),
@@ -58,9 +79,9 @@ export default function SpectatorTicketRedemption() {
       redeemedAt: new Date().toISOString(),
       redeemedBy: "Current User",
       status: "checked-in",
-      entryMode: "manual"
+      entryMode: "manual",
     };
-    
+
     setTickets([...tickets, newTicket]);
     setRedeemCode("");
   };
@@ -76,20 +97,22 @@ export default function SpectatorTicketRedemption() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
-            <h1 className="text-2xl font-semibold">Spectator Ticket Redemption</h1>
+            <h1 className="text-2xl font-semibold">
+              Spectator Ticket Redemption
+            </h1>
             <p className="text-gray-300 mt-4">
               Verify or redeem spectator tickets via QR scan or manual entry
             </p>
           </div>
           <div className="flex space-x-3 mt-4 md:mt-0">
-            <button 
+            <button
               className="text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-4 py-2 rounded flex items-center"
               onClick={() => handleExport("pdf")}
             >
               <Download size={16} className="mr-2" />
               Export PDF
             </button>
-            <button 
+            <button
               className="text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-4 py-2 rounded flex items-center"
               onClick={() => handleExport("csv")}
             >
@@ -104,13 +127,21 @@ export default function SpectatorTicketRedemption() {
           {/* Tabs */}
           <div className="flex border-b border-gray-700 mb-6">
             <button
-              className={`pb-2 px-4 ${activeTab === "redeem" ? "text-purple-400 border-b-2 border-purple-400" : "text-gray-400"}`}
+              className={`pb-2 px-4 ${
+                activeTab === "redeem"
+                  ? "text-purple-400 border-b-2 border-purple-400"
+                  : "text-gray-400"
+              }`}
               onClick={() => setActiveTab("redeem")}
             >
               Ticket Redemption
             </button>
             <button
-              className={`pb-2 px-4 ${activeTab === "list" ? "text-purple-400 border-b-2 border-purple-400" : "text-gray-400"}`}
+              className={`pb-2 px-4 ${
+                activeTab === "list"
+                  ? "text-purple-400 border-b-2 border-purple-400"
+                  : "text-gray-400"
+              }`}
               onClick={() => setActiveTab("list")}
             >
               Redemption List
@@ -127,7 +158,8 @@ export default function SpectatorTicketRedemption() {
                 </p>
                 <button
                   style={{
-                    background: "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
+                    background:
+                      "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
                   }}
                   className="text-white py-2 px-4 rounded flex items-center hover:opacity-90"
                   onClick={handleScan}
@@ -188,7 +220,9 @@ export default function SpectatorTicketRedemption() {
 
                   <div className="mb-8">
                     <div className="bg-[#00000061] p-4 rounded-lg mb-4">
-                      <label className="block text-sm text-gray-400 mb-2">Ticket Code:</label>
+                      <label className="block text-sm text-gray-400 mb-2">
+                        Ticket Code:
+                      </label>
                       <div className="flex items-center">
                         <input
                           type="text"
@@ -199,7 +233,7 @@ export default function SpectatorTicketRedemption() {
                           maxLength={6}
                         />
                         {redeemCode && (
-                          <button 
+                          <button
                             onClick={() => setRedeemCode("")}
                             className="text-gray-400 hover:text-white ml-2"
                           >
@@ -211,7 +245,8 @@ export default function SpectatorTicketRedemption() {
 
                     <button
                       style={{
-                        background: "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
+                        background:
+                          "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
                       }}
                       className="text-white py-2 px-4 rounded w-full md:w-auto"
                       onClick={handleRedeem}
@@ -253,19 +288,34 @@ export default function SpectatorTicketRedemption() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-gray-800 text-left">
-                        <th className="p-3 border-b border-gray-700">Ticket Code</th>
-                        <th className="p-3 border-b border-gray-700">Spectator</th>
+                        <th className="p-3 border-b border-gray-700">
+                          Ticket Code
+                        </th>
+                        <th className="p-3 border-b border-gray-700">
+                          Spectator
+                        </th>
                         <th className="p-3 border-b border-gray-700">Type</th>
-                        <th className="p-3 border-b border-gray-700 text-right">Price</th>
-                        <th className="p-3 border-b border-gray-700">Redeemed At</th>
-                        <th className="p-3 border-b border-gray-700">Redeemed By</th>
+                        <th className="p-3 border-b border-gray-700 text-right">
+                          Price
+                        </th>
+                        <th className="p-3 border-b border-gray-700">
+                          Redeemed At
+                        </th>
+                        <th className="p-3 border-b border-gray-700">
+                          Redeemed By
+                        </th>
                         <th className="p-3 border-b border-gray-700">Status</th>
-                        <th className="p-3 border-b border-gray-700">Entry Mode</th>
+                        <th className="p-3 border-b border-gray-700">
+                          Entry Mode
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredTickets.map((ticket) => (
-                        <tr key={ticket.id} className="border-b border-gray-700 hover:bg-gray-800/50">
+                        <tr
+                          key={ticket.id}
+                          className="border-b border-gray-700 hover:bg-gray-800/50"
+                        >
                           <td className="p-3 font-mono">{ticket.code}</td>
                           <td className="p-3 flex items-center">
                             <User size={16} className="mr-2 text-gray-400" />
@@ -273,7 +323,10 @@ export default function SpectatorTicketRedemption() {
                           </td>
                           <td className="p-3">
                             <span className="flex items-center">
-                              <Ticket size={16} className="mr-2 text-gray-400" />
+                              <Ticket
+                                size={16}
+                                className="mr-2 text-gray-400"
+                              />
                               {ticket.type}
                             </span>
                           </td>
@@ -281,27 +334,38 @@ export default function SpectatorTicketRedemption() {
                           <td className="p-3">
                             {ticket.redeemedAt ? (
                               <span className="flex items-center">
-                                <Clock size={16} className="mr-2 text-gray-400" />
+                                <Clock
+                                  size={16}
+                                  className="mr-2 text-gray-400"
+                                />
                                 {new Date(ticket.redeemedAt).toLocaleString()}
                               </span>
-                            ) : '-'}
+                            ) : (
+                              "-"
+                            )}
                           </td>
-                          <td className="p-3">{ticket.redeemedBy || '-'}</td>
+                          <td className="p-3">{ticket.redeemedBy || "-"}</td>
                           <td className="p-3">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                              ticket.status === 'checked-in' 
-                                ? 'bg-green-900 text-green-300' 
-                                : 'bg-gray-700 text-gray-300'
-                            }`}>
-                              {ticket.status === 'checked-in' ? (
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                                ticket.status === "checked-in"
+                                  ? "bg-green-900 text-green-300"
+                                  : "bg-gray-700 text-gray-300"
+                              }`}
+                            >
+                              {ticket.status === "checked-in" ? (
                                 <Check size={12} className="mr-1" />
                               ) : (
                                 <AlertCircle size={12} className="mr-1" />
                               )}
-                              {ticket.status === 'checked-in' ? 'Checked In' : 'Not Checked In'}
+                              {ticket.status === "checked-in"
+                                ? "Checked In"
+                                : "Not Checked In"}
                             </span>
                           </td>
-                          <td className="p-3 capitalize">{ticket.entryMode.replace('-', ' ')}</td>
+                          <td className="p-3 capitalize">
+                            {ticket.entryMode.replace("-", " ")}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

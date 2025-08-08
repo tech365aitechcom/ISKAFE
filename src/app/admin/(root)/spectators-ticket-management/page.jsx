@@ -8,6 +8,7 @@ export default function SpectatorsTicketManagement() {
   const [hasChanges, setHasChanges] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [savedTiers, setSavedTiers] = useState(new Set());
+  const [validationErrors, setValidationErrors] = useState({});
 
   // Load sample data
   useEffect(() => {
@@ -74,14 +75,54 @@ export default function SpectatorsTicketManagement() {
     setHasChanges(true);
   };
 
+  const validateTier = (tier) => {
+    const errors = {};
+    
+    // Validate Name field (required, max 50 chars, letters and spaces only)
+    if (!tier.name.trim()) {
+      errors.name = "Name is required";
+    } else if (tier.name.length > 50) {
+      errors.name = "Name must be 50 characters or less";
+    } else if (!/^[a-zA-Z\s]+$/.test(tier.name)) {
+      errors.name = "Name can only contain letters and spaces";
+    }
+    
+    // Validate Description field (optional but max 250 chars if provided)
+    if (tier.description && tier.description.length > 250) {
+      errors.description = "Description must be 250 characters or less";
+    }
+    
+    // Validate Price field (required, must be > 0)
+    if (tier.price <= 0) {
+      errors.price = "Price must be greater than 0";
+    }
+    
+    // Validate Capacity field (required, must be > 0)
+    if (tier.capacity <= 0) {
+      errors.capacity = "Capacity must be greater than 0";
+    }
+    
+    return errors;
+  };
+
   const handleSaveTier = (id) => {
     const tier = ticketTiers.find((t) => t.id === id);
     if (!tier) return;
 
-    if (!tier.name || tier.price < 0 || tier.capacity <= 0) {
-      alert("Please fill all required fields with valid values");
+    const errors = validateTier(tier);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(prev => ({ ...prev, [id]: errors }));
+      const errorMessages = Object.values(errors).join(', ');
+      alert(`Please fix the following errors: ${errorMessages}`);
       return;
     }
+
+    // Clear validation errors for this tier
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[id];
+      return newErrors;
+    });
 
     // Mark tier as saved (disable editing)
     setSavedTiers(prev => new Set([...prev, id]));
@@ -99,20 +140,43 @@ export default function SpectatorsTicketManagement() {
   };
 
   const handleSaveAll = () => {
-    const hasErrors = ticketTiers.some(
-      (tier) => !tier.name || tier.price < 0 || tier.capacity <= 0
-    );
-
-    if (hasErrors) {
-      alert("Some ticket tiers have invalid data");
+    const allErrors = {};
+    let hasAnyErrors = false;
+    
+    ticketTiers.forEach(tier => {
+      if (!savedTiers.has(tier.id)) {
+        const errors = validateTier(tier);
+        if (Object.keys(errors).length > 0) {
+          allErrors[tier.id] = errors;
+          hasAnyErrors = true;
+        }
+      }
+    });
+    
+    if (hasAnyErrors) {
+      setValidationErrors(allErrors);
+      alert("Please fix validation errors in all tiers before saving");
       return;
     }
-
+    
+    // Clear all validation errors
+    setValidationErrors({});
     alert("All changes have been saved successfully");
     setHasChanges(false);
   };
 
   const handleFieldChange = (id, field, value) => {
+    // Clear validation errors for this field when user starts typing
+    if (validationErrors[id] && validationErrors[id][field]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [id]: {
+          ...prev[id],
+          [field]: undefined
+        }
+      }));
+    }
+    
     setTicketTiers(
       ticketTiers.map((tier) => {
         if (tier.id === id) {
@@ -217,6 +281,8 @@ export default function SpectatorsTicketManagement() {
                         className={`w-full border text-white rounded px-3 py-2 ${
                           savedTiers.has(tier.id) 
                             ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : validationErrors[tier.id]?.name
+                            ? 'bg-[#0B1739] border-red-500'
                             : 'bg-[#0B1739] border-[#343B4F]'
                         }`}
                         value={tier.name}
@@ -225,15 +291,22 @@ export default function SpectatorsTicketManagement() {
                         }
                         placeholder="e.g., General Admission"
                         disabled={savedTiers.has(tier.id)}
+                        maxLength={50}
                       />
+                      {validationErrors[tier.id]?.name && (
+                        <p className="text-red-400 text-xs mt-1">{validationErrors[tier.id].name}</p>
+                      )}
+                      <p className="text-gray-400 text-xs mt-1">{tier.name.length}/50 characters</p>
                     </div>
                   </div>
                   <div className="mb-4">
-                    <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Description</label>
+                    <label className="block text-sm text-[#AEB9E1] mb-1">Ticket Description <span className="text-gray-400">(optional)</span></label>
                     <textarea
                       className={`w-full border text-white rounded px-3 py-2 ${
                         savedTiers.has(tier.id) 
                           ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                          : validationErrors[tier.id]?.description
+                          ? 'bg-[#0B1739] border-red-500'
                           : 'bg-[#0B1739] border-[#343B4F]'
                       }`}
                       value={tier.description}
@@ -242,7 +315,13 @@ export default function SpectatorsTicketManagement() {
                       }
                       rows={2}
                       disabled={savedTiers.has(tier.id)}
+                      maxLength={250}
+                      placeholder="Optional description for this ticket tier"
                     />
+                    {validationErrors[tier.id]?.description && (
+                      <p className="text-red-400 text-xs mt-1">{validationErrors[tier.id].description}</p>
+                    )}
+                    <p className="text-gray-400 text-xs mt-1">{tier.description.length}/250 characters</p>
                   </div>
                 </div>
 
@@ -253,18 +332,25 @@ export default function SpectatorsTicketManagement() {
                       <label className="block text-sm text-[#AEB9E1] mb-1">Price ($) <span className="text-red-400">*</span></label>
                       <input
                         type="number"
-                        min="0"
+                        min="0.01"
+                        step="0.01"
                         className={`w-full border text-white rounded px-3 py-2 ${
                           savedTiers.has(tier.id) 
                             ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : validationErrors[tier.id]?.price
+                            ? 'bg-[#0B1739] border-red-500'
                             : 'bg-[#0B1739] border-[#343B4F]'
                         }`}
                         value={tier.price}
                         onChange={(e) =>
-                          handleFieldChange(tier.id, "price", parseFloat(e.target.value))
+                          handleFieldChange(tier.id, "price", parseFloat(e.target.value) || 0)
                         }
                         disabled={savedTiers.has(tier.id)}
+                        placeholder="Enter price greater than 0"
                       />
+                      {validationErrors[tier.id]?.price && (
+                        <p className="text-red-400 text-xs mt-1">{validationErrors[tier.id].price}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm text-[#AEB9E1] mb-1">Capacity <span className="text-red-400">*</span></label>
@@ -274,14 +360,20 @@ export default function SpectatorsTicketManagement() {
                         className={`w-full border text-white rounded px-3 py-2 ${
                           savedTiers.has(tier.id) 
                             ? 'bg-gray-700 border-gray-600 cursor-not-allowed opacity-75' 
+                            : validationErrors[tier.id]?.capacity
+                            ? 'bg-[#0B1739] border-red-500'
                             : 'bg-[#0B1739] border-[#343B4F]'
                         }`}
                         value={tier.capacity}
                         onChange={(e) =>
-                          handleFieldChange(tier.id, "capacity", parseInt(e.target.value))
+                          handleFieldChange(tier.id, "capacity", parseInt(e.target.value) || 0)
                         }
                         disabled={savedTiers.has(tier.id)}
+                        placeholder="Enter capacity greater than 0"
                       />
+                      {validationErrors[tier.id]?.capacity && (
+                        <p className="text-red-400 text-xs mt-1">{validationErrors[tier.id].capacity}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm text-[#AEB9E1] mb-1">Remaining</label>

@@ -9,7 +9,6 @@ import GuestDetailsForm from './_components/GuestDetailsForm'
 import TicketSelectionScreen from './_components/TicketSelectionScreen'
 import FighterSelectionScreen from './_components/FighterSelectionScreen'
 import PaymentScreen from './_components/PaymentScreen'
-import ConfirmationScreen from './_components/ConfirmationScreen'
 import useStore from '../../../../../stores/useStore'
 
 const SpectatorTicketPurchasePage = () => {
@@ -19,7 +18,8 @@ const SpectatorTicketPurchasePage = () => {
   
   const [eventDetails, setEventDetails] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentStep, setCurrentStep] = useState('email') // email, guest-details, tickets, fighters, payment, confirmation
+  const [currentStep, setCurrentStep] = useState('email') // email, guest-details, tickets, fighters, payment
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false)
   const [purchaseData, setPurchaseData] = useState({
     eventId: params.id,
     email: '',
@@ -82,7 +82,16 @@ const SpectatorTicketPurchasePage = () => {
       
       return updated
     })
-    setCurrentStep(step)
+    
+    // If step is confirmation, show snackbar and redirect instead
+    if (step === 'confirmation') {
+      setShowSuccessSnackbar(true)
+      setTimeout(() => {
+        router.push(`/events/${params.id}`)
+      }, 2000)
+    } else {
+      setCurrentStep(step)
+    }
   }
 
   const handleCancel = () => {
@@ -156,8 +165,8 @@ const SpectatorTicketPurchasePage = () => {
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-4">
-            {['Email', 'Details', 'Tickets', 'Fighters', 'Payment', 'Confirmation'].map((step, index) => {
-              const stepKeys = ['email', 'guest-details', 'tickets', 'fighters', 'payment', 'confirmation']
+            {['Email', 'Details', 'Tickets', 'Fighters', 'Payment'].map((step, index) => {
+              const stepKeys = ['email', 'guest-details', 'tickets', 'fighters', 'payment']
               const currentIndex = stepKeys.indexOf(currentStep)
               const isActive = index === currentIndex
               const isCompleted = index < currentIndex
@@ -174,7 +183,7 @@ const SpectatorTicketPurchasePage = () => {
                   <span className={`ml-2 text-sm ${isActive ? 'text-white' : 'text-gray-400'}`}>
                     {step}
                   </span>
-                  {index < 5 && <div className="w-8 h-0.5 bg-gray-600 mx-4" />}
+                  {index < 4 && <div className="w-8 h-0.5 bg-gray-600 mx-4" />}
                 </div>
               )
             })}
@@ -229,15 +238,19 @@ const SpectatorTicketPurchasePage = () => {
               purchaseData={purchaseData}
             />
           )}
-          
-          {currentStep === 'confirmation' && (
-            <ConfirmationScreen
-              eventDetails={eventDetails}
-              purchaseData={purchaseData}
-              onReturnToEvent={() => router.push(`/events/${params.id}`)}
-            />
-          )}
         </div>
+        
+        {/* Success Snackbar */}
+        {showSuccessSnackbar && (
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-3">
+            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+              <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span className="font-medium">Tickets purchased successfully!</span>
+          </div>
+        )}
       </div>
     </div>
   )

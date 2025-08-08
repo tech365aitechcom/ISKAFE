@@ -100,7 +100,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
           <div className="absolute z-10 w-full mt-1 bg-[#0A1330] border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {searchResults.map((fighter, index) => (
               <div
-                key={fighter.fighterProfileId || index}
+                key={`search-${fighter.fighterProfileId || fighter._id || 'unknown'}-${index}`}
                 onClick={() => addFighter(fighter)}
                 className="px-4 py-3 hover:bg-[#1b0c2e] cursor-pointer border-b border-gray-700 last:border-b-0"
               >
@@ -133,7 +133,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
           <div className="space-y-2">
             {selectedFighters.map((fighter, index) => (
               <div
-                key={fighter.fighterProfileId || index}
+                key={`selected-${fighter.fighterProfileId || fighter._id || 'unknown'}-${index}`}
                 className="bg-[#0A1330] rounded-lg p-4 flex justify-between items-center"
               >
                 <div>
@@ -164,7 +164,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
               
               return (
                 <div
-                  key={fighter.fighterProfileId || index}
+                  key={`all-${fighter.fighterProfileId || fighter._id || 'unknown'}-${index}`}
                   onClick={() => isSelected ? removeFighter(fighter.fighterProfileId) : addFighter(fighter)}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     isSelected 

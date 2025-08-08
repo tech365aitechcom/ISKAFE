@@ -192,6 +192,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         paymentType,
         paymentNotes,
         eventDate,
+        userId: selectedUser?._id || selectedUser?.id || null,
         issuedBy: currentUser?.firstName + ' ' + currentUser?.lastName || 'Admin'
       };
       
