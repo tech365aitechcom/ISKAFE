@@ -1,95 +1,33 @@
-import { Plus, User, Trash, Edit } from 'lucide-react'
+import { Plus, User, Trash, Edit, X, Check } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
 import AddFighterModal from './AddFighterModal'
+import { enqueueSnackbar } from 'notistack'
 
 export default function Fighters({ expandedBracket, eventId, onUpdate }) {
   const user = useStore((state) => state.user)
   const [fighters, setFighters] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [isDeleteMode, setIsDeleteMode] = useState(false)
+  const [selectedFighters, setSelectedFighters] = useState([])
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (expandedBracket?._id) {
       console.log('useEffect triggered - expandedBracket changed:', {
         id: expandedBracket._id,
         fighters: expandedBracket.fighters,
-        fightersLength: expandedBracket.fighters?.length
+        fightersLength: expandedBracket.fighters?.length,
       })
       fetchBracketFighters()
     }
   }, [expandedBracket?._id, JSON.stringify(expandedBracket?.fighters)])
 
   const fetchBracketFighters = async () => {
-    try {
-      setLoading(true)
-      
-      console.log('=== Fetching Bracket Fighters Debug ===')
-      console.log('Expanded bracket:', expandedBracket)
-      console.log('Event ID:', eventId)
-      
-      // First, get the latest bracket data to ensure we have updated fighters list
-      const bracketResponse = await fetch(`${API_BASE_URL}/brackets/${expandedBracket._id}`, {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      })
-      
-      let currentBracket = expandedBracket
-      if (bracketResponse.ok) {
-        const bracketData = await bracketResponse.json()
-        console.log('Fresh bracket data from API:', bracketData)
-        console.log('Fresh bracket data.data structure:', JSON.stringify(bracketData.data, null, 2))
-        if (bracketData.success) {
-          currentBracket = bracketData.data
-        }
-      } else {
-        console.error('Failed to fetch bracket data:', bracketResponse.status)
-      }
-      
-      // Fetch all fighters for this event
-      const response = await fetch(`${API_BASE_URL}/registrations/event/${eventId}?registrationType=fighter`, {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('All fighters response:', data)
-        if (data.success && data.data.items) {
-          // Filter fighters that belong to this bracket using the updated bracket data
-          const bracketFighters = currentBracket.fighters || []
-          console.log('Current bracket fighters IDs:', bracketFighters)
-          console.log('All available fighters:', data.data.items.length)
-          console.log('Sample fighter IDs:', data.data.items.slice(0, 3).map(f => f._id))
-          
-          const assignedFighters = data.data.items.filter(fighter => {
-            const fighterId = fighter._id
-            const isAssigned = bracketFighters.includes(fighterId)
-            console.log(`Checking fighter ${fighter.firstName} ${fighter.lastName}:`)
-            console.log(`  Fighter ID: "${fighterId}" (type: ${typeof fighterId})`)
-            console.log(`  Bracket fighters: [${bracketFighters.map(id => `"${id}"`).join(', ')}]`)
-            console.log(`  Is assigned: ${isAssigned}`)
-            if (isAssigned) {
-              console.log(`✓ Fighter ${fighter.firstName} ${fighter.lastName} (${fighterId}) is assigned to bracket`)
-            }
-            return isAssigned
-          })
-          console.log('Assigned fighters found:', assignedFighters.length)
-          console.log('Assigned fighters:', assignedFighters.map(f => `${f.firstName} ${f.lastName}`))
-          setFighters(assignedFighters)
-        }
-      } else {
-        console.error('Failed to fetch fighters:', response.status)
-      }
-    } catch (err) {
-      console.error('Error fetching fighters:', err)
-      setFighters([])
-    } finally {
-      setLoading(false)
-    }
+    setFighters(expandedBracket?.fighters || [])
+    setLoading(false)
   }
 
   const handleAddFighter = () => {
@@ -108,18 +46,78 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
     await fetchBracketFighters()
   }
 
+  const handleDeleteMode = () => {
+    setIsDeleteMode(!isDeleteMode)
+    setSelectedFighters([])
+  }
+
+  const handleFighterSelect = (fighterId) => {
+    setSelectedFighters((prev) =>
+      prev.includes(fighterId)
+        ? prev.filter((id) => id !== fighterId)
+        : [...prev, fighterId]
+    )
+  }
+
+  const handleDeleteFighters = async () => {
+    if (selectedFighters.length === 0) return
+
+    setIsDeleting(true)
+    try {
+      const remainingFighters = fighters
+        .filter((fighter) => !selectedFighters.includes(fighter._id))
+        .map((fighter) => fighter._id)
+
+      const response = await fetch(
+        `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.token}`,
+          },
+          body: JSON.stringify({
+            fighters: remainingFighters,
+          }),
+        }
+      )
+
+      if (response.ok) {
+        enqueueSnackbar('Fighters deleted successfully!', {
+          variant: 'success',
+        })
+      }
+
+      // Reset states
+      setIsDeleteMode(false)
+      setSelectedFighters([])
+
+      // Refresh data
+      if (onUpdate) {
+        await onUpdate()
+      }
+    } catch (error) {
+      console.error('Error deleting fighters:', error)
+      enqueueSnackbar('Failed to delete fighters. Please try again.', {
+        variant: 'error',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-white">Loading fighters...</div>
+      <div className='flex items-center justify-center py-8'>
+        <div className='text-white'>Loading fighters...</div>
       </div>
     )
   }
 
   if (!expandedBracket) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-gray-400">No bracket data available</div>
+      <div className='flex items-center justify-center py-8'>
+        <div className='text-gray-400'>No bracket data available</div>
       </div>
     )
   }
@@ -129,37 +127,97 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
       <div className='flex justify-between items-center mb-6'>
         <h2 className='text-lg font-semibold leading-8'>
           Fighters in this bracket ({fighters.length})
+          {isDeleteMode && selectedFighters.length > 0 && (
+            <span className='ml-2 text-sm text-purple-400'>
+              ({selectedFighters.length} selected)
+            </span>
+          )}
         </h2>
-        <button
-          className='text-white px-4 py-2 rounded-md flex gap-2 items-center'
-          style={{
-            background:
-              'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
-          }}
-          onClick={handleAddFighter}
-        >
-          <Plus size={18} />
-          Add Fighter
-        </button>
+        <div className='flex gap-2'>
+          {isDeleteMode ? (
+            <>
+              <button
+                className='text-white px-4 py-2 rounded-md flex gap-2 items-center bg-red-600 hover:bg-red-700 disabled:opacity-50'
+                onClick={handleDeleteFighters}
+                disabled={selectedFighters.length === 0 || isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Check size={18} />
+                    Delete Selected ({selectedFighters.length})
+                  </>
+                )}
+              </button>
+              <button
+                className='text-white px-4 py-2 rounded-md flex gap-2 items-center bg-gray-600 hover:bg-gray-700'
+                onClick={handleDeleteMode}
+                disabled={isDeleting}
+              >
+                <X size={18} />
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className='text-white px-4 py-2 rounded-md flex gap-2 items-center bg-red-600 hover:bg-red-700'
+                onClick={handleDeleteMode}
+                disabled={fighters.length === 0}
+              >
+                <Trash size={18} />
+                Delete Fighters
+              </button>
+              <button
+                className='text-white px-4 py-2 rounded-md flex gap-2 items-center'
+                style={{
+                  background:
+                    'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
+                }}
+                onClick={handleAddFighter}
+              >
+                <Plus size={18} />
+                Add Fighter
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {fighters.length === 0 ? (
-        <div className="text-center py-12">
-          <User className="mx-auto mb-4 text-gray-400" size={48} />
-          <p className="text-gray-400 mb-4">No fighters assigned to this bracket yet.</p>
-          <button
-            onClick={handleAddFighter}
-            className="bg-blue-600 px-6 py-3 rounded hover:bg-blue-700 text-white"
-          >
-            Add First Fighter
-          </button>
+        <div className='text-center py-12'>
+          <User className='mx-auto mb-4 text-gray-400' size={48} />
+          <p className='text-gray-400 mb-4'>
+            No fighters assigned to this bracket yet.
+          </p>
         </div>
       ) : (
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
           {fighters.map((fighter, index) => (
-            <div key={fighter._id || index} className='bg-[#07091D] border border-gray-600 rounded-lg p-4'>
+            <div
+              key={fighter._id || index}
+              className={`bg-[#07091D] border rounded-lg p-4 transition-colors ${
+                isDeleteMode
+                  ? selectedFighters.includes(fighter._id)
+                    ? 'border-red-500 bg-red-900/20'
+                    : 'border-gray-600 hover:border-red-400'
+                  : 'border-gray-600'
+              }`}
+            >
               <div className='flex items-center justify-between mb-3'>
                 <div className='flex items-center gap-3'>
+                  {isDeleteMode && (
+                    <input
+                      type='checkbox'
+                      checked={selectedFighters.includes(fighter._id)}
+                      onChange={() => handleFighterSelect(fighter._id)}
+                      className='w-4 h-4 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 focus:ring-2'
+                    />
+                  )}
                   {fighter.profilePhoto ? (
                     <img
                       src={fighter.profilePhoto}
@@ -180,28 +238,24 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
                     </p>
                   </div>
                 </div>
-                <div className='flex gap-2'>
-                  <button className='text-blue-400 hover:text-blue-300 p-1'>
-                    <Edit size={16} />
-                  </button>
-                  <button className='text-red-400 hover:text-red-300 p-1'>
-                    <Trash size={16} />
-                  </button>
-                </div>
               </div>
-              
+
               <div className='space-y-2 text-sm text-gray-300'>
                 <div className='flex justify-between'>
                   <span>Age:</span>
                   <span>
-                    {fighter.dateOfBirth ? 
-                      new Date().getFullYear() - new Date(fighter.dateOfBirth).getFullYear() 
+                    {fighter.dateOfBirth
+                      ? new Date().getFullYear() -
+                        new Date(fighter.dateOfBirth).getFullYear()
                       : 'N/A'}
                   </span>
                 </div>
                 <div className='flex justify-between'>
                   <span>Weight:</span>
-                  <span>{fighter.walkAroundWeight || 'N/A'} {fighter.weightUnit || 'lbs'}</span>
+                  <span>
+                    {fighter.walkAroundWeight || 'N/A'}{' '}
+                    {fighter.weightUnit || 'lbs'}
+                  </span>
                 </div>
                 <div className='flex justify-between'>
                   <span>Experience:</span>
@@ -225,6 +279,7 @@ export default function Fighters({ expandedBracket, eventId, onUpdate }) {
         bracketId={expandedBracket?._id}
         bracket={expandedBracket}
         onFighterAdded={handleFighterAdded}
+        alreadyAddedFighters={fighters.map((f) => f._id)}
       />
     </div>
   )
