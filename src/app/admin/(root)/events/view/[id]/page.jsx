@@ -57,7 +57,7 @@ export default function EventDetailsPage() {
     remaining: 0,
     description: "",
     availabilityMode: "Online",
-    salesStartDate: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
+    salesStartDate: new Date().toISOString(),
     salesEndDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
     limitPerUser: 2,
     refundPolicyNotes: ""
@@ -125,8 +125,7 @@ export default function EventDetailsPage() {
   const handleAddNewTier = () => {
     const nextOrder = spectatorTickets?.tiers ? spectatorTickets.tiers.length + 1 : 1;
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of today
-    const twoWeeksLater = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const twoWeeksLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     
     setCurrentTier({
       order: nextOrder,
@@ -136,22 +135,35 @@ export default function EventDetailsPage() {
       remaining: 0,
       description: "",
       availabilityMode: "Online",
-      salesStartDate: today.toISOString(),
+      salesStartDate: new Date().toISOString(),
       salesEndDate: twoWeeksLater.toISOString(),
       limitPerUser: 2,
       refundPolicyNotes: ""
     });
     setEditingTier(null);
     setEditingTierIndex(null);
+    // Reset date tracking for new tier
+    setOriginalDates({ startDate: null, endDate: null });
+    setDateModified({ startDate: false, endDate: false });
     setShowTierForm(true);
   };
 
   const handleEditTier = (tier, index) => {
-    setCurrentTier({ ...tier });
+    setCurrentTier({ ...tier, price: tier.price / 100 }); // Convert cents to dollars for display
     setEditingTier(tier);
     setEditingTierIndex(index);
+    // Initialize date tracking - mark as unmodified when editing starts
+    setOriginalDates({ 
+      startDate: tier.salesStartDate,
+      endDate: tier.salesEndDate 
+    });
+    setDateModified({ startDate: false, endDate: false });
     setShowTierForm(true);
   };
+
+  // Track original dates to avoid validation on unmodified dates
+  const [originalDates, setOriginalDates] = useState({ startDate: null, endDate: null });
+  const [dateModified, setDateModified] = useState({ startDate: false, endDate: false });
 
   const validateTier = () => {
     const errors = [];
@@ -201,8 +213,10 @@ export default function EventDetailsPage() {
       const endDate = new Date(currentTier.salesEndDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Set to start of today for comparison
+      startDate.setHours(0, 0, 0, 0); // Normalize start date for comparison
       
-      if (startDate < today) {
+      // Only validate start date if it was modified during editing
+      if (dateModified.startDate && startDate < today) {
         errors.push("Sales start date must be today or later");
       }
       
@@ -227,17 +241,41 @@ export default function EventDetailsPage() {
       let updatedTiers = [];
       if (spectatorTickets?.tiers) {
         if (editingTier && editingTierIndex !== null) {
-          // Update existing tier
+          // Update existing tier - ensure proper data structure
+          const updatedTier = {
+            ...currentTier,
+            price: Math.round(currentTier.price * 100), // Convert to cents for backend
+            capacity: parseInt(currentTier.capacity),
+            remaining: parseInt(currentTier.remaining),
+            limitPerUser: parseInt(currentTier.limitPerUser),
+            order: parseInt(currentTier.order)
+          };
           updatedTiers = spectatorTickets.tiers.map((tier, index) => 
-            index === editingTierIndex ? { ...currentTier } : tier
+            index === editingTierIndex ? updatedTier : tier
           );
         } else {
           // Add new tier
-          updatedTiers = [...spectatorTickets.tiers, { ...currentTier, remaining: currentTier.capacity }];
+          const newTier = {
+            ...currentTier,
+            price: Math.round(currentTier.price * 100), // Convert to cents for backend
+            capacity: parseInt(currentTier.capacity),
+            remaining: parseInt(currentTier.capacity), // New tier starts with full capacity
+            limitPerUser: parseInt(currentTier.limitPerUser),
+            order: parseInt(currentTier.order)
+          };
+          updatedTiers = [...spectatorTickets.tiers, newTier];
         }
       } else {
         // First tier
-        updatedTiers = [{ ...currentTier, remaining: currentTier.capacity }];
+        const firstTier = {
+          ...currentTier,
+          price: Math.round(currentTier.price * 100), // Convert to cents for backend
+          capacity: parseInt(currentTier.capacity),
+          remaining: parseInt(currentTier.capacity),
+          limitPerUser: parseInt(currentTier.limitPerUser),
+          order: parseInt(currentTier.order)
+        };
+        updatedTiers = [firstTier];
       }
 
       let response;
@@ -245,6 +283,8 @@ export default function EventDetailsPage() {
         eventId: eventId,
         tiers: updatedTiers
       };
+
+      console.log('Sending request data:', requestData); // Debug log
 
       if (spectatorTickets) {
         // Update existing
@@ -257,11 +297,16 @@ export default function EventDetailsPage() {
       if (response.data.success) {
         setSpectatorTickets(response.data.data);
         setShowTierForm(false);
+        // Reset tracking states
+        setDateModified({ startDate: false, endDate: false });
+        setOriginalDates({ startDate: null, endDate: null });
         alert(editingTier ? "Tier updated successfully!" : "Tier added successfully!");
       }
     } catch (err) {
       console.error("Error saving tier:", err);
-      alert(`Error saving tier: ${err.message}`);
+      // More detailed error message
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
+      alert(`Error saving tier: ${errorMessage}`);
     } finally {
       setTicketsLoading(false);
     }
@@ -270,13 +315,23 @@ export default function EventDetailsPage() {
   const deleteTier = async () => {
     if (!editingTier || editingTierIndex === null) return;
     
-    if (!confirm("Are you sure you want to delete this tier?")) return;
+    if (!confirm("Are you sure you want to delete this tier? This action cannot be undone.")) return;
 
     try {
       setTicketsLoading(true);
       
       // Remove the tier by index
-      const updatedTiers = spectatorTickets.tiers.filter((_, index) => index !== editingTierIndex);
+      const filteredTiers = spectatorTickets.tiers.filter((_, index) => index !== editingTierIndex);
+      
+      // Ensure proper data structure for remaining tiers
+      const updatedTiers = filteredTiers.map(tier => ({
+        ...tier,
+        price: typeof tier.price === 'number' ? tier.price : Math.round((tier.price || 0) * 100),
+        capacity: parseInt(tier.capacity) || 0,
+        remaining: parseInt(tier.remaining) || 0,
+        limitPerUser: parseInt(tier.limitPerUser) || 1,
+        order: parseInt(tier.order) || 1
+      }));
 
       console.log('Original tiers:', spectatorTickets.tiers.length);
       console.log('Updated tiers:', updatedTiers.length);
@@ -286,25 +341,44 @@ export default function EventDetailsPage() {
         // If no tiers left, delete the entire spectator ticket
         const response = await axiosInstance.delete(`/spectator-ticket/${eventId}`);
 
-        setSpectatorTickets(null);
-        setShowTierForm(false);
-        alert("All tiers deleted. Spectator tickets removed!");
+        if (response.data.success || response.status === 200 || response.status === 204) {
+          setSpectatorTickets(null);
+          setShowTierForm(false);
+          setEditingTier(null);
+          setEditingTierIndex(null);
+          alert("All tiers deleted. Spectator tickets removed!");
+        } else {
+          throw new Error('Failed to delete spectator ticket');
+        }
       } else {
-        // Update with remaining tiers
-        const response = await axiosInstance.put(`/spectator-ticket/${eventId}`, {
+        // Update with remaining tiers - ensure proper request structure
+        const requestData = {
           eventId: eventId,
           tiers: updatedTiers
-        });
+        };
+
+        console.log('Sending delete request with data:', requestData);
+
+        const response = await axiosInstance.put(`/spectator-ticket/${eventId}`, requestData);
 
         if (response.data.success) {
           setSpectatorTickets(response.data.data);
           setShowTierForm(false);
+          setEditingTier(null);
+          setEditingTierIndex(null);
+          // Reset tracking states
+          setDateModified({ startDate: false, endDate: false });
+          setOriginalDates({ startDate: null, endDate: null });
           alert("Tier deleted successfully!");
+        } else {
+          throw new Error(response.data.message || 'Failed to update tiers after deletion');
         }
       }
     } catch (err) {
       console.error("Error deleting tier:", err);
-      alert(`Error deleting tier: ${err.message}`);
+      // More detailed error message
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred during tier deletion';
+      alert(`Error deleting tier: ${errorMessage}\n\nPlease try again or contact support if the problem persists.`);
     } finally {
       setTicketsLoading(false);
     }
@@ -1169,22 +1243,119 @@ export default function EventDetailsPage() {
           )}
 
           {!ticketsLoading && spectatorTickets?.tiers && spectatorTickets.tiers.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
+            <div className="space-y-4">
               {spectatorTickets.tiers.map((tier, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <div className="flex-1 mr-4">
-                    <p className="text-sm mb-1">Tier {tier.order} - {tier.name}</p>
-                    <p className="font-medium">
-                      ${(tier.price / 100).toFixed(2)} • {tier.remaining}/{tier.capacity} remaining
-                    </p>
+                <div key={index} className="border border-[#343B4F] rounded-lg p-4 bg-[#0A1330]/50">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 space-y-3">
+                      {/* Tier Header */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-lg text-white">
+                            Tier {tier.order} - {tier.name}
+                          </h4>
+                          <p className="text-sm text-gray-400 mt-1">{tier.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-[#CB3CFF]">
+                            ${(tier.price / 100).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Tier Details Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-400 mb-1">Capacity</p>
+                          <p className="font-medium">{tier.capacity.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 mb-1">Remaining</p>
+                          <p className="font-medium">
+                            <span className={tier.remaining <= 0 ? 'text-red-400' : tier.remaining < tier.capacity * 0.1 ? 'text-yellow-400' : 'text-green-400'}>
+                              {tier.remaining.toLocaleString()}
+                            </span>
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 mb-1">Availability</p>
+                          <p className="font-medium">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              tier.availabilityMode === 'Online' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
+                            }`}>
+                              {tier.availabilityMode}
+                            </span>
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 mb-1">Limit Per User</p>
+                          <p className="font-medium">{tier.limitPerUser}</p>
+                        </div>
+                      </div>
+
+                      {/* Sales Dates */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-400 mb-1">Sales Start Date</p>
+                          <p className="font-medium">
+                            {tier.salesStartDate ? 
+                              new Date(tier.salesStartDate).toLocaleString() : 
+                              'Not set'
+                            }
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-400 mb-1">Sales End Date</p>
+                          <p className="font-medium">
+                            {tier.salesEndDate ? 
+                              new Date(tier.salesEndDate).toLocaleString() : 
+                              'Not set'
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Refund Policy */}
+                      {tier.refundPolicyNotes && (
+                        <div className="text-sm">
+                          <p className="text-gray-400 mb-1">Refund Policy</p>
+                          <p className="font-medium text-gray-300">{tier.refundPolicyNotes}</p>
+                        </div>
+                      )}
+
+                      {/* Status Indicators */}
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className={`flex items-center gap-1 ${
+                          new Date(tier.salesStartDate) <= new Date() && new Date() <= new Date(tier.salesEndDate)
+                            ? 'text-green-400' : 'text-gray-400'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            new Date(tier.salesStartDate) <= new Date() && new Date() <= new Date(tier.salesEndDate)
+                              ? 'bg-green-400' : 'bg-gray-400'
+                          }`}></div>
+                          {new Date(tier.salesStartDate) <= new Date() && new Date() <= new Date(tier.salesEndDate)
+                            ? 'Sales Active' : 'Sales Inactive'}
+                        </div>
+                        <div className={`flex items-center gap-1 ${
+                          tier.remaining > 0 ? 'text-blue-400' : 'text-red-400'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            tier.remaining > 0 ? 'bg-blue-400' : 'bg-red-400'
+                          }`}></div>
+                          {tier.remaining > 0 ? 'Available' : 'Sold Out'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => handleEditTier(tier, index)}
+                      className="ml-4 text-white hover:text-gray-300 p-2 rounded-lg hover:bg-[#343B4F] transition-colors flex-shrink-0"
+                      title="Edit tier"
+                    >
+                      <Edit size={16} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleEditTier(tier, index)}
-                    className="text-white hover:text-gray-300 p-2 rounded-lg hover:bg-[#343B4F] transition-colors"
-                    title="Edit tier"
-                  >
-                    <Edit size={16} />
-                  </button>
                 </div>
               ))}
             </div>
@@ -1248,7 +1419,12 @@ export default function EventDetailsPage() {
                       value={currentTier.capacity}
                       onChange={(e) => {
                         const capacity = parseInt(e.target.value) || 0;
-                        setCurrentTier({...currentTier, capacity, remaining: editingTier ? currentTier.remaining : capacity});
+                        const newRemaining = editingTier ? 
+          // For editing: maintain current remaining unless it exceeds new capacity
+          Math.min(currentTier.remaining, capacity) : 
+          // For new tier: set remaining equal to capacity
+          capacity;
+        setCurrentTier({...currentTier, capacity, remaining: newRemaining});
                       }}
                     />
                   </div>
@@ -1311,7 +1487,10 @@ export default function EventDetailsPage() {
                       min={new Date().toISOString().slice(0, 16)}
                       className="w-full bg-[#0A1330] border border-[#343B4F] text-white rounded px-3 py-2 text-sm"
                       value={currentTier.salesStartDate ? new Date(currentTier.salesStartDate).toISOString().slice(0, 16) : ''}
-                      onChange={(e) => setCurrentTier({...currentTier, salesStartDate: new Date(e.target.value).toISOString()})}
+                      onChange={(e) => {
+                        setCurrentTier({...currentTier, salesStartDate: new Date(e.target.value).toISOString()});
+                        setDateModified(prev => ({...prev, startDate: true}));
+                      }}
                     />
                   </div>
 
@@ -1322,7 +1501,10 @@ export default function EventDetailsPage() {
                       min={currentTier.salesStartDate ? new Date(currentTier.salesStartDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)}
                       className="w-full bg-[#0A1330] border border-[#343B4F] text-white rounded px-3 py-2 text-sm"
                       value={currentTier.salesEndDate ? new Date(currentTier.salesEndDate).toISOString().slice(0, 16) : ''}
-                      onChange={(e) => setCurrentTier({...currentTier, salesEndDate: new Date(e.target.value).toISOString()})}
+                      onChange={(e) => {
+                        setCurrentTier({...currentTier, salesEndDate: new Date(e.target.value).toISOString()});
+                        setDateModified(prev => ({...prev, endDate: true}));
+                      }}
                     />
                   </div>
                 </div>
@@ -1352,7 +1534,7 @@ export default function EventDetailsPage() {
                 )}
                 <button
                   onClick={() => setShowTierForm(false)}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors border border-gray-500"
+                  className="px-4 py-2 bg-transparent hover:bg-gray-800 text-gray-300 hover:text-white rounded-lg text-sm font-medium transition-colors border border-gray-600 hover:border-gray-500"
                 >
                   Cancel
                 </button>
