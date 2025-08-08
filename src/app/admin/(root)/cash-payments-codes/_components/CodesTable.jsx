@@ -50,14 +50,14 @@ export function CodesTable({ users, handleFighterClick, onRedeemCode }) {
   )
 
   const formatStatus = (code) => {
-    if (code.status === 'redeemed' || code.redeemed) {
+    if (code.redemptionStatus === 'Checked-In' || code.redeemedAt) {
       return (
         <div className="flex items-center">
           <span className="text-green-400 mr-1">✓</span>
-          <span>Redeemed</span>
-          {(code.redeemedAt || code.redeemedDate) && (
+          <span>Checked-In</span>
+          {code.redeemedAt && (
             <span className="ml-2 text-xs text-gray-400">
-              ({new Date(code.redeemedAt || code.redeemedDate).toLocaleDateString()})
+              ({new Date(code.redeemedAt).toLocaleDateString()})
             </span>
           )}
         </div>
@@ -67,9 +67,9 @@ export function CodesTable({ users, handleFighterClick, onRedeemCode }) {
   }
 
   const handleRedeemClick = async (code) => {
-    if (code.status === 'redeemed' || code.redeemed) return
+    if (code.redemptionStatus === 'Checked-In' || code.redeemedAt) return
     
-    if (confirm(`Are you sure you want to redeem code ${code.code} for ${code.participantName || code.name}?`)) {
+    if (confirm(`Are you sure you want to check-in code ${code.code} for ${code.name}?`)) {
       if (onRedeemCode) {
         await onRedeemCode(code)
       }
@@ -106,30 +106,30 @@ export function CodesTable({ users, handleFighterClick, onRedeemCode }) {
                   index % 2 === 0 ? 'bg-[#0A1330]' : 'bg-[#0B1739]'
                 }`}
               >
-                <td className='p-4'>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : user.date}</td>
+                <td className='p-4'>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : (user.eventDateCode || 'N/A')}</td>
                 <td className='p-4' onClick={() => handleFighterClick(user)}>
-                  {user.participantName || user.name}
+                  {user.name}
                 </td>
-                <td className='p-4'>{user.participantEmail || user.email}</td>
+                <td className='p-4'>{user.email}</td>
                 <td className='p-4 font-mono'>{user.code}</td>
                 <td className='p-4'>{user.paymentType}</td>
-                <td className='p-4'>${user.amount}</td>
-                <td className='p-4'>{user.createdAt ? new Date(user.createdAt).toLocaleString() : user.issuedAt}</td>
-                <td className='p-4'>{user.issuedBy}</td>
+                <td className='p-4'>${user.amountPaid}</td>
+                <td className='p-4'>{user.createdAt ? new Date(user.createdAt).toLocaleString() : 'N/A'}</td>
+                <td className='p-4'>{user.createdBy || 'Admin'}</td>
                 <td className='p-4'>
                   {formatStatus(user)}
                 </td>
                 <td className='p-4 flex space-x-4 items-center'>
                   <button
                     className={`block p-2 rounded text-sm transition-colors duration-200 min-w-min ${
-                      (user.status === 'redeemed' || user.redeemed)
+                      (user.redemptionStatus === 'Checked-In' || user.redeemedAt)
                         ? 'bg-gray-500 cursor-not-allowed' 
                         : 'bg-violet-500 hover:bg-violet-600'
                     }`}
-                    disabled={user.status === 'redeemed' || user.redeemed}
+                    disabled={user.redemptionStatus === 'Checked-In' || user.redeemedAt}
                     onClick={() => handleRedeemClick(user)}
                   >
-                    Redeem Code
+                    Check-In
                   </button>
                 </td>
               </tr>

@@ -45,7 +45,7 @@ export default function CashPaymentAndCodesPage() {
         if (data.success && Array.isArray(data.data?.items)) {
           const eventsWithCodes = await Promise.all(
             data.data.items.map(async (event) => {
-              const codesResponse = await fetch(`${API_BASE_URL}/cash-codes?eventId=${event._id}`, {
+              const codesResponse = await fetch(`${API_BASE_URL}/cash-code?eventId=${event._id}`, {
                 headers: {
                   Authorization: `Bearer ${user?.token}`,
                 },
@@ -125,7 +125,7 @@ export default function CashPaymentAndCodesPage() {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/cash-codes`, {
+      const response = await fetch(`${API_BASE_URL}/cash-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +133,14 @@ export default function CashPaymentAndCodesPage() {
         },
         body: JSON.stringify({
           eventId: selectedEvent.id,
-          ...codeData
+          name: codeData.participantName,
+          email: codeData.participantEmail,
+          phoneNumber: codeData.participantMobile,
+          role: codeData.participantType === 'trainer' ? 'trainer' : 'spectator',
+          eventDate: new Date().toISOString().split('T')[0],
+          amountPaid: codeData.amount,
+          paymentType: codeData.paymentType.toLowerCase(),
+          paymentNotes: codeData.paymentNotes
         })
       })
       
@@ -167,16 +174,18 @@ export default function CashPaymentAndCodesPage() {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/cash-codes/${code._id || code.id}`, {
+      const response = await fetch(`${API_BASE_URL}/cash-code/${code._id || code.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user.token}`,
         },
         body: JSON.stringify({
-          status: 'redeemed',
-          redeemedAt: new Date().toISOString(),
-          redeemedBy: user?.firstName + ' ' + user?.lastName || 'Admin'
+          redemptionStatus: 'Checked-In',
+          eventDate: code.eventDateCode || new Date().toISOString().split('T')[0],
+          amountPaid: code.amountPaid || code.amount,
+          paymentType: (code.paymentType || 'cash').toLowerCase(),
+          paymentNotes: code.paymentNotes || 'Redeemed by admin'
         })
       })
       
@@ -299,7 +308,10 @@ export default function CashPaymentAndCodesPage() {
                 onRedeemCode={handleRedeemCode}
               />
             ) : (
-              <SpecifyEventID />
+              <SpecifyEventID 
+                handleFighterClick={handleFighterClick}
+                onRedeemCode={handleRedeemCode}
+              />
             )}
           </>
         )}
