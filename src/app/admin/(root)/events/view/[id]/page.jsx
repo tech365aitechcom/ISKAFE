@@ -1141,16 +1141,7 @@ export default function EventDetailsPage() {
                   >
                     Spectator Ticket Redemption
                   </li>
-                  <Link href='/admin/cash-payments-codes'>
-                    <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
-                      Cash Payment and Codes
-                    </li>
-                  </Link>
-                  <Link href='/admin/reports/event-registrations'>
-                    <li className='mx-4 py-3 border-b border-[#6C6C6C] border-t-2 border-t-gray-500 hover:bg-[#0f1a40] cursor-pointer'>
-                      Reports
-                    </li>
-                  </Link>
+
                   <Link href={`/admin/events/${eventId}/spectator-payments`}>
                     <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
                       Spectator Payments
