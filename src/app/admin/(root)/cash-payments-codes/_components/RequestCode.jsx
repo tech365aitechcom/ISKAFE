@@ -4,7 +4,12 @@ import { paymentTypes, API_BASE_URL } from '../../../../../constants'
 import { ChevronDown, X } from 'lucide-react'
 import axios from 'axios'
 
-export default function RequestCode({ onBack, onAddCode, selectedEvent, currentUser }) {
+export default function RequestCode({
+  onBack,
+  onAddCode,
+  selectedEvent,
+  currentUser,
+}) {
   const [activeButton, setActiveButton] = useState('spectator')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -13,7 +18,6 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
   const [paymentType, setPaymentType] = useState('Cash')
   const [paymentNotes, setPaymentNotes] = useState('')
   const [eventDate, setEventDate] = useState('')
-  const [generatedCode, setGeneratedCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [users, setUsers] = useState([])
   const [filteredUsers, setFilteredUsers] = useState([])
@@ -23,15 +27,12 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    // Generate a unique code when component mounts
-    const randomCode = Math.random().toString(36).substr(2, 5).toUpperCase();
-    setGeneratedCode(randomCode);
-    // Set default event date to today
-    const today = new Date().toISOString().split('T')[0];
-    setEventDate(today);
-    // Fetch users for dropdown
-    fetchUsers();
-  }, []);
+    const eventDay = new Date(selectedEvent.startDate)
+      .toISOString()
+      .split('T')[0]
+    setEventDate(eventDay)
+    fetchUsers()
+  }, [])
 
   const fetchUsers = async () => {
     try {
@@ -53,19 +54,25 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
       setFilteredUsers([])
       return
     }
-    const filtered = users.filter(user => {
-      const fullName = `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim().toLowerCase()
-      return fullName.includes(query.toLowerCase()) || 
-             (user.email && user.email.toLowerCase().includes(query.toLowerCase()))
+    const filtered = users.filter((user) => {
+      const fullName = `${user.firstName || ''} ${user.middleName || ''} ${
+        user.lastName || ''
+      }`
+        .trim()
+        .toLowerCase()
+      return (
+        fullName.includes(query.toLowerCase()) ||
+        (user.email && user.email.toLowerCase().includes(query.toLowerCase()))
+      )
     })
-    setFilteredUsers(filtered.slice(0, 10)) // Limit to 10 results
+    setFilteredUsers(filtered)
   }
 
   const handleNameChange = (value) => {
     setName(value)
     setSearchQuery(value)
     setSelectedUser(null)
-    
+
     if (value.trim()) {
       filterUsers(value)
       setShowUserDropdown(true)
@@ -77,18 +84,20 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
   }
 
   const handleUserSelect = (user) => {
-    const fullName = `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim()
+    const fullName = `${user.firstName || ''} ${user.middleName || ''} ${
+      user.lastName || ''
+    }`.trim()
     setName(fullName)
     setEmail(user.email || '')
     setMobile(user.phoneNumber || '')
     setSelectedUser(user)
     setShowUserDropdown(false)
-    setFieldErrors(prev => ({...prev, name: '', email: '', mobile: ''}))
+    setFieldErrors((prev) => ({ ...prev, name: '', email: '', mobile: '' }))
   }
 
   const validateField = (fieldName, value) => {
     let error = ''
-    
+
     switch (fieldName) {
       case 'name':
         if (!value.trim()) {
@@ -127,14 +136,14 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         }
         break
     }
-    
+
     return error
   }
 
   const handleFieldChange = (fieldName, value) => {
     const error = validateField(fieldName, value)
-    setFieldErrors(prev => ({...prev, [fieldName]: error}))
-    
+    setFieldErrors((prev) => ({ ...prev, [fieldName]: error }))
+
     switch (fieldName) {
       case 'email':
         setEmail(value)
@@ -158,9 +167,30 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
     setActiveButton(button)
   }
 
+  const getPreviewData = () => {
+    const isRegisteredUser = selectedUser !== null
+    const previewData = {
+      name: name,
+      email: email,
+      phoneNumber: parseInt(mobile) || mobile || 9087654321,
+      role: activeButton,
+      eventId: selectedEvent?._id,
+      eventDate: eventDate,
+      amountPaid: parseFloat(amount),
+      paymentType: paymentType.toLowerCase(),
+      paymentNotes: paymentNotes,
+    }
+
+    if (isRegisteredUser) {
+      previewData.userId = selectedUser._id || selectedUser.id
+    }
+
+    return previewData
+  }
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     // Validate all fields
     const errors = {
       name: validateField('name', name),
@@ -170,49 +200,35 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
       paymentNotes: validateField('paymentNotes', paymentNotes),
       eventDate: validateField('eventDate', eventDate),
     }
-    
+
     setFieldErrors(errors)
-    
+
     // Check if there are any errors
-    const hasErrors = Object.values(errors).some(error => error)
+    const hasErrors = Object.values(errors).some((error) => error)
     if (hasErrors) {
       return
     }
-    
-    setIsSubmitting(true);
-    
+
+    setIsSubmitting(true)
+
     try {
-      const codeData = {
-        participantName: name,
-        participantEmail: email,
-        participantMobile: mobile,
-        participantType: activeButton, // 'spectator' or 'trainer'
-        code: generatedCode,
-        amount: parseFloat(amount),
-        paymentType,
-        paymentNotes,
-        eventDate,
-        userId: selectedUser?._id || selectedUser?.id || null,
-        issuedBy: currentUser?.firstName + ' ' + currentUser?.lastName || 'Admin'
-      };
-      
-      await onAddCode(codeData);
-      
+      // Use the proper payload structure as per requirements
+      const codeData = getPreviewData()
+
+      await onAddCode(codeData)
+
       // Reset form only on success
-      setName('');
-      setEmail('');
-      setMobile('');
-      setAmount('');
-      setPaymentNotes('');
-      setSelectedUser(null);
-      setFieldErrors({});
-      // Generate new code for next use
-      const newCode = Math.random().toString(36).substr(2, 5).toUpperCase();
-      setGeneratedCode(newCode);
+      setName('')
+      setEmail('')
+      setMobile('')
+      setAmount('')
+      setPaymentNotes('')
+      setSelectedUser(null)
+      setFieldErrors({})
     } catch (error) {
-      console.error('Error submitting code:', error);
+      console.error('Error submitting code:', error)
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
@@ -268,6 +284,14 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         >
           Trainer
         </button>
+        <button
+          onClick={() => handleToggle('fighter')}
+          className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
+            activeButton === 'fighter' ? 'bg-[#2E3094] shadow-md' : ''
+          }`}
+        >
+          Fighter
+        </button>
       </div>
 
       {/* Form Fields */}
@@ -275,7 +299,11 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         {/* Person Name Field with Dropdown */}
         <div className='relative'>
           <label className='block text-sm mb-2'>
-            {activeButton === 'spectator' ? 'Spectator Name' : 'Trainer Name'}
+            {activeButton === 'spectator'
+              ? 'Spectator Name'
+              : activeButton === 'fighter'
+              ? 'Fighter Name'
+              : 'Trainer Name'}
             <span className='text-red-500'>*</span>
           </label>
           <div className='relative'>
@@ -288,7 +316,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               onFocus={() => {
-                if (searchQuery.trim() && filteredUsers.length > 0) {
+                if (searchQuery.trim() && filteredUsers?.length > 0) {
                   setShowUserDropdown(true)
                 }
               }}
@@ -302,7 +330,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
                   setMobile('')
                   setSelectedUser(null)
                   setShowUserDropdown(false)
-                  setFieldErrors(prev => ({...prev, name: ''}))
+                  setFieldErrors((prev) => ({ ...prev, name: '' }))
                 }}
                 className='absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white'
               >
@@ -313,12 +341,14 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
           {fieldErrors.name && (
             <p className='text-red-500 text-xs mt-1'>{fieldErrors.name}</p>
           )}
-          
+
           {/* Dropdown */}
-          {showUserDropdown && filteredUsers.length > 0 && (
+          {showUserDropdown && filteredUsers?.length > 0 && (
             <div className='absolute z-10 w-full mt-1 bg-[#0B1739] border border-[#343B4F] rounded-md shadow-lg max-h-48 overflow-y-auto'>
               {filteredUsers.map((user) => {
-                const fullName = `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim()
+                const fullName = `${user.firstName || ''} ${
+                  user.middleName || ''
+                } ${user.lastName || ''}`.trim()
                 return (
                   <div
                     key={user._id}
@@ -327,7 +357,9 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
                   >
                     <div className='font-medium'>{fullName}</div>
                     <div className='text-xs text-gray-400'>{user.email}</div>
-                    <div className='text-xs text-gray-400'>{user.phoneNumber}</div>
+                    <div className='text-xs text-gray-400'>
+                      {user.phoneNumber}
+                    </div>
                   </div>
                 )
               })}
@@ -342,7 +374,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
           </label>
           <input
             type='email'
-            placeholder="Enter email address"
+            placeholder='Enter email address'
             className={`w-full border rounded-md p-2 text-white text-xs bg-transparent ${
               fieldErrors.email ? 'border-red-500' : 'border-[#343B4F]'
             }`}
@@ -361,7 +393,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
           </label>
           <input
             type='tel'
-            placeholder="Enter mobile number"
+            placeholder='Enter mobile number'
             className={`w-full border rounded-md p-2 text-white text-xs bg-transparent ${
               fieldErrors.mobile ? 'border-red-500' : 'border-[#343B4F]'
             }`}
@@ -376,7 +408,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         {/* Payment Type */}
         <div>
           <label className='block text-sm mb-2'>
-            💳 Payment Type<span className='text-red-500'>*</span>
+            Payment Type<span className='text-red-500'>*</span>
           </label>
           <select
             className='w-full border border-[#343B4F] rounded-md p-2 text-[#AEB9E1] text-xs'
@@ -385,7 +417,9 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
             required
           >
             {paymentTypes.map((type) => (
-              <option key={type} value={type}>{type}</option>
+              <option key={type} value={type}>
+                {type}
+              </option>
             ))}
           </select>
         </div>
@@ -393,7 +427,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         {/* Event Date Field */}
         <div>
           <label className='block text-sm mb-2'>
-            📅 Event Date<span className='text-red-500'>*</span>
+            Event Date<span className='text-red-500'>*</span>
           </label>
           <input
             type='date'
@@ -411,29 +445,22 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
         {/* Amount Field */}
         <div>
           <label className='block text-sm mb-2'>
-            💲 Amount Paid (USD)<span className='text-red-500'>*</span>
+            Amount Paid (USD)<span className='text-red-500'>*</span>
           </label>
           <input
             type='number'
-            placeholder="Enter amount"
+            placeholder='Enter amount'
             className={`w-full border rounded-md p-2 text-white text-xs bg-transparent ${
               fieldErrors.amount ? 'border-red-500' : 'border-[#343B4F]'
             }`}
             value={amount}
             onChange={(e) => handleFieldChange('amount', e.target.value)}
-            min="0"
-            step="0.01"
+            min='0'
+            step='0.01'
           />
           {fieldErrors.amount && (
             <p className='text-red-500 text-xs mt-1'>{fieldErrors.amount}</p>
           )}
-        </div>
-
-        {/* Generated Code Preview */}
-        <div className='bg-[#00000061] p-3 rounded-lg'>
-          <label className='block text-sm text-gray-400 mb-1'>Generated Ticket Code</label>
-          <p className='font-mono text-xl text-purple-400'>{generatedCode}</p>
-          <p className='text-xs text-gray-400 mt-1'>This code will be assigned to {name || 'the participant'}</p>
         </div>
 
         {/* Payment Description Notes */}
@@ -442,7 +469,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
             Payment Description Notes<span className='text-red-500'>*</span>
           </label>
           <textarea
-            placeholder="Enter payment details or reason"
+            placeholder='Enter payment details or reason'
             className={`w-full border rounded-md p-2 text-white text-xs h-24 bg-transparent ${
               fieldErrors.paymentNotes ? 'border-red-500' : 'border-[#343B4F]'
             }`}
@@ -450,14 +477,18 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
             onChange={(e) => handleFieldChange('paymentNotes', e.target.value)}
           />
           {fieldErrors.paymentNotes && (
-            <p className='text-red-500 text-xs mt-1'>{fieldErrors.paymentNotes}</p>
+            <p className='text-red-500 text-xs mt-1'>
+              {fieldErrors.paymentNotes}
+            </p>
           )}
         </div>
 
         {/* Issued By */}
         <div className='bg-[#00000061] p-3 rounded-lg'>
           <label className='block text-sm text-gray-400 mb-1'>Issued By</label>
-          <p className='text-white'>{currentUser?.firstName + ' ' + currentUser?.lastName || 'Admin'}</p>
+          <p className='text-white'>
+            {currentUser?.firstName + ' ' + currentUser?.lastName || 'Admin'}
+          </p>
         </div>
 
         {/* Action Buttons */}
@@ -466,6 +497,7 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
             type='button'
             onClick={onBack}
             className='text-white font-medium px-6 py-2 rounded-md border border-[#343B4F] hover:bg-[#343B4F] transition-colors'
+            title='Closes the form and returns to previous screen'
           >
             Cancel
           </button>
@@ -475,9 +507,11 @@ export default function RequestCode({ onBack, onAddCode, selectedEvent, currentU
               isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
             }`}
             style={{
-              background: 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
+              background:
+                'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
             }}
             disabled={isSubmitting}
+            title='Validates & generates code'
           >
             {isSubmitting ? 'Processing...' : 'Request Code'}
           </button>
