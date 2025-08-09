@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, Download, Search } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, Download, Search } from 'lucide-react'
 import Loader from '../../../../../_components/Loader'
 import axios from '../../../../../../shared/axios'
 import { jsPDF } from 'jspdf'
@@ -285,8 +285,7 @@ const SpectatorPaymentsPage = () => {
               onClick={() => router.back()}
               className='flex items-center mr-4'
             >
-              <ChevronLeft size={24} />
-              <span className='ml-2'>Back</span>
+              <ArrowLeft size={24} />
             </button>
             <h1 className='text-2xl font-bold'>Spectator Payments</h1>
           </div>
