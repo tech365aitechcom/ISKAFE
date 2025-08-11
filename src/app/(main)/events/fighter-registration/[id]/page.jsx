@@ -525,7 +525,13 @@ const FighterRegistrationPage = ({ params }) => {
     }
 
     console.log('✅ Square payment successful:', squareResult)
-    return squareResult.transactionId
+    return {
+      transactionId: squareResult.transactionId,
+      orderId: squareResult.orderId,
+      receiptNumber: squareResult.receiptNumber,
+      last4: squareResult.last4,
+      receiptUrl: squareResult.receiptUrl,
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -595,9 +601,15 @@ const FighterRegistrationPage = ({ params }) => {
         console.log(
           'Processing Square card payment for fighter registration...'
         )
-        const transactionId = await processSquarePayment()
-        payload.transactionId = transactionId
-        console.log('Square payment completed, transaction ID:', transactionId)
+        const { transactionId, orderId, receiptNumber, last4, receiptUrl } =
+          await processSquarePayment()
+        payload.squareDetails = {
+          transactionId,
+          orderId,
+          receiptNumber,
+          last4,
+          receiptUrl,
+        }
       }
 
       console.log('Fighter registration payload:', payload)

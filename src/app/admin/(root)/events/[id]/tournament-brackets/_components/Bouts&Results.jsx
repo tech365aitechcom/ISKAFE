@@ -9,6 +9,7 @@ import BoutCard from './BoutCard'
 import Loader from '../../../../../../_components/Loader'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
+import ConfirmationModal from '../../../../../../_components/ConfirmationModal'
 
 export default function BoutsAndResults({ bracket, eventId }) {
   const user = useStore((state) => state.user)
@@ -16,6 +17,8 @@ export default function BoutsAndResults({ bracket, eventId }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showNewBoutModal, setShowNewBoutModal] = useState(false)
+  const [isDelete, setIsDelete] = useState(false)
+  const [selectedBout, setSelectedBout] = useState(null)
 
   useEffect(() => {
     if (bracket?._id && eventId) {
@@ -26,59 +29,10 @@ export default function BoutsAndResults({ bracket, eventId }) {
   const fetchBouts = async () => {
     try {
       setLoading(true)
-      const response = await fetch(
-        `${API_BASE_URL}/bouts?bracketId=${bracket._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
+      const response = await axios.get(
+        `${API_BASE_URL}/bouts?bracketId=${bracket?._id}`
       )
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          const boutsList = data.data || []
-
-          // Fetch fight data for each bout
-          const boutsWithFights = await Promise.all(
-            boutsList.map(async (bout) => {
-              try {
-                // Check if bout has fight results
-                const fightResponse = await fetch(
-                  `${API_BASE_URL}/fights?eventId=${eventId}&bracketId=${bracket._id}&boutId=${bout._id}`,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${user?.token}`,
-                    },
-                  }
-                )
-
-                if (fightResponse.ok) {
-                  const fightData = await fightResponse.json()
-                  if (fightData.success && fightData.data.items.length > 0) {
-                    // Attach fight data to bout
-                    return {
-                      ...bout,
-                      fight: fightData.data.items[0], // Get the first fight result
-                    }
-                  }
-                }
-                return bout
-              } catch (err) {
-                console.error(`Error fetching fight for bout ${bout._id}:`, err)
-                return bout
-              }
-            })
-          )
-
-          setBouts(boutsWithFights)
-        } else {
-          setBouts([])
-        }
-      } else {
-        setBouts([])
-      }
+      setBouts(response.data.data || [])
     } catch (err) {
       setError(err.message)
       setBouts([])
@@ -117,24 +71,24 @@ export default function BoutsAndResults({ bracket, eventId }) {
   }
 
   const handleDeleteBout = async (boutId) => {
-    if (confirm('Are you sure you want to delete this bout?')) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/bouts/${boutId}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/bouts/${boutId}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
+      if (response.status === apiConstants.success) {
+        await fetchBouts()
+        setIsDelete(false)
+        setSelectedBout(null)
+        enqueueSnackbar(response.data.message || 'Bout deleted successfully!', {
+          variant: 'success',
         })
-
-        if (response.ok) {
-          await fetchBouts()
-          alert('Bout deleted successfully!')
-        } else {
-          alert('Error deleting bout')
-        }
-      } catch (err) {
-        alert('Error deleting bout: ' + err.message)
       }
+    } catch (err) {
+      enqueueSnackbar(err.response?.data?.message || 'Error deleting bout', {
+        variant: 'error',
+      })
     }
   }
 
@@ -186,12 +140,15 @@ export default function BoutsAndResults({ bracket, eventId }) {
 
               return (
                 <div
-                  key={bout._id}
+                  key={bout?._id}
                   className={isLastOddItem ? 'flex gap-4' : ''}
                 >
                   <BoutCard
                     bout={bout}
-                    onDelete={() => handleDeleteBout(bout._id)}
+                    onDelete={() => {
+                      setIsDelete(true)
+                      setSelectedBout(bout?._id)
+                    }}
                     onUpdate={fetchBouts}
                     eventId={eventId}
                   />
@@ -201,6 +158,15 @@ export default function BoutsAndResults({ bracket, eventId }) {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDelete}
+        onClose={() => setIsDelete(false)}
+        onConfirm={() => handleDeleteBout(selectedBout)}
+        title='Delete Bout'
+        message='Are you sure you want to delete this bout?'
+      />
 
       {/* New Bout Modal */}
       {showNewBoutModal && (

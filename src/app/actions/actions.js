@@ -43,37 +43,46 @@ export async function submitPayment(sourceId, amountInCents, paymentData = {}) {
     return {
       success: true,
       payment: JSON.parse(JSON.stringify(result.payment)), // Convert to plain object
-      transactionId: result.payment?.id?.toString() // Ensure it's a string
+      transactionId: result.payment?.id?.toString(),
+      orderId: result.payment?.orderId?.toString(),
+      receiptNumber: result.payment?.receiptNumber,
+      last4: result.payment?.cardDetails?.card.last4,
+      receiptUrl: result.payment?.receiptUrl,
     }
   } catch (error) {
     console.error('❌ Square payment error', error)
-    
+
     // Convert error objects to plain objects
-    const plainErrors = error.errors ? error.errors.map(err => ({
-      code: err.code || 'UNKNOWN',
-      detail: err.detail || 'Unknown error',
-      field: err.field || null,
-      category: err.category || 'API_ERROR'
-    })) : []
-    
+    const plainErrors = error.errors
+      ? error.errors.map((err) => ({
+          code: err.code || 'UNKNOWN',
+          detail: err.detail || 'Unknown error',
+          field: err.field || null,
+          category: err.category || 'API_ERROR',
+        }))
+      : []
+
     // Provide specific error messages for common Square errors
     let errorMessage = 'Payment failed'
-    
+
     if (plainErrors.length > 0) {
       const firstError = plainErrors[0]
-      
+
       switch (firstError.code) {
         case 'CARD_DECLINED_VERIFICATION_REQUIRED':
-          errorMessage = 'Card verification required. Please use a different card or try again.'
+          errorMessage =
+            'Card verification required. Please use a different card or try again.'
           break
         case 'CARD_DECLINED':
-          errorMessage = 'Card was declined. Please check your card details or use a different card.'
+          errorMessage =
+            'Card was declined. Please check your card details or use a different card.'
           break
         case 'INSUFFICIENT_FUNDS':
           errorMessage = 'Insufficient funds. Please use a different card.'
           break
         case 'INVALID_CARD':
-          errorMessage = 'Invalid card information. Please check your card details.'
+          errorMessage =
+            'Invalid card information. Please check your card details.'
           break
         case 'GENERIC_DECLINE':
           errorMessage = 'Payment was declined. Please try a different card.'
@@ -82,7 +91,8 @@ export async function submitPayment(sourceId, amountInCents, paymentData = {}) {
           errorMessage = 'Invalid CVV. Please check your card security code.'
           break
         case 'ADDRESS_VERIFICATION_FAILURE':
-          errorMessage = 'Address verification failed. Please check your billing address.'
+          errorMessage =
+            'Address verification failed. Please check your billing address.'
           break
         default:
           errorMessage = firstError.detail || 'Payment processing failed'
@@ -90,12 +100,12 @@ export async function submitPayment(sourceId, amountInCents, paymentData = {}) {
     } else if (error.statusCode === 402) {
       errorMessage = 'Payment was declined. Please try a different card.'
     }
-    
-    return { 
+
+    return {
       success: false,
-      error: errorMessage, 
+      error: errorMessage,
       details: error.message || 'Unknown error',
-      errors: plainErrors
+      errors: plainErrors,
     }
   }
 }

@@ -1,8 +1,7 @@
-// src/app/dashboard/page.jsx
 'use client'
 import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import CompetitorDetailModal from './CompetitorDetailModal'
+import BoutResultModal from './BoutResultModal'
 import {
   Users,
   Calendar,
@@ -44,6 +43,8 @@ import {
   Tooltip,
   Legend,
 } from 'recharts'
+import { API_BASE_URL } from '../../../../constants'
+import Loader from '../../../_components/Loader'
 
 // Top Cards Component
 function DashboardStats({ dashboardData }) {
@@ -204,9 +205,7 @@ function DashboardStats({ dashboardData }) {
 }
 
 // Graphs Section
-function DashboardGraphs({ dashboardData }) {
-  const [activeFilter, setActiveFilter] = useState('monthly')
-
+function DashboardGraphs({ dashboardData, activeFilter, setActiveFilter }) {
   if (!dashboardData) {
     return (
       <div className='bg-slate-900 p-6 rounded-xl m-6'>
@@ -291,7 +290,9 @@ function DashboardGraphs({ dashboardData }) {
   return (
     <div className='bg-slate-900 p-6 rounded-xl m-6'>
       <div className='flex justify-between items-center mb-6'>
-        <h2 className='text-xl font-semibold'>Event Analytics</h2>
+        <h2 className='text-xl font-semibold text-slate-400'>
+          Event Analytics
+        </h2>
         <div className='flex items-center gap-4'>
           <div className='flex gap-2 bg-slate-800 rounded-lg p-1'>
             {['daily', 'weekly', 'monthly'].map((filter) => (
@@ -557,7 +558,7 @@ const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     })
   } catch {
     return 'Invalid Date'
@@ -572,23 +573,40 @@ const formatDateTime = (dateString) => {
       day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   } catch {
     return 'Invalid Date'
   }
 }
 
+// Calculate age helper function
+const calculateAge = (dateOfBirth) => {
+  if (!dateOfBirth) return 'N/A'
+  const birth = new Date(dateOfBirth)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+
+  return age
+}
+
 // Tables Section
-function DashboardTables({ dashboardData }) {
+function DashboardTables({ dashboardData, onRefresh }) {
   const [selectedAction, setSelectedAction] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showBoutResultModal, setShowBoutResultModal] = useState(false)
 
   const handleAddResult = (bout) => {
     setSelectedItem(bout)
     setSelectedAction('addResult')
-    // Navigate to bout result page
-    window.location.href = `/admin/events/${bout.eventId || 'event'}/tournament-results?boutId=${bout.id || bout.boutId}`
+    // Show bout result modal
+    setShowBoutResultModal(true)
   }
 
   const handleFixFighter = (fighter) => {
@@ -602,29 +620,34 @@ function DashboardTables({ dashboardData }) {
     setSelectedItem(fighter)
     setSelectedAction('suspend')
     // Navigate to suspensions page
-    window.location.href = `/admin/suspensions?fighterId=${fighter.id || fighter._id}`
+    window.location.href = `/admin/suspensions?fighterId=${
+      fighter.id || fighter._id
+    }`
   }
 
   const handleViewProfile = (fighter) => {
     setSelectedItem(fighter)
     setSelectedAction('viewProfile')
-    // Navigate to fighter profile
-    window.location.href = `/admin/people/view/${fighter.id || fighter._id}`
+    // Show fighter profile modal
+    setShowDetailModal(true)
   }
 
   const handleManageBrackets = (event) => {
     setSelectedItem(event)
     setSelectedAction('manageBrackets')
     // Navigate to tournament brackets
-    window.location.href = `/admin/events/${event.id || event._id}/tournament-brackets`
+    window.location.href = `/admin/events/${event._id}/tournament-brackets`
   }
 
   const handleViewDetails = (ticket) => {
     setSelectedItem(ticket)
     setSelectedAction('viewDetails')
     // Navigate to spectator ticket management
-    window.location.href = `/admin/spectators-ticket-management?ticketId=${ticket.id || ticket._id}`
+    window.location.href = `/admin/spectators-ticket-management?ticketId=${
+      ticket.id || ticket._id
+    }`
   }
+
   // Use API data or show loading state
   if (!dashboardData) {
     return (
@@ -741,17 +764,19 @@ function DashboardTables({ dashboardData }) {
                 </tr>
               </thead>
               <tbody>
-                {upcomingEvents.map((event, index) => (
+                {upcomingEvents.map((event) => (
                   <tr
-                    key={event.id || event._id || `event-${index}`}
+                    key={event._id}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {event.eventName || event.name}
+                      {event.name}
                     </td>
-                    <td className='px-4 py-3'>{formatDate(event.eventDate || event.date)}</td>
-                    <td className='px-4 py-3'>{event.venueName || (event.venue?.name || event.venue)}</td>
-                    <td className='px-4 py-3'>{event.fighterCount || event.fighters}</td>
+                    <td className='px-4 py-3'>{formatDate(event.startDate)}</td>
+                    <td className='px-4 py-3'>
+                      {event.venueName || event.venue?.name || event.venue}
+                    </td>
+                    <td className='px-4 py-3'>{event.registeredFighters}</td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleManageBrackets(event)}
@@ -781,7 +806,7 @@ function DashboardTables({ dashboardData }) {
                     Name
                   </th>
                   <th scope='col' className='px-4 py-3'>
-                    Age
+                    DOB
                   </th>
                   <th scope='col' className='px-4 py-3'>
                     Class
@@ -804,12 +829,22 @@ function DashboardTables({ dashboardData }) {
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {fighter.fighterName || fighter.name}
+                      {fighter.firstName + ' ' + fighter.lastName}
                     </td>
-                    <td className='px-4 py-3'>{fighter.age}</td>
-                    <td className='px-4 py-3'>{fighter.weightClass || fighter.class}</td>
-                    <td className='px-4 py-3'>{fighter.gymName || (fighter.gym?.name || fighter.gym)}</td>
-                    <td className='px-4 py-3'>{formatDate(fighter.registrationDate || fighter.date)}</td>
+                    <td className='px-4 py-3'>
+                      {fighter.dateOfBirth
+                        ? formatDate(fighter.dateOfBirth)
+                        : ''}
+                    </td>
+                    <td className='px-4 py-3'>
+                      {fighter.weightClass || fighter.class}
+                    </td>
+                    <td className='px-4 py-3'>
+                      {fighter.gymName || fighter.gym?.name || fighter.gym}
+                    </td>
+                    <td className='px-4 py-3'>
+                      {formatDate(fighter.createdAt)}
+                    </td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleViewProfile(fighter)}
@@ -836,7 +871,13 @@ function DashboardTables({ dashboardData }) {
               <thead className='text-xs uppercase bg-slate-700 text-slate-400'>
                 <tr>
                   <th scope='col' className='px-4 py-3'>
-                    Bout ID
+                    Bout
+                  </th>
+                  <th scope='col' className='px-4 py-3'>
+                    Bracket
+                  </th>
+                  <th scope='col' className='px-4 py-3'>
+                    Event
                   </th>
                   <th scope='col' className='px-4 py-3'>
                     Fighter 1
@@ -855,19 +896,37 @@ function DashboardTables({ dashboardData }) {
               <tbody>
                 {missingResults.map((bout, index) => (
                   <tr
-                    key={bout.id || bout._id || bout.boutId || `bout-${index}`}
+                    key={index}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
-                    <td className='px-4 py-3 font-medium text-white'>
-                      {bout.boutId || bout.id}
+                    <td className='px-4 py-3 font-medium'>
+                      #{bout.boutNumber}
                     </td>
-                    <td className='px-4 py-3'>{bout.fighter1Name || bout.fighter1}</td>
-                    <td className='px-4 py-3'>{bout.fighter2Name || bout.fighter2}</td>
-                    <td className='px-4 py-3'>{bout.scheduledTime || bout.time}</td>
+                    <td className='px-4 py-3'>
+                      {bout.bracket.title + '-' + bout.bracket.divisionTitle}
+                    </td>
+                    <td className='px-4 py-3'>{bout.bracket.event.name}</td>
+                    <td className='px-4 py-3'>
+                      {bout.redCorner
+                        ? bout.redCorner.firstName +
+                          ' ' +
+                          bout.redCorner.lastName
+                        : 'N/A'}
+                    </td>
+                    <td className='px-4 py-3'>
+                      {bout.blueCorner
+                        ? bout.blueCorner.firstName +
+                          ' ' +
+                          bout.blueCorner.lastName
+                        : 'N/A'}
+                    </td>
+                    <td className='px-4 py-3'>
+                      {bout.startDate ? formatDate(bout.startDate) : 'N/A'}
+                    </td>
                     <td className='px-4 py-3'>
                       <button
                         onClick={() => handleAddResult(bout)}
-                        className='bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm'
+                        className='text-blue-500 hover:text-blue-400 text-sm'
                       >
                         Add Result
                       </button>
@@ -912,7 +971,9 @@ function DashboardTables({ dashboardData }) {
                     <td className='px-4 py-3 font-medium text-white'>
                       {fighter.fighterName || fighter.name}
                     </td>
-                    <td className='px-4 py-3'>{fighter.alertType || fighter.issue}</td>
+                    <td className='px-4 py-3'>
+                      {fighter.alertType || fighter.issue}
+                    </td>
                     <td className='px-4 py-3'>
                       <span
                         className={`px-2 py-1 rounded text-xs ${
@@ -970,40 +1031,77 @@ function DashboardTables({ dashboardData }) {
                     Event
                   </th>
                   <th scope='col' className='px-4 py-3'>
-                    Time
+                    Event Date
                   </th>
-                  <th scope='col' className='px-4 py-3'>
+                  {/* <th scope='col' className='px-4 py-3'>
                     Action
-                  </th>
+                  </th> */}
                 </tr>
               </thead>
               <tbody>
                 {ticketLogs.map((ticket, index) => (
                   <tr
-                    key={ticket.id || ticket._id || `ticket-${index}`}
+                    key={index}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {ticket.ticketType || ticket.type}
+                      {ticket.tier}
                     </td>
-                    <td className='px-4 py-3'>{ticket.quantity || ticket.qty}</td>
-                    <td className='px-4 py-3'>{ticket.totalAmount ? `$${ticket.totalAmount}` : ticket.revenue}</td>
-                    <td className='px-4 py-3'>{ticket.eventName || (ticket.event?.name || ticket.event)}</td>
-                    <td className='px-4 py-3'>{formatDateTime(ticket.purchaseTime || ticket.time)}</td>
+                    <td className='px-4 py-3'>{ticket.quantity}</td>
+                    <td className='px-4 py-3'>{`$${ticket.totalAmount}`}</td>
+                    <td className='px-4 py-3'>{ticket.event?.name}</td>
                     <td className='px-4 py-3'>
+                      {formatDateTime(ticket.event?.startDate)}
+                    </td>
+                    {/* <td className='px-4 py-3'>
                       <button
                         onClick={() => handleViewDetails(ticket)}
                         className='text-blue-500 hover:text-blue-400 text-sm'
                       >
                         Details
                       </button>
-                    </td>
+                    </td> */}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+
+        {/* Fighter Profile Modal */}
+        {showDetailModal &&
+          selectedItem &&
+          selectedAction === 'viewProfile' && (
+            <CompetitorDetailModal
+              competitor={selectedItem}
+              onClose={() => {
+                setShowDetailModal(false)
+                setSelectedItem(null)
+                setSelectedAction(null)
+              }}
+              calculateAge={calculateAge}
+            />
+          )}
+
+        {/* Bout Result Modal */}
+        {showBoutResultModal &&
+          selectedItem &&
+          selectedAction === 'addResult' && (
+            <BoutResultModal
+              bout={selectedItem}
+              eventId={selectedItem.bracket?.event?._id || selectedItem.eventId}
+              onClose={() => {
+                setShowBoutResultModal(false)
+                setSelectedItem(null)
+                setSelectedAction(null)
+              }}
+              onUpdate={() => {
+                if (onRefresh) {
+                  onRefresh()
+                }
+              }}
+            />
+          )}
       </div>
     </div>
   )
@@ -1040,7 +1138,7 @@ const exportToCSV = (dashboardData) => {
 
 const exportToPDF = (dashboardData) => {
   if (!dashboardData) return
-  
+
   // Create PDF content as HTML and print
   const printContent = `
     <html>
@@ -1078,7 +1176,7 @@ const exportToPDF = (dashboardData) => {
     </body>
     </html>
   `
-  
+
   const printWindow = window.open('', '_blank')
   printWindow.document.write(printContent)
   printWindow.document.close()
@@ -1087,7 +1185,7 @@ const exportToPDF = (dashboardData) => {
 
 const sendEmailReport = (dashboardData) => {
   if (!dashboardData) return
-  
+
   // Create email body with dashboard summary
   const emailBody = `Dashboard Report - ${new Date().toLocaleDateString()}
 
@@ -1100,8 +1198,10 @@ Key Statistics:
 - Total Venues: ${dashboardData.totalVenues}
 
 Generated from IKF Admin Dashboard`
-  
-  const mailtoLink = `mailto:?subject=IKF Dashboard Report - ${new Date().toLocaleDateString()}&body=${encodeURIComponent(emailBody)}`
+
+  const mailtoLink = `mailto:?subject=IKF Dashboard Report - ${new Date().toLocaleDateString()}&body=${encodeURIComponent(
+    emailBody
+  )}`
   window.location.href = mailtoLink
 }
 
@@ -1123,13 +1223,16 @@ function ExportControls({ onRefresh, loading, dashboardData }) {
           </button>
 
           <div className='relative'>
-            <button 
+            <button
               onClick={() => setShowExportMenu(!showExportMenu)}
               className='flex items-center gap-2 text-slate-300 hover:text-white text-sm px-3 py-1.5 bg-slate-800 rounded-md'
             >
               <Download size={16} />
               <span>Export</span>
-              <ChevronDown size={16} className={showExportMenu ? 'rotate-180' : ''} />
+              <ChevronDown
+                size={16}
+                className={showExportMenu ? 'rotate-180' : ''}
+              />
             </button>
             {showExportMenu && (
               <div className='absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-md shadow-lg z-10'>
@@ -1175,25 +1278,43 @@ function ExportControls({ onRefresh, loading, dashboardData }) {
 // Main Dashboard Page
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(new Date())
+  const [activeFilter, setActiveFilter] = useState('monthly')
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
+
       const currentDate = new Date()
-      const startDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        1
-      )
-        .toISOString()
-        .split('T')[0]
       const endDate = currentDate.toISOString().split('T')[0]
 
+      let startDateObj = new Date()
+
+      if (activeFilter === 'monthly') {
+        // First day of current month
+        startDateObj = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          1
+        )
+      } else if (activeFilter === 'weekly') {
+        // Last 7 days (including today)
+        startDateObj.setDate(currentDate.getDate() - 6)
+      } else if (activeFilter === 'daily') {
+        // Today only
+        startDateObj = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate()
+        )
+      }
+
+      const startDate = startDateObj.toISOString().split('T')[0]
+
       const response = await fetch(
-        `http://localhost:5000/api/dashboard?startDate=${startDate}&endDate=${endDate}`
+        `${API_BASE_URL}/dashboard?startDate=${startDate}&endDate=${endDate}`
       )
       const result = await response.json()
 
@@ -1214,7 +1335,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData()
-  }, [])
+  }, [activeFilter])
 
   const handleRefresh = () => {
     fetchDashboardData()
@@ -1239,11 +1360,21 @@ export default function DashboardPage() {
     )
   }
 
+  if (loading) {
+    return (
+      <div className='bg-slate-950 min-h-screen flex items-center justify-center'>
+        <Loader />
+      </div>
+    )
+  }
+
   return (
     <div className='bg-slate-950 min-h-screen'>
       <div className='container mx-auto'>
         <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6'>
-          <h1 className='text-xl sm:text-2xl font-bold text-white'>IKF Admin Dashboard</h1>
+          <h1 className='text-xl sm:text-2xl font-bold text-white'>
+            IKF Admin Dashboard
+          </h1>
           <div className='flex items-center gap-4'>
             {loading && (
               <div className='flex items-center gap-2 text-slate-400'>
@@ -1267,8 +1398,15 @@ export default function DashboardPage() {
           dashboardData={dashboardData}
         />
         <DashboardStats dashboardData={dashboardData} />
-        <DashboardGraphs dashboardData={dashboardData} />
-        <DashboardTables dashboardData={dashboardData} />
+        <DashboardGraphs
+          dashboardData={dashboardData}
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
+        />
+        <DashboardTables
+          dashboardData={dashboardData}
+          onRefresh={handleRefresh}
+        />
       </div>
     </div>
   )

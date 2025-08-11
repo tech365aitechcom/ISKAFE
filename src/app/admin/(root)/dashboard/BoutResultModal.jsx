@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { X, Trophy, Clock, AlertTriangle, Plus, Crown } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
-import { API_BASE_URL } from '../../../../../../../constants'
-import useStore from '../../../../../../../stores/useStore'
+import { API_BASE_URL } from '../../../../constants'
+import useStore from '../../../../stores/useStore'
 import SuspensionModal from './SuspensionModal'
 import moment from 'moment'
 
 export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   const user = useStore((state) => state.user)
-  const [winner, setWinner] = useState(bout.fight?.winner || '')
+  const [winner, setWinner] = useState(bout.fight?.winner?._id || '')
 
   const [resultMethod, setResultMethod] = useState(
     bout.fight?.resultMethod || ''
@@ -33,16 +33,6 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   const startTimeFormatted = moment(bout?.startDate).format(
     'dddd, MMM D, YYYY h:mm A'
   )
-
-  const now = new Date()
-  const start = new Date(bout?.startDate)
-
-  const boutStatusMessage =
-    now < start
-      ? `Scheduled to start at ${moment(start).format(
-          'dddd, MMM D, YYYY h:mm A'
-        )}`
-      : `Bout has ended at ${moment(start).format('dddd, MMM D, YYYY h:mm A')}`
 
   const resultMethods = [
     'Decision',
@@ -117,7 +107,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
     try {
       // Prepare fight result data
       const fightData = {
-        event: eventId,
+        event: eventId || bout.bracket?.event?._id || bout.bracket?.event,
         bracket: bout.bracket._id || bout.bracket,
         bout: bout._id,
         status: 'Completed',
@@ -337,7 +327,11 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
           <div className='flex items-center justify-between p-4 bg-[#07091D] rounded-lg'>
             <div className='flex items-center gap-3'>
               <Clock size={20} className='text-blue-400' />
-              <span className='text-white'>{boutStatusMessage}</span>
+              <span className='text-white'>
+                {hasBoutStarted
+                  ? 'Bout Has Started'
+                  : `Scheduled to start at ${startTimeFormatted}`}
+              </span>
             </div>
           </div>
           {/* Winner Selection */}
@@ -346,21 +340,21 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Red Corner */}
               <button
-                onClick={() => setWinner(bout.redCorner?._id)}
+                onClick={() => setWinner(bout.redCorner._id)}
                 className={`relative p-4 border-2 rounded-lg transition-all duration-200 ${
-                  winner === bout.redCorner?._id
+                  winner === bout.redCorner._id
                     ? 'border-amber-500 bg-amber-900/20'
                     : 'border-gray-600 bg-[#07091D] hover:border-red-500/50'
                 }`}
               >
-                {winner === bout.redCorner?._id && (
+                {winner === bout.redCorner._id && (
                   <Crown className='absolute -top-5 -left-4 text-amber-400 w-8 h-8' />
                 )}
                 <div className='flex items-center gap-3'>
                   <div className='w-4 h-4 bg-red-500 rounded-full'></div>
                   <div className='text-left'>
                     <div className='font-medium text-white'>
-                      {bout.redCorner?.firstName} {bout.redCorner?.lastName}
+                      {bout.redCorner.firstName} {bout.redCorner.lastName}
                     </div>
                     <div className='text-sm text-gray-300'>Red Corner</div>
                   </div>
@@ -369,21 +363,21 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
 
               {/* Blue Corner */}
               <button
-                onClick={() => setWinner(bout.blueCorner?._id)}
+                onClick={() => setWinner(bout.blueCorner._id)}
                 className={`relative p-4 border-2 rounded-lg transition-all duration-200 ${
-                  winner === bout.blueCorner?._id
+                  winner === bout.blueCorner._id
                     ? 'border-amber-500 bg-amber-900/20'
                     : 'border-gray-600 bg-[#07091D] hover:border-blue-500/50'
                 }`}
               >
-                {winner === bout.blueCorner?._id && (
+                {winner === bout.blueCorner._id && (
                   <Crown className='absolute -top-5 -left-4 text-amber-400 w-8 h-8' />
                 )}
                 <div className='flex items-center gap-3'>
                   <div className='w-4 h-4 bg-blue-500 rounded-full'></div>
                   <div className='text-left'>
                     <div className='font-medium text-white'>
-                      {bout.blueCorner?.firstName} {bout.blueCorner?.lastName}
+                      {bout.blueCorner.firstName} {bout.blueCorner.lastName}
                     </div>
                     <div className='text-sm text-gray-300'>Blue Corner</div>
                   </div>
@@ -450,7 +444,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
                   </button>
                 </div>
                 <div className='text-sm text-gray-300'>
-                  {bout.redCorner?.firstName} {bout.redCorner?.lastName}
+                  {bout.redCorner.firstName} {bout.redCorner.lastName}
                 </div>
                 <div className='text-xs text-gray-400 mt-1'>
                   Add disciplinary or medical suspensions post-bout
@@ -470,7 +464,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
                   </button>
                 </div>
                 <div className='text-sm text-gray-300'>
-                  {bout.blueCorner?.firstName} {bout.blueCorner?.lastName}
+                  {bout.blueCorner.firstName} {bout.blueCorner.lastName}
                 </div>
                 <div className='text-xs text-gray-400 mt-1'>
                   Add disciplinary or medical suspensions post-bout
@@ -499,7 +493,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
             <button
               onClick={handleSaveResult}
               className='px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50'
-              disabled={loading || !winner || !resultMethod || hasBoutStarted}
+              disabled={loading || !winner || !resultMethod}
             >
               {loading ? 'Saving...' : 'Save Result'}
             </button>

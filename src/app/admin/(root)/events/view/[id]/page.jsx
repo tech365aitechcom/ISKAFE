@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import {
   ChevronDown,
   Edit,
@@ -8,17 +8,6 @@ import {
   Trash2,
   Save,
   Ticket,
-  DollarSign,
-  Calendar,
-  Users,
-  Camera,
-  Search,
-  X,
-  Download,
-  User,
-  Clock,
-  Check,
-  AlertCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -26,12 +15,12 @@ import { API_BASE_URL } from '../../../../../../constants'
 import Loader from '../../../../../_components/Loader'
 import Image from 'next/image'
 import axiosInstance from '../../../../../../shared/axios'
-// import { useRouter } from "next/router";
 import TournamentSettingsModal from '../../_components/TournamentSettingsModal'
 
-export default function EventDetailsPage() {
+export default function EventDetailsPage({ params }) {
   // const router = useRouter();
-  const params = useParams()
+  const { id } = use(params)
+
   const [eventId, setEventId] = useState(null)
   const [isOpen, setIsOpen] = useState(false)
   const [settingsModalVisible, setSettingsModalVisible] = useState(false)
@@ -59,15 +48,6 @@ export default function EventDetailsPage() {
   const [showTierForm, setShowTierForm] = useState(false)
   const [editingTier, setEditingTier] = useState(null)
   const [editingTierIndex, setEditingTierIndex] = useState(null)
-  const [showRedemptionModal, setShowRedemptionModal] = useState(false)
-  const [redemptionCode, setRedemptionCode] = useState('')
-  const [redemptions, setRedemptions] = useState([])
-  const [activeRedemptionTab, setActiveRedemptionTab] = useState('redeem')
-  const [ticketToRedeem, setTicketToRedeem] = useState(null)
-  const [quantityToRedeem, setQuantityToRedeem] = useState(1)
-  const [showEmailSearch, setShowEmailSearch] = useState(false)
-  const [searchEmail, setSearchEmail] = useState('')
-  const [emailSearchResults, setEmailSearchResults] = useState([])
   const [currentTier, setCurrentTier] = useState({
     order: 1,
     name: '',
@@ -453,333 +433,12 @@ export default function EventDetailsPage() {
     setIsOpen(!isOpen)
   }
 
-  // Redemption functions
-  const handleQRScan = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert(
-        'Camera access is not supported in this browser. Please use manual code entry.'
-      )
-      return
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      })
-
-      // Create a simple QR scanner modal
-      const modal = document.createElement('div')
-      modal.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        background: rgba(0,0,0,0.9); z-index: 9999; 
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-      `
-
-      const video = document.createElement('video')
-      video.style.cssText =
-        'width: 80%; max-width: 400px; height: auto; border: 3px solid #CB3CFF; border-radius: 10px;'
-      video.srcObject = stream
-      video.play()
-
-      const instructions = document.createElement('div')
-      instructions.style.cssText =
-        'color: white; text-align: center; margin: 20px; font-size: 16px;'
-      instructions.innerHTML = `
-        <p>Position QR code within the frame</p>
-        <p style="font-size: 14px; margin-top: 10px; color: #ccc;">Camera scanning is simulated. Click "Manual Entry" to continue.</p>
-      `
-
-      const buttons = document.createElement('div')
-      buttons.style.cssText = 'display: flex; gap: 15px; margin-top: 20px;'
-
-      const manualButton = document.createElement('button')
-      manualButton.textContent = 'Manual Entry'
-      manualButton.style.cssText = `
-        background: linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%);
-        color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;
-      `
-
-      const cancelButton = document.createElement('button')
-      cancelButton.textContent = 'Cancel'
-      cancelButton.style.cssText = `
-        background: #666; color: white; padding: 10px 20px; 
-        border: none; border-radius: 5px; cursor: pointer;
-      `
-
-      manualButton.onclick = () => {
-        stream.getTracks().forEach((track) => track.stop())
-        document.body.removeChild(modal)
-        // Focus on manual entry input
-        setTimeout(() => {
-          const codeInput = document.querySelector(
-            'input[placeholder*="ticket code"]'
-          )
-          if (codeInput) codeInput.focus()
-        }, 100)
-      }
-
-      cancelButton.onclick = () => {
-        stream.getTracks().forEach((track) => track.stop())
-        document.body.removeChild(modal)
-      }
-
-      buttons.appendChild(manualButton)
-      buttons.appendChild(cancelButton)
-
-      modal.appendChild(video)
-      modal.appendChild(instructions)
-      modal.appendChild(buttons)
-
-      document.body.appendChild(modal)
-    } catch (error) {
-      console.error('Camera access error:', error)
-      alert('Unable to access camera. Please use manual code entry instead.')
-    }
-  }
-
-  const validateTicketCode = async () => {
-    if (!redemptionCode.trim()) {
-      alert('Please enter a ticket code')
-      return
-    }
-
-    // Basic format validation
-    const codePattern = /^[A-Z0-9]{4,8}$/
-    if (!codePattern.test(redemptionCode.trim())) {
-      alert(
-        'Invalid ticket code format. Please enter a 4-8 character alphanumeric code.'
-      )
-      return
-    }
-
-    try {
-      setTicketsLoading(true)
-
-      // First try to get ticket info (simulate validation)
-      // In a real implementation, you'd have a separate validate endpoint
-      const response = await axiosInstance.get(
-        `/spectator-ticket/validate/${redemptionCode.trim()}`
-      )
-
-      if (response.data.success) {
-        setTicketToRedeem({
-          spectatorName:
-            response.data.data.spectatorName || 'Unknown Spectator',
-          tierName: response.data.data.tierName || 'General Admission',
-          quantity: response.data.data.quantity || 1,
-          price: response.data.data.price || 0,
-          isValid: true,
-        })
-        alert('✓ Valid ticket found! You can now redeem it.')
-      }
-    } catch (err) {
-      console.error('Error validating ticket:', err)
-
-      // If validation endpoint doesn't exist, fall back to mock validation
-      if (err.response?.status === 404) {
-        // Mock validation for demo purposes
-        const mockTicket = {
-          spectatorName: 'Demo Spectator',
-          tierName: 'General Admission',
-          quantity: 1,
-          price: 3500, // $35.00 in cents
-          isValid: true,
-        }
-        setTicketToRedeem(mockTicket)
-        alert('✓ Valid ticket found! (Demo mode - using mock data)')
-      } else {
-        setTicketToRedeem(null)
-        alert(
-          `❌ Error validating ticket: ${
-            err.response?.data?.message || 'Invalid ticket code'
-          }`
-        )
-      }
-    } finally {
-      setTicketsLoading(false)
-    }
-  }
-
-  const redeemTicket = async () => {
-    if (!redemptionCode.trim()) {
-      alert('Please enter a ticket code')
-      return
-    }
-
-    if (!ticketToRedeem) {
-      alert('Please validate the ticket code first before redeeming.')
-      return
-    }
-
-    if (
-      quantityToRedeem <= 0 ||
-      quantityToRedeem > (ticketToRedeem.quantity || 1)
-    ) {
-      alert(
-        `Invalid quantity. Please enter a value between 1 and ${
-          ticketToRedeem.quantity || 1
-        }.`
-      )
-      return
-    }
-
-    const confirmMessage =
-      quantityToRedeem === ticketToRedeem.quantity
-        ? `Redeem all ${quantityToRedeem} ticket(s) for ${ticketToRedeem.spectatorName}?`
-        : `Redeem ${quantityToRedeem} of ${
-            ticketToRedeem.quantity
-          } ticket(s) for ${ticketToRedeem.spectatorName}? ${
-            ticketToRedeem.quantity - quantityToRedeem
-          } will remain available.`
-
-    if (!confirm(confirmMessage)) {
-      return
-    }
-
-    try {
-      setTicketsLoading(true)
-      const response = await axiosInstance.post('/spectator-ticket/redeem', {
-        ticketCode: redemptionCode.trim(),
-        quantityToRedeem: quantityToRedeem,
-        entryMode: 'Manual',
-        eventId: eventId,
-      })
-
-      if (response.data.success) {
-        const newRedemption = {
-          id: Date.now().toString(),
-          code: redemptionCode,
-          name: ticketToRedeem.spectatorName || 'Spectator',
-          type: ticketToRedeem.tierName || 'General',
-          price: ticketToRedeem.price || 0,
-          redeemedAt: new Date().toISOString(),
-          redeemedBy: 'Current Staff',
-          status: 'checked-in',
-          entryMode: 'manual',
-          quantity: quantityToRedeem,
-          remainingQuantity: (ticketToRedeem.quantity || 1) - quantityToRedeem,
-        }
-
-        setRedemptions([...redemptions, newRedemption])
-        setRedemptionCode('')
-        setTicketToRedeem(null)
-        setQuantityToRedeem(1)
-
-        const successMessage =
-          newRedemption.remainingQuantity > 0
-            ? `✓ Successfully redeemed ${quantityToRedeem} ticket(s)! ${newRedemption.remainingQuantity} remaining for this code.`
-            : `✓ Successfully redeemed all ${quantityToRedeem} ticket(s)!`
-
-        alert(successMessage)
-
-        // Switch to redemption list tab to show the new entry
-        setActiveRedemptionTab('list')
-      }
-    } catch (err) {
-      console.error('Error redeeming ticket:', err)
-      const errorMessage = err.response?.data?.message || err.message
-
-      // Handle specific error cases
-      if (errorMessage.includes('already redeemed')) {
-        alert('❌ This ticket has already been redeemed.')
-      } else if (errorMessage.includes('not found')) {
-        alert('❌ Ticket code not found. Please check the code and try again.')
-      } else if (errorMessage.includes('expired')) {
-        alert('❌ This ticket has expired and cannot be redeemed.')
-      } else {
-        alert(`❌ Error redeeming ticket: ${errorMessage}`)
-      }
-    } finally {
-      setTicketsLoading(false)
-    }
-  }
-
-  const handleExportRedemptions = (format) => {
-    alert(`Would export ${format} file with ${redemptions.length} redemptions`)
-  }
-
-  const searchTicketsByEmail = async () => {
-    if (!searchEmail.trim()) {
-      alert('Please enter an email address')
-      return
-    }
-
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailPattern.test(searchEmail.trim())) {
-      alert('Please enter a valid email address')
-      return
-    }
-
-    try {
-      setTicketsLoading(true)
-      const response = await axiosInstance.get(
-        `/spectator-ticket/search-by-email/${eventId}?email=${encodeURIComponent(
-          searchEmail.trim()
-        )}`
-      )
-
-      if (response.data.success && response.data.data.length > 0) {
-        setEmailSearchResults(response.data.data)
-        alert(
-          `Found ${response.data.data.length} ticket(s) for this email address.`
-        )
-      } else {
-        setEmailSearchResults([])
-        alert('No tickets found for this email address.')
-      }
-    } catch (err) {
-      console.error('Error searching tickets by email:', err)
-
-      // Mock search results for demo
-      if (err.response?.status === 404) {
-        const mockResults = [
-          {
-            ticketCode: 'DEMO123',
-            spectatorName: 'Demo User',
-            tierName: 'General Admission',
-            quantity: 2,
-            purchaseDate: new Date().toISOString(),
-            status: 'active',
-          },
-        ]
-        setEmailSearchResults(mockResults)
-        alert(
-          `Found ${mockResults.length} ticket(s) for this email address. (Demo mode)`
-        )
-      } else {
-        setEmailSearchResults([])
-        alert(
-          `Error searching tickets: ${
-            err.response?.data?.message || err.message
-          }`
-        )
-      }
-    } finally {
-      setTicketsLoading(false)
-    }
-  }
-
-  const selectTicketFromEmail = (ticket) => {
-    setRedemptionCode(ticket.ticketCode)
-    setTicketToRedeem({
-      spectatorName: ticket.spectatorName,
-      tierName: ticket.tierName,
-      quantity: ticket.quantity,
-      price: ticket.price || 3500,
-      isValid: true,
-    })
-    setShowEmailSearch(false)
-    setSearchEmail('')
-    setEmailSearchResults([])
-    alert(`Selected ticket ${ticket.ticketCode} for ${ticket.spectatorName}`)
-  }
-
   useEffect(() => {
-    if (params?.id) {
-      setEventId(params.id)
-      fetchEventData(params.id)
+    if (id) {
+      setEventId(id)
+      fetchEventData(id)
     }
-  }, [params])
+  }, [id])
 
   useEffect(() => {
     if (eventId) {
@@ -1031,13 +690,6 @@ export default function EventDetailsPage() {
         totalParticipants: event.registeredParticipants || 0,
         breakdown: 'No payments recorded',
       },
-      tournamentResults: {
-        bracketCount: event.bracketCount || 0,
-        boutCount: event.boutCount || 0,
-        breakdown: `${event.bracketCount || 0} brackets, ${
-          event.boutCount || 0
-        } bouts`,
-      },
       tournamentSettings: {
         simpleFees: {
           fighterFee: 0,
@@ -1107,41 +759,31 @@ export default function EventDetailsPage() {
                       Fighter Check-in
                     </li>
                   </Link>
+                  <Link href={`/admin/events/${eventId}/bout-list`}>
+                    <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
+                      Bout List
+                    </li>
+                  </Link>
+                  <Link href={`/admin/events/${eventId}/tournament-results`}>
+                    <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
+                      Tournament Result
+                    </li>
+                  </Link>
                   <Link href={`/admin/events/${eventId}/tournament-brackets`}>
                     <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
-                      Tournament Brackets
+                      Fight Card
                     </li>
                   </Link>
                   <Link href={`/admin/events/${eventId}/participants`}>
                     <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
-                      Event Participants
+                      Competitor Listing
                     </li>
                   </Link>
-                  <Link href={`/admin/events/${eventId}/bout-list`}>
+                  <Link href={`/admin/events/${eventId}/registration-payments`}>
                     <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
-                      Bout List & Results
+                      Registration Payments
                     </li>
                   </Link>
-                  {/* <Link href={`/admin/events/${eventId}/fight-card`}>
-                    <li className="mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer">
-                      Fight Card Overview
-                    </li>
-                  </Link> */}
-                  <Link href={`/admin/events/${eventId}/fighter-card`}>
-                    <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
-                      Fighter Card
-                    </li>
-                  </Link>
-                  <li
-                    className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'
-                    onClick={() => {
-                      setShowRedemptionModal(true)
-                      setIsOpen(false)
-                    }}
-                  >
-                    Spectator Ticket Redemption
-                  </li>
-
                   <Link href={`/admin/events/${eventId}/spectator-payments`}>
                     <li className='mx-4 py-3 border-b border-[#6C6C6C] hover:bg-[#0f1a40] cursor-pointer'>
                       Spectator Payments
@@ -1154,25 +796,33 @@ export default function EventDetailsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+          {/* Bout Management */}
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
-              <span className='text-sm text-[#AEB9E1]'>Tournament Results</span>
-              <Link href={`/admin/events/${eventId}/tournament-results`}>
-                <button className=''>
+              <span className='text-sm text-[#AEB9E1]'>
+                Tournament Brackets & Bouts
+              </span>
+              <Link href={`/admin/events/${eventId}/tournament-brackets`}>
+                <button
+                  className='hover:text-blue-400'
+                  title='Manage Tournament Brackets & Bouts'
+                >
                   <Pencil size={16} />
                 </button>
               </Link>
             </div>
             <div className='mt-2'>
               <h2 className='text-2xl font-bold'>
-                {formattedEvent.stats.tournamentResults.bracketCount} Brackets
+                {formattedEvent.stats.bracketCount.value} Brackets ,
+                {formattedEvent.stats.boutCount.value} Bouts
               </h2>
               <p className='text-sm text-[#AEB9E1] mt-2 whitespace-pre-line'>
-                {formattedEvent.stats.tournamentResults.breakdown}
+                Click to manage brackets and bouts
               </p>
             </div>
           </div>
+
           <div className='border border-[#343B4F] rounded-lg p-4 relative'>
             <div className='flex justify-between items-start'>
               <span className='text-sm text-[#AEB9E1]'>
@@ -1216,61 +866,6 @@ export default function EventDetailsPage() {
                   {formattedEvent.stats.spectatorPayments.totalNetRevenue}
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Bracket Count */}
-          <div className='border border-[#343B4F] rounded-lg p-4 relative'>
-            <div className='flex justify-between items-start'>
-              <span className='text-sm text-[#AEB9E1]'>Bracket Count</span>
-              <button className=''>
-                <Pencil size={16} />
-              </button>
-            </div>
-            <div className='mt-2'>
-              <h2 className='text-2xl font-bold'>
-                {formattedEvent.stats.bracketCount.value}
-              </h2>
-            </div>
-          </div>
-
-          {/* Bout Management */}
-          <div className='border border-[#343B4F] rounded-lg p-4 relative'>
-            <div className='flex justify-between items-start'>
-              <span className='text-sm text-[#AEB9E1]'>
-                Tournament Brackets & Bouts
-              </span>
-              <Link href={`/admin/events/${eventId}/tournament-brackets`}>
-                <button
-                  className='hover:text-blue-400'
-                  title='Manage Tournament Brackets & Bouts'
-                >
-                  <Pencil size={16} />
-                </button>
-              </Link>
-            </div>
-            <div className='mt-2'>
-              <h2 className='text-2xl font-bold'>
-                {formattedEvent.stats.boutCount.value} Bouts
-              </h2>
-              <p className='text-sm text-[#AEB9E1] mt-2 whitespace-pre-line'>
-                Click to manage brackets and bouts
-              </p>
-            </div>
-          </div>
-
-          {/* Participants */}
-          <div className='border border-[#343B4F] rounded-lg p-4 relative'>
-            <div className='flex justify-between items-start'>
-              <span className='text-sm text-[#AEB9E1]'>Participants</span>
-            </div>
-            <div className='mt-2'>
-              <h2 className='text-2xl font-bold'>
-                {formattedEvent.stats.participants.value}
-              </h2>
-              <p className='text-sm text-[#AEB9E1] mt-2 whitespace-pre-line'>
-                {formattedEvent.stats.participants.breakdown}
-              </p>
             </div>
           </div>
         </div>
@@ -1377,7 +972,7 @@ export default function EventDetailsPage() {
                           </div>
                           <div className='text-right'>
                             <p className='text-xl font-bold text-[#CB3CFF]'>
-                              ${(tier.price / 100).toFixed(2)}
+                              ${tier.price}
                             </p>
                           </div>
                         </div>
@@ -1796,444 +1391,6 @@ export default function EventDetailsPage() {
                   <Save size={16} className='mr-2' />
                   {editingTier ? 'Update' : 'Save'}
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Spectator Ticket Redemption Modal */}
-        {showRedemptionModal && (
-          <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-            <div className='bg-[#0B1739] border border-[#343B4F] rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto'>
-              <div className='p-6'>
-                {/* Header */}
-                <div className='flex justify-between items-center mb-6'>
-                  <div>
-                    <h2 className='text-xl font-bold'>
-                      Spectator Ticket Redemption
-                    </h2>
-                    <p className='text-gray-300 text-sm mt-1'>
-                      Event: {formattedEvent.name}
-                    </p>
-                  </div>
-                  <div className='flex items-center space-x-3'>
-                    <button
-                      className='text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-3 py-2 rounded flex items-center'
-                      onClick={() => handleExportRedemptions('pdf')}
-                    >
-                      <Download size={14} className='mr-1' />
-                      PDF
-                    </button>
-                    <button
-                      className='text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-3 py-2 rounded flex items-center'
-                      onClick={() => handleExportRedemptions('csv')}
-                    >
-                      <Download size={14} className='mr-1' />
-                      CSV
-                    </button>
-                    <button
-                      onClick={() => setShowRedemptionModal(false)}
-                      className='text-gray-400 hover:text-white'
-                    >
-                      <X size={24} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tabs */}
-                <div className='flex border-b border-gray-700 mb-6'>
-                  <button
-                    className={`pb-2 px-4 ${
-                      activeRedemptionTab === 'redeem'
-                        ? 'text-purple-400 border-b-2 border-purple-400'
-                        : 'text-gray-400'
-                    }`}
-                    onClick={() => setActiveRedemptionTab('redeem')}
-                  >
-                    Ticket Redemption
-                  </button>
-                  <button
-                    className={`pb-2 px-4 ${
-                      activeRedemptionTab === 'list'
-                        ? 'text-purple-400 border-b-2 border-purple-400'
-                        : 'text-gray-400'
-                    }`}
-                    onClick={() => setActiveRedemptionTab('list')}
-                  >
-                    Redemption List ({redemptions.length})
-                  </button>
-                </div>
-
-                {activeRedemptionTab === 'redeem' ? (
-                  <>
-                    {/* QR Scan Section */}
-                    <div className='mb-8'>
-                      <h3 className='text-lg font-medium mb-3'>Scan QR Code</h3>
-                      <p className='text-gray-300 mb-4'>
-                        Use your device camera to scan the spectator's ticket QR
-                        code
-                      </p>
-                      <button
-                        style={{
-                          background:
-                            'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
-                        }}
-                        className='text-white py-2 px-4 rounded flex items-center hover:opacity-90'
-                        onClick={handleQRScan}
-                      >
-                        <Camera size={18} className='mr-2' />
-                        Scan with Device Camera
-                      </button>
-                    </div>
-
-                    <div className='border-t border-gray-700 my-6'></div>
-
-                    {/* Email Search Section */}
-                    <div className='mb-8'>
-                      <div className='flex justify-between items-center mb-4'>
-                        <h3 className='text-lg font-medium'>
-                          Find Lost Ticket Code
-                        </h3>
-                        <button
-                          onClick={() => setShowEmailSearch(!showEmailSearch)}
-                          className='text-sm text-purple-400 hover:text-purple-300'
-                        >
-                          {showEmailSearch
-                            ? 'Hide Email Search'
-                            : 'Search by Email'}
-                        </button>
-                      </div>
-
-                      {showEmailSearch && (
-                        <div className='bg-[#0A1330] p-4 rounded-lg mb-4'>
-                          <p className='text-gray-300 text-sm mb-3'>
-                            If a spectator has lost their ticket code, search by
-                            their email address:
-                          </p>
-                          <div className='flex gap-3 mb-4'>
-                            <input
-                              type='email'
-                              className='flex-1 bg-[#0B1739] border border-gray-600 text-white rounded px-3 py-2'
-                              placeholder="Enter spectator's email address"
-                              value={searchEmail}
-                              onChange={(e) => setSearchEmail(e.target.value)}
-                            />
-                            <button
-                              onClick={searchTicketsByEmail}
-                              disabled={!searchEmail || ticketsLoading}
-                              className='bg-gradient-to-r from-[#CB3CFF] to-[#7F25FB] text-white px-4 py-2 rounded disabled:opacity-50'
-                            >
-                              {ticketsLoading ? 'Searching...' : 'Search'}
-                            </button>
-                          </div>
-
-                          {emailSearchResults.length > 0 && (
-                            <div className='space-y-2'>
-                              <p className='text-green-400 text-sm'>
-                                Found {emailSearchResults.length} ticket(s):
-                              </p>
-                              {emailSearchResults.map((ticket, index) => (
-                                <div
-                                  key={index}
-                                  className='flex justify-between items-center p-2 bg-[#0B1739] rounded border border-gray-600'
-                                >
-                                  <div>
-                                    <p className='text-white font-medium'>
-                                      {ticket.ticketCode}
-                                    </p>
-                                    <p className='text-gray-300 text-sm'>
-                                      {ticket.spectatorName} • {ticket.tierName}{' '}
-                                      • Qty: {ticket.quantity}
-                                    </p>
-                                  </div>
-                                  <button
-                                    onClick={() =>
-                                      selectTicketFromEmail(ticket)
-                                    }
-                                    className='text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded'
-                                  >
-                                    Select
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className='border-t border-gray-700 my-6'></div>
-
-                    {/* Manual Entry Section */}
-                    <div className='mb-8'>
-                      <h3 className='text-lg font-medium mb-4'>
-                        Manual Ticket Entry
-                      </h3>
-
-                      <div className='bg-[#0A1330] p-4 rounded-lg mb-4'>
-                        <label className='block text-sm text-gray-400 mb-2'>
-                          Ticket Code:
-                        </label>
-                        <div className='flex items-center mb-4'>
-                          <input
-                            type='text'
-                            className='bg-transparent text-white text-lg font-medium focus:outline-none w-full'
-                            placeholder='Enter ticket code (e.g., 7FOD3Q)'
-                            value={redemptionCode}
-                            onChange={(e) =>
-                              setRedemptionCode(e.target.value.toUpperCase())
-                            }
-                            maxLength={10}
-                          />
-                          {redemptionCode && (
-                            <button
-                              onClick={() => {
-                                setRedemptionCode('')
-                                setTicketToRedeem(null)
-                              }}
-                              className='text-gray-400 hover:text-white ml-2'
-                            >
-                              <X size={18} />
-                            </button>
-                          )}
-                        </div>
-
-                        {ticketToRedeem && (
-                          <div className='mb-4 p-3 bg-[#0B1739] rounded border border-green-500'>
-                            <p className='text-green-400 text-sm mb-2'>
-                              ✓ Valid Ticket Found
-                            </p>
-                            <p className='text-white'>
-                              <strong>Spectator:</strong>{' '}
-                              {ticketToRedeem.spectatorName}
-                            </p>
-                            <p className='text-white'>
-                              <strong>Type:</strong> {ticketToRedeem.tierName}
-                            </p>
-                            <p className='text-white'>
-                              <strong>Available Quantity:</strong>{' '}
-                              {ticketToRedeem.quantity}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
-                          <div>
-                            <label className='block text-sm text-gray-400 mb-2'>
-                              Quantity to Redeem:
-                            </label>
-                            <input
-                              type='number'
-                              min='1'
-                              max={ticketToRedeem?.quantity || 1}
-                              className='w-full bg-[#0B1739] border border-gray-600 text-white rounded px-3 py-2'
-                              value={quantityToRedeem}
-                              onChange={(e) =>
-                                setQuantityToRedeem(
-                                  parseInt(e.target.value) || 1
-                                )
-                              }
-                            />
-                          </div>
-                          <div className='flex items-end'>
-                            <button
-                              className='bg-[#0A1330] hover:bg-[#0f1a40] text-white py-2 px-4 rounded mr-2'
-                              onClick={validateTicketCode}
-                              disabled={!redemptionCode || ticketsLoading}
-                            >
-                              {ticketsLoading
-                                ? 'Validating...'
-                                : 'Validate Code'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        style={{
-                          background:
-                            'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
-                        }}
-                        className='text-white py-2 px-4 rounded w-full md:w-auto disabled:opacity-50'
-                        onClick={redeemTicket}
-                        disabled={!redemptionCode || ticketsLoading}
-                      >
-                        {ticketsLoading ? 'Redeeming...' : 'Redeem Ticket'}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  /* Redemption List */
-                  <div>
-                    <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-6'>
-                      <h3 className='text-lg font-medium mb-4 md:mb-0'>
-                        Ticket Redemptions ({redemptions.length})
-                      </h3>
-                      <div className='flex space-x-2'>
-                        <input
-                          type='text'
-                          className='bg-[#0A1330] border border-gray-700 text-white rounded px-3 py-1 text-sm'
-                          placeholder='Search redemptions...'
-                        />
-                      </div>
-                    </div>
-
-                    {redemptions.length > 0 ? (
-                      <div className='overflow-x-auto'>
-                        <table className='w-full border-collapse'>
-                          <thead>
-                            <tr className='bg-[#0A1330] text-left'>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Code
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Spectator
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Type
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Qty
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Price
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Redeemed At
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Staff Member
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Entry Mode
-                              </th>
-                              <th className='p-3 border-b border-gray-700 text-sm'>
-                                Status
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {redemptions.map((redemption) => (
-                              <tr
-                                key={redemption.id}
-                                className='border-b border-gray-700 hover:bg-[#0A1330]/50'
-                              >
-                                <td className='p-3 font-mono text-sm'>
-                                  {redemption.code}
-                                </td>
-                                <td className='p-3 text-sm'>
-                                  <div className='flex items-center'>
-                                    <User
-                                      size={14}
-                                      className='mr-2 text-gray-400'
-                                    />
-                                    <div>
-                                      <p className='font-medium'>
-                                        {redemption.name}
-                                      </p>
-                                      {redemption.remainingQuantity > 0 && (
-                                        <p className='text-xs text-yellow-400'>
-                                          {redemption.remainingQuantity}{' '}
-                                          remaining
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className='p-3 text-sm'>
-                                  <span className='flex items-center'>
-                                    <Ticket
-                                      size={14}
-                                      className='mr-2 text-gray-400'
-                                    />
-                                    {redemption.type}
-                                  </span>
-                                </td>
-                                <td className='p-3 text-sm font-medium'>
-                                  {redemption.quantity}
-                                </td>
-                                <td className='p-3 text-sm'>
-                                  <span className='flex items-center'>
-                                    <DollarSign
-                                      size={14}
-                                      className='mr-1 text-gray-400'
-                                    />
-                                    $
-                                    {((redemption.price || 0) / 100).toFixed(2)}
-                                  </span>
-                                </td>
-                                <td className='p-3 text-sm'>
-                                  <span className='flex items-center'>
-                                    <Clock
-                                      size={14}
-                                      className='mr-2 text-gray-400'
-                                    />
-                                    <div>
-                                      <p>
-                                        {new Date(
-                                          redemption.redeemedAt
-                                        ).toLocaleDateString()}
-                                      </p>
-                                      <p className='text-xs text-gray-400'>
-                                        {new Date(
-                                          redemption.redeemedAt
-                                        ).toLocaleTimeString()}
-                                      </p>
-                                    </div>
-                                  </span>
-                                </td>
-                                <td className='p-3 text-sm'>
-                                  <div className='flex items-center'>
-                                    <User
-                                      size={14}
-                                      className='mr-2 text-gray-400'
-                                    />
-                                    {redemption.redeemedBy}
-                                  </div>
-                                </td>
-                                <td className='p-3 text-sm'>
-                                  <span
-                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                                      redemption.entryMode === 'qr-scan'
-                                        ? 'bg-purple-900 text-purple-300'
-                                        : 'bg-blue-900 text-blue-300'
-                                    }`}
-                                  >
-                                    {redemption.entryMode === 'qr-scan' ? (
-                                      <Camera size={10} className='mr-1' />
-                                    ) : (
-                                      <Search size={10} className='mr-1' />
-                                    )}
-                                    {redemption.entryMode === 'qr-scan'
-                                      ? 'QR Scan'
-                                      : 'Manual'}
-                                  </span>
-                                </td>
-                                <td className='p-3'>
-                                  <span className='inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-900 text-green-300'>
-                                    <Check size={10} className='mr-1' />
-                                    Redeemed
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <div className='text-center py-12 text-gray-400'>
-                        <Ticket
-                          size={48}
-                          className='mx-auto mb-4 text-gray-600'
-                        />
-                        <p>No ticket redemptions yet</p>
-                        <p className='text-sm mt-2'>
-                          Redeemed tickets will appear here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Edit, Trash, Clock, User, Trophy, Play, Crown } from 'lucide-react'
+import { Trash, Clock, User, Trophy, Play, Crown } from 'lucide-react'
 import BoutResultModal from './BoutResultModal'
 
 export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
@@ -18,10 +18,8 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
     if (bout.fight) {
       const result = bout.fight
       const winner =
-        result.winner._id === bout.redCorner._id
-          ? bout.redCorner
-          : bout.blueCorner
-      return `Winner: ${winner.firstName} ${winner.lastName} by ${result.resultMethod}`
+        result.winner === bout.redCorner?._id ? bout.redCorner : bout.blueCorner
+      return `Winner: ${winner?.firstName} ${winner?.lastName} by ${result?.resultMethod}`
     }
     return 'No Result'
   }
@@ -73,19 +71,19 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
         {/* Red Corner */}
         <div
           className={`relative flex items-center gap-3 p-3 border rounded ${
-            bout.fight?.winner?._id === bout.redCorner?._id
+            bout.fight?.winner === bout.redCorner?._id
               ? 'bg-amber-900/20 border-amber-500'
               : 'bg-red-900/10 border-red-500/20'
           }`}
         >
-          {bout.fight?.winner?._id === bout.redCorner?._id && (
+          {bout.fight?.winner === bout.redCorner?._id && (
             <Crown className='absolute -top-5 -left-4 text-amber-400 w-8 h-8' />
           )}
           <div className='w-3 h-3 bg-red-500 rounded-full'></div>
           <div className='flex-1'>
             <div className='font-medium text-white'>
               {bout.redCorner
-                ? `${bout.redCorner.firstName} ${bout.redCorner.lastName}`
+                ? `${bout.redCorner?.firstName} ${bout.redCorner?.lastName}`
                 : 'TBD'}
             </div>
             {bout.redCorner && (
@@ -107,19 +105,19 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
         {/* Blue Corner */}
         <div
           className={`relative flex items-center gap-3 p-3 border rounded ${
-            bout.fight?.winner?._id === bout.blueCorner?._id
+            bout.fight?.winner === bout.blueCorner?._id
               ? 'bg-amber-900/20 border-amber-500'
               : 'bg-blue-900/10 border-blue-500/20'
           }`}
         >
-          {bout.fight?.winner?._id === bout.blueCorner?._id && (
+          {bout.fight?.winner === bout.blueCorner?._id && (
             <Crown className='absolute -top-5 -left-4 text-amber-400 w-8 h-8' />
           )}
           <div className='w-3 h-3 bg-blue-500 rounded-full'></div>
           <div className='flex-1'>
             <div className='font-medium text-white'>
               {bout.blueCorner
-                ? `${bout.blueCorner.firstName} ${bout.blueCorner.lastName}`
+                ? `${bout.blueCorner?.firstName} ${bout.blueCorner?.lastName}`
                 : 'TBD'}
             </div>
             {bout.blueCorner && (

@@ -454,9 +454,15 @@ const TrainerRegistrationPage = ({ params }) => {
         console.log(
           'Processing Square card payment for trainer registration...'
         )
-        const transactionId = await processSquarePayment()
-        payload.transactionId = transactionId
-        console.log('Square payment completed, transaction ID:', transactionId)
+        const { transactionId, orderId, receiptNumber, last4, receiptUrl } =
+          await processSquarePayment()
+        payload.squareDetails = {
+          transactionId,
+          orderId,
+          receiptNumber,
+          last4,
+          receiptUrl,
+        }
       }
 
       console.log(

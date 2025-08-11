@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react'
 import { X, ArrowLeft } from 'lucide-react'
 import { API_BASE_URL } from '../../../../../../../constants'
-import useStore from '../../../../../../../stores/useStore'
+import axios from 'axios'
 
 export default function NewBoutModal({ bracket, onClose, onCreate }) {
-  const user = useStore((state) => state.user)
-  const [step, setStep] = useState(1) // 1: Bout Details, 2: Fighter Assignment
+  const [step, setStep] = useState(1)
   const [fighters, setFighters] = useState([])
   const [formData, setFormData] = useState({
     boutNumber: '',
@@ -37,21 +36,11 @@ export default function NewBoutModal({ bracket, onClose, onCreate }) {
 
   const fetchFighters = async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/registrations/event/${bracket.event._id}?registrationType=fighter`,
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
+      const response = await axios.get(
+        `${API_BASE_URL}/brackets/${bracket._id}`
       )
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.data.items) {
-          setFighters(data.data.items)
-        }
-      }
+      console.log('Fetched fighters:', response.data.data)
+      setFighters(response.data.data.fighters || [])
     } catch (err) {
       console.error('Error fetching fighters:', err)
     }
