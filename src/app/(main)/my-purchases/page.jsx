@@ -1,9 +1,15 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp, Download, Search, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Loader from '../../_components/Loader'
+import useStore from '../../../stores/useStore'
+import axiosInstance from '../../../shared/axios'
 
 const MyPurchases = () => {
+  const router = useRouter()
+  const user = useStore((state) => state.user)
+  
   const [searchKeyword, setSearchKeyword] = useState('')
   const [transactionType, setTransactionType] = useState('')
   const [dateRangeStart, setDateRangeStart] = useState('')
@@ -12,120 +18,71 @@ const MyPurchases = () => {
 
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [expandedTransaction, setExpandedTransaction] = useState(null)
 
   useEffect(() => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+    
     const getTransactions = async () => {
       try {
-        // TODO: Replace with actual API endpoint for user transactions
-        // const response = await axios.get(`${API_BASE_URL}/spectator-ticket/user-purchases`, {
-        //   headers: { Authorization: `Bearer ${user?.token}` }
-        // })
-        // console.log('Response:', response.data)
-        // setTransactions(response.data.data.transactions)
-
-        // Mock data for demo - including spectator tickets
-        const mockTransactions = [
-          {
-            _id: 'TXN001234567893',
-            pageTitle: 'Spectator Ticket Purchase - Music City Combat',
-            instructionText:
-              'Purchase spectator tickets for the upcoming event',
-            purchaseDateTime: '2025-07-28T10:30:25.000Z',
+        setLoading(true)
+        setError(null)
+        
+        const response = await axiosInstance.get('/spectator-ticket/purchase/user')
+        console.log('API Response:', response.data)
+        
+        if (response.data.success && response.data.data.items) {
+          // Transform API data to match component structure
+          const transformedTransactions = response.data.data.items.map(item => ({
+            _id: item._id,
+            pageTitle: `Spectator Ticket Purchase - ${item.event?.name || 'Unknown Event'}`,
+            instructionText: 'Purchase spectator tickets for the upcoming event',
+            purchaseDateTime: item.createdAt,
             transactionType: 'Spectator Tickets',
-            productName: 'Ringside Spectator Tickets',
-            eventDate: '2025-08-15T00:00:00.000Z',
-            amount: 149.98,
+            productName: `${item.tier} Ticket x${item.quantity}`,
+            eventDate: item.event?.startDate,
+            amount: item.totalAmount / 100, // Convert cents to dollars
             details: {
-              transactionId: 'TXN001234567893',
-              paymentMethod: 'Credit Card (Visa)',
-              itemName: 'Ringside Tickets x2',
-              eventName: 'Music City Combat',
+              transactionId: item.transactionId || item._id,
+              paymentMethod: item.paymentMethod === 'cash' ? `Cash Payment (${item.cashCode})` : 'Credit Card',
+              itemName: `${item.tier} Tickets x${item.quantity}`,
+              eventName: item.event?.name || 'Unknown Event',
               entryType: 'Spectator',
-              purchaseStatus: 'Paid',
+              purchaseStatus: item.paymentStatus,
               invoiceLink: true,
-              notes: 'QR code sent to email',
+              notes: item.redemptionStatus === 'Redeemed' ? 'Ticket has been used for entry' : 'Active ticket - ready to use',
               qrCode: true,
-              ticketCode: 'MC4X',
-              tickets: [
-                { tierName: 'Ringside', quantity: 2, price: 74.99 }
-              ]
-            },
-          },
-          {
-            _id: 'TXN001234567890',
-            pageTitle: 'Fighter Registration - Championship 2024',
-            instructionText:
-              'Complete registration for the upcoming championship event',
-            purchaseDateTime: '2023-12-15T14:30:25.000Z',
-            transactionType: 'Event Registration',
-            productName: 'Championship Entry Fee',
-            eventDate: '2024-01-20T00:00:00.000Z',
-            amount: 150.0,
-            details: {
-              transactionId: 'TXN001234567890',
-              paymentMethod: 'Credit Card (Visa)',
-              itemName: 'Championship Entry - Professional Division',
-              eventName: 'Annual Championship 2024',
-              entryType: 'Fighter',
-              purchaseStatus: 'Paid',
-              invoiceLink: true,
-              notes: 'Early bird registration discount applied',
-            },
-          },
-          {
-            _id: 'TXN001234567891',
-            pageTitle: 'Training Session Booking',
-            instructionText:
-              'Book advanced training session with certified trainer',
-            purchaseDateTime: '2023-12-10T09:15:42.000Z',
-            transactionType: 'Training',
-            productName: 'Advanced Training Package',
-            eventDate: '2023-12-25T00:00:00.000Z',
-            amount: 75.5,
-            details: {
-              transactionId: 'TXN001234567891',
-              paymentMethod: 'PayPal',
-              itemName: '1-on-1 Advanced Training Session',
-              eventName: 'Personal Training - Advanced Techniques',
-              entryType: 'Trainer',
-              purchaseStatus: 'Paid',
-              invoiceLink: true,
-              notes: 'Includes equipment usage',
-            },
-          },
-          {
-            _id: 'TXN001234567892',
-            pageTitle: 'Spectator Ticket Purchase',
-            instructionText:
-              'Purchase ticket to attend championship as spectator',
-            purchaseDateTime: '2023-12-08T16:45:10.000Z',
-            transactionType: 'Event Attendance',
-            productName: 'VIP Spectator Pass',
-            eventDate: '2024-01-20T00:00:00.000Z',
-            amount: 25.0,
-            details: {
-              transactionId: 'TXN001234567892',
-              paymentMethod: 'Credit Card (Mastercard)',
-              itemName: 'VIP Spectator Access Pass',
-              eventName: 'Annual Championship 2024',
-              entryType: 'Spectator',
-              purchaseStatus: 'Refunded',
-              invoiceLink: true,
-              notes: 'Refund processed due to schedule conflict',
-            },
-          },
-        ]
-
-        setTransactions(mockTransactions)
+              ticketCode: item.ticketCode,
+              redemptionStatus: item.redemptionStatus,
+              redeemedAt: item.redeemedAt,
+              tickets: [{ 
+                tierName: item.tier, 
+                quantity: item.quantity, 
+                price: item.totalAmount / 100 / item.quantity 
+              }]
+            }
+          }))
+          
+          setTransactions(transformedTransactions)
+        } else {
+          setTransactions([])
+        }
       } catch (error) {
         console.error('Error fetching transactions:', error)
+        setError(error.response?.data?.message || 'Failed to load purchase history')
+        
+        // Set empty array if API fails
+        setTransactions([])
       } finally {
         setLoading(false)
       }
     }
     getTransactions()
-  }, [])
+  }, [user, router])
 
   console.log('Transactions:', transactions)
 
@@ -202,6 +159,18 @@ const MyPurchases = () => {
 
     return matchesKeyword && matchesType && matchesDateRange && matchesStatus
   })
+
+  // Show loading while checking authentication
+  if (!user) {
+    return (
+      <div className='flex justify-center items-center h-screen bg-black'>
+        <div className='text-center'>
+          <h2 className='text-white text-xl mb-4'>Authentication Required</h2>
+          <p className='text-gray-400'>Please log in to view your purchase history</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className='relative w-full bg-purple-900'>
@@ -360,6 +329,21 @@ const MyPurchases = () => {
       {loading ? (
         <div className='flex justify-center items-center h-72 bg-black'>
           <Loader />
+        </div>
+      ) : error ? (
+        <div className='bg-black w-full mx-auto px-4 py-16'>
+          <div className='max-w-6xl mx-auto text-center py-16'>
+            <div className='bg-red-900/20 border border-red-600 rounded-lg p-8'>
+              <h3 className='text-red-400 text-xl font-bold mb-4'>Unable to Load Purchases</h3>
+              <p className='text-white mb-6'>{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className='bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded transition-colors'
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         <div className='bg-black w-full mx-auto px-4 md:py-16 py-80'>
@@ -542,13 +526,33 @@ const MyPurchases = () => {
                                       {/* Show QR Code and Ticket Code for Spectator Tickets */}
                                       {transaction.transactionType === 'Spectator Tickets' && transaction.details.qrCode && (
                                         <div className='mt-4 pt-4 border-t border-gray-600'>
-                                          <div className='flex flex-col sm:flex-row gap-4'>
-                                            <div>
-                                              <span className='text-gray-300 text-sm'>Ticket Code:</span>
-                                              <p className='text-white font-mono text-lg font-bold'>
-                                                {transaction.details.ticketCode}
-                                              </p>
+                                          <div className='space-y-3'>
+                                            <div className='flex flex-col sm:flex-row gap-4'>
+                                              <div>
+                                                <span className='text-gray-300 text-sm'>Ticket Code:</span>
+                                                <p className='text-white font-mono text-lg font-bold'>
+                                                  {transaction.details.ticketCode}
+                                                </p>
+                                              </div>
+                                              <div>
+                                                <span className='text-gray-300 text-sm'>Ticket Status:</span>
+                                                <p className={`font-medium ${
+                                                  transaction.details.redemptionStatus === 'Redeemed' 
+                                                    ? 'text-green-400' 
+                                                    : 'text-blue-400'
+                                                }`}>
+                                                  {transaction.details.redemptionStatus === 'Redeemed' ? 'Used' : 'Active'}
+                                                </p>
+                                              </div>
                                             </div>
+                                            {transaction.details.redeemedAt && (
+                                              <div>
+                                                <span className='text-gray-300 text-sm'>Used Date:</span>
+                                                <p className='text-white text-sm'>
+                                                  {formatDateTime(transaction.details.redeemedAt)}
+                                                </p>
+                                              </div>
+                                            )}
                                             <button className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center transition-colors w-fit'>
                                               View QR Code & Receipt
                                             </button>
