@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Camera,
@@ -10,85 +10,375 @@ import {
   Clock,
   Check,
   AlertCircle,
+  Calendar,
+  MapPin,
+  Users,
+  RefreshCw,
 } from "lucide-react";
+import { API_BASE_URL } from "../../../../constants";
+import useStore from "../../../../stores/useStore";
+import axiosInstance from "../../../../shared/axios";
+import Loader from "../../../_components/Loader";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 export default function SpectatorTicketRedemption() {
+  const user = useStore((state) => state.user);
+
   // State management
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [redeemCode, setRedeemCode] = useState("");
+  const [quantityToRedeem, setQuantityToRedeem] = useState(1);
   const [tickets, setTickets] = useState([]);
+  const [events, setEvents] = useState([]);
   const [activeTab, setActiveTab] = useState("redeem");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [redemptions, setRedemptions] = useState([]);
+  const [error, setError] = useState(null);
 
-  // Mock data - replace with API calls
-  const events = [
-    {
-      id: 1,
-      name: "IKF Point Muay Thai - Mexico (03/22/2025)",
-      date: "2025-03-22",
-      location: "Mexico City",
-    },
-    {
-      id: 2,
-      name: "ISCF MMA Technical Bouts (03/29/2025)",
-      date: "2025-03-29",
-      location: "Las Vegas",
-    },
-    // More events...
-  ];
+  // Load events on component mount
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
-  const mockTickets = [
-    {
-      id: "8231",
-      code: "AWVGJ",
-      name: "David Smith",
-      type: "General Admission",
-      price: 35,
-      redeemedAt: "2025-05-10T10:02:00",
-      redeemedBy: "Amanda (Staff-02)",
-      status: "checked-in",
-      entryMode: "qr-scan",
-    },
-    // More tickets...
-  ];
+  // Load redemptions when event is selected
+  useEffect(() => {
+    if (selectedEvent) {
+      fetchRedemptions();
+    }
+  }, [selectedEvent]);
 
-  // Filter tickets based on status
-  const filteredTickets =
-    filterStatus === "all"
-      ? tickets
-      : tickets.filter((ticket) => ticket.status === filterStatus);
+  // Fetch events from API
+  const fetchEvents = async () => {
+    try {
+      setEventsLoading(true);
+      const response = await axiosInstance.get("/events");
 
-  // Handle QR code scan
-  const handleScan = () => {
-    // In a real app, this would open device camera
-    alert("QR scanner would open here");
+      if (response.data.success) {
+        // Handle both array and object responses
+        const eventsArray = Array.isArray(response.data.data)
+          ? response.data.data
+          : response.data.data.items || response.data.data.events || [];
+
+        const eventsData = eventsArray.map((event) => ({
+          id: event._id,
+          name: event.name,
+          date: event.startDate,
+          location: event.venue?.name || "Location not set",
+          registeredParticipants: event.registeredParticipants || 0,
+          format: event.format,
+          sportType: event.sportType,
+        }));
+        setEvents(eventsData);
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setError("Failed to load events");
+    } finally {
+      setEventsLoading(false);
+    }
   };
 
-  // Redeem ticket
-  const handleRedeem = () => {
-    if (!redeemCode) return;
+  // Fetch redemptions for selected event
+  const fetchRedemptions = async () => {
+    if (!selectedEvent) return;
 
-    // In a real app, this would call an API
-    const newTicket = {
-      id: Date.now().toString(),
-      code: redeemCode,
-      name: "New Spectator",
-      type: "General Admission",
-      price: 35,
-      redeemedAt: new Date().toISOString(),
-      redeemedBy: "Current User",
-      status: "checked-in",
-      entryMode: "manual",
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(
+        `/spectator-ticket/purchase/event/${selectedEvent.id}/redemption-logs`
+      );
+
+      if (response.data.success) {
+        const redemptionsData = response.data.data.items.map((item) => ({
+          id: `${item.ticketCode}-${item.redeemedAt}`, // Create unique ID from code and timestamp
+          code: item.ticketCode,
+          name: item.buyerName,
+          type: item.tier,
+          price: item.amountPaid / 100, // Convert cents to dollars
+          redeemedAt: item.redeemedAt,
+          redeemedBy: item.redeemedBy,
+          redeemedByEmail: item.redeemedByEmail,
+          status: "checked-in",
+          entryMode: item.entryMode || "Manual",
+          quantity: item.quantity,
+          eventName: item.eventName,
+          buyerEmail: item.buyerEmail,
+        }));
+
+        setRedemptions(redemptionsData);
+      }
+    } catch (err) {
+      console.error("Error fetching redemptions:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter events based on search query
+  const filteredEvents = events.filter(
+    (event) =>
+      event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter redemptions based on status
+  const filteredRedemptions =
+    filterStatus === "all"
+      ? redemptions
+      : redemptions.filter((redemption) => redemption.status === filterStatus);
+
+  // Handle QR code scan (using the same implementation as in event view)
+  const handleScan = () => {
+    // Create modal container
+    const modal = document.createElement("div");
+    modal.id = "qr-scanner-modal";
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.9); z-index: 9999; 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px;
+    `;
+
+    // Create scanner container
+    const scannerContainer = document.createElement("div");
+    scannerContainer.id = "qr-reader";
+    scannerContainer.style.cssText = `
+      width: 100%; max-width: 500px; height: 400px;
+      border: 3px solid #CB3CFF; border-radius: 10px; 
+      background: #000; position: relative;
+    `;
+
+    // Create instructions
+    const instructions = document.createElement("div");
+    instructions.style.cssText =
+      "color: white; text-align: center; margin: 20px 0; font-size: 16px;";
+    instructions.innerHTML = "<p>Position QR code within the camera view</p>";
+
+    // Create buttons
+    const buttons = document.createElement("div");
+    buttons.style.cssText = "display: flex; gap: 15px; margin-top: 20px;";
+
+    const manualButton = document.createElement("button");
+    manualButton.textContent = "Manual Entry";
+    manualButton.style.cssText = `
+      background: linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%);
+      color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;
+    `;
+
+    const cancelButton = document.createElement("button");
+    cancelButton.textContent = "Cancel";
+    cancelButton.style.cssText = `
+      background: #666; color: white; padding: 10px 20px; 
+      border: none; border-radius: 5px; cursor: pointer;
+    `;
+
+    let html5QrcodeScanner = null;
+
+    // Handle successful scan
+    const onScanSuccess = (decodedText, decodedResult) => {
+      console.log(`QR Code scanned: ${decodedText}`);
+
+      // Try to extract ticket code from QR data
+      let ticketCode = decodedText;
+
+      // If QR contains JSON, try to parse it
+      try {
+        const qrData = JSON.parse(decodedText);
+        if (qrData.ticketCode) {
+          ticketCode = qrData.ticketCode;
+        }
+      } catch (e) {
+        // If not JSON, use the raw text as ticket code
+      }
+
+      // Set the ticket code and clean up
+      setRedeemCode(ticketCode);
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(console.error);
+      }
+      document.body.removeChild(modal);
+
+      // Show success message
+      alert(`QR code scanned successfully! Ticket code: ${ticketCode}`);
     };
 
-    setTickets([...tickets, newTicket]);
-    setRedeemCode("");
+    // Handle scan error
+    const onScanError = (errorMessage) => {
+      // Ignore frequent scan errors, they're normal when no QR code is visible
+    };
+
+    // Button event handlers
+    const cleanup = () => {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(console.error);
+      }
+      if (modal.styleElement) {
+        document.head.removeChild(modal.styleElement);
+      }
+      document.body.removeChild(modal);
+    };
+
+    manualButton.onclick = cleanup;
+    cancelButton.onclick = cleanup;
+
+    // Assemble modal
+    buttons.appendChild(manualButton);
+    buttons.appendChild(cancelButton);
+    modal.appendChild(instructions);
+    modal.appendChild(scannerContainer);
+    modal.appendChild(buttons);
+    document.body.appendChild(modal);
+
+    // Start scanning after DOM is updated
+    setTimeout(() => {
+      // Add custom styles for the scanner
+      const style = document.createElement("style");
+      style.textContent = `
+        #qr-reader video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover;
+        }
+        #qr-reader__dashboard_section_csr {
+          background: rgba(0,0,0,0.8) !important;
+          color: white !important;
+          border-radius: 0 0 10px 10px !important;
+        }
+        #qr-reader__dashboard_section_csr > div {
+          color: white !important;
+        }
+      `;
+      document.head.appendChild(style);
+
+      html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          showTorchButtonIfSupported: true,
+          rememberLastUsedCamera: true,
+          supportedScanTypes: [0], // Only QR codes
+        },
+        false
+      );
+      html5QrcodeScanner.render(onScanSuccess, onScanError);
+
+      // Store style element for cleanup
+      modal.styleElement = style;
+    }, 200);
+  };
+
+  // Redeem ticket via API
+  const handleRedeem = async () => {
+    if (!redeemCode || !selectedEvent) return;
+
+    if (quantityToRedeem <= 0) {
+      alert("Invalid quantity. Please enter a value greater than 0.");
+      return;
+    }
+
+    const confirmMessage = `Redeem ${quantityToRedeem} ticket(s) for code ${redeemCode.trim()}?`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axiosInstance.post("/spectator-ticket/redeem", {
+        ticketCode: redeemCode.trim(),
+        quantityToRedeem: quantityToRedeem,
+        entryMode: "Manual",
+        eventId: selectedEvent.id,
+      });
+
+      if (response.data.success) {
+        const newRedemption = {
+          id: Date.now().toString(),
+          code: redeemCode,
+          name: response.data.data?.spectatorName || "Spectator",
+          type: response.data.data?.tierName || "General",
+          price: response.data.data?.price || 0,
+          redeemedAt: new Date().toISOString(),
+          redeemedBy: user.firstName
+            ? `${user.firstName} ${user.lastName}`
+            : "Current Staff",
+          status: "checked-in",
+          entryMode: "manual",
+          quantity: quantityToRedeem,
+          remainingQuantity: response.data.data?.remainingQuantity || 0,
+        };
+
+        setRedemptions([...redemptions, newRedemption]);
+        setRedeemCode("");
+        setQuantityToRedeem(1);
+
+        const successMessage = `✓ Successfully redeemed ${quantityToRedeem} ticket(s) for code ${redeemCode.trim()}!`;
+        alert(successMessage);
+
+        // Switch to redemption list tab to show the new entry
+        setActiveTab("list");
+      } else {
+        alert(response.data.message || "Failed to redeem ticket");
+      }
+    } catch (error) {
+      console.error("Error redeeming ticket:", error);
+      alert(
+        error.response?.data?.message ||
+          "Error redeeming ticket. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Export data
   const handleExport = (format) => {
-    alert(`Would export ${format} file`);
+    if (filteredRedemptions.length === 0) {
+      alert("No redemptions to export");
+      return;
+    }
+
+    if (format === "csv") {
+      const headers =
+        "Ticket Code,Buyer Name,Buyer Email,Ticket Type,Price,Quantity,Redeemed At,Redeemed By,Redeemed By Email,Entry Mode,Event Name\n";
+      const csvData = filteredRedemptions
+        .map(
+          (redemption) =>
+            `${redemption.code},"${redemption.name}","${
+              redemption.buyerEmail || ""
+            }",${redemption.type},$${redemption.price?.toFixed(2) || "0.00"},${
+              redemption.quantity
+            },"${
+              redemption.redeemedAt
+                ? new Date(redemption.redeemedAt).toLocaleString()
+                : "-"
+            }","${redemption.redeemedBy || "-"}","${
+              redemption.redeemedByEmail || ""
+            }","${redemption.entryMode || "Manual"}","${
+              redemption.eventName || selectedEvent?.name || ""
+            }"`
+        )
+        .join("\n");
+
+      const blob = new Blob([headers + csvData], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spectator-redemptions-${
+        selectedEvent?.name || "all-events"
+      }-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } else {
+      alert(`PDF export functionality will be implemented soon`);
+    }
   };
 
   return (
@@ -106,15 +396,17 @@ export default function SpectatorTicketRedemption() {
           </div>
           <div className="flex space-x-3 mt-4 md:mt-0">
             <button
-              className="text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-4 py-2 rounded flex items-center"
+              className="text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-4 py-2 rounded flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => handleExport("pdf")}
+              disabled={filteredRedemptions.length === 0}
             >
               <Download size={16} className="mr-2" />
               Export PDF
             </button>
             <button
-              className="text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-4 py-2 rounded flex items-center"
+              className="text-sm bg-[#0A1330] hover:bg-[#0A1330]/80 text-white px-4 py-2 rounded flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => handleExport("csv")}
+              disabled={filteredRedemptions.length === 0}
             >
               <Download size={16} className="mr-2" />
               Export CSV
@@ -189,17 +481,71 @@ export default function SpectatorTicketRedemption() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {events.map((event) => (
+                  {eventsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw
+                        size={24}
+                        className="animate-spin text-purple-400 mr-2"
+                      />
+                      <span className="text-gray-300">Loading events...</span>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-8">
+                      <AlertCircle
+                        size={32}
+                        className="text-red-400 mx-auto mb-2"
+                      />
+                      <p className="text-red-400 mb-4">{error}</p>
                       <button
-                        key={event.id}
-                        className="bg-[#AEBFFF33] hover:bg-gray-600 text-white text-left px-4 py-3 rounded-md truncate"
-                        onClick={() => setSelectedEvent(event)}
+                        onClick={fetchEvents}
+                        className="text-purple-400 hover:text-white transition-colors"
                       >
-                        {event.name} - {event.location}
+                        Try Again
                       </button>
-                    ))}
-                  </div>
+                    </div>
+                  ) : filteredEvents.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Calendar
+                        size={32}
+                        className="text-gray-400 mx-auto mb-2"
+                      />
+                      <p className="text-gray-400">
+                        No events found matching your search
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {filteredEvents.map((event) => (
+                        <button
+                          key={event.id}
+                          className="bg-[#AEBFFF33] hover:bg-gray-600 text-white text-left px-4 py-3 rounded-md transition-colors group"
+                          onClick={() => setSelectedEvent(event)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-medium group-hover:text-purple-300 transition-colors">
+                                {event.name}
+                              </h3>
+                              <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+                                <span className="flex items-center gap-1">
+                                  <MapPin size={14} />
+                                  {event.location}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Calendar size={14} />
+                                  {new Date(event.date).toLocaleDateString()}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Users size={14} />
+                                  {event.registeredParticipants}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -219,27 +565,47 @@ export default function SpectatorTicketRedemption() {
                   </div>
 
                   <div className="mb-8">
-                    <div className="bg-[#00000061] p-4 rounded-lg mb-4">
-                      <label className="block text-sm text-gray-400 mb-2">
-                        Ticket Code:
-                      </label>
-                      <div className="flex items-center">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="bg-[#00000061] p-4 rounded-lg">
+                        <label className="block text-sm text-gray-400 mb-2">
+                          Ticket Code:
+                        </label>
+                        <div className="flex items-center">
+                          <input
+                            type="text"
+                            className="bg-transparent text-white text-lg font-medium focus:outline-none w-full"
+                            placeholder="Enter 4-6 digit code"
+                            value={redeemCode}
+                            onChange={(e) => setRedeemCode(e.target.value)}
+                            maxLength={6}
+                          />
+                          {redeemCode && (
+                            <button
+                              onClick={() => setRedeemCode("")}
+                              className="text-gray-400 hover:text-white ml-2"
+                            >
+                              <X size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-[#00000061] p-4 rounded-lg">
+                        <label className="block text-sm text-gray-400 mb-2">
+                          Quantity to Redeem:
+                        </label>
                         <input
-                          type="text"
+                          type="number"
+                          min="1"
                           className="bg-transparent text-white text-lg font-medium focus:outline-none w-full"
-                          placeholder="Enter 4-6 digit code"
-                          value={redeemCode}
-                          onChange={(e) => setRedeemCode(e.target.value)}
-                          maxLength={6}
+                          placeholder="1"
+                          value={quantityToRedeem}
+                          onChange={(e) =>
+                            setQuantityToRedeem(
+                              Math.max(1, parseInt(e.target.value) || 1)
+                            )
+                          }
                         />
-                        {redeemCode && (
-                          <button
-                            onClick={() => setRedeemCode("")}
-                            className="text-gray-400 hover:text-white ml-2"
-                          >
-                            <X size={18} />
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -248,11 +614,22 @@ export default function SpectatorTicketRedemption() {
                         background:
                           "linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)",
                       }}
-                      className="text-white py-2 px-4 rounded w-full md:w-auto"
+                      className="text-white py-2 px-4 rounded w-full md:w-auto flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleRedeem}
-                      disabled={!redeemCode}
+                      disabled={!redeemCode || loading}
                     >
-                      Redeem Ticket
+                      {loading ? (
+                        <>
+                          <RefreshCw size={16} className="animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Ticket size={16} className="mr-2" />
+                          Redeem {quantityToRedeem} Ticket
+                          {quantityToRedeem > 1 ? "s" : ""}
+                        </>
+                      )}
                     </button>
                   </div>
                 </>
@@ -263,7 +640,7 @@ export default function SpectatorTicketRedemption() {
             <div>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                 <h2 className="text-lg font-medium mb-4 md:mb-0">
-                  Ticket Redemptions ({tickets.length})
+                  Ticket Redemptions ({filteredRedemptions.length})
                 </h2>
                 <div className="flex space-x-2">
                   <select
@@ -283,7 +660,7 @@ export default function SpectatorTicketRedemption() {
                 </div>
               </div>
 
-              {tickets.length > 0 ? (
+              {filteredRedemptions.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
@@ -292,11 +669,17 @@ export default function SpectatorTicketRedemption() {
                           Ticket Code
                         </th>
                         <th className="p-3 border-b border-gray-700">
-                          Spectator
+                          Buyer Name
+                        </th>
+                        <th className="p-3 border-b border-gray-700">
+                          Buyer Email
                         </th>
                         <th className="p-3 border-b border-gray-700">Type</th>
                         <th className="p-3 border-b border-gray-700 text-right">
                           Price
+                        </th>
+                        <th className="p-3 border-b border-gray-700">
+                          Quantity
                         </th>
                         <th className="p-3 border-b border-gray-700">
                           Redeemed At
@@ -304,22 +687,24 @@ export default function SpectatorTicketRedemption() {
                         <th className="p-3 border-b border-gray-700">
                           Redeemed By
                         </th>
-                        <th className="p-3 border-b border-gray-700">Status</th>
                         <th className="p-3 border-b border-gray-700">
                           Entry Mode
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTickets.map((ticket) => (
+                      {filteredRedemptions.map((redemption) => (
                         <tr
-                          key={ticket.id}
+                          key={redemption.id}
                           className="border-b border-gray-700 hover:bg-gray-800/50"
                         >
-                          <td className="p-3 font-mono">{ticket.code}</td>
+                          <td className="p-3 font-mono">{redemption.code}</td>
                           <td className="p-3 flex items-center">
                             <User size={16} className="mr-2 text-gray-400" />
-                            {ticket.name}
+                            {redemption.name}
+                          </td>
+                          <td className="p-3 text-sm text-gray-300">
+                            {redemption.buyerEmail || "-"}
                           </td>
                           <td className="p-3">
                             <span className="flex items-center">
@@ -327,44 +712,35 @@ export default function SpectatorTicketRedemption() {
                                 size={16}
                                 className="mr-2 text-gray-400"
                               />
-                              {ticket.type}
+                              {redemption.type}
                             </span>
                           </td>
-                          <td className="p-3 text-right">${ticket.price}</td>
+                          <td className="p-3 text-right">
+                            ${redemption.price?.toFixed(2) || "0.00"}
+                          </td>
+                          <td className="p-3 text-center">
+                            {redemption.quantity}
+                          </td>
                           <td className="p-3">
-                            {ticket.redeemedAt ? (
+                            {redemption.redeemedAt ? (
                               <span className="flex items-center">
                                 <Clock
                                   size={16}
                                   className="mr-2 text-gray-400"
                                 />
-                                {new Date(ticket.redeemedAt).toLocaleString()}
+                                {new Date(
+                                  redemption.redeemedAt
+                                ).toLocaleString()}
                               </span>
                             ) : (
                               "-"
                             )}
                           </td>
-                          <td className="p-3">{ticket.redeemedBy || "-"}</td>
                           <td className="p-3">
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                                ticket.status === "checked-in"
-                                  ? "bg-green-900 text-green-300"
-                                  : "bg-gray-700 text-gray-300"
-                              }`}
-                            >
-                              {ticket.status === "checked-in" ? (
-                                <Check size={12} className="mr-1" />
-                              ) : (
-                                <AlertCircle size={12} className="mr-1" />
-                              )}
-                              {ticket.status === "checked-in"
-                                ? "Checked In"
-                                : "Not Checked In"}
-                            </span>
+                            {redemption.redeemedBy || "-"}
                           </td>
                           <td className="p-3 capitalize">
-                            {ticket.entryMode.replace("-", " ")}
+                            {redemption.entryMode || "Manual"}
                           </td>
                         </tr>
                       ))}
