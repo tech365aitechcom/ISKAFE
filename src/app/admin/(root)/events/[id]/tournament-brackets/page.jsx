@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation'
 import { API_BASE_URL } from '../../../../../../constants'
 import useStore from '../../../../../../stores/useStore'
 import Loader from '../../../../../_components/Loader'
+import { enqueueSnackbar } from 'notistack'
 
 export default function TournamentBrackets() {
   const params = useParams()
@@ -21,7 +22,7 @@ export default function TournamentBrackets() {
   const [showActionsDropdown, setShowActionsDropdown] = useState(false)
   const [showNewBracketModal, setShowNewBracketModal] = useState(false)
   const [event, setEvent] = useState(null)
-  
+
   // Filter states
   const [filters, setFilters] = useState({
     allAges: '',
@@ -31,7 +32,7 @@ export default function TournamentBrackets() {
     group: '',
     minWeight: '',
     maxWeight: '',
-    showWeightRange: false
+    showWeightRange: false,
   })
 
   useEffect(() => {
@@ -49,7 +50,7 @@ export default function TournamentBrackets() {
           Authorization: `Bearer ${user?.token}`,
         },
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
@@ -69,7 +70,7 @@ export default function TournamentBrackets() {
           Authorization: `Bearer ${user?.token}`,
         },
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
@@ -103,8 +104,8 @@ export default function TournamentBrackets() {
         },
         body: JSON.stringify({
           event: eventId,
-          ...bracketData
-        })
+          ...bracketData,
+        }),
       })
 
       if (response.ok) {
@@ -112,22 +113,30 @@ export default function TournamentBrackets() {
         if (data.success) {
           await fetchBrackets(eventId)
           setShowNewBracketModal(false)
-          alert('Bracket created successfully!')
+          enqueueSnackbar('Bracket created successfully!', {
+            variant: 'success',
+          })
         } else {
-          alert('Error creating bracket: ' + data.message)
+          enqueueSnackbar('Error creating bracket: ' + data.message, {
+            variant: 'error',
+          })
         }
       } else {
-        alert('Error creating bracket')
+        enqueueSnackbar('Error creating bracket', {
+          variant: 'error',
+        })
       }
     } catch (err) {
-      alert('Error creating bracket: ' + err.message)
+      enqueueSnackbar('Error creating bracket: ' + err.message, {
+        variant: 'error',
+      })
     }
   }
 
   const handleAutoNumberBrackets = async () => {
     try {
       // Auto-number by updating brackets with sequential bracketNumber
-      const updates = brackets.map((bracket, index) => 
+      const updates = brackets.map((bracket, index) =>
         fetch(`${API_BASE_URL}/brackets/${bracket._id}`, {
           method: 'PUT',
           headers: {
@@ -136,8 +145,8 @@ export default function TournamentBrackets() {
           },
           body: JSON.stringify({
             ...bracket,
-            bracketNumber: index + 1
-          })
+            bracketNumber: index + 1,
+          }),
         })
       )
 
@@ -151,11 +160,18 @@ export default function TournamentBrackets() {
   }
 
   const handleStartAllBrackets = async () => {
-    if (confirm('Are you sure you want to start all brackets? This will create bouts for all brackets.')) {
+    if (
+      confirm(
+        'Are you sure you want to start all brackets? This will create bouts for all brackets.'
+      )
+    ) {
       try {
         const updates = brackets
-          .filter(bracket => bracket.status === 'Open' && bracket.fighters?.length >= 2)
-          .map(bracket => 
+          .filter(
+            (bracket) =>
+              bracket.status === 'Open' && bracket.fighters?.length >= 2
+          )
+          .map((bracket) =>
             fetch(`${API_BASE_URL}/brackets/${bracket._id}`, {
               method: 'PUT',
               headers: {
@@ -164,8 +180,8 @@ export default function TournamentBrackets() {
               },
               body: JSON.stringify({
                 ...bracket,
-                status: 'Started'
-              })
+                status: 'Started',
+              }),
             })
           )
 
@@ -207,7 +223,7 @@ export default function TournamentBrackets() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user?.token}`,
         },
-        body: JSON.stringify(updateData)
+        body: JSON.stringify(updateData),
       })
 
       if (response.ok) {
@@ -221,33 +237,40 @@ export default function TournamentBrackets() {
     }
   }
 
-  const getModeButtonClass = (buttonMode) => mode === buttonMode 
-    ? 'bg-blue-600 text-white' 
-    : 'border border-white text-white hover:bg-white hover:text-black'
+  const getModeButtonClass = (buttonMode) =>
+    mode === buttonMode
+      ? 'bg-blue-600 text-white'
+      : 'border border-white text-white hover:bg-white hover:text-black'
 
   // Apply filters to brackets
-  const filteredBrackets = brackets.filter(bracket => {
-    if (filters.allAges && bracket.ageClass?.toLowerCase() !== filters.allAges) return false
-    if (filters.sport && bracket.sport?.toLowerCase() !== filters.sport) return false
-    if (filters.ruleStyle && bracket.ruleStyle?.toLowerCase() !== filters.ruleStyle) return false
+  const filteredBrackets = brackets.filter((bracket) => {
+    if (filters.allAges && bracket.ageClass?.toLowerCase() !== filters.allAges)
+      return false
+    if (filters.sport && bracket.sport?.toLowerCase() !== filters.sport)
+      return false
+    if (
+      filters.ruleStyle &&
+      bracket.ruleStyle?.toLowerCase() !== filters.ruleStyle
+    )
+      return false
     if (filters.ring && bracket.ring !== filters.ring) return false
     if (filters.group && bracket.group !== filters.group) return false
-    
+
     if (filters.showWeightRange && filters.minWeight && filters.maxWeight) {
       const min = parseFloat(filters.minWeight)
       const max = parseFloat(filters.maxWeight)
       const bracketMin = bracket.weightClass?.min || 0
       const bracketMax = bracket.weightClass?.max || 999
-      
+
       if (bracketMin < min || bracketMax > max) return false
     }
-    
+
     return true
   })
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen w-full bg-[#07091D]">
+      <div className='flex items-center justify-center h-screen w-full bg-[#07091D]'>
         <Loader />
       </div>
     )
@@ -284,14 +307,19 @@ export default function TournamentBrackets() {
             </button>
           </Link>
           <div>
-            <h1 className='text-2xl font-bold'>Tournament Bracket Management</h1>
+            <h1 className='text-2xl font-bold'>
+              Tournament Bracket Management
+            </h1>
             {event && (
               <p className='text-sm text-gray-300'>
-                {event.name} - {event.startDate ? new Date(event.startDate).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                }) : 'Date not set'}
+                {event.name} -{' '}
+                {event.startDate
+                  ? new Date(event.startDate).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : 'Date not set'}
               </p>
             )}
           </div>
@@ -300,30 +328,38 @@ export default function TournamentBrackets() {
         {/* Management Controls */}
         <div className='flex justify-between items-center mb-6'>
           <div className='flex space-x-2'>
-            <button 
+            <button
               onClick={() => setMode(mode === 'edit' ? 'view' : 'edit')}
-              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('edit')}`}
+              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass(
+                'edit'
+              )}`}
             >
               <Settings size={14} />
               Edit Brackets
             </button>
-            <button 
+            <button
               onClick={() => setMode(mode === 'move' ? 'view' : 'move')}
-              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('move')}`}
+              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass(
+                'move'
+              )}`}
             >
               <Users size={14} />
               Move Fighters
             </button>
-            <button 
+            <button
               onClick={() => setMode(mode === 'reorder' ? 'view' : 'reorder')}
-              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('reorder')}`}
+              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass(
+                'reorder'
+              )}`}
             >
               <ArrowUpDown size={14} />
               Reseed Brackets
             </button>
-            <button 
+            <button
               onClick={() => setMode(mode === 'delete' ? 'view' : 'delete')}
-              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass('delete')}`}
+              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass(
+                'delete'
+              )}`}
             >
               <Trash size={14} />
               Delete Brackets
@@ -337,11 +373,21 @@ export default function TournamentBrackets() {
               className='bg-green-600 px-4 py-2 text-sm rounded hover:bg-green-700 flex items-center gap-2'
             >
               Actions
-              <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M19 9l-7 7-7-7'></path>
+              <svg
+                className='w-4 h-4'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth='2'
+                  d='M19 9l-7 7-7-7'
+                ></path>
               </svg>
             </button>
-            
+
             {showActionsDropdown && (
               <div className='absolute right-0 mt-2 w-48 bg-[#0B1739] border border-gray-600 rounded-md shadow-lg z-10'>
                 <button
@@ -375,7 +421,9 @@ export default function TournamentBrackets() {
           <div className='grid grid-cols-1 md:grid-cols-6 gap-4 mb-4'>
             <select
               value={filters.allAges}
-              onChange={(e) => setFilters({...filters, allAges: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, allAges: e.target.value })
+              }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Ages</option>
@@ -386,7 +434,9 @@ export default function TournamentBrackets() {
 
             <select
               value={filters.sport}
-              onChange={(e) => setFilters({...filters, sport: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, sport: e.target.value })
+              }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>Sport</option>
@@ -397,7 +447,9 @@ export default function TournamentBrackets() {
 
             <select
               value={filters.ruleStyle}
-              onChange={(e) => setFilters({...filters, ruleStyle: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, ruleStyle: e.target.value })
+              }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>Rule Style</option>
@@ -408,7 +460,7 @@ export default function TournamentBrackets() {
 
             <select
               value={filters.ring}
-              onChange={(e) => setFilters({...filters, ring: e.target.value})}
+              onChange={(e) => setFilters({ ...filters, ring: e.target.value })}
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>Ring</option>
@@ -419,7 +471,9 @@ export default function TournamentBrackets() {
 
             <select
               value={filters.group}
-              onChange={(e) => setFilters({...filters, group: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, group: e.target.value })
+              }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>Group</option>
@@ -433,10 +487,14 @@ export default function TournamentBrackets() {
                 type='checkbox'
                 id='showWeightRange'
                 checked={filters.showWeightRange}
-                onChange={(e) => setFilters({...filters, showWeightRange: e.target.checked})}
+                onChange={(e) =>
+                  setFilters({ ...filters, showWeightRange: e.target.checked })
+                }
                 className='mr-2'
               />
-              <label htmlFor='showWeightRange' className='text-sm'>Show Weight Range</label>
+              <label htmlFor='showWeightRange' className='text-sm'>
+                Show Weight Range
+              </label>
             </div>
           </div>
 
@@ -447,7 +505,9 @@ export default function TournamentBrackets() {
                 <input
                   type='number'
                   value={filters.minWeight}
-                  onChange={(e) => setFilters({...filters, minWeight: e.target.value})}
+                  onChange={(e) =>
+                    setFilters({ ...filters, minWeight: e.target.value })
+                  }
                   className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white w-24'
                   placeholder='Min'
                 />
@@ -457,7 +517,9 @@ export default function TournamentBrackets() {
                 <input
                   type='number'
                   value={filters.maxWeight}
-                  onChange={(e) => setFilters({...filters, maxWeight: e.target.value})}
+                  onChange={(e) =>
+                    setFilters({ ...filters, maxWeight: e.target.value })
+                  }
                   className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white w-24'
                   placeholder='Max'
                 />
@@ -473,18 +535,20 @@ export default function TournamentBrackets() {
         )}
 
         {/* Brackets List */}
-        <BracketList 
-          brackets={filteredBrackets} 
+        <BracketList
+          brackets={filteredBrackets}
           eventId={eventId}
           mode={mode}
           onRefresh={() => fetchBrackets(eventId)}
           onDelete={handleDeleteBracket}
-          onUpdate={handleUpdateBracket}
+          onUpdate={() => fetchBrackets(eventId)}
         />
 
         {brackets.length === 0 && !loading && (
           <div className='text-center py-12'>
-            <p className='text-gray-400 mb-4'>No brackets created yet for this event.</p>
+            <p className='text-gray-400 mb-4'>
+              No brackets created yet for this event.
+            </p>
             <button
               onClick={handleNewBracket}
               className='bg-blue-600 px-6 py-3 rounded hover:bg-blue-700'

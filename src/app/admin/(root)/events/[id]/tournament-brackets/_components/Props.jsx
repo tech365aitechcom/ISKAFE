@@ -4,10 +4,17 @@ import React, { useEffect, useState } from 'react'
 import ActionButton from './ActionButton'
 import { CircleCheck, Copy, RotateCcw, Trash, X, Play } from 'lucide-react'
 import InputBox from './InputBox'
-import { API_BASE_URL } from '../../../../../../../constants'
+import { API_BASE_URL, apiConstants } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
+import { enqueueSnackbar } from 'notistack'
+import axios from 'axios'
 
-export default function Props({ expandedBracket, handleClose, onUpdate, eventId }) {
+export default function Props({
+  expandedBracket,
+  handleClose,
+  onUpdate,
+  eventId,
+}) {
   const user = useStore((state) => state.user)
   const [bracketName, setBracketName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,8 +26,12 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
   const [maxCompetitors, setMaxCompetitors] = useState('')
   const [validationErrors, setValidationErrors] = useState({})
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [hasUnsavedPropertiesChanges, setHasUnsavedPropertiesChanges] =
+    useState(false)
+  const [hasUnsavedSettingsChanges, setHasUnsavedSettingsChanges] =
+    useState(false)
   const [originalData, setOriginalData] = useState({})
-  
+
   // Title component fields for auto-generating bracket name
   const [gender, setGender] = useState('')
   const [ruleStyle, setRuleStyle] = useState('')
@@ -30,25 +41,35 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
   useEffect(() => {
     if (expandedBracket) {
       const initialData = {
-        bracketName: expandedBracket.title || expandedBracket.divisionTitle || '',
+        bracketName:
+          expandedBracket.title || expandedBracket.divisionTitle || '',
         startDayNumber: expandedBracket.startDayNumber?.toString() || '',
         group: expandedBracket.group || '',
         ringNumber: expandedBracket.ringNumber || expandedBracket.ring || '',
-        bracketSequence: expandedBracket.bracketSequence?.toString() || expandedBracket.bracketNumber?.toString() || '',
+        bracketSequence:
+          expandedBracket.bracketSequence?.toString() ||
+          expandedBracket.bracketNumber?.toString() ||
+          '',
         boutRound: expandedBracket.boutRound?.toString() || '',
-        maxCompetitors: expandedBracket.maxCompetitors?.toString() || expandedBracket.fighters?.length?.toString() || '',
+        maxCompetitors:
+          expandedBracket.maxCompetitors?.toString() ||
+          expandedBracket.fighters?.length?.toString() ||
+          '',
         gender: expandedBracket.gender || '',
         ruleStyle: expandedBracket.ruleStyle || '',
-        weightClass: expandedBracket.weightClass ? 
-          (typeof expandedBracket.weightClass === 'string' ? 
-            expandedBracket.weightClass.replace(' undefined', ' lbs') : 
-            `${expandedBracket.weightClass.min}-${expandedBracket.weightClass.max} ${expandedBracket.weightClass.unit || 'lbs'}`) : '',
-        ageClass: expandedBracket.ageClass || ''
+        weightClass: expandedBracket.weightClass
+          ? typeof expandedBracket.weightClass === 'string'
+            ? expandedBracket.weightClass.replace(' undefined', ' lbs')
+            : `${expandedBracket.weightClass.min}-${
+                expandedBracket.weightClass.max
+              } ${expandedBracket.weightClass.unit || 'lbs'}`
+          : '',
+        ageClass: expandedBracket.ageClass || '',
       }
-      
+
       // Store original data for comparison
       setOriginalData(initialData)
-      
+
       // Only update form fields if we don't have unsaved changes
       if (!hasUnsavedChanges) {
         setBracketName(initialData.bracketName)
@@ -70,20 +91,20 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
   useEffect(() => {
     if (gender || ruleStyle || weightClass || ageClass) {
       const nameParts = [gender, ageClass, ruleStyle, weightClass]
-        .filter(part => part && part.trim() && part !== 'undefined')
-        .map(part => part.toString().trim().replace(' undefined', ' lbs'))
+        .filter((part) => part && part.trim() && part !== 'undefined')
+        .map((part) => part.toString().trim().replace(' undefined', ' lbs'))
       if (nameParts.length > 0) {
         setBracketName(nameParts.join(' '))
       }
     }
   }, [gender, ruleStyle, weightClass, ageClass])
 
-  // Track changes to detect unsaved modifications
+  // Track changes to detect unsaved modifications for both sections
   useEffect(() => {
     const currentData = {
       bracketName,
       startDayNumber,
-      group, 
+      group,
       ringNumber,
       bracketSequence,
       boutRound,
@@ -91,22 +112,57 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
       gender,
       ruleStyle,
       weightClass,
-      ageClass
+      ageClass,
     }
-    
-    const hasChanges = Object.keys(originalData).some(key => 
-      originalData[key] !== currentData[key]
+
+    // Properties section fields
+    const propertiesFields = [
+      'bracketName',
+      'group',
+      'ringNumber',
+      'bracketSequence',
+      'gender',
+      'ruleStyle',
+      'weightClass',
+      'ageClass',
+    ]
+    const hasPropertiesChanges = propertiesFields.some(
+      (key) => originalData[key] !== currentData[key]
     )
-    
+
+    // Settings section fields
+    const settingsFields = ['startDayNumber', 'boutRound', 'maxCompetitors']
+    const hasSettingsChanges = settingsFields.some(
+      (key) => originalData[key] !== currentData[key]
+    )
+
+    const hasChanges = hasPropertiesChanges || hasSettingsChanges
+
     setHasUnsavedChanges(hasChanges)
-  }, [bracketName, startDayNumber, group, ringNumber, bracketSequence, boutRound, maxCompetitors, gender, ruleStyle, weightClass, ageClass, originalData])
+    setHasUnsavedPropertiesChanges(hasPropertiesChanges)
+    setHasUnsavedSettingsChanges(hasSettingsChanges)
+  }, [
+    bracketName,
+    startDayNumber,
+    group,
+    ringNumber,
+    bracketSequence,
+    boutRound,
+    maxCompetitors,
+    gender,
+    ruleStyle,
+    weightClass,
+    ageClass,
+    originalData,
+  ])
 
   // Warn user about unsaved changes when leaving page
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (hasUnsavedChanges) {
         e.preventDefault()
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        e.returnValue =
+          'You have unsaved changes. Are you sure you want to leave?'
         return 'You have unsaved changes. Are you sure you want to leave?'
       }
     }
@@ -120,178 +176,176 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
     }
   }, [hasUnsavedChanges])
 
-  const handleSaveChanges = async () => {
+  const handleSaveProperties = async () => {
     if (!onUpdate || !expandedBracket) return
-    
+
     // Clear previous validation errors
     setValidationErrors({})
-    
-    // Enhanced validation
+
+    // Enhanced validation for properties
     const errors = {}
-    
+
     // Bracket name validation - allow characters commonly used in auto-generation and manual entry
     if (!bracketName || bracketName.trim() === '') {
       errors.bracketName = 'Bracket name is required'
     } else if (bracketName.trim().length > 100) {
       errors.bracketName = 'Bracket name must be less than 100 characters'
     } else if (!/^[a-zA-Z0-9\s'&.+\-()/#:,_]+$/.test(bracketName.trim())) {
-      errors.bracketName = 'Bracket name contains invalid characters. Allowed: letters, numbers, spaces, and common punctuation'
+      errors.bracketName =
+        'Bracket name contains invalid characters. Allowed: letters, numbers, spaces, and common punctuation'
     }
-    
-    // Mandatory field validation for numeric fields
-    if (!startDayNumber || startDayNumber.trim() === '') {
-      errors.startDayNumber = 'Start on Day Number is required'
-    } else if (!/^\d+$/.test(startDayNumber.trim()) || parseInt(startDayNumber) <= 0) {
-      errors.startDayNumber = 'Start on Day Number must be a positive number'
+
+    // Group validation (alphanumeric)
+    if (group && !/^[a-zA-Z0-9\s'&.-]+$/.test(group.trim())) {
+      errors.group =
+        'Group can only contain letters, numbers, spaces, and common punctuation'
     }
-    
-    if (!boutRound || boutRound.trim() === '') {
-      errors.boutRound = 'Bout Round Duration is required'
-    } else if (!/^\d+$/.test(boutRound.trim()) || parseInt(boutRound) <= 0) {
-      errors.boutRound = 'Bout Round Duration must be a positive number (seconds)'
+
+    // Ring Number validation (alphanumeric)
+    if (ringNumber && !/^[a-zA-Z0-9\s'&.-]+$/.test(ringNumber.trim())) {
+      errors.ringNumber =
+        'Ring Number can only contain letters, numbers, spaces, and common punctuation'
     }
-    
-    if (!maxCompetitors || maxCompetitors.trim() === '') {
-      errors.maxCompetitors = 'Max Competitors is required'
-    } else if (!/^\d+$/.test(maxCompetitors.trim()) || parseInt(maxCompetitors) <= 0) {
-      errors.maxCompetitors = 'Max Competitors must be a positive number'
-    }
-    
-    // Bracket Sequence validation
-    if (bracketSequence && (!/^\d+$/.test(bracketSequence.trim()) || parseInt(bracketSequence) <= 0)) {
+
+    // Bracket Sequence validation (required and numeric)
+    if (!bracketSequence || bracketSequence.trim() === '') {
+      errors.bracketSequence = 'Bracket Sequence Number is required'
+    } else if (
+      !/^\d+$/.test(bracketSequence.trim()) ||
+      parseInt(bracketSequence) <= 0
+    ) {
       errors.bracketSequence = 'Bracket Sequence must be a positive number'
     }
-    
+
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors)
-      // Show first error as main feedback
-      const firstError = Object.values(errors)[0]
       return // Don't proceed with save
     }
-    
+
     setLoading(true)
     try {
       const updateData = {
         title: bracketName.trim(), // Use the actual bracket name for the title
         divisionTitle: bracketName.trim(), // Store actual name in divisionTitle
-        startDayNumber: parseInt(startDayNumber),
-        boutRound: parseInt(boutRound), 
-        maxCompetitors: parseInt(maxCompetitors),
         group: group || '',
         ringNumber: ringNumber || '',
-        bracketNumber: parseInt(bracketSequence) || expandedBracket.bracketNumber,
+        bracketNumber:
+          parseInt(bracketSequence) || expandedBracket.bracketNumber,
         // Include title component fields
         gender: gender || '',
         ruleStyle: ruleStyle || expandedBracket.ruleStyle || '',
         // Keep existing weightClass object structure for API
-        weightClass: expandedBracket.weightClass || {min: 0, max: 999, unit: 'lbs'},
+        weightClass: expandedBracket.weightClass,
         ageClass: ageClass || expandedBracket.ageClass || '',
         // Preserve other bracket data to avoid overwrites
         sport: expandedBracket.sport,
-        status: expandedBracket.status,
-        event: expandedBracket.event
       }
-      
-      console.log('Updating bracket with data:', updateData)
-      
-      const result = await onUpdate(expandedBracket._id, updateData)
-      if (result.success) {
-        alert('✓ Changes saved successfully!')
-        
-        // Fetch the updated bracket data from the server
-        try {
-          const response = await fetch(`${API_BASE_URL}/brackets/${expandedBracket._id}`, {
-            headers: {
-              Authorization: `Bearer ${user?.token}`,
-            },
-          })
-          
-          if (response.ok) {
-            const refreshedData = await response.json()
-            if (refreshedData.success && refreshedData.data) {
-              // Update form fields with fresh data from server
-              const refreshedBracket = refreshedData.data
-              
-              const updatedData = {
-                bracketName: refreshedBracket.divisionTitle || refreshedBracket.title || '',
-                startDayNumber: refreshedBracket.startDayNumber?.toString() || startDayNumber || '1', // Keep user input if API doesn't save
-                group: refreshedBracket.group || '',
-                ringNumber: refreshedBracket.ringNumber || refreshedBracket.ring || '',
-                bracketSequence: refreshedBracket.bracketSequence?.toString() || refreshedBracket.bracketNumber?.toString() || '',
-                boutRound: refreshedBracket.boutRound?.toString() || boutRound || '120', // Keep user input if API doesn't save
-                maxCompetitors: refreshedBracket.maxCompetitors?.toString() || maxCompetitors || refreshedBracket.fighters?.length?.toString() || '16', // Keep user input if API doesn't save
-                gender: refreshedBracket.gender || '',
-                ruleStyle: refreshedBracket.ruleStyle || '',
-                weightClass: refreshedBracket.weightClass ? 
-                  (typeof refreshedBracket.weightClass === 'string' ? 
-                    refreshedBracket.weightClass.replace(' undefined', ' lbs') : 
-                    `${refreshedBracket.weightClass.min}-${refreshedBracket.weightClass.max} ${refreshedBracket.weightClass.unit || 'lbs'}`) : '',
-                ageClass: refreshedBracket.ageClass || ''
-              }
-              
-              console.log('Updating form fields with:', updatedData)
-              
-              // Update all form fields with refreshed data
-              setBracketName(updatedData.bracketName)
-              setStartDayNumber(updatedData.startDayNumber)
-              setGroup(updatedData.group)
-              setRingNumber(updatedData.ringNumber)
-              setBracketSequence(updatedData.bracketSequence)
-              setBoutRound(updatedData.boutRound)
-              setMaxCompetitors(updatedData.maxCompetitors)
-              setGender(updatedData.gender)
-              setRuleStyle(updatedData.ruleStyle)
-              setWeightClass(updatedData.weightClass)
-              setAgeClass(updatedData.ageClass)
-              
-              // Update original data for comparison
-              setOriginalData(updatedData)
-              
-              console.log('Form fields updated. Current values:', {
-                bracketName: updatedData.bracketName,
-                startDayNumber: updatedData.startDayNumber,
-                boutRound: updatedData.boutRound,
-                maxCompetitors: updatedData.maxCompetitors
-              })
-            }
-          }
-        } catch (fetchError) {
-          console.error('Error fetching updated bracket data:', fetchError)
-          // If fetch fails, use the data we sent as fallback
-          const savedData = {
-            bracketName: updateData.divisionTitle || updateData.title,
-            startDayNumber: updateData.startDayNumber.toString(),
-            group: updateData.group,
-            ringNumber: updateData.ringNumber,
-            bracketSequence: updateData.bracketNumber.toString(),
-            boutRound: updateData.boutRound.toString(),
-            maxCompetitors: updateData.maxCompetitors.toString(),
-            gender: updateData.gender,
-            ruleStyle: updateData.ruleStyle,
-            weightClass: updateData.weightClass,
-            ageClass: updateData.ageClass
-          }
-          setOriginalData(savedData)
-        }
-        
-        setHasUnsavedChanges(false)
+
+      console.log('Updating bracket properties with data:', updateData)
+      const result = await axios.put(
+        `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+        updateData
+      )
+      if (result.status === apiConstants.success) {
+        enqueueSnackbar('Bracket properties saved successfully!', {
+          variant: 'success',
+        })
+
+        setHasUnsavedPropertiesChanges(false)
         setValidationErrors({}) // Clear any validation errors
-        
-        // Force a small delay to ensure state updates are applied
-        setTimeout(() => {
-          console.log('Final form state check:', {
-            startDayNumber,
-            boutRound, 
-            maxCompetitors,
-            bracketName
-          })
-        }, 100)
       } else {
-        alert('❌ Error saving changes: ' + (result.error || 'Unknown error'))
+        enqueueSnackbar(
+          'Error saving properties: ' + (result.error || 'Unknown error'),
+          {
+            variant: 'error',
+          }
+        )
       }
     } catch (error) {
-      console.error('Save error:', error)
-      alert('❌ Error saving changes: ' + error.message)
+      console.error('Save properties error:', error)
+      enqueueSnackbar('Error saving properties: ' + error.message, {
+        variant: 'error',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    if (!onUpdate || !expandedBracket) return
+
+    // Clear previous validation errors
+    setValidationErrors({})
+
+    // Enhanced validation for settings
+    const errors = {}
+
+    // Mandatory field validation for numeric fields
+    if (!startDayNumber || startDayNumber.trim() === '') {
+      errors.startDayNumber = 'Start on Day Number is required'
+    } else if (
+      !/^\d+$/.test(startDayNumber.trim()) ||
+      parseInt(startDayNumber) <= 0
+    ) {
+      errors.startDayNumber = 'Start on Day Number must be a positive number'
+    }
+
+    if (!boutRound || boutRound.trim() === '') {
+      errors.boutRound = 'Bout Round Duration is required'
+    } else if (!/^\d+$/.test(boutRound.trim()) || parseInt(boutRound) <= 0) {
+      errors.boutRound =
+        'Bout Round Duration must be a positive number (seconds)'
+    }
+
+    if (!maxCompetitors || maxCompetitors.trim() === '') {
+      errors.maxCompetitors = 'Max Competitors is required'
+    } else if (
+      !/^\d+$/.test(maxCompetitors.trim()) ||
+      parseInt(maxCompetitors) <= 0
+    ) {
+      errors.maxCompetitors = 'Max Competitors must be a positive number'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      return // Don't proceed with save
+    }
+
+    setLoading(true)
+    try {
+      const updateData = {
+        startDayNumber: parseInt(startDayNumber),
+        boutRound: parseInt(boutRound),
+        maxCompetitors: parseInt(maxCompetitors),
+      }
+
+      console.log('Updating bracket settings with data:', updateData)
+
+      const result = await axios.put(
+        `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+        updateData
+      )
+      if (result.status === apiConstants.success) {
+        enqueueSnackbar('Bracket settings saved successfully!', {
+          variant: 'success',
+        })
+
+        onUpdate()
+        setHasUnsavedSettingsChanges(false)
+        setValidationErrors({}) // Clear any validation errors
+      } else {
+        enqueueSnackbar(
+          'Error saving settings: ' + (result.error || 'Unknown error'),
+          {
+            variant: 'error',
+          }
+        )
+      }
+    } catch (error) {
+      console.error('Save settings error:', error)
+      enqueueSnackbar('Error saving settings: ' + error.message, {
+        variant: 'error',
+      })
     } finally {
       setLoading(false)
     }
@@ -299,137 +353,158 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
 
   const handleDuplicate = async () => {
     if (!expandedBracket) return
-    
-    if (confirm('Are you sure you want to duplicate this bracket?')) {
-      setLoading(true)
-      try {
-        // Create a copy of the bracket data with proper validation
-        const duplicateData = {
-          bracketNumber: (expandedBracket.bracketNumber || 0) + 1,
-          title: `${expandedBracket.title || 'Bracket'} (Copy)`,
-          divisionTitle: expandedBracket.divisionTitle || '',
-          sport: expandedBracket.sport || '',
-          ruleStyle: expandedBracket.ruleStyle || '',
-          ageClass: expandedBracket.ageClass || '',
-          weightClass: expandedBracket.weightClass || { min: 0, max: 999, unit: 'lbs' },
-          group: expandedBracket.group || '',
-          ringNumber: expandedBracket.ringNumber || '',
-          startDayNumber: expandedBracket.startDayNumber || 1,
-          boutRound: expandedBracket.boutRound || 90,
-          maxCompetitors: expandedBracket.maxCompetitors || 16,
-          status: 'Open',
-          fighters: [], // Start with no fighters
-          event: expandedBracket.event
-        }
-        
-        console.log('Duplicating bracket with data:', duplicateData)
-        
-        const response = await fetch(`${API_BASE_URL}/brackets`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user?.token}`,
-          },
-          body: JSON.stringify(duplicateData)
-        })
-        
-        const responseData = await response.json()
-        console.log('Duplicate response:', responseData)
-        
-        if (response.ok && responseData.success) {
-          alert('✓ Bracket duplicated successfully!')
-          window.location.reload() // Refresh to show the new bracket
-        } else {
-          const errorMsg = responseData.message || `HTTP ${response.status}`
-          alert('❌ Error duplicating bracket: ' + errorMsg)
-          console.error('Duplicate error details:', responseData)
-        }
-      } catch (error) {
-        console.error('Duplicate bracket error:', error)
-        alert('❌ Error duplicating bracket: ' + error.message)
-      } finally {
-        setLoading(false)
+
+    setLoading(true)
+    try {
+      // Create a copy of the bracket data with proper validation
+      const duplicateData = {
+        bracketNumber: (expandedBracket.bracketNumber || 0) + 1,
+        title: `${expandedBracket.title || 'Bracket'}`,
+        divisionTitle: `${expandedBracket.divisionTitle || ''} (Copy)`,
+        sport: expandedBracket.sport || '',
+        ruleStyle: expandedBracket.ruleStyle || '',
+        ageClass: expandedBracket.ageClass || '',
+        weightClass: expandedBracket.weightClass,
+        group: expandedBracket.group || '',
+        ringNumber: expandedBracket.ring || '',
+        boutRound: 0,
+        maxCompetitors: 0,
+        fighters: [],
+        event: expandedBracket.event?._id || '',
       }
+
+      console.log('Duplicating bracket with data:', duplicateData)
+
+      const response = await fetch(`${API_BASE_URL}/brackets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user?.token}`,
+        },
+        body: JSON.stringify(duplicateData),
+      })
+
+      const responseData = await response.json()
+      console.log('Duplicate response:', responseData)
+
+      if (response.ok && responseData.success) {
+        enqueueSnackbar('Bracket duplicated successfully!', {
+          variant: 'success',
+        })
+        onUpdate()
+      } else {
+        const errorMsg = responseData.message || `HTTP ${response.status}`
+        enqueueSnackbar('Error duplicating bracket: ' + errorMsg, {
+          variant: 'error',
+        })
+        console.error('Duplicate error details:', responseData)
+      }
+    } catch (error) {
+      console.error('Duplicate bracket error:', error)
+      enqueueSnackbar('Error duplicating bracket: ' + error.message, {
+        variant: 'error',
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleReset = () => {
-    if (confirm('Are you sure you want to reset all changes? This will revert to the last saved values.')) {
-      // Reset to original data
-      setBracketName(originalData.bracketName || '')
-      setStartDayNumber(originalData.startDayNumber || '')
-      setGroup(originalData.group || '')
-      setRingNumber(originalData.ringNumber || '')
-      setBracketSequence(originalData.bracketSequence || '')
-      setBoutRound(originalData.boutRound || '')
-      setMaxCompetitors(originalData.maxCompetitors || '')
-      setGender(originalData.gender || '')
-      setRuleStyle(originalData.ruleStyle || '')
-      setWeightClass(originalData.weightClass || '')
-      setAgeClass(originalData.ageClass || '')
-      
-      // Clear validation errors and unsaved changes flag
-      setValidationErrors({})
-      setHasUnsavedChanges(false)
-    }
+    // Reset to original data
+    setBracketName(originalData.bracketName || '')
+    setStartDayNumber(originalData.startDayNumber || '')
+    setGroup(originalData.group || '')
+    setRingNumber(originalData.ringNumber || '')
+    setBracketSequence(originalData.bracketSequence || '')
+    setBoutRound(originalData.boutRound || '')
+    setMaxCompetitors(originalData.maxCompetitors || '')
+    setGender(originalData.gender || '')
+    setRuleStyle(originalData.ruleStyle || '')
+    setWeightClass(originalData.weightClass || '')
+    setAgeClass(originalData.ageClass || '')
+
+    // Clear validation errors and unsaved changes flag
+    setValidationErrors({})
+    setHasUnsavedChanges(false)
+    setHasUnsavedPropertiesChanges(false)
+    setHasUnsavedSettingsChanges(false)
   }
 
-  const handleStartBracket = async () => {
+  const handleUpdateBracketStatus = async () => {
     if (!expandedBracket) return
-    
-    if (confirm('Are you sure you want to start this bracket? This will create bouts and begin the tournament.')) {
-      setLoading(true)
-      try {
-        const response = await fetch(`${API_BASE_URL}/brackets/${expandedBracket._id}`, {
+
+    setLoading(true)
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+        {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user?.token}`,
+            Authorization: `Bearer ${user?.token}`,
           },
           body: JSON.stringify({
-            ...expandedBracket,
-            status: 'Started'
-          })
-        })
-        
-        if (response.ok) {
-          alert('Bracket started successfully!')
-          if (onUpdate) {
-            onUpdate()
-          }
-        } else {
-          alert('Error starting bracket')
+            status: expandedBracket.status === 'Open' ? 'Started' : 'Completed',
+          }),
         }
-      } catch (error) {
-        alert('Error starting bracket: ' + error.message)
-      } finally {
-        setLoading(false)
+      )
+
+      if (response.ok) {
+        enqueueSnackbar('Bracket started successfully!', {
+          variant: 'success',
+        })
+        if (onUpdate) {
+          onUpdate()
+        }
+      } else {
+        enqueueSnackbar('Error starting bracket', {
+          variant: 'error',
+        })
       }
+    } catch (error) {
+      enqueueSnackbar('Error starting bracket: ' + error.message, {
+        variant: 'error',
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleDelete = async () => {
     if (!expandedBracket) return
-    
-    if (confirm(`Are you sure you want to delete this bracket? This action cannot be undone.`)) {
+
+    if (
+      confirm(
+        `Are you sure you want to delete this bracket? This action cannot be undone.`
+      )
+    ) {
       setLoading(true)
       try {
-        const response = await fetch(`${API_BASE_URL}/brackets/${expandedBracket._id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${user?.token}`,
+        const response = await fetch(
+          `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
           }
-        })
-        
+        )
+
         if (response.ok) {
-          alert('Bracket deleted successfully!')
+          enqueueSnackbar('Bracket deleted successfully!', {
+            variant: 'success',
+          })
           handleClose() // Close the details panel
-          window.location.reload() // Refresh to update the list
+          onUpdate() // Refresh to update the list
         } else {
-          alert('Error deleting bracket')
+          enqueueSnackbar('Error deleting bracket', {
+            variant: 'error',
+          })
         }
       } catch (error) {
-        alert('Error deleting bracket: ' + error.message)
+        enqueueSnackbar('Error deleting bracket: ' + error.message, {
+          variant: 'error',
+        })
       } finally {
         setLoading(false)
       }
@@ -451,7 +526,7 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                 className='text-xs text-gray-400 hover:text-white'
                 title='Clear bracket name'
               >
-                Clear
+                Reset
               </button>
             </div>
             <input
@@ -459,22 +534,39 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               value={bracketName || ''}
               onChange={(e) => {
                 // Allow characters commonly used in auto-generation and manual entry
-                const cleanValue = e.target.value.replace(/[^a-zA-Z0-9\s'&.+\-()/#:,_]/g, '')
+                const cleanValue = e.target.value.replace(
+                  /[^a-zA-Z0-9\s'&.+\-()/#:,_]/g,
+                  ''
+                )
                 setBracketName(cleanValue)
                 // Clear validation error when user starts typing
                 if (validationErrors.bracketName) {
-                  setValidationErrors(prev => ({ ...prev, bracketName: undefined }))
+                  setValidationErrors((prev) => {
+                    const { bracketName, ...rest } = prev
+                    return rest
+                  })
                 }
               }}
               onKeyPress={(e) => {
                 // Prevent invalid characters - allow characters used in auto-generation
-                if (!/[a-zA-Z0-9\s'&.+\-()/#:,_]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                if (
+                  !/[a-zA-Z0-9\s'&.+\-()/#:,_]/.test(e.key) &&
+                  ![
+                    'Backspace',
+                    'Delete',
+                    'Tab',
+                    'ArrowLeft',
+                    'ArrowRight',
+                  ].includes(e.key)
+                ) {
                   e.preventDefault()
                 }
               }}
               placeholder='Auto-generated or enter manually'
               className={`w-full bg-transparent text-white text-xl rounded py-1 focus:outline-none placeholder-gray-400 ${
-                validationErrors.bracketName ? 'border-b-2 border-red-500' : 'focus:border-white'
+                validationErrors.bracketName
+                  ? 'border-b-2 border-red-500'
+                  : 'focus:border-white'
               }`}
             />
             {validationErrors.bracketName && (
@@ -484,7 +576,10 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
             )}
           </div>
         </div>
-        <button onClick={handleClose} className='ml-4 p-2 hover:bg-gray-700 rounded'>
+        <button
+          onClick={handleClose}
+          className='ml-4 p-2 hover:bg-gray-700 rounded'
+        >
           <X size={20} />
         </button>
       </div>
@@ -495,13 +590,17 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
           <h3 className='text-lg font-semibold text-white mb-4 border-b border-gray-600 pb-2'>
             Bracket Properties
           </h3>
-          
+
           {/* Title Components for Auto-generating Bracket Name */}
           <div className='mb-6'>
-            <h4 className='text-md font-medium text-white mb-3'>Title Components</h4>
+            <h4 className='text-md font-medium text-white mb-3'>
+              Title Components
+            </h4>
             <div className='grid grid-cols-4 gap-4'>
               <div>
-                <label className='block text-xs text-gray-300 mb-1'>Gender</label>
+                <label className='block text-xs text-gray-300 mb-1'>
+                  Gender
+                </label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
@@ -513,9 +612,11 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                   <option value='Mixed'>Mixed</option>
                 </select>
               </div>
-              
+
               <div>
-                <label className='block text-xs text-gray-300 mb-1'>Age Class</label>
+                <label className='block text-xs text-gray-300 mb-1'>
+                  Age Class
+                </label>
                 <select
                   value={ageClass}
                   onChange={(e) => setAgeClass(e.target.value)}
@@ -528,9 +629,11 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                   <option value='Senior'>Senior</option>
                 </select>
               </div>
-              
+
               <div>
-                <label className='block text-xs text-gray-300 mb-1'>Rule Style</label>
+                <label className='block text-xs text-gray-300 mb-1'>
+                  Rule Style
+                </label>
                 <select
                   value={ruleStyle}
                   onChange={(e) => setRuleStyle(e.target.value)}
@@ -542,11 +645,15 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                     <>
                       <option value='Point Sparring'>Point Sparring</option>
                       <option value='Light Contact'>Light Contact</option>
-                      <option value='Continuous Sparring'>Continuous Sparring</option>
+                      <option value='Continuous Sparring'>
+                        Continuous Sparring
+                      </option>
                     </>
                   )}
                   {/* Adult rules */}
-                  {(ageClass === 'Adult' || ageClass === 'Senior' || !ageClass) && (
+                  {(ageClass === 'Adult' ||
+                    ageClass === 'Senior' ||
+                    !ageClass) && (
                     <>
                       <option value='Muay Thai'>Muay Thai</option>
                       <option value='K-1'>K-1</option>
@@ -569,9 +676,11 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                   )}
                 </select>
               </div>
-              
+
               <div>
-                <label className='block text-xs text-gray-300 mb-1'>Weight Class</label>
+                <label className='block text-xs text-gray-300 mb-1'>
+                  Weight Class
+                </label>
                 <select
                   value={weightClass}
                   onChange={(e) => setWeightClass(e.target.value)}
@@ -600,7 +709,9 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
                     </>
                   )}
                   {/* Adult Weight Classes */}
-                  {(ageClass === 'Adult' || ageClass === 'Senior' || !ageClass) && (
+                  {(ageClass === 'Adult' ||
+                    ageClass === 'Senior' ||
+                    !ageClass) && (
                     <>
                       <option value='100-110 lbs'>100-110 lbs</option>
                       <option value='110-120 lbs'>110-120 lbs</option>
@@ -629,21 +740,43 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               </div>
             </div>
           </div>
-          
+
           <div className='grid grid-cols-4 gap-6'>
-            <InputBox 
-              label='Group' 
+            <InputBox
+              label='Group'
               placeholder='e.g., Group A'
-              value={group} 
-              onChange={setGroup}
+              value={group}
+              onChange={(value) => {
+                setGroup(value)
+                // Clear validation error when user starts typing
+                if (validationErrors.group) {
+                  setValidationErrors((prev) => {
+                    const { group, ...rest } = prev
+                    return rest
+                  })
+                }
+              }}
               validation='alphanumeric'
+              error={validationErrors.group}
+              disabled={loading}
             />
             <InputBox
               label='Ring Number'
               placeholder='e.g., Ring 1'
               value={ringNumber}
-              onChange={setRingNumber}
+              onChange={(value) => {
+                setRingNumber(value)
+                // Clear validation error when user starts typing
+                if (validationErrors.ringNumber) {
+                  setValidationErrors((prev) => {
+                    const { ringNumber, ...rest } = prev
+                    return rest
+                  })
+                }
+              }}
               validation='alphanumeric'
+              error={validationErrors.ringNumber}
+              disabled={loading}
             />
             <InputBox
               label='Bracket Sequence Number'
@@ -651,10 +784,49 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               placeholder='e.g., 1'
               min='1'
               value={bracketSequence}
-              onChange={setBracketSequence}
+              onChange={(value) => {
+                setBracketSequence(value)
+                // Clear validation error when user starts typing
+                if (validationErrors.bracketSequence) {
+                  setValidationErrors((prev) => {
+                    const { bracketSequence, ...rest } = prev
+                    return rest
+                  })
+                }
+              }}
               validation='numeric'
               required={true}
               error={validationErrors.bracketSequence}
+              disabled={loading}
+            />
+          </div>
+
+          {/* Bracket Properties Save Button */}
+          <div className='mt-6 flex justify-end'>
+            <ActionButton
+              icon={<CircleCheck size={14} />}
+              label={
+                hasUnsavedPropertiesChanges
+                  ? 'Save Properties'
+                  : 'Update Properties'
+              }
+              bg={
+                hasUnsavedPropertiesChanges
+                  ? '#4CAF50'
+                  : 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)'
+              }
+              onClick={handleSaveProperties}
+              disabled={
+                loading ||
+                Object.keys(validationErrors).some((key) =>
+                  [
+                    'bracketName',
+                    'group',
+                    'ringNumber',
+                    'bracketSequence',
+                  ].includes(key)
+                )
+              }
             />
           </div>
         </div>
@@ -672,9 +844,19 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               placeholder='e.g., 1'
               min='1'
               value={startDayNumber}
-              onChange={setStartDayNumber}
+              onChange={(value) => {
+                setStartDayNumber(value)
+                // Clear validation error when user starts typing
+                if (validationErrors.startDayNumber) {
+                  setValidationErrors((prev) => {
+                    const { startDayNumber, ...rest } = prev
+                    return rest
+                  })
+                }
+              }}
               validation='numeric'
               error={validationErrors.startDayNumber}
+              disabled={loading}
             />
             <InputBox
               label='Bout Round Duration (sec)'
@@ -683,9 +865,19 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               placeholder='e.g., 120'
               min='1'
               value={boutRound}
-              onChange={setBoutRound}
+              onChange={(value) => {
+                setBoutRound(value)
+                // Clear validation error when user starts typing
+                if (validationErrors.boutRound) {
+                  setValidationErrors((prev) => {
+                    const { boutRound, ...rest } = prev
+                    return rest
+                  })
+                }
+              }}
               validation='numeric'
               error={validationErrors.boutRound}
+              disabled={loading}
             />
             <InputBox
               label='Max Competitors'
@@ -694,33 +886,85 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
               placeholder='e.g., 16'
               min='1'
               value={maxCompetitors}
-              onChange={setMaxCompetitors}
+              onChange={(value) => {
+                setMaxCompetitors(value)
+                // Clear validation error when user starts typing
+                if (validationErrors.maxCompetitors) {
+                  setValidationErrors((prev) => {
+                    const { maxCompetitors, ...rest } = prev
+                    return rest
+                  })
+                }
+              }}
               validation='numeric'
               error={validationErrors.maxCompetitors}
+              disabled={loading}
             />
           </div>
-          
+
           <div className='mt-4 text-sm text-gray-400'>
-            Note: The max competitor count for this bracket above only applies to
-            online registrations. It does not affect what you can do here.
+            Note: The max competitor count for this bracket above only applies
+            to online registrations. It does not affect what you can do here.
+          </div>
+
+          {/* Bracket Settings Save Button */}
+          <div className='mt-6 flex justify-end'>
+            <ActionButton
+              icon={<CircleCheck size={14} />}
+              label={
+                hasUnsavedSettingsChanges ? 'Save Settings' : 'Update Settings'
+              }
+              bg={
+                hasUnsavedSettingsChanges
+                  ? '#4CAF50'
+                  : 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)'
+              }
+              onClick={handleSaveSettings}
+              disabled={
+                loading ||
+                Object.keys(validationErrors).some((key) =>
+                  ['startDayNumber', 'boutRound', 'maxCompetitors'].includes(
+                    key
+                  )
+                )
+              }
+            />
           </div>
         </div>
 
-        {/* Unsaved Changes Indicator */}
-        {hasUnsavedChanges && Object.keys(validationErrors).length === 0 && (
-          <div className='bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4'>
-            <div className='flex items-center text-yellow-400 text-sm'>
-              <span className='mr-2'>⚠</span>
-              <span>You have unsaved changes. Click "Update Settings" to save or "Reset" to discard.</span>
+        {/* Unsaved Changes Indicators */}
+        {hasUnsavedPropertiesChanges &&
+          Object.keys(validationErrors).length === 0 && (
+            <div className='bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4'>
+              <div className='flex items-center text-yellow-400 text-sm'>
+                <span className='mr-2'>⚠</span>
+                <span>
+                  You have unsaved changes in Bracket Properties. Click "Save
+                  Properties" to save.
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        {hasUnsavedSettingsChanges &&
+          Object.keys(validationErrors).length === 0 && (
+            <div className='bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4'>
+              <div className='flex items-center text-yellow-400 text-sm'>
+                <span className='mr-2'>⚠</span>
+                <span>
+                  You have unsaved changes in Bracket Settings. Click "Save
+                  Settings" to save.
+                </span>
+              </div>
+            </div>
+          )}
 
         {/* Validation Error Display */}
         {Object.keys(validationErrors).length > 0 && (
           <div className='bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-6'>
             <div className='flex items-center mb-2'>
-              <span className='text-red-400 text-sm font-medium'>⚠ Validation Errors:</span>
+              <span className='text-red-400 text-sm font-medium'>
+                ⚠ Validation Errors:
+              </span>
             </div>
             <ul className='list-disc list-inside space-y-1'>
               {Object.entries(validationErrors).map(([field, error]) => (
@@ -737,20 +981,17 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
 
         {/* Action Buttons */}
         <div className='flex space-x-4 my-8 justify-center'>
-          <ActionButton
-            icon={<CircleCheck size={14} />}
-            label={hasUnsavedChanges ? 'Save Changes' : 'Update Settings'}
-            bg={hasUnsavedChanges ? '#4CAF50' : 'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)'}
-            onClick={handleSaveChanges}
-            disabled={loading || Object.keys(validationErrors).length > 0}
-          />
-          <ActionButton
-            icon={<Play size={14} />}
-            label='Start Bracket'
-            bg='#4CAF50'
-            onClick={handleStartBracket}
-            disabled={loading}
-          />
+          {(expandedBracket === 'Open' ||
+            expandedBracket.status === 'Started') && (
+            <ActionButton
+              icon={<Play size={14} />}
+              label='Start Bracket'
+              bg='#4CAF50'
+              onClick={handleUpdateBracketStatus}
+              disabled={loading}
+            />
+          )}
+
           <ActionButton
             icon={<Copy size={14} />}
             label='Duplicate'
@@ -758,13 +999,13 @@ export default function Props({ expandedBracket, handleClose, onUpdate, eventId 
             onClick={handleDuplicate}
             disabled={loading}
           />
-          <ActionButton 
-            icon={<RotateCcw size={14} />} 
-            label='Reset' 
-            border 
+          {/* <ActionButton
+            icon={<RotateCcw size={14} />}
+            label='Reset'
+            border
             onClick={handleReset}
             disabled={loading}
-          />
+          /> */}
           <ActionButton
             icon={<Trash size={14} color='#fff' />}
             label='Delete'

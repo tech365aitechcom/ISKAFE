@@ -111,17 +111,15 @@ const FighterRegistrationPage = ({ params }) => {
   const [errors, setErrors] = useState({})
   const [processing, setProcessing] = useState(false)
   const router = useRouter()
-  
+
   // Square payment integration
   const cardRef = useRef(null)
   const cardInstance = useRef(null)
   const [squareLoaded, setSquareLoaded] = useState(false)
-  
+
   const appId = process.env.NEXT_PUBLIC_SQUARE_APP_ID
   const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID
   const squareConfigValid = appId && locationId
-  
-  console.log(user, 'user')
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -175,13 +173,18 @@ const FighterRegistrationPage = ({ params }) => {
 
   // Square payment initialization
   useEffect(() => {
-    if (!squareLoaded || formData.paymentMethod !== 'card' || currentStep !== 10) return
+    if (
+      !squareLoaded ||
+      formData.paymentMethod !== 'card' ||
+      currentStep !== 10
+    )
+      return
 
     if (!squareConfigValid) {
       console.warn('⚠️ Square configuration invalid - card payments disabled')
-      setErrors(prev => ({ 
-        ...prev, 
-        square: 'Payment system not configured. Please contact support.' 
+      setErrors((prev) => ({
+        ...prev,
+        square: 'Payment system not configured. Please contact support.',
       }))
       return
     }
@@ -189,7 +192,7 @@ const FighterRegistrationPage = ({ params }) => {
     const initCard = async () => {
       try {
         console.log('Initializing Square payments for fighter registration')
-        
+
         if (!window.Square) {
           throw new Error('Square SDK not loaded')
         }
@@ -206,23 +209,25 @@ const FighterRegistrationPage = ({ params }) => {
             input: {
               backgroundColor: '#0A1330',
               color: '#ffffff',
-              fontSize: '16px'
+              fontSize: '16px',
             },
             '.input-container': {
               borderRadius: '8px',
               borderColor: '#374151',
-              borderWidth: '1px'
+              borderWidth: '1px',
             },
             '.input-container.is-focus': {
-              borderColor: '#8B5CF6'
+              borderColor: '#8B5CF6',
             },
             '.input-container.is-error': {
-              borderColor: '#EF4444'
-            }
-          }
+              borderColor: '#EF4444',
+            },
+          },
         })
-        
-        const container = document.getElementById('fighter-square-card-container')
+
+        const container = document.getElementById(
+          'fighter-square-card-container'
+        )
         if (!container) {
           console.error('❌ Fighter Square card container not found in DOM')
           return
@@ -231,14 +236,14 @@ const FighterRegistrationPage = ({ params }) => {
         await card.attach('#fighter-square-card-container')
         cardInstance.current = card
         console.log('✅ Fighter Square card initialized')
-        
+
         // Clear any previous errors if successful
-        setErrors(prev => ({ ...prev, square: null }))
+        setErrors((prev) => ({ ...prev, square: null }))
       } catch (error) {
         console.error('❌ Fighter Square card initialization error:', error)
-        setErrors(prev => ({ 
-          ...prev, 
-          square: `Failed to initialize payment form: ${error.message}` 
+        setErrors((prev) => ({
+          ...prev,
+          square: `Failed to initialize payment form: ${error.message}`,
         }))
       }
     }
@@ -253,7 +258,14 @@ const FighterRegistrationPage = ({ params }) => {
       const container = document.getElementById('fighter-square-card-container')
       if (container) container.innerHTML = ''
     }
-  }, [squareLoaded, formData.paymentMethod, currentStep, squareConfigValid, appId, locationId])
+  }, [
+    squareLoaded,
+    formData.paymentMethod,
+    currentStep,
+    squareConfigValid,
+    appId,
+    locationId,
+  ])
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
@@ -421,7 +433,11 @@ const FighterRegistrationPage = ({ params }) => {
         break
 
       case 8: // Age Check
-        if (formData.isAdult === null || formData.isAdult === undefined || formData.isAdult === '')
+        if (
+          formData.isAdult === null ||
+          formData.isAdult === undefined ||
+          formData.isAdult === ''
+        )
           newErrors.isAdult = 'Age confirmation is required'
         break
 
@@ -476,23 +492,33 @@ const FighterRegistrationPage = ({ params }) => {
 
     if (result.status !== 'OK') {
       console.error('❌ Square tokenization failed:', result)
-      throw new Error(result.errors?.[0]?.detail || 'Card payment failed. Please check your card details.')
+      throw new Error(
+        result.errors?.[0]?.detail ||
+          'Card payment failed. Please check your card details.'
+      )
     }
 
     console.log('✅ Square tokenization successful')
-    
+
     // Calculate amount in cents for Square (Fighter registration fee)
     const fighterFee = tournamentSettings?.simpleFees?.fighterFee || 75
-    const amountInCents = fighterFee * 100  // Convert to cents
-    
+    const amountInCents = fighterFee * 100 // Convert to cents
+
     // Submit payment to Square
     const paymentData = {
-      note: `Fighter registration - Event ID: ${id}`
+      note: `Fighter registration - Event ID: ${id}`,
     }
-    
-    console.log('Submitting payment to Square...', { amountInCents, paymentData })
-    const squareResult = await submitPayment(result.token, amountInCents, paymentData)
-    
+
+    console.log('Submitting payment to Square...', {
+      amountInCents,
+      paymentData,
+    })
+    const squareResult = await submitPayment(
+      result.token,
+      amountInCents,
+      paymentData
+    )
+
     if (!squareResult.success) {
       console.error('❌ Square payment failed:', squareResult)
       throw new Error(squareResult.error || 'Payment processing failed')
@@ -543,6 +569,7 @@ const FighterRegistrationPage = ({ params }) => {
         isAdult: formData.isAdult,
         legalDisclaimerAccepted: formData.legalDisclaimerAccepted,
         waiverSignature: formData.waiverSignature,
+        amount: tournamentSettings?.simpleFees?.fighterFee,
         paymentMethod: formData.paymentMethod,
         paymentStatus: 'Paid', // Set as paid since we're processing payment
         event: id,
@@ -565,12 +592,14 @@ const FighterRegistrationPage = ({ params }) => {
         payload.cashCode = formData.cashCode.trim()
       } else {
         // For card payments, process Square payment first
-        console.log('Processing Square card payment for fighter registration...')
+        console.log(
+          'Processing Square card payment for fighter registration...'
+        )
         const transactionId = await processSquarePayment()
         payload.transactionId = transactionId
         console.log('Square payment completed, transaction ID:', transactionId)
       }
-      
+
       console.log('Fighter registration payload:', payload)
       const response = await axios.post(
         `${API_BASE_URL}/registrations`,
@@ -590,10 +619,10 @@ const FighterRegistrationPage = ({ params }) => {
       }
     } catch (error) {
       console.error('Fighter registration error:', error)
-      
+
       // Handle different error types
       let errorMessage = 'Registration failed'
-      
+
       if (error.response) {
         // Server responded with error status
         const { data, status } = error.response
@@ -602,18 +631,20 @@ const FighterRegistrationPage = ({ params }) => {
         } else if (data.error) {
           errorMessage = data.error
         } else if (status === 400) {
-          errorMessage = 'Invalid registration data. Please check your information and try again.'
+          errorMessage =
+            'Invalid registration data. Please check your information and try again.'
         } else if (status === 500) {
           errorMessage = 'Server error. Please try again later.'
         }
       } else if (error.request) {
         // Network error
-        errorMessage = 'Network error. Please check your connection and try again.'
+        errorMessage =
+          'Network error. Please check your connection and try again.'
       } else {
         // Other error (including Square payment errors)
         errorMessage = error.message
       }
-      
+
       enqueueSnackbar(errorMessage, { variant: 'error' })
     } finally {
       setProcessing(false)
@@ -1305,41 +1336,49 @@ const FighterRegistrationPage = ({ params }) => {
 
   const renderStep10 = () => (
     <div className='space-y-6'>
-      <div className="text-center mb-8">
+      <div className='text-center mb-8'>
         <h3 className='text-2xl font-bold mb-2'>Payment</h3>
-        <p className="text-gray-400">Registration Fee: <span className="text-green-400 font-bold text-xl">
-          {tournamentSettings?.simpleFees?.currency || '$'}{(tournamentSettings?.simpleFees?.fighterFee || 75).toFixed(2)}
-        </span></p>
+        <p className='text-gray-400'>
+          Registration Fee:{' '}
+          <span className='text-green-400 font-bold text-xl'>
+            {tournamentSettings?.simpleFees?.currency || '$'}
+            {(tournamentSettings?.simpleFees?.fighterFee || 75).toFixed(2)}
+          </span>
+        </p>
       </div>
 
       {/* Payment Method Selection */}
       <div>
-        <h4 className="text-lg font-bold mb-4">Payment Method</h4>
-        <div className="grid grid-cols-2 gap-4">
+        <h4 className='text-lg font-bold mb-4'>Payment Method</h4>
+        <div className='grid grid-cols-2 gap-4'>
           <button
-            type="button"
-            onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'card' }))}
+            type='button'
+            onClick={() =>
+              setFormData((prev) => ({ ...prev, paymentMethod: 'card' }))
+            }
             className={`p-4 rounded-lg border-2 transition-colors ${
               formData.paymentMethod === 'card'
                 ? 'border-purple-500 bg-purple-500/20'
                 : 'border-gray-600 hover:border-gray-500'
             }`}
           >
-            <CreditCard className="mx-auto mb-2" size={24} />
-            <div className="text-sm font-medium">Credit/Debit Card</div>
+            <CreditCard className='mx-auto mb-2' size={24} />
+            <div className='text-sm font-medium'>Credit/Debit Card</div>
           </button>
-          
+
           <button
-            type="button"
-            onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cash' }))}
+            type='button'
+            onClick={() =>
+              setFormData((prev) => ({ ...prev, paymentMethod: 'cash' }))
+            }
             className={`p-4 rounded-lg border-2 transition-colors ${
               formData.paymentMethod === 'cash'
                 ? 'border-purple-500 bg-purple-500/20'
                 : 'border-gray-600 hover:border-gray-500'
             }`}
           >
-            <DollarSign className="mx-auto mb-2" size={24} />
-            <div className="text-sm font-medium">Cash Code</div>
+            <DollarSign className='mx-auto mb-2' size={24} />
+            <div className='text-sm font-medium'>Cash Code</div>
           </button>
         </div>
         {errors.paymentMethod && (
@@ -1350,30 +1389,43 @@ const FighterRegistrationPage = ({ params }) => {
       {/* Payment Details */}
       {formData.paymentMethod === 'card' && (
         <div>
-          <h4 className="text-lg font-bold mb-4">Card Details</h4>
-          
+          <h4 className='text-lg font-bold mb-4'>Card Details</h4>
+
           {!squareConfigValid && (
-            <div className="bg-red-900/20 border border-red-500 rounded-lg p-6 text-center">
-              <p className="text-red-400 mb-2">Card payments are currently unavailable</p>
-              <p className="text-gray-400 text-sm">Please use cash payment or contact support</p>
+            <div className='bg-red-900/20 border border-red-500 rounded-lg p-6 text-center'>
+              <p className='text-red-400 mb-2'>
+                Card payments are currently unavailable
+              </p>
+              <p className='text-gray-400 text-sm'>
+                Please use cash payment or contact support
+              </p>
             </div>
           )}
-          
+
           {squareConfigValid && !squareLoaded && (
-            <div className="bg-[#0A1330] rounded-lg p-6 text-center">
-              <p className="text-gray-400">Loading payment form...</p>
+            <div className='bg-[#0A1330] rounded-lg p-6 text-center'>
+              <p className='text-gray-400'>Loading payment form...</p>
             </div>
           )}
-          
+
           {squareConfigValid && squareLoaded && (
-            <div className="bg-[#0A1330] rounded-lg p-6">
-              <div id="fighter-square-card-container" ref={cardRef} className="mb-4" />
+            <div className='bg-[#0A1330] rounded-lg p-6'>
+              <div
+                id='fighter-square-card-container'
+                ref={cardRef}
+                className='mb-4'
+              />
               {errors.square && (
-                <p className="text-red-500 text-sm mt-2">{errors.square}</p>
+                <p className='text-red-500 text-sm mt-2'>{errors.square}</p>
               )}
-              <div className="mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg">
-                <p className="text-blue-400 text-sm font-medium mb-1">Test Card Information:</p>
-                <p className="text-blue-300 text-xs">For testing: Use card number 4111 1111 1111 1111, any future expiry date, and CVV 111</p>
+              <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
+                <p className='text-blue-400 text-sm font-medium mb-1'>
+                  Test Card Information:
+                </p>
+                <p className='text-blue-300 text-xs'>
+                  For testing: Use card number 4111 1111 1111 1111, any future
+                  expiry date, and CVV 111
+                </p>
               </div>
             </div>
           )}
@@ -1382,16 +1434,18 @@ const FighterRegistrationPage = ({ params }) => {
 
       {formData.paymentMethod === 'cash' && (
         <div>
-          <label className='block text-sm font-medium mb-2'>Cash Payment Code</label>
+          <label className='block text-sm font-medium mb-2'>
+            Cash Payment Code
+          </label>
           <input
             type='text'
             name='cashCode'
             value={formData.cashCode}
             onChange={(e) => {
               const newValue = e.target.value.toUpperCase()
-              setFormData(prev => ({ ...prev, cashCode: newValue }))
+              setFormData((prev) => ({ ...prev, cashCode: newValue }))
               if (errors.cashCode) {
-                setErrors(prev => ({ ...prev, cashCode: '' }))
+                setErrors((prev) => ({ ...prev, cashCode: '' }))
               }
             }}
             className={`w-full bg-[#0A1330] border ${
@@ -1399,7 +1453,9 @@ const FighterRegistrationPage = ({ params }) => {
             } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500`}
             placeholder='Enter your cash code'
           />
-          {errors.cashCode && <p className='text-red-500 text-sm mt-1'>{errors.cashCode}</p>}
+          {errors.cashCode && (
+            <p className='text-red-500 text-sm mt-1'>{errors.cashCode}</p>
+          )}
           <p className='text-gray-400 text-sm mt-2'>
             Enter the cash payment code provided to you
           </p>
@@ -1473,144 +1529,160 @@ const FighterRegistrationPage = ({ params }) => {
           setSquareLoaded(true)
         }}
         onError={(error) => {
-          console.error('❌ Square script failed to load for fighter registration:', error)
-          setErrors(prev => ({ ...prev, square: 'Payment system failed to load' }))
+          console.error(
+            '❌ Square script failed to load for fighter registration:',
+            error
+          )
+          setErrors((prev) => ({
+            ...prev,
+            square: 'Payment system failed to load',
+          }))
         }}
       />
-    
-    <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
-      <div className='w-full container mx-auto'>
-        <div className='mb-6'>
-          <h2 className='text-2xl font-bold text-white'>
-            Fighter Registration Form
-          </h2>
-          <p>Fill the form below to register for the event</p>
-        </div>
 
-        {/* Progress Bar */}
-        <div className='mb-6'>
-          <div className='flex items-center justify-between overflow-x-auto scrollbar-hide'>
-            {steps.map((label, index) => {
-              const step = index + 1
-              const isCompleted = currentStep > step
-              const isActive = currentStep === step
-              const isVisited = currentStep >= step
-
-              return (
-                <React.Fragment key={label}>
-                  <div className='flex flex-col items-center min-w-[80px]'>
-                    <div
-                      className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm md:text-base ${
-                        isVisited
-                          ? 'bg-yellow-500 text-black'
-                          : 'bg-[#2e1b47] text-white'
-                      }`}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle className='w-5 h-5' />
-                      ) : (
-                        getStepIcon(step)
-                      )}
-                    </div>
-                    <span
-                      className={`text-[10px] md:text-xs mt-1 text-center w-20 break-words ${
-                        isVisited ? 'text-yellow-500' : 'text-gray-400'
-                      }`}
-                    >
-                      {label}
-                    </span>
-                  </div>
-                  {step < steps.length && (
-                    <div
-                      className={`flex-1 h-0.5 mx-1 md:mx-2 ${
-                        isCompleted ? 'bg-yellow-500' : 'bg-[#2e1b47]'
-                      }`}
-                    />
-                  )}
-                </React.Fragment>
-              )
-            })}
+      <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
+        <div className='w-full container mx-auto'>
+          <div className='mb-6'>
+            <h2 className='text-2xl font-bold text-white'>
+              Fighter Registration Form
+            </h2>
+            <p>Fill the form below to register for the event</p>
           </div>
-        </div>
 
-        <form onSubmit={handleSubmit}>
-          {renderCurrentStep()}
+          {/* Progress Bar */}
+          <div className='mb-6'>
+            <div className='flex items-center justify-between overflow-x-auto scrollbar-hide'>
+              {steps.map((label, index) => {
+                const step = index + 1
+                const isCompleted = currentStep > step
+                const isActive = currentStep === step
+                const isVisited = currentStep >= step
 
-          {/* Navigation Buttons */}
-          <div className='flex justify-between mt-8'>
-            <div className='flex space-x-2'>
-              {currentStep > 1 && (
-                <button
-                  type='button'
-                  onClick={handleBack}
-                  className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
-                >
-                  Previous
-                </button>
-              )}
+                return (
+                  <React.Fragment key={label}>
+                    <div className='flex flex-col items-center min-w-[80px]'>
+                      <div
+                        className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm md:text-base ${
+                          isVisited
+                            ? 'bg-yellow-500 text-black'
+                            : 'bg-[#2e1b47] text-white'
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle className='w-5 h-5' />
+                        ) : (
+                          getStepIcon(step)
+                        )}
+                      </div>
+                      <span
+                        className={`text-[10px] md:text-xs mt-1 text-center w-20 break-words ${
+                          isVisited ? 'text-yellow-500' : 'text-gray-400'
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                    {step < steps.length && (
+                      <div
+                        className={`flex-1 h-0.5 mx-1 md:mx-2 ${
+                          isCompleted ? 'bg-yellow-500' : 'bg-[#2e1b47]'
+                        }`}
+                      />
+                    )}
+                  </React.Fragment>
+                )
+              })}
             </div>
-            <div className='flex space-x-2 '>
-              {currentStep < 10 ? (
-                <>
-                  <Link href={`/events/${id}`}>
-                    <button
-                      type='button'
-                      className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
-                    >
-                      Cancel
-                    </button>
-                  </Link>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            {renderCurrentStep()}
+
+            {/* Navigation Buttons */}
+            <div className='flex justify-between mt-8'>
+              <div className='flex space-x-2'>
+                {currentStep > 1 && (
                   <button
                     type='button'
-                    className='bg-yellow-500 text-black px-6 py-2 rounded font-semibold hover:bg-yellow-400 transition-colors'
-                    onClick={handleNext}
+                    onClick={handleBack}
+                    className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
                   >
-                    Next
+                    Previous
                   </button>
-                </>
-              ) : (
-                <div className='flex space-x-4'>
-                  <Link href={`/events/${id}`}>
+                )}
+              </div>
+              <div className='flex space-x-2 '>
+                {currentStep < 10 ? (
+                  <>
+                    <Link href={`/events/${id}`}>
+                      <button
+                        type='button'
+                        className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                      >
+                        Cancel
+                      </button>
+                    </Link>
                     <button
                       type='button'
-                      className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                      className='bg-yellow-500 text-black px-6 py-2 rounded font-semibold hover:bg-yellow-400 transition-colors'
+                      onClick={handleNext}
                     >
-                      Cancel
+                      Next
                     </button>
-                  </Link>
-                  <button
-                    type='submit'
-                    disabled={processing || (formData.paymentMethod === 'card' && (!squareLoaded || !cardInstance.current))}
-                    className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    {processing ? 'Processing...' : formData.paymentMethod === 'card' ? 
-                      `Pay ${tournamentSettings?.simpleFees?.currency || '$'}${(tournamentSettings?.simpleFees?.fighterFee || 75).toFixed(2)}` : 
-                      'Submit Registration'}
-                  </button>
-                </div>
-              )}
+                  </>
+                ) : (
+                  <div className='flex space-x-4'>
+                    <Link href={`/events/${id}`}>
+                      <button
+                        type='button'
+                        className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                      >
+                        Cancel
+                      </button>
+                    </Link>
+                    <button
+                      type='submit'
+                      disabled={
+                        processing ||
+                        (formData.paymentMethod === 'card' &&
+                          (!squareLoaded || !cardInstance.current))
+                      }
+                      className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                      {processing
+                        ? 'Processing...'
+                        : formData.paymentMethod === 'card'
+                        ? `Pay ${
+                            tournamentSettings?.simpleFees?.currency || '$'
+                          }${(
+                            tournamentSettings?.simpleFees?.fighterFee || 75
+                          ).toFixed(2)}`
+                        : 'Submit Registration'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
 
-        {/* Step Information */}
-        <div className='mt-6 text-center'>
-          <p className='text-gray-400 text-sm'>
-            {currentStep === 1 &&
-              'Complete your personal information and contact details'}
-            {currentStep === 2 && 'Provide your physical measurements'}
-            {currentStep === 3 && 'Tell us about your fighting experience'}
-            {currentStep === 4 && 'Select your preferred fighting style'}
-            {currentStep === 5 && 'Select your weight class and skill level'}
-            {currentStep === 6 && 'Preview your bracket selection'}
-            {currentStep === 7 && 'Provide your trainer information'}
-            {currentStep === 8 && 'Confirm your age'}
-            {currentStep === 9 && 'Review and accept the waiver'}
-            {currentStep === 10 && 'Complete the payment process'}
-          </p>
+          {/* Step Information */}
+          <div className='mt-6 text-center'>
+            <p className='text-gray-400 text-sm'>
+              {currentStep === 1 &&
+                'Complete your personal information and contact details'}
+              {currentStep === 2 && 'Provide your physical measurements'}
+              {currentStep === 3 && 'Tell us about your fighting experience'}
+              {currentStep === 4 && 'Select your preferred fighting style'}
+              {currentStep === 5 && 'Select your weight class and skill level'}
+              {currentStep === 6 && 'Preview your bracket selection'}
+              {currentStep === 7 && 'Provide your trainer information'}
+              {currentStep === 8 && 'Confirm your age'}
+              {currentStep === 9 && 'Review and accept the waiver'}
+              {currentStep === 10 && 'Complete the payment process'}
+            </p>
+          </div>
         </div>
       </div>
-    </div>
     </>
   )
 }

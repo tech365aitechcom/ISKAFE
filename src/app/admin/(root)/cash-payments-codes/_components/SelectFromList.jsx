@@ -7,17 +7,22 @@ export default function SelectFromList({
   events,
   selectedEvent,
   setSelectedEvent,
-  handleFighterClick,
   loading,
   error,
-  onRedeemCode,
+  cashCodes,
+  currentPage,
+  limit,
+  setLimit,
+  setCurrentPage,
+  totalPages,
+  totalItems,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
 
   // Filter events based on search query
-  const filteredEvents = events.filter(event => 
+  const filteredEvents = events.filter((event) =>
     event.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  )
 
   return (
     <div className='text-white mt-5 w-full'>
@@ -38,18 +43,12 @@ export default function SelectFromList({
           />
         </div>
       </div>
-      
+
       {selectedEvent ? (
         <div>
           <div className='bg-[#AEBFFF33] flex items-center gap-12 px-3 py-2 w-fit rounded mb-4'>
             <button className='text-left rounded text-sm transition-colors duration-200'>
               <div className='font-medium'>{selectedEvent.name}</div>
-              <div className='text-xs text-gray-400'>
-                {selectedEvent.startDate ? 
-                  new Date(selectedEvent.startDate).toLocaleDateString() : 
-                  selectedEvent.date
-                }
-              </div>
             </button>
             <X
               size={18}
@@ -58,9 +57,13 @@ export default function SelectFromList({
             />
           </div>
           <CodesTable
-            users={selectedEvent.users}
-            handleFighterClick={handleFighterClick}
-            onRedeemCode={onRedeemCode}
+            cashCodes={cashCodes}
+            limit={limit}
+            setLimit={setLimit}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
           />
         </div>
       ) : (
@@ -71,28 +74,24 @@ export default function SelectFromList({
             </div>
           )}
           <div className='flex flex-wrap gap-4'>
-          {filteredEvents.map((event, index) => (
-            <button
-              key={index}
-              className='bg-[#AEBFFF33] text-left p-3 rounded text-sm transition-colors duration-200 flex-grow min-w-min hover:bg-[#2E3094]'
-              style={{ maxWidth: 'fit-content' }}
-              onClick={() => setSelectedEvent(event)}
-            >
-              <div className='font-medium'>{event.name}</div>
-              <div className='text-xs text-gray-400 mt-1'>
-                {event.startDate ? 
-                  new Date(event.startDate).toLocaleDateString() : 
-                  event.date
-                } • {event.users.length} codes issued
+            {filteredEvents.map((event, index) => (
+              <button
+                key={index}
+                className='bg-[#AEBFFF33] text-left p-3 rounded text-sm transition-colors duration-200 flex-grow min-w-min hover:bg-[#2E3094]'
+                style={{ maxWidth: 'fit-content' }}
+                onClick={() => setSelectedEvent(event)}
+              >
+                <div className='font-medium'>{event.name}</div>
+              </button>
+            ))}
+
+            {filteredEvents?.length === 0 && !loading && (
+              <div className='text-center w-full py-8 text-gray-400'>
+                {events?.length === 0
+                  ? 'No events found'
+                  : 'No events match your search'}
               </div>
-            </button>
-          ))}
-          
-          {filteredEvents.length === 0 && !loading && (
-            <div className='text-center w-full py-8 text-gray-400'>
-              {events.length === 0 ? 'No events found' : 'No events match your search'}
-            </div>
-          )}
+            )}
           </div>
         </>
       )}
