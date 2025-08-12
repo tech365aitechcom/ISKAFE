@@ -387,7 +387,7 @@ const PaymentScreen = ({
         console.log('Processing Square card payment...')
         const { transactionId, orderId, receiptNumber, last4, receiptUrl } =
           await processSquarePayment()
-        payload.squareDetails = {
+        purchasePayload.squareDetails = {
           transactionId,
           orderId,
           receiptNumber,
