@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../../../constants/index'
 import axios from 'axios'
 import moment from 'moment'
 import FightCard from './_components/FightCard'
+import Tournament from './_components/Tournament'
 import Loader from '../../../_components/Loader'
 import RegistrationSection from './_components/RegistrationSection'
 import Link from 'next/link'
@@ -17,8 +18,8 @@ const page = ({ params }) => {
   const tabNames = [
     'Details',
     'Registration',
-    // 'Tournaments',
-    // 'Fight Card',
+    'Tournaments',
+    'Fight Card',
     'Fighters Registered',
     'Sanctioning Body',
     'Rules',
@@ -42,21 +43,6 @@ const page = ({ params }) => {
   useEffect(() => {
     fetchEventDetails()
   }, [id])
-
-  const fighters = [
-    {
-      name: 'Eric Franks',
-      location: 'Palmdale, CA, USA',
-      record: '1-0-0',
-      image: '/fighter1.png',
-    },
-    {
-      name: 'Skyler Williams',
-      location: 'Macon, CA, USA',
-      record: '0-1-0, Sparring: 1 Bout',
-      image: '/fighter2.png',
-    },
-  ]
 
   if (loading) {
     return (
@@ -93,6 +79,11 @@ const page = ({ params }) => {
               <p className='text-gray-400 text-lg max-w-2xl'>
                 {eventDetails?.briefDescription}
               </p>
+              {eventDetails?.promoter && (
+                <p className='text-gray-400 text-sm'>
+                  Presented by: {eventDetails.promoter.name}
+                </p>
+              )}
             </div>
             <div className='md:text-right flex md:flex-col items-center gap-4 md:gap-0'>
               <div className='text-3xl font-bold text-yellow-500 mb-1'>
@@ -134,10 +125,16 @@ const page = ({ params }) => {
         )}
 
         {activeTab === 'Registration' && (
-          <RegistrationSection eventId={id} padding={'p-4'} />
+          <RegistrationSection eventId={id} padding={'p-4'} showTable={true} />
         )}
 
-        {activeTab === 'Fight Card' && <FightCard fighters={fighters} />}
+        {activeTab === 'Tournaments' && (
+          <Tournament eventDetails={eventDetails} />
+        )}
+
+        {activeTab === 'Fight Card' && (
+          <FightCard eventDetails={eventDetails} />
+        )}
 
         {activeTab === 'Sanctioning Body' && (
           <div className='bg-[#1b0c2e] rounded-xl p-6 md:p-8 shadow-lg'>
@@ -179,7 +176,7 @@ const page = ({ params }) => {
               </p>
             </div>
 
-            {fighters?.length > 0 ? (
+            {eventDetails?.registeredFighters?.length > 0 ? (
               <div className='overflow-x-auto custom-scrollbar'>
                 <table className='min-w-full bg-[#140b23] text-white border border-gray-700 rounded-lg'>
                   <thead>

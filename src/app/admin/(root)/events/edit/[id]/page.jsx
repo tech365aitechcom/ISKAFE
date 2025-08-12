@@ -9,6 +9,10 @@ import Loader from "../../../../../_components/Loader";
 import Image from "next/image";
 import { enqueueSnackbar } from "notistack";
 import useStore from "../../../../../../stores/useStore";
+import { uploadToS3 } from "../../../../../../utils/uploadToS3";
+import Autocomplete from "../../../../../_components/Autocomplete";
+import { Country } from "country-state-city";
+import axios from "axios";
 
 export default function EditEventPage() {
   const router = useRouter();
@@ -25,11 +29,15 @@ export default function EditEventPage() {
     registrationStartDate: "",
     endDate: "",
   });
-  const [imageUploading, setImageUploading] = useState({
-    poster: false,
-    sanctioningBody: false,
-    licenseCertificate: false,
+  const [selectedFiles, setSelectedFiles] = useState({
+    poster: null,
+    sectioningBodyImage: null,
+    licenseCertificate: null,
   });
+  const [venues, setVenues] = useState([]);
+  const [promoters, setPromoters] = useState([]);
+  const [selectedVenue, setSelectedVenue] = useState(null);
+  const [selectedPromoter, setSelectedPromoter] = useState(null);
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -42,6 +50,35 @@ export default function EditEventPage() {
     }
   }, [params]);
 
+  useEffect(() => {
+    getVenues();
+    getPromoters();
+  }, []);
+
+  const getVenues = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/venues?page=1&limit=200`
+      );
+      console.log('Venues Response:', response.data);
+      setVenues(response.data.data.items);
+    } catch (error) {
+      console.log('Error fetching venues:', error);
+    }
+  };
+
+  const getPromoters = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/promoter?page=1&limit=200`
+      );
+      console.log('Promoters Response:', response.data);
+      setPromoters(response.data.data.items);
+    } catch (error) {
+      console.log('Error fetching promoters:', error);
+    }
+  };
+
   const fetchEventData = async (id) => {
     try {
       setLoading(true);
@@ -52,6 +89,19 @@ export default function EditEventPage() {
       const data = await response.json();
       if (data.success) {
         setEvent(data.data);
+        
+        // Set selected venue and promoter after event data is loaded
+        if (data.data.venue) {
+          const venueId = data.data.venue._id || data.data.venue;
+          setSelectedVenue({ value: venueId, label: data.data.venue.name || venueId });
+        }
+        if (data.data.promoter) {
+          const promoterId = data.data.promoter._id || data.data.promoter;
+          const promoterName = data.data.promoter.userId ? 
+            `${data.data.promoter.userId.firstName || ''} ${data.data.promoter.userId.lastName || ''}`.trim() :
+            promoterId;
+          setSelectedPromoter({ value: promoterId, label: promoterName });
+        }
       } else {
         throw new Error(data.message || "Error fetching event");
       }
@@ -284,58 +334,76 @@ export default function EditEventPage() {
     console.log("Validation passed, setting isEditing to true");
     setIsEditing(true);
     try {
+      // Handle image uploads first
+      let updatedEvent = { ...event };
+      
+      if (selectedFiles.poster) {
+        console.log("Uploading poster...");
+        updatedEvent.poster = await uploadToS3(selectedFiles.poster);
+      }
+      
+      if (selectedFiles.sectioningBodyImage) {
+        console.log("Uploading sectioning body image...");
+        updatedEvent.sectioningBodyImage = await uploadToS3(selectedFiles.sectioningBodyImage);
+      }
+      
+      if (selectedFiles.licenseCertificate) {
+        console.log("Uploading license certificate...");
+        if (!updatedEvent.promoter) updatedEvent.promoter = {};
+        updatedEvent.promoter.licenseCertificate = await uploadToS3(selectedFiles.licenseCertificate);
+      }
       // Create a normalized event with all necessary fields
       const normalizedEvent = {
         // Basic fields
-        name: event.name,
-        format: event.format,
-        koPolicy: event.koPolicy,
-        sportType: event.sportType,
-        poster: event.poster,
+        name: updatedEvent.name,
+        format: updatedEvent.format,
+        koPolicy: updatedEvent.koPolicy,
+        sportType: updatedEvent.sportType,
+        poster: updatedEvent.poster,
 
         // Dates
-        startDate: normalizeDateForServer(event.startDate),
-        endDate: normalizeDateForServer(event.endDate),
+        startDate: normalizeDateForServer(updatedEvent.startDate),
+        endDate: normalizeDateForServer(updatedEvent.endDate),
         registrationStartDate: normalizeDateForServer(
-          event.registrationStartDate
+          updatedEvent.registrationStartDate
         ),
         registrationDeadline: normalizeDateForServer(
-          event.registrationDeadline
+          updatedEvent.registrationDeadline
         ),
-        weighInDateTime: normalizeDateForServer(event.weighInDateTime),
+        weighInDateTime: normalizeDateForServer(updatedEvent.weighInDateTime),
 
         // Times (as strings)
-        rulesMeetingTime: event.rulesMeetingTime || "",
-        spectatorDoorsOpenTime: event.spectatorDoorsOpenTime || "",
-        fightStartTime: event.fightStartTime,
+        rulesMeetingTime: updatedEvent.rulesMeetingTime || "",
+        spectatorDoorsOpenTime: updatedEvent.spectatorDoorsOpenTime || "",
+        fightStartTime: updatedEvent.fightStartTime,
 
         // References (send only the IDs)
-        venue: event.venue?._id || event.venue,
-        promoter: event.promoter?._id || event.promoter,
+        venue: selectedVenue?.value || updatedEvent.venue?._id || updatedEvent.venue,
+        promoter: selectedPromoter?.value || updatedEvent.promoter?._id || updatedEvent.promoter,
 
         // Contact info
-        iskaRepName: event.iskaRepName || "",
-        iskaRepPhone: event.iskaRepPhone || "",
+        iskaRepName: updatedEvent.iskaRepName || "",
+        iskaRepPhone: updatedEvent.iskaRepPhone || "",
 
         // Descriptions
-        briefDescription: event.briefDescription,
-        fullDescription: event.fullDescription || "",
-        rules: event.rules || "",
+        briefDescription: updatedEvent.briefDescription,
+        fullDescription: updatedEvent.fullDescription || "",
+        rules: updatedEvent.rules || "",
 
         // Other fields
-        matchingMethod: event.matchingMethod,
-        externalURL: event.externalURL || "",
-        ageCategories: event.ageCategories || [],
-        weightClasses: event.weightClasses || [],
+        matchingMethod: updatedEvent.matchingMethod,
+        externalURL: updatedEvent.externalURL || "",
+        ageCategories: updatedEvent.ageCategories || [],
+        weightClasses: updatedEvent.weightClasses || [],
 
         // Sectioning body
-        sectioningBodyName: event.sectioningBodyName,
-        sectioningBodyDescription: event.sectioningBodyDescription || "",
-        sectioningBodyImage: event.sectioningBodyImage || "",
+        sectioningBodyName: updatedEvent.sectioningBodyName,
+        sectioningBodyDescription: updatedEvent.sectioningBodyDescription || "",
+        sectioningBodyImage: updatedEvent.sectioningBodyImage || "",
 
         // Publishing options
-        isDraft: event.isDraft,
-        publishBrackets: event.publishBrackets,
+        isDraft: updatedEvent.isDraft,
+        publishBrackets: updatedEvent.publishBrackets,
       };
 
       console.log("Checking required fields:");
@@ -390,6 +458,14 @@ export default function EditEventPage() {
 
       if (data.success) {
         enqueueSnackbar("Event updated successfully", { variant: "success" });
+        // Update local event state with new data
+        setEvent(data.data || updatedEvent);
+        // Clear selected files
+        setSelectedFiles({
+          poster: null,
+          sectioningBodyImage: null,
+          licenseCertificate: null,
+        });
         // Optionally redirect back to events list
         // router.push("/admin/events");
       } else {
@@ -405,60 +481,23 @@ export default function EditEventPage() {
     }
   };
 
-  const handleImageUpload = async (e, fieldName) => {
+  const handleImageSelect = (e, fieldName) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setImageUploading((prev) => ({ ...prev, [fieldName]: true }));
-
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const response = await fetch(`${API_BASE_URL}/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Image upload failed");
-      }
-
-      // Update the appropriate field based on fieldName
-      if (fieldName === "poster") {
-        setEvent((prev) => ({ ...prev, poster: data.url }));
-      } else if (fieldName === "sectioningBodyImage") {
-        setEvent((prev) => ({ ...prev, sectioningBodyImage: data.url }));
-      } else if (fieldName === "licenseCertificate") {
-        setEvent((prev) => ({
-          ...prev,
-          promoter: {
-            ...prev.promoter,
-            licenseCertificate: data.url,
-          },
-        }));
-      }
-
-      enqueueSnackbar("Image uploaded successfully", { variant: "success" });
-    } catch (err) {
-      enqueueSnackbar(err.message || "Failed to upload image", {
-        variant: "error",
-      });
-    } finally {
-      setImageUploading((prev) => ({ ...prev, [fieldName]: false }));
-    }
+    // Update selected files state
+    setSelectedFiles((prev) => ({ ...prev, [fieldName]: file }));
+    
+    enqueueSnackbar(`${fieldName} selected. It will be uploaded when you save the event.`, { variant: "info" });
   };
 
   const removeImage = (fieldName) => {
     if (fieldName === "poster") {
       setEvent((prev) => ({ ...prev, poster: "" }));
+      setSelectedFiles((prev) => ({ ...prev, poster: null }));
     } else if (fieldName === "sectioningBodyImage") {
       setEvent((prev) => ({ ...prev, sectioningBodyImage: "" }));
+      setSelectedFiles((prev) => ({ ...prev, sectioningBodyImage: null }));
     } else if (fieldName === "licenseCertificate") {
       setEvent((prev) => ({
         ...prev,
@@ -467,6 +506,7 @@ export default function EditEventPage() {
           licenseCertificate: "",
         },
       }));
+      setSelectedFiles((prev) => ({ ...prev, licenseCertificate: null }));
     }
   };
 
@@ -598,16 +638,18 @@ export default function EditEventPage() {
             <label className="text-sm mb-1 block">Event Poster</label>
             <div className="flex items-center gap-4 mb-2">
               <label className="relative cursor-pointer">
-                <div className="flex items-center gap-2 px-4 py-2 bg-[#0A1330] border border-[#343B4F] rounded hover:bg-[#1a2240] transition-colors">
+                <div className={`flex items-center gap-2 px-4 py-2 bg-[#0A1330] border border-[#343B4F] rounded transition-colors ${
+                  selectedVenue && selectedPromoter ? 'hover:bg-[#1a2240] cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                }`}>
                   <Upload size={16} />
-                  <span>{event.poster ? "Change Image" : "Upload Image"}</span>
+                  <span>{selectedFiles.poster ? "Change Image" : (event.poster ? "Replace Image" : "Upload Image")}</span>
                 </div>
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => handleImageUpload(e, "poster")}
-                  disabled={imageUploading.poster}
+                  onChange={(e) => handleImageSelect(e, "poster")}
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
               </label>
               {event.poster && (
@@ -621,9 +663,12 @@ export default function EditEventPage() {
                 </button>
               )}
             </div>
-            {imageUploading.poster ? (
-              <div className="flex items-center justify-center h-64 bg-[#0A1330] rounded-lg">
-                <Loader size={24} />
+            {selectedFiles.poster ? (
+              <div className="flex items-center justify-center h-64 bg-[#0A1330] rounded-lg border-2 border-dashed border-yellow-400">
+                <div className="text-center">
+                  <p className="text-yellow-400 font-medium">New image selected: {selectedFiles.poster.name}</p>
+                  <p className="text-gray-400 text-sm mt-1">This image will be uploaded when you save the event</p>
+                </div>
               </div>
             ) : event.poster ? (
               <div className="relative w-full max-w-md h-64">
@@ -641,6 +686,13 @@ export default function EditEventPage() {
             )}
           </div>
 
+          {(!selectedVenue || !selectedPromoter) && (
+            <p className='text-red-500 text-sm mb-6'>
+              Please select venue and promoter to proceed with the event
+              editing.
+            </p>
+          )}
+
           {/* Event Properties */}
           <div className="border border-[#343B4F] rounded-lg p-6 relative mb-6">
             <div className="flex justify-between items-center mb-6">
@@ -656,7 +708,8 @@ export default function EditEventPage() {
                   name="name"
                   value={event.name || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue || !selectedPromoter}
                   required
                 />
               </div>
@@ -669,7 +722,7 @@ export default function EditEventPage() {
                   name="format"
                   value={event.format || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -681,7 +734,7 @@ export default function EditEventPage() {
                   name="koPolicy"
                   value={event.koPolicy || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -693,7 +746,7 @@ export default function EditEventPage() {
                   name="sportType"
                   value={event.sportType || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -710,7 +763,7 @@ export default function EditEventPage() {
                   }
                   onChange={handleInputChange}
                   onBlur={handleDateBlur}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   required
                 />
               </div>
@@ -817,7 +870,7 @@ export default function EditEventPage() {
                   }
                   onChange={handleInputChange}
                   onBlur={handleDateBlur}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -829,7 +882,7 @@ export default function EditEventPage() {
                   name="rulesMeetingTime"
                   value={event.rulesMeetingTime || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -843,7 +896,7 @@ export default function EditEventPage() {
                   name="spectatorDoorsOpenTime"
                   value={event.spectatorDoorsOpenTime || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -855,7 +908,7 @@ export default function EditEventPage() {
                   name="fightStartTime"
                   value={event.fightStartTime || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -866,7 +919,7 @@ export default function EditEventPage() {
                   name="briefDescription"
                   value={event.briefDescription || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   rows={3}
                 />
               </div>
@@ -878,7 +931,7 @@ export default function EditEventPage() {
                   name="fullDescription"
                   value={event.fullDescription || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   rows={5}
                 />
               </div>
@@ -890,7 +943,7 @@ export default function EditEventPage() {
                   name="rules"
                   value={event.rules || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   rows={5}
                 />
               </div>
@@ -903,7 +956,7 @@ export default function EditEventPage() {
                   name="matchingMethod"
                   value={event.matchingMethod || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -925,7 +978,7 @@ export default function EditEventPage() {
                         .map((item) => item.trim()),
                     }));
                   }}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -947,7 +1000,7 @@ export default function EditEventPage() {
                         .map((item) => item.trim()),
                     }));
                   }}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -961,7 +1014,7 @@ export default function EditEventPage() {
                   name="sectioningBodyName"
                   value={event.sectioningBodyName || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -975,7 +1028,7 @@ export default function EditEventPage() {
                   name="sectioningBodyDescription"
                   value={event.sectioningBodyDescription || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -986,12 +1039,14 @@ export default function EditEventPage() {
                 </label>
                 <div className="flex items-center gap-4 mb-2">
                   <label className="relative cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-[#0A1330] border border-[#343B4F] rounded hover:bg-[#1a2240] transition-colors">
+                    <div className={`flex items-center gap-2 px-4 py-2 bg-[#0A1330] border border-[#343B4F] rounded transition-colors ${
+                      selectedVenue && selectedPromoter ? 'hover:bg-[#1a2240] cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                    }`}>
                       <Upload size={16} />
                       <span>
-                        {event.sectioningBodyImage
-                          ? "Change Image"
-                          : "Upload Image"}
+                        {selectedFiles.sectioningBodyImage ? "Change Image" : (event.sectioningBodyImage
+                          ? "Replace Image"
+                          : "Upload Image")}
                       </span>
                     </div>
                     <input
@@ -999,9 +1054,9 @@ export default function EditEventPage() {
                       accept="image/*"
                       className="hidden"
                       onChange={(e) =>
-                        handleImageUpload(e, "sectioningBodyImage")
+                        handleImageSelect(e, "sectioningBodyImage")
                       }
-                      disabled={imageUploading.sectioningBodyImage}
+                      disabled={!selectedVenue || !selectedPromoter}
                     />
                   </label>
                   {event.sectioningBodyImage && (
@@ -1015,9 +1070,12 @@ export default function EditEventPage() {
                     </button>
                   )}
                 </div>
-                {imageUploading.sectioningBodyImage ? (
-                  <div className="flex items-center justify-center h-32 bg-[#0A1330] rounded-lg">
-                    <Loader size={24} />
+                {selectedFiles.sectioningBodyImage ? (
+                  <div className="flex items-center justify-center h-32 bg-[#0A1330] rounded-lg border-2 border-dashed border-yellow-400">
+                    <div className="text-center">
+                      <p className="text-yellow-400 font-medium text-sm">New image: {selectedFiles.sectioningBodyImage.name}</p>
+                      <p className="text-gray-400 text-xs mt-1">Will upload on save</p>
+                    </div>
                   </div>
                 ) : event.sectioningBodyImage ? (
                   <div className="relative w-32 h-32">
@@ -1045,7 +1103,7 @@ export default function EditEventPage() {
                   name="iskaRepName"
                   value={event.iskaRepName || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -1059,9 +1117,46 @@ export default function EditEventPage() {
                   name="iskaRepPhone"
                   value={event.iskaRepPhone || ""}
                   onChange={handleInputChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Venue Selection */}
+          <div className="border border-[#343B4F] rounded-lg p-6 relative mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-bold text-lg">VENUE SELECTION</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+              {/* Venue Search/Select */}
+              <Autocomplete
+                label={'Search or Select venue'}
+                options={venues.map((venue) => ({
+                  label: `${venue.name} (${venue.address.street1}, ${
+                    venue.address.city
+                  }, ${
+                    Country.getCountryByCode(venue.address.country)?.name || ''
+                  })`,
+                  value: venue._id,
+                }))}
+                selected={selectedVenue}
+                onChange={(value) => setSelectedVenue(value)}
+                placeholder='Search venue name'
+                required={true}
+              />
+
+              {/* Add New Venue Button */}
+              <button
+                type='button'
+                className='px-4 py-2 rounded-md font-medium transition-colors duration-200 bg-gray-200 text-gray-800 hover:bg-gray-300 w-fit h-fit'
+                onClick={() =>
+                  router.push('/admin/venues?redirectOrigin=editEvent')
+                }
+              >
+                Add New Venue
+              </button>
             </div>
           </div>
 
@@ -1080,7 +1175,8 @@ export default function EditEventPage() {
                   name="name"
                   value={event.venue?.name || ""}
                   onChange={handleVenueChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1092,7 +1188,8 @@ export default function EditEventPage() {
                   name="contactName"
                   value={event.venue?.contactName || ""}
                   onChange={handleVenueChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1104,7 +1201,8 @@ export default function EditEventPage() {
                   name="contactPhone"
                   value={event.venue?.contactPhone || ""}
                   onChange={handleVenueChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1116,7 +1214,8 @@ export default function EditEventPage() {
                   name="contactEmail"
                   value={event.venue?.contactEmail || ""}
                   onChange={handleVenueChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1128,7 +1227,8 @@ export default function EditEventPage() {
                   name="capacity"
                   value={event.venue?.capacity || ""}
                   onChange={handleVenueChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1140,7 +1240,8 @@ export default function EditEventPage() {
                   name="mapLink"
                   value={event.venue?.mapLink || ""}
                   onChange={handleVenueChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1152,7 +1253,8 @@ export default function EditEventPage() {
                   name="street1"
                   value={event.venue?.address?.street1 || ""}
                   onChange={handleAddressChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1164,7 +1266,8 @@ export default function EditEventPage() {
                   name="street2"
                   value={event.venue?.address?.street2 || ""}
                   onChange={handleAddressChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1176,7 +1279,8 @@ export default function EditEventPage() {
                   name="city"
                   value={event.venue?.address?.city || ""}
                   onChange={handleAddressChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1188,7 +1292,8 @@ export default function EditEventPage() {
                   name="state"
                   value={event.venue?.address?.state || ""}
                   onChange={handleAddressChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1200,7 +1305,8 @@ export default function EditEventPage() {
                   name="postalCode"
                   value={event.venue?.address?.postalCode || ""}
                   onChange={handleAddressChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
 
@@ -1212,9 +1318,47 @@ export default function EditEventPage() {
                   name="country"
                   value={event.venue?.address?.country || ""}
                   onChange={handleAddressChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedVenue}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Promoter Selection */}
+          <div className="border border-[#343B4F] rounded-lg p-6 relative mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-bold text-lg">PROMOTER SELECTION</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+              {/* Promoter Search/Select */}
+              <Autocomplete
+                label={'Search or Select promoter'}
+                options={promoters.map((promoter) => ({
+                  label: `${promoter.userId?.firstName || ''} ${
+                    promoter.userId?.middleName || ''
+                  } ${promoter.userId?.lastName || ''} (${
+                    promoter.userId?.email || ''
+                  })`,
+                  value: promoter._id,
+                }))}
+                selected={selectedPromoter}
+                onChange={(value) => setSelectedPromoter(value)}
+                placeholder='Search promoter name'
+                required={true}
+              />
+
+              {/* Add New Promoter Button */}
+              <button
+                type='button'
+                className='px-4 py-2 rounded-md font-medium bg-gray-200 text-gray-800 hover:bg-gray-300 w-fit h-fit'
+                onClick={() =>
+                  router.push('/admin/promoter?redirectOrigin=editEvent')
+                }
+              >
+                Add New Promoter
+              </button>
             </div>
           </div>
 
@@ -1233,7 +1377,8 @@ export default function EditEventPage() {
                   name="name"
                   value={event.promoter?.name || ""}
                   onChange={handlePromoterChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1245,7 +1390,8 @@ export default function EditEventPage() {
                   name="abbreviation"
                   value={event.promoter?.abbreviation || ""}
                   onChange={handlePromoterChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1257,7 +1403,8 @@ export default function EditEventPage() {
                   name="websiteURL"
                   value={event.promoter?.websiteURL || ""}
                   onChange={handlePromoterChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1269,7 +1416,8 @@ export default function EditEventPage() {
                   name="sanctioningBody"
                   value={event.promoter?.sanctioningBody || ""}
                   onChange={handlePromoterChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1280,12 +1428,14 @@ export default function EditEventPage() {
                 </label>
                 <div className="flex items-center gap-4 mb-2">
                   <label className="relative cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-[#0A1330] border border-[#343B4F] rounded hover:bg-[#1a2240] transition-colors">
+                    <div className={`flex items-center gap-2 px-4 py-2 bg-[#0A1330] border border-[#343B4F] rounded transition-colors ${
+                      selectedPromoter ? 'hover:bg-[#1a2240] cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                    }`}>
                       <Upload size={16} />
                       <span>
-                        {event.promoter?.licenseCertificate
-                          ? "Change Image"
-                          : "Upload Image"}
+                        {selectedFiles.licenseCertificate ? "Change Image" : (event.promoter?.licenseCertificate
+                          ? "Replace Image"
+                          : "Upload Image")}
                       </span>
                     </div>
                     <input
@@ -1293,9 +1443,9 @@ export default function EditEventPage() {
                       accept="image/*"
                       className="hidden"
                       onChange={(e) =>
-                        handleImageUpload(e, "licenseCertificate")
+                        handleImageSelect(e, "licenseCertificate")
                       }
-                      disabled={imageUploading.licenseCertificate}
+                      disabled={!selectedPromoter}
                     />
                   </label>
                   {event.promoter?.licenseCertificate && (
@@ -1309,9 +1459,12 @@ export default function EditEventPage() {
                     </button>
                   )}
                 </div>
-                {imageUploading.licenseCertificate ? (
-                  <div className="flex items-center justify-center h-32 bg-[#0A1330] rounded-lg">
-                    <Loader size={24} />
+                {selectedFiles.licenseCertificate ? (
+                  <div className="flex items-center justify-center h-32 bg-[#0A1330] rounded-lg border-2 border-dashed border-yellow-400">
+                    <div className="text-center">
+                      <p className="text-yellow-400 font-medium text-sm">New certificate: {selectedFiles.licenseCertificate.name}</p>
+                      <p className="text-gray-400 text-xs mt-1">Will upload on save</p>
+                    </div>
                   </div>
                 ) : event.promoter?.licenseCertificate ? (
                   <div className="relative w-full max-w-md h-64">
@@ -1339,7 +1492,8 @@ export default function EditEventPage() {
                   name="contactPersonName"
                   value={event.promoter?.contactPersonName || ""}
                   onChange={handlePromoterChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1353,7 +1507,8 @@ export default function EditEventPage() {
                   name="alternatePhoneNumber"
                   value={event.promoter?.alternatePhoneNumber || ""}
                   onChange={handlePromoterChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1365,7 +1520,8 @@ export default function EditEventPage() {
                   name="firstName"
                   value={event.promoter?.userId?.firstName || ""}
                   onChange={handleUserIdChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1377,7 +1533,8 @@ export default function EditEventPage() {
                   name="lastName"
                   value={event.promoter?.userId?.lastName || ""}
                   onChange={handleUserIdChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1389,7 +1546,8 @@ export default function EditEventPage() {
                   name="email"
                   value={event.promoter?.userId?.email || ""}
                   onChange={handleUserIdChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
 
@@ -1401,7 +1559,8 @@ export default function EditEventPage() {
                   name="phoneNumber"
                   value={event.promoter?.userId?.phoneNumber || ""}
                   onChange={handleUserIdChange}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedPromoter}
                 />
               </div>
             </div>
@@ -1426,7 +1585,7 @@ export default function EditEventPage() {
                       isDraft: e.target.value === "true",
                     }));
                   }}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="true">Yes</option>
                   <option value="false">No</option>
@@ -1445,7 +1604,7 @@ export default function EditEventPage() {
                       publishBrackets: e.target.value === "true",
                     }));
                   }}
-                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2"
+                  className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="true">Yes</option>
                   <option value="false">No</option>
