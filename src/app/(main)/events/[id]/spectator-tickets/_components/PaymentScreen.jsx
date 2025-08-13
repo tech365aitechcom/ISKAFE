@@ -442,7 +442,7 @@ const PaymentScreen = ({
       console.log('API Response:', data)
 
       if (data.success) {
-        enqueueSnackbar('Payment successful!', { variant: 'success' })
+        // enqueueSnackbar('Payment successful!', { variant: 'success' })
         onNext('confirmation', {
           purchaseResult: data.data,
           qrCode: data.data?.qrCode,

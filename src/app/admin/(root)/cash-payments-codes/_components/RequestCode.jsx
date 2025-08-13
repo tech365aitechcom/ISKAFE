@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { paymentTypes, API_BASE_URL } from '../../../../../constants'
 import { ChevronDown, X } from 'lucide-react'
 import axios from 'axios'
+import moment from 'moment'
 
 export default function RequestCode({
   onBack,
@@ -19,6 +20,11 @@ export default function RequestCode({
   const [paymentNotes, setPaymentNotes] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldsLocked, setFieldsLocked] = useState(false)
+  const [spectatorForm, setSpectatorForm] = useState({ name: '', email: '', mobile: '', amount: '', paymentNotes: '' })
+  const [trainerForm, setTrainerForm] = useState({ name: '', email: '', mobile: '', amount: '', paymentNotes: '' })
+  const [fighterForm, setFighterForm] = useState({ name: '', email: '', mobile: '', amount: '', paymentNotes: '' })
+  const [codeGenerated, setCodeGenerated] = useState(false)
   const [users, setUsers] = useState([])
   const [filteredUsers, setFilteredUsers] = useState([])
   const [showUserDropdown, setShowUserDropdown] = useState(false)
@@ -69,6 +75,11 @@ export default function RequestCode({
   }
 
   const handleNameChange = (value) => {
+    // Enforce 50 character limit and alphabetic only for name
+    if (value.length > 50) {
+      return
+    }
+    
     setName(value)
     setSearchQuery(value)
     setSelectedUser(null)
@@ -103,7 +114,9 @@ export default function RequestCode({
         if (!value.trim()) {
           error = 'Name is required'
         } else if (!/^[A-Za-z\s'-]+$/.test(value)) {
-          error = 'Name must not contain special characters or numbers'
+          error = 'Name must contain only alphabetic characters'
+        } else if (value.length > 50) {
+          error = 'Name must not exceed 50 characters'
         }
         break
       case 'email':
@@ -126,8 +139,8 @@ export default function RequestCode({
         }
         break
       case 'paymentNotes':
-        if (!value.trim()) {
-          error = 'Payment description is required'
+        if (value.length > 200) {
+          error = 'Description must not exceed 200 characters'
         }
         break
       case 'eventDate':
@@ -164,7 +177,43 @@ export default function RequestCode({
   }
 
   const handleToggle = (button) => {
+    // Save current form data before switching
+    const currentFormData = {
+      name,
+      email,
+      mobile,
+      amount,
+      paymentNotes
+    }
+    
+    if (activeButton === 'spectator') {
+      setSpectatorForm(currentFormData)
+    } else if (activeButton === 'trainer') {
+      setTrainerForm(currentFormData)
+    } else if (activeButton === 'fighter') {
+      setFighterForm(currentFormData)
+    }
+    
+    // Load form data for the selected button
+    let formData
+    if (button === 'spectator') {
+      formData = spectatorForm
+    } else if (button === 'trainer') {
+      formData = trainerForm
+    } else if (button === 'fighter') {
+      formData = fighterForm
+    }
+    
+    setName(formData.name || '')
+    setEmail(formData.email || '')
+    setMobile(formData.mobile || '')
+    setAmount(formData.amount || '')
+    setPaymentNotes(formData.paymentNotes || '')
+    
     setActiveButton(button)
+    setSelectedUser(null)
+    setShowUserDropdown(false)
+    setFieldErrors({})
   }
 
   const getPreviewData = () => {
@@ -210,12 +259,14 @@ export default function RequestCode({
     }
 
     setIsSubmitting(true)
+    setFieldsLocked(true)
 
     try {
       // Use the proper payload structure as per requirements
       const codeData = getPreviewData()
 
       await onAddCode(codeData)
+      setCodeGenerated(true)
 
       // Reset form only on success
       setName('')
@@ -225,8 +276,12 @@ export default function RequestCode({
       setPaymentNotes('')
       setSelectedUser(null)
       setFieldErrors({})
+      setSpectatorForm({ name: '', email: '', mobile: '', amount: '', paymentNotes: '' })
+      setTrainerForm({ name: '', email: '', mobile: '', amount: '', paymentNotes: '' })
+      setFighterForm({ name: '', email: '', mobile: '', amount: '', paymentNotes: '' })
     } catch (error) {
       console.error('Error submitting code:', error)
+      setFieldsLocked(false)
     } finally {
       setIsSubmitting(false)
     }
@@ -259,9 +314,11 @@ export default function RequestCode({
       {selectedEvent && (
         <div className='mb-6 p-4 bg-[#122046] rounded-lg'>
           <h2 className='text-lg font-bold mb-2'>Selected Event</h2>
-          <p className='text-blue-300'>{selectedEvent.name}</p>
-          <p className='text-sm text-gray-400'>Date: {selectedEvent.date}</p>
-          <p className='text-sm text-gray-400'>Event ID: {selectedEvent.id}</p>
+          <p className='text-blue-300 text-lg font-semibold'>{selectedEvent.name}</p>
+          <p className='text-sm text-gray-300 mt-1'>
+            {moment(selectedEvent.startDate).format('YYYY-MM-DD')}
+          </p>
+          <p className='text-sm text-gray-300'>{selectedEvent._id}</p>
         </div>
       )}
 
@@ -271,7 +328,8 @@ export default function RequestCode({
           onClick={() => handleToggle('spectator')}
           className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
             activeButton === 'spectator' ? 'bg-[#2E3094] shadow-md' : ''
-          }`}
+          } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={fieldsLocked}
         >
           Spectator
         </button>
@@ -280,7 +338,8 @@ export default function RequestCode({
           onClick={() => handleToggle('trainer')}
           className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
             activeButton === 'trainer' ? 'bg-[#2E3094] shadow-md' : ''
-          }`}
+          } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={fieldsLocked}
         >
           Trainer
         </button>
@@ -288,7 +347,8 @@ export default function RequestCode({
           onClick={() => handleToggle('fighter')}
           className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
             activeButton === 'fighter' ? 'bg-[#2E3094] shadow-md' : ''
-          }`}
+          } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={fieldsLocked}
         >
           Fighter
         </button>
@@ -312,7 +372,7 @@ export default function RequestCode({
               placeholder={`Start typing ${activeButton} name or enter manually`}
               className={`w-full border rounded-md p-2 text-white text-xs pr-8 bg-transparent ${
                 fieldErrors.name ? 'border-red-500' : 'border-[#343B4F]'
-              }`}
+              } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               onFocus={() => {
@@ -320,6 +380,8 @@ export default function RequestCode({
                   setShowUserDropdown(true)
                 }
               }}
+              disabled={fieldsLocked}
+              maxLength={50}
             />
             {name && (
               <button
@@ -377,9 +439,10 @@ export default function RequestCode({
             placeholder='Enter email address'
             className={`w-full border rounded-md p-2 text-white text-xs bg-transparent ${
               fieldErrors.email ? 'border-red-500' : 'border-[#343B4F]'
-            }`}
+            } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
             value={email}
             onChange={(e) => handleFieldChange('email', e.target.value)}
+            disabled={fieldsLocked}
           />
           {fieldErrors.email && (
             <p className='text-red-500 text-xs mt-1'>{fieldErrors.email}</p>
@@ -396,9 +459,10 @@ export default function RequestCode({
             placeholder='Enter mobile number'
             className={`w-full border rounded-md p-2 text-white text-xs bg-transparent ${
               fieldErrors.mobile ? 'border-red-500' : 'border-[#343B4F]'
-            }`}
+            } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
             value={mobile}
             onChange={(e) => handleFieldChange('mobile', e.target.value)}
+            disabled={fieldsLocked}
           />
           {fieldErrors.mobile && (
             <p className='text-red-500 text-xs mt-1'>{fieldErrors.mobile}</p>
@@ -411,10 +475,11 @@ export default function RequestCode({
             Payment Type<span className='text-red-500'>*</span>
           </label>
           <select
-            className='w-full border border-[#343B4F] rounded-md p-2 text-[#AEB9E1] text-xs'
+            className={`w-full border border-[#343B4F] rounded-md p-2 text-[#AEB9E1] text-xs ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
             value={paymentType}
             onChange={(e) => setPaymentType(e.target.value)}
             required
+            disabled={fieldsLocked}
           >
             {paymentTypes.map((type) => (
               <option key={type} value={type}>
@@ -433,9 +498,10 @@ export default function RequestCode({
             type='date'
             className={`w-full border rounded-md p-2 text-white text-xs bg-transparent ${
               fieldErrors.eventDate ? 'border-red-500' : 'border-[#343B4F]'
-            }`}
+            } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
             value={eventDate}
             onChange={(e) => handleFieldChange('eventDate', e.target.value)}
+            disabled={fieldsLocked}
           />
           {fieldErrors.eventDate && (
             <p className='text-red-500 text-xs mt-1'>{fieldErrors.eventDate}</p>
@@ -452,11 +518,12 @@ export default function RequestCode({
             placeholder='Enter amount'
             className={`w-full border rounded-md p-2 text-white text-xs bg-transparent ${
               fieldErrors.amount ? 'border-red-500' : 'border-[#343B4F]'
-            }`}
+            } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
             value={amount}
             onChange={(e) => handleFieldChange('amount', e.target.value)}
             min='0'
             step='0.01'
+            disabled={fieldsLocked}
           />
           {fieldErrors.amount && (
             <p className='text-red-500 text-xs mt-1'>{fieldErrors.amount}</p>
@@ -466,15 +533,17 @@ export default function RequestCode({
         {/* Payment Description Notes */}
         <div>
           <label className='block text-sm mb-2'>
-            Payment Description Notes<span className='text-red-500'>*</span>
+            Payment Description Notes
           </label>
           <textarea
-            placeholder='Enter payment details or reason'
+            placeholder='Enter payment details or reason (optional)'
             className={`w-full border rounded-md p-2 text-white text-xs h-24 bg-transparent ${
               fieldErrors.paymentNotes ? 'border-red-500' : 'border-[#343B4F]'
-            }`}
+            } ${fieldsLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
             value={paymentNotes}
             onChange={(e) => handleFieldChange('paymentNotes', e.target.value)}
+            maxLength={200}
+            disabled={fieldsLocked}
           />
           {fieldErrors.paymentNotes && (
             <p className='text-red-500 text-xs mt-1'>
@@ -495,7 +564,13 @@ export default function RequestCode({
         <div className='pt-4 flex justify-center gap-4'>
           <button
             type='button'
-            onClick={onBack}
+            onClick={() => {
+              if (!codeGenerated) {
+                onBack()
+              } else {
+                onBack()
+              }
+            }}
             className='text-white font-medium px-6 py-2 rounded-md border border-[#343B4F] hover:bg-[#343B4F] transition-colors'
             title='Closes the form and returns to previous screen'
           >

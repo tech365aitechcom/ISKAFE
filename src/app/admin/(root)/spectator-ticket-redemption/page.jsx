@@ -11,6 +11,8 @@ import ExportButtons from './_components/ExportButtons'
 import QRScanner from './_components/QRScanner'
 import RedemptionForm from './_components/RedemptionForm'
 import RedemptionList from './_components/RedemptionList'
+import axios from 'axios'
+import { API_BASE_URL } from '../../../../constants'
 
 export default function SpectatorTicketRedemption() {
   const user = useStore((state) => state.user)
@@ -272,38 +274,29 @@ export default function SpectatorTicketRedemption() {
 
     try {
       setLoading(true)
-      const response = await axiosInstance.post('/spectator-ticket/redeem', {
-        ticketCode: redeemCode.trim(),
-        quantityToRedeem: quantityToRedeem,
-        entryMode: 'Manual',
-        eventId: selectedEvent.id,
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/spectator-ticket/redeem`,
+        {
+          ticketCode: redeemCode.trim(),
+          quantityToRedeem: quantityToRedeem,
+          entryMode: 'Manual',
+          eventId: selectedEvent.id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      )
 
       if (response.data.success) {
-        const newRedemption = {
-          id: Date.now().toString(),
-          code: redeemCode,
-          name: response.data.data?.spectatorName || 'Spectator',
-          type: response.data.data?.tierName || 'General',
-          price: response.data.data?.price || 0,
-          redeemedAt: new Date().toISOString(),
-          redeemedBy: user.firstName
-            ? `${user.firstName} ${user.lastName}`
-            : 'Current Staff',
-          status: 'checked-in',
-          entryMode: 'manual',
-          quantity: quantityToRedeem,
-          remainingQuantity: response.data.data?.remainingQuantity || 0,
-        }
-
-        setRedemptions([...redemptions, newRedemption])
         setRedeemCode('')
         setQuantityToRedeem(1)
-
-        const successMessage = `✓ Successfully redeemed ${quantityToRedeem} ticket(s) for code ${redeemCode.trim()}!`
+        const successMessage = `Successfully redeemed ${quantityToRedeem} ticket(s) for code ${redeemCode.trim()}!`
         enqueueSnackbar(successMessage, {
           variant: 'success',
         })
+        fetchRedemptions()
 
         // Switch to redemption list tab to show the new entry
         setActiveTab('list')

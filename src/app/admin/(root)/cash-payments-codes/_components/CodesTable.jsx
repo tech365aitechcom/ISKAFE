@@ -30,7 +30,7 @@ export function CodesTable({
           <thead>
             <tr className='text-gray-400 text-sm'>
               {renderHeader('Ticket Code', 'code')}
-              {renderHeader('Player Name', 'name')}
+              {renderHeader('Name', 'name')}
               {renderHeader('Event Name', 'eventName')}
               {renderHeader('Payment Type', 'paymentType')}
               {renderHeader('Amount Paid', 'amount')}
