@@ -1,76 +1,150 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
+import {
+  sportsData,
+  disciplineData,
+  titleData,
+  bracketRuleData,
+  bracketStatusData,
+  proClassData,
+  bracketCriteriaData,
+  youthWeightClasses,
+  adultWeightClasses,
+  getAgeClasses,
+  getWeightClasses,
+  getDisciplines,
+  generateBracketName
+} from './bracketUtils'
 
 export default function NewBracketModal({ eventId, onClose, onCreate }) {
   const [formData, setFormData] = useState({
     bracketNumber: '',
-    divisionTitle: '',
-    group: '',
-    proClass: '',
+    bracketName: '',
     title: '',
-    status: 'Open',
-    ageClass: '',
+    bracketRule: '',
+    bracketStatus: 'Open',
+    proClass: '',
     sport: '',
-    ruleStyle: '',
+    discipline: '',
+    ageClass: '',
+    weightClass: '',
+    bracketCriteria: 'none',
     ring: '',
-    weightClass: {
-      min: '',
-      max: '',
-      unit: 'lbs',
-    },
     fightStartTime: '',
     weighInTime: '',
   })
 
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+
+
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target
 
-    if (name.startsWith('weightClass.')) {
-      const field = name.split('.')[1]
-      setFormData((prev) => ({
-        ...prev,
-        weightClass: {
-          ...prev.weightClass,
-          [field]: value,
-        },
-      }))
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }))
+    setFormData((prev) => {
+      const newFormData = { ...prev, [name]: value }
+
+      // Reset dependent fields when parent changes
+      if (name === 'sport') {
+        newFormData.ageClass = ''
+        newFormData.weightClass = ''
+        newFormData.discipline = ''
+      }
+
+      if (name === 'ageClass') {
+        newFormData.weightClass = ''
+      }
+
+      return newFormData
+    })
+
+    // Clear errors for the field being updated
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }))
     }
+  }
+
+  const handleGenerateName = () => {
+    const ageClassOptions = getAgeClasses(formData.sport)
+    const weightClassOptions = getWeightClasses(formData.ageClass)
+    const generatedName = generateBracketName(
+      formData.ageClass,
+      formData.bracketCriteria,
+      formData.weightClass,
+      ageClassOptions,
+      weightClassOptions
+    )
+    setFormData((prev) => ({ ...prev, bracketName: generatedName }))
+  }
+
+  const validateForm = () => {
+    const newErrors = {}
+
+    if (!formData.title) newErrors.title = 'Title is required'
+    if (!formData.bracketRule)
+      newErrors.bracketRule = 'Bracket rule is required'
+    if (!formData.bracketStatus)
+      newErrors.bracketStatus = 'Bracket status is required'
+    if (!formData.proClass) newErrors.proClass = 'Pro class is required'
+    if (!formData.sport) newErrors.sport = 'Sport is required'
+    if (!formData.ageClass) newErrors.ageClass = 'Age class is required'
+    if (!formData.weightClass)
+      newErrors.weightClass = 'Weight class is required'
+    if (!formData.bracketName)
+      newErrors.bracketName = 'Bracket name is required'
+
+    // BJJ specific validation
+    if (formData.sport.includes('bjj') && !formData.discipline) {
+      newErrors.discipline = 'Discipline is required for BJJ'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
 
-    // Clean the form data to remove empty strings which might cause validation issues
-    const cleanedFormData = { ...formData }
-
-    // Remove empty optional fields
-    if (!cleanedFormData.proClass) delete cleanedFormData.proClass
-    if (!cleanedFormData.group) delete cleanedFormData.group
-    if (!cleanedFormData.ring) delete cleanedFormData.ring
-    if (!cleanedFormData.fightStartTime) delete cleanedFormData.fightStartTime
-    if (!cleanedFormData.weighInTime) delete cleanedFormData.weighInTime
+    // Get weight class details
+    const selectedWeightClass = getWeightClasses(formData.ageClass).find(
+      (w) => w.value === formData.weightClass
+    )
 
     const bracketData = {
-      ...cleanedFormData,
-      weightClass: {
-        min: parseFloat(formData.weightClass.min) || 0,
-        max: parseFloat(formData.weightClass.max) || 999,
-        unit: formData.weightClass.unit,
-      },
+      bracketNumber: parseInt(formData.bracketNumber) || 1,
+      divisionTitle: formData.bracketName,
+      title: formData.title,
+      status: formData.bracketStatus,
+      sport: formData.sport,
+      discipline: formData.discipline || null,
+      ageClass: formData.ageClass,
+      ruleStyle: formData.bracketRule,
+      proClass: formData.proClass,
+      bracketCriteria: formData.bracketCriteria || 'none',
+      ring: formData.ring || null,
+      weightClass: selectedWeightClass
+        ? {
+            min: selectedWeightClass.min,
+            max: selectedWeightClass.max,
+            unit: 'lbs',
+          }
+        : null,
+      fightStartTime: formData.fightStartTime || null,
+      weighInTime: formData.weighInTime || null,
       fighters: [],
     }
 
-    // Debug log to see what we're sending
     console.log('Bracket data being sent:', bracketData)
 
     await onCreate(bracketData)
@@ -79,7 +153,7 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
 
   return (
     <div className='fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4'>
-      <div className='bg-[#0B1739] rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto'>
+      <div className='bg-[#0B1739] rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto'>
         <div className='flex justify-between items-center mb-6'>
           <h2 className='text-xl font-bold text-white'>Create New Bracket</h2>
           <button onClick={onClose} className='text-gray-400 hover:text-white'>
@@ -88,8 +162,235 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
         </div>
 
         <form onSubmit={handleSubmit} className='space-y-6'>
-          {/* Basic Information */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          {/* Row 1: Title, Bracket Rule, Bracket Status, Pro Class */}
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Title <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='title'
+                value={formData.title}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.title ? 'border-red-500' : 'border-gray-600'
+                }`}
+              >
+                <option value=''>Select Title</option>
+                {titleData.map((option) => (
+                  <option key={option.value} value={option.label}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.title && (
+                <p className='text-red-500 text-xs mt-1'>{errors.title}</p>
+              )}
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Rule <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='bracketRule'
+                value={formData.bracketRule}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.bracketRule ? 'border-red-500' : 'border-gray-600'
+                }`}
+              >
+                <option value=''>Select Bracket Rule</option>
+                {bracketRuleData.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.bracketRule && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {errors.bracketRule}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Status <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='bracketStatus'
+                value={formData.bracketStatus}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.bracketStatus ? 'border-red-500' : 'border-gray-600'
+                }`}
+              >
+                {bracketStatusData.map((option) => (
+                  <option key={option.value} value={option.label}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.bracketStatus && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {errors.bracketStatus}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Select Pro Class <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='proClass'
+                value={formData.proClass}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.proClass ? 'border-red-500' : 'border-gray-600'
+                }`}
+              >
+                <option value=''>Select Pro Class</option>
+                {proClassData.map((option) => (
+                  <option key={option.value} value={option.label}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.proClass && (
+                <p className='text-red-500 text-xs mt-1'>{errors.proClass}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Sport, Disciplines, Age Classes, Weight Class */}
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Select Sport <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='sport'
+                value={formData.sport}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.sport ? 'border-red-500' : 'border-gray-600'
+                }`}
+              >
+                <option value=''>Select Sport</option>
+                {sportsData.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.sport && (
+                <p className='text-red-500 text-xs mt-1'>{errors.sport}</p>
+              )}
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Disciplines{' '}
+                {formData.sport.includes('bjj') && (
+                  <span className='text-red-500'>*</span>
+                )}
+              </label>
+              <select
+                name='discipline'
+                value={formData.discipline}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.discipline ? 'border-red-500' : 'border-gray-600'
+                }`}
+                disabled={!formData.sport.includes('bjj')}
+              >
+                <option value=''>Select Discipline</option>
+                {getDisciplines(formData.sport).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.discipline && (
+                <p className='text-red-500 text-xs mt-1'>{errors.discipline}</p>
+              )}
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Age Classes <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='ageClass'
+                value={formData.ageClass}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.ageClass ? 'border-red-500' : 'border-gray-600'
+                }`}
+                disabled={!formData.sport}
+              >
+                <option value=''>Select Age Class</option>
+                {getAgeClasses(formData.sport).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.ageClass && (
+                <p className='text-red-500 text-xs mt-1'>{errors.ageClass}</p>
+              )}
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Select Weight Class <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='weightClass'
+                value={formData.weightClass}
+                onChange={handleChange}
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.weightClass ? 'border-red-500' : 'border-gray-600'
+                }`}
+                disabled={!formData.ageClass}
+              >
+                <option value=''>Select Weight Class</option>
+                {getWeightClasses(formData.ageClass).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {errors.weightClass && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {errors.weightClass}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Bracket Criteria, Bracket Number, Ring */}
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Criteria
+              </label>
+              <select
+                name='bracketCriteria'
+                value={formData.bracketCriteria}
+                onChange={handleChange}
+                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+              >
+                {bracketCriteriaData.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className='block text-sm font-medium text-white mb-2'>
                 Bracket Number
@@ -99,158 +400,10 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 name='bracketNumber'
                 value={formData.bracketNumber}
                 onChange={handleChange}
+                min={1}
                 placeholder='e.g., 1'
                 className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
-                required
               />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Division Title
-              </label>
-              <input
-                type='text'
-                name='divisionTitle'
-                value={formData.divisionTitle}
-                onChange={handleChange}
-                placeholder='e.g., Boys Novice 60 LBS'
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
-                required
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Bracket Title
-              </label>
-              <select
-                name='title'
-                value={formData.title}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                required
-              >
-                <option value=''>Select Title</option>
-                <option value='Championship'>Championship</option>
-                <option value='Exhibition'>Exhibition</option>
-                <option value='Local Championship'>Local Championship</option>
-                <option value='Regional Championship'>
-                  Regional Championship
-                </option>
-                <option value='National Championship'>
-                  National Championship
-                </option>
-                <option value='International Championship'>
-                  International Championship
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Status
-              </label>
-              <select
-                name='status'
-                value={formData.status}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-              >
-                <option value='Open'>Open</option>
-                <option value='Started'>Started</option>
-                <option value='Completed'>Completed</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Age Class
-              </label>
-              <select
-                name='ageClass'
-                value={formData.ageClass}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                required
-              >
-                <option value=''>Select Age Class</option>
-                <option value='Youth'>Youth</option>
-                <option value='Junior'>Junior</option>
-                <option value='Adult'>Adult</option>
-                <option value='Senior'>Senior</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Sport
-              </label>
-              <select
-                name='sport'
-                value={formData.sport}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                required
-              >
-                <option value=''>Select Sport</option>
-                <option value='Kickboxing'>Kickboxing</option>
-                <option value='Boxing'>Boxing</option>
-                <option value='MMA'>MMA</option>
-                <option value='Muay Thai'>Muay Thai</option>
-                <option value='Karate'>Karate</option>
-                <option value='Taekwondo'>Taekwondo</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Rule Style
-              </label>
-              <select
-                name='ruleStyle'
-                value={formData.ruleStyle}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                required
-              >
-                <option value=''>Select Rule Style</option>
-                {/* Youth and Junior specific rules */}
-                {(formData.ageClass === 'Youth' ||
-                  formData.ageClass === 'Junior') && (
-                  <>
-                    <option value='Point Sparring'>Point Sparring</option>
-                    <option value='Light Contact'>Light Contact</option>
-                    <option value='Continuous Sparring'>
-                      Continuous Sparring
-                    </option>
-                  </>
-                )}
-                {/* Adult and Senior rules */}
-                {(formData.ageClass === 'Adult' ||
-                  formData.ageClass === 'Senior' ||
-                  !formData.ageClass) && (
-                  <>
-                    <option value='Muay Thai'>Muay Thai</option>
-                    <option value='K-1'>K-1</option>
-                    <option value='Olympic'>Olympic</option>
-                    <option value='Point Sparring'>Point Sparring</option>
-                    <option value='Continuous'>Continuous</option>
-                    <option value='Full Contact'>Full Contact</option>
-                    <option value='Semi Contact'>Semi Contact</option>
-                    <option value='Low Kick'>Low Kick</option>
-                  </>
-                )}
-                {/* Default options when no age class selected */}
-                {!formData.ageClass && (
-                  <>
-                    <option value='Point Sparring'>Point Sparring</option>
-                    <option value='Continuous'>Continuous</option>
-                    <option value='Full Contact'>Full Contact</option>
-                    <option value='Semi Contact'>Semi Contact</option>
-                  </>
-                )}
-              </select>
             </div>
 
             <div>
@@ -270,215 +423,42 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 <option value='Ring 4'>Ring 4</option>
               </select>
             </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Group
-              </label>
-              <select
-                name='group'
-                value={formData.group}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-              >
-                <option value=''>Select Group</option>
-                <option value='Group A'>Group A</option>
-                <option value='Group B'>Group B</option>
-                <option value='Group C'>Group C</option>
-                <option value='Group D'>Group D</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Pro Class
-              </label>
-              <select
-                name='proClass'
-                value={formData.proClass}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-              >
-                <option value=''>Select Pro Class</option>
-                <option value='Pro'>Pro</option>
-                <option value='Amateur'>Amateur</option>
-              </select>
-            </div>
           </div>
 
-          {/* Weight Class */}
-          <div>
-            <h3 className='text-lg font-medium text-white mb-3'>
-              Weight Class
-            </h3>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <div>
+          {/* Row 4: Bracket Name with Generate Button */}
+          <div className='space-y-4'>
+            <div className='flex gap-4 items-end'>
+              <div className='flex-1'>
                 <label className='block text-sm font-medium text-white mb-2'>
-                  Weight Class Range
+                  Bracket Name <span className='text-red-500'>*</span>
                 </label>
-                <select
-                  name='weightClassRange'
-                  value={`${formData.weightClass.min}-${formData.weightClass.max}`}
-                  onChange={(e) => {
-                    const [min, max] = e.target.value
-                      .split('-')
-                      .map((v) => parseFloat(v) || 0)
-                    setFormData((prev) => ({
-                      ...prev,
-                      weightClass: { ...prev.weightClass, min, max },
-                    }))
-                  }}
-                  className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                >
-                  <option value='0-999'>Select Weight Range</option>
-
-                  {/* Youth Weight Classes */}
-                  {formData.ageClass === 'Youth' && (
-                    <>
-                      <option value='40-45'>
-                        40-45 {formData.weightClass.unit}
-                      </option>
-                      <option value='45-50'>
-                        45-50 {formData.weightClass.unit}
-                      </option>
-                      <option value='50-55'>
-                        50-55 {formData.weightClass.unit}
-                      </option>
-                      <option value='55-60'>
-                        55-60 {formData.weightClass.unit}
-                      </option>
-                      <option value='60-65'>
-                        60-65 {formData.weightClass.unit}
-                      </option>
-                      <option value='65-70'>
-                        65-70 {formData.weightClass.unit}
-                      </option>
-                    </>
-                  )}
-
-                  {/* Junior Weight Classes */}
-                  {formData.ageClass === 'Junior' && (
-                    <>
-                      <option value='60-65'>
-                        60-65 {formData.weightClass.unit}
-                      </option>
-                      <option value='65-70'>
-                        65-70 {formData.weightClass.unit}
-                      </option>
-                      <option value='70-75'>
-                        70-75 {formData.weightClass.unit}
-                      </option>
-                      <option value='75-80'>
-                        75-80 {formData.weightClass.unit}
-                      </option>
-                      <option value='80-85'>
-                        80-85 {formData.weightClass.unit}
-                      </option>
-                      <option value='85-90'>
-                        85-90 {formData.weightClass.unit}
-                      </option>
-                      <option value='90-95'>
-                        90-95 {formData.weightClass.unit}
-                      </option>
-                    </>
-                  )}
-
-                  {/* Adult Weight Classes */}
-                  {(formData.ageClass === 'Adult' ||
-                    formData.ageClass === 'Senior') && (
-                    <>
-                      <option value='100-110'>
-                        100-110 {formData.weightClass.unit}
-                      </option>
-                      <option value='110-120'>
-                        110-120 {formData.weightClass.unit}
-                      </option>
-                      <option value='120-130'>
-                        120-130 {formData.weightClass.unit}
-                      </option>
-                      <option value='130-140'>
-                        130-140 {formData.weightClass.unit}
-                      </option>
-                      <option value='140-150'>
-                        140-150 {formData.weightClass.unit}
-                      </option>
-                      <option value='150-160'>
-                        150-160 {formData.weightClass.unit}
-                      </option>
-                      <option value='160-170'>
-                        160-170 {formData.weightClass.unit}
-                      </option>
-                      <option value='170-180'>
-                        170-180 {formData.weightClass.unit}
-                      </option>
-                      <option value='180-200'>
-                        180-200 {formData.weightClass.unit}
-                      </option>
-                      <option value='200-999'>
-                        200+ {formData.weightClass.unit}
-                      </option>
-                    </>
-                  )}
-
-                  {/* Custom range input */}
-                  <option value='custom'>Custom Range</option>
-                </select>
-              </div>
-
-              {/* Show custom inputs if custom is selected */}
-              {formData.weightClass.min === 0 &&
-                formData.weightClass.max === 999 && (
-                  <>
-                    <div>
-                      <label className='block text-sm font-medium text-white mb-2'>
-                        Min Weight
-                      </label>
-                      <input
-                        type='number'
-                        step='0.1'
-                        name='weightClass.min'
-                        value={formData.weightClass.min || ''}
-                        onChange={handleChange}
-                        className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                        placeholder='0'
-                      />
-                    </div>
-
-                    <div>
-                      <label className='block text-sm font-medium text-white mb-2'>
-                        Max Weight
-                      </label>
-                      <input
-                        type='number'
-                        step='0.1'
-                        name='weightClass.max'
-                        value={formData.weightClass.max || ''}
-                        onChange={handleChange}
-                        className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                        placeholder='999'
-                      />
-                    </div>
-                  </>
-                )}
-
-              <div>
-                <label className='block text-sm font-medium text-white mb-2'>
-                  Unit
-                </label>
-                <select
-                  name='weightClass.unit'
-                  value={formData.weightClass.unit}
+                <input
+                  type='text'
+                  name='bracketName'
+                  value={formData.bracketName}
                   onChange={handleChange}
-                  className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                >
-                  <option value='lbs'>lbs</option>
-                  <option value='kg'>kg</option>
-                </select>
+                  placeholder='Generated bracket name will appear here'
+                  className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white placeholder-gray-400 ${
+                    errors.bracketName ? 'border-red-500' : 'border-gray-600'
+                  }`}
+                />
+                {errors.bracketName && (
+                  <p className='text-red-500 text-xs mt-1'>
+                    {errors.bracketName}
+                  </p>
+                )}
               </div>
+              <button
+                type='button'
+                onClick={handleGenerateName}
+                className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700'
+              >
+                Generate Bracket Name
+              </button>
             </div>
           </div>
 
-          {/* Timing Information */}
+          {/* Optional: Timing Information */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
               <label className='block text-sm font-medium text-white mb-2'>

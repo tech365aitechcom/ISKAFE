@@ -6,10 +6,11 @@ import NewBracketModal from './_components/NewBracketModal'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { API_BASE_URL } from '../../../../../../constants'
+import { API_BASE_URL, apiConstants } from '../../../../../../constants'
 import useStore from '../../../../../../stores/useStore'
 import Loader from '../../../../../_components/Loader'
 import { enqueueSnackbar } from 'notistack'
+import axios from 'axios'
 
 export default function TournamentBrackets() {
   const params = useParams()
@@ -96,38 +97,26 @@ export default function TournamentBrackets() {
 
   const handleCreateBracket = async (bracketData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/brackets`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user?.token}`,
-        },
-        body: JSON.stringify({
+      const response = await axios.post(
+        `${API_BASE_URL}/brackets`,
+        {
           event: eventId,
           ...bracketData,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          await fetchBrackets(eventId)
-          setShowNewBracketModal(false)
-          enqueueSnackbar('Bracket created successfully!', {
-            variant: 'success',
-          })
-        } else {
-          enqueueSnackbar('Error creating bracket: ' + data.message, {
-            variant: 'error',
-          })
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
         }
-      } else {
-        enqueueSnackbar('Error creating bracket', {
-          variant: 'error',
+      )
+
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message, {
+          variant: 'success',
         })
       }
     } catch (err) {
-      enqueueSnackbar('Error creating bracket: ' + err.message, {
+      enqueueSnackbar(err.response?.data?.message, {
         variant: 'error',
       })
     }
@@ -206,12 +195,14 @@ export default function TournamentBrackets() {
 
       if (response.ok) {
         await fetchBrackets(eventId)
-        alert('Bracket deleted successfully!')
-      } else {
-        alert('Error deleting bracket')
+        enqueueSnackbar('Bracket deleted successfully!', {
+          variant: 'success',
+        })
       }
     } catch (err) {
-      alert('Error deleting bracket: ' + err.message)
+      enqueueSnackbar('Error deleting bracket: ' + err.message, {
+        variant: 'error',
+      })
     }
   }
 

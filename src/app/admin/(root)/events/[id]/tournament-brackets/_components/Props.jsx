@@ -8,6 +8,13 @@ import { API_BASE_URL, apiConstants } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import axios from 'axios'
+import {
+  allWeightClasses,
+  mapWeightClassToDisplay,
+  mapAgeClassFromOld,
+  getWeightClassObject,
+  proClassData,
+} from './bracketUtils'
 
 export default function Props({
   expandedBracket,
@@ -19,7 +26,6 @@ export default function Props({
   const [bracketName, setBracketName] = useState('')
   const [loading, setLoading] = useState(false)
   const [startDayNumber, setStartDayNumber] = useState('')
-  const [group, setGroup] = useState('')
   const [ringNumber, setRingNumber] = useState('')
   const [bracketSequence, setBracketSequence] = useState('')
   const [boutRound, setBoutRound] = useState('')
@@ -33,7 +39,7 @@ export default function Props({
   const [originalData, setOriginalData] = useState({})
 
   // Title component fields for auto-generating bracket name
-  const [gender, setGender] = useState('')
+  const [proClass, setProClass] = useState('')
   const [ruleStyle, setRuleStyle] = useState('')
   const [weightClass, setWeightClass] = useState('')
   const [ageClass, setAgeClass] = useState('')
@@ -41,10 +47,8 @@ export default function Props({
   useEffect(() => {
     if (expandedBracket) {
       const initialData = {
-        bracketName:
-          expandedBracket.title || expandedBracket.divisionTitle || '',
+        bracketName: expandedBracket.divisionTitle || '',
         startDayNumber: expandedBracket.startDayNumber?.toString() || '',
-        group: expandedBracket.group || '',
         ringNumber: expandedBracket.ringNumber || expandedBracket.ring || '',
         bracketSequence:
           expandedBracket.bracketSequence?.toString() ||
@@ -55,16 +59,10 @@ export default function Props({
           expandedBracket.maxCompetitors?.toString() ||
           expandedBracket.fighters?.length?.toString() ||
           '',
-        gender: expandedBracket.gender || '',
+        proClass: expandedBracket.proClass || '',
         ruleStyle: expandedBracket.ruleStyle || '',
-        weightClass: expandedBracket.weightClass
-          ? typeof expandedBracket.weightClass === 'string'
-            ? expandedBracket.weightClass.replace(' undefined', ' lbs')
-            : `${expandedBracket.weightClass.min}-${
-                expandedBracket.weightClass.max
-              } ${expandedBracket.weightClass.unit || 'lbs'}`
-          : '',
-        ageClass: expandedBracket.ageClass || '',
+        weightClass: mapWeightClassToDisplay(null, expandedBracket.weightClass),
+        ageClass: mapAgeClassFromOld(expandedBracket.ageClass),
       }
 
       // Store original data for comparison
@@ -74,12 +72,11 @@ export default function Props({
       if (!hasUnsavedChanges) {
         setBracketName(initialData.bracketName)
         setStartDayNumber(initialData.startDayNumber)
-        setGroup(initialData.group)
         setRingNumber(initialData.ringNumber)
         setBracketSequence(initialData.bracketSequence)
         setBoutRound(initialData.boutRound)
         setMaxCompetitors(initialData.maxCompetitors)
-        setGender(initialData.gender)
+        setProClass(initialData.proClass)
         setRuleStyle(initialData.ruleStyle)
         setWeightClass(initialData.weightClass)
         setAgeClass(initialData.ageClass)
@@ -89,27 +86,26 @@ export default function Props({
 
   // Auto-generate bracket name when title components change
   useEffect(() => {
-    if (gender || ruleStyle || weightClass || ageClass) {
-      const nameParts = [gender, ageClass, ruleStyle, weightClass]
+    if (proClass || ruleStyle || weightClass || ageClass) {
+      const nameParts = [proClass, ageClass, ruleStyle, weightClass]
         .filter((part) => part && part.trim() && part !== 'undefined')
         .map((part) => part.toString().trim().replace(' undefined', ' lbs'))
       if (nameParts.length > 0) {
         setBracketName(nameParts.join(' '))
       }
     }
-  }, [gender, ruleStyle, weightClass, ageClass])
+  }, [proClass, ruleStyle, weightClass, ageClass])
 
   // Track changes to detect unsaved modifications for both sections
   useEffect(() => {
     const currentData = {
       bracketName,
       startDayNumber,
-      group,
       ringNumber,
       bracketSequence,
       boutRound,
       maxCompetitors,
-      gender,
+      proClass,
       ruleStyle,
       weightClass,
       ageClass,
@@ -118,10 +114,9 @@ export default function Props({
     // Properties section fields
     const propertiesFields = [
       'bracketName',
-      'group',
       'ringNumber',
       'bracketSequence',
-      'gender',
+      'proClass',
       'ruleStyle',
       'weightClass',
       'ageClass',
@@ -144,12 +139,11 @@ export default function Props({
   }, [
     bracketName,
     startDayNumber,
-    group,
     ringNumber,
     bracketSequence,
     boutRound,
     maxCompetitors,
-    gender,
+    proClass,
     ruleStyle,
     weightClass,
     ageClass,
@@ -195,12 +189,6 @@ export default function Props({
         'Bracket name contains invalid characters. Allowed: letters, numbers, spaces, and common punctuation'
     }
 
-    // Group validation (alphanumeric)
-    if (group && !/^[a-zA-Z0-9\s'&.-]+$/.test(group.trim())) {
-      errors.group =
-        'Group can only contain letters, numbers, spaces, and common punctuation'
-    }
-
     // Ring Number validation (alphanumeric)
     if (ringNumber && !/^[a-zA-Z0-9\s'&.-]+$/.test(ringNumber.trim())) {
       errors.ringNumber =
@@ -224,18 +212,19 @@ export default function Props({
 
     setLoading(true)
     try {
+      const weightClassObj = getWeightClassObject(weightClass)
+
       const updateData = {
         title: bracketName.trim(), // Use the actual bracket name for the title
         divisionTitle: bracketName.trim(), // Store actual name in divisionTitle
-        group: group || '',
         ringNumber: ringNumber || '',
         bracketNumber:
           parseInt(bracketSequence) || expandedBracket.bracketNumber,
         // Include title component fields
-        gender: gender || '',
+        proClass: proClass || '',
         ruleStyle: ruleStyle || expandedBracket.ruleStyle || '',
-        // Keep existing weightClass object structure for API
-        weightClass: expandedBracket.weightClass,
+        // Convert weight class value back to object structure for API
+        weightClass: weightClassObj || expandedBracket.weightClass,
         ageClass: ageClass || expandedBracket.ageClass || '',
         // Preserve other bracket data to avoid overwrites
         sport: expandedBracket.sport,
@@ -365,7 +354,6 @@ export default function Props({
         ruleStyle: expandedBracket.ruleStyle || '',
         ageClass: expandedBracket.ageClass || '',
         weightClass: expandedBracket.weightClass,
-        group: expandedBracket.group || '',
         ringNumber: expandedBracket.ring || '',
         boutRound: 0,
         maxCompetitors: 0,
@@ -413,12 +401,11 @@ export default function Props({
     // Reset to original data
     setBracketName(originalData.bracketName || '')
     setStartDayNumber(originalData.startDayNumber || '')
-    setGroup(originalData.group || '')
     setRingNumber(originalData.ringNumber || '')
     setBracketSequence(originalData.bracketSequence || '')
     setBoutRound(originalData.boutRound || '')
     setMaxCompetitors(originalData.maxCompetitors || '')
-    setGender(originalData.gender || '')
+    setProClass(originalData.proClass || '')
     setRuleStyle(originalData.ruleStyle || '')
     setWeightClass(originalData.weightClass || '')
     setAgeClass(originalData.ageClass || '')
@@ -521,13 +508,13 @@ export default function Props({
                 Bracket Name
                 <span className='text-red-500'>*</span>
               </span>
-              <button
+              {/* <button
                 onClick={() => setBracketName('')}
                 className='text-xs text-gray-400 hover:text-white'
                 title='Clear bracket name'
               >
                 Reset
-              </button>
+              </button> */}
             </div>
             <input
               type='text'
@@ -599,17 +586,19 @@ export default function Props({
             <div className='grid grid-cols-4 gap-4'>
               <div>
                 <label className='block text-xs text-gray-300 mb-1'>
-                  Gender
+                  Pro Class
                 </label>
                 <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
+                  value={proClass}
+                  onChange={(e) => setProClass(e.target.value)}
                   className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
                 >
-                  <option value=''>Select Gender</option>
-                  <option value='Male'>Male</option>
-                  <option value='Female'>Female</option>
-                  <option value='Mixed'>Mixed</option>
+                  <option value=''>Select Pro Class</option>
+                  {proClassData.map((option) => (
+                    <option key={option.value} value={option.label}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -623,10 +612,12 @@ export default function Props({
                   className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
                 >
                   <option value=''>Select Age Class</option>
-                  <option value='Youth'>Youth</option>
-                  <option value='Junior'>Junior</option>
-                  <option value='Adult'>Adult</option>
-                  <option value='Senior'>Senior</option>
+                  <option value='boys'>Boys</option>
+                  <option value='girls'>Girls</option>
+                  <option value='men'>Men</option>
+                  <option value='women'>Women</option>
+                  <option value='senior-men'>Senior Men</option>
+                  <option value='senior-women'>Senior Women</option>
                 </select>
               </div>
 
@@ -640,40 +631,12 @@ export default function Props({
                   className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
                 >
                   <option value=''>Select Rule Style</option>
-                  {/* Youth and Junior rules */}
-                  {(ageClass === 'Youth' || ageClass === 'Junior') && (
-                    <>
-                      <option value='Point Sparring'>Point Sparring</option>
-                      <option value='Light Contact'>Light Contact</option>
-                      <option value='Continuous Sparring'>
-                        Continuous Sparring
-                      </option>
-                    </>
-                  )}
-                  {/* Adult rules */}
-                  {(ageClass === 'Adult' ||
-                    ageClass === 'Senior' ||
-                    !ageClass) && (
-                    <>
-                      <option value='Muay Thai'>Muay Thai</option>
-                      <option value='K-1'>K-1</option>
-                      <option value='Olympic'>Olympic</option>
-                      <option value='Point Sparring'>Point Sparring</option>
-                      <option value='Continuous'>Continuous</option>
-                      <option value='Full Contact'>Full Contact</option>
-                      <option value='Semi Contact'>Semi Contact</option>
-                      <option value='Low Kick'>Low Kick</option>
-                    </>
-                  )}
-                  {/* Default options */}
-                  {!ageClass && (
-                    <>
-                      <option value='Point Sparring'>Point Sparring</option>
-                      <option value='Continuous'>Continuous</option>
-                      <option value='Full Contact'>Full Contact</option>
-                      <option value='Semi Contact'>Semi Contact</option>
-                    </>
-                  )}
+                  <option value='standard-single-elimination'>
+                    Standard Single Elimination
+                  </option>
+                  <option value='iska-single-elimination'>
+                    ISKA Single Elimination
+                  </option>
                 </select>
               </div>
 
@@ -687,79 +650,38 @@ export default function Props({
                   className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
                 >
                   <option value=''>Select Weight Class</option>
-                  {/* Youth Weight Classes */}
-                  {ageClass === 'Youth' && (
-                    <>
-                      <option value='40-45 lbs'>40-45 lbs</option>
-                      <option value='45-50 lbs'>45-50 lbs</option>
-                      <option value='50-55 lbs'>50-55 lbs</option>
-                      <option value='55-60 lbs'>55-60 lbs</option>
-                      <option value='60-65 lbs'>60-65 lbs</option>
-                    </>
-                  )}
-                  {/* Junior Weight Classes */}
-                  {ageClass === 'Junior' && (
-                    <>
-                      <option value='60-65 lbs'>60-65 lbs</option>
-                      <option value='65-70 lbs'>65-70 lbs</option>
-                      <option value='70-75 lbs'>70-75 lbs</option>
-                      <option value='75-80 lbs'>75-80 lbs</option>
-                      <option value='80-85 lbs'>80-85 lbs</option>
-                      <option value='85-90 lbs'>85-90 lbs</option>
-                    </>
-                  )}
-                  {/* Adult Weight Classes */}
-                  {(ageClass === 'Adult' ||
-                    ageClass === 'Senior' ||
-                    !ageClass) && (
-                    <>
-                      <option value='100-110 lbs'>100-110 lbs</option>
-                      <option value='110-120 lbs'>110-120 lbs</option>
-                      <option value='120-130 lbs'>120-130 lbs</option>
-                      <option value='130-140 lbs'>130-140 lbs</option>
-                      <option value='140-150 lbs'>140-150 lbs</option>
-                      <option value='150-160 lbs'>150-160 lbs</option>
-                      <option value='160-170 lbs'>160-170 lbs</option>
-                      <option value='170-180 lbs'>170-180 lbs</option>
-                      <option value='180-200 lbs'>180-200 lbs</option>
-                      <option value='200+ lbs'>200+ lbs</option>
-                    </>
-                  )}
-                  {/* Default options if no age class selected */}
-                  {!ageClass && (
-                    <>
-                      <option value='60-65 lbs'>60-65 lbs</option>
-                      <option value='65-70 lbs'>65-70 lbs</option>
-                      <option value='70-75 lbs'>70-75 lbs</option>
-                      <option value='75-80 lbs'>75-80 lbs</option>
-                      <option value='80-85 lbs'>80-85 lbs</option>
-                      <option value='85+ lbs'>85+ lbs</option>
-                    </>
-                  )}
+                  {/* Youth Weight Classes - Boys/Girls */}
+                  {(ageClass === 'boys' || ageClass === 'girls') &&
+                    allWeightClasses
+                      .filter(
+                        (wc) =>
+                          wc.value.includes('youth') ||
+                          wc.value.includes('junior') ||
+                          wc.value === 'pinweight'
+                      )
+                      .map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                  {/* Adult Weight Classes - Men/Women/Senior */}
+                  {(ageClass === 'men' ||
+                    ageClass === 'women' ||
+                    ageClass === 'senior-men' ||
+                    ageClass === 'senior-women') &&
+                    allWeightClasses
+                      .filter((wc) => wc.value.includes('adult'))
+                      .map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                 </select>
               </div>
             </div>
           </div>
 
           <div className='grid grid-cols-4 gap-6'>
-            <InputBox
-              label='Group'
-              placeholder='e.g., Group A'
-              value={group}
-              onChange={(value) => {
-                setGroup(value)
-                // Clear validation error when user starts typing
-                if (validationErrors.group) {
-                  setValidationErrors((prev) => {
-                    const { group, ...rest } = prev
-                    return rest
-                  })
-                }
-              }}
-              validation='alphanumeric'
-              error={validationErrors.group}
-              disabled={loading}
-            />
             <InputBox
               label='Ring Number'
               placeholder='e.g., Ring 1'
@@ -819,12 +741,7 @@ export default function Props({
               disabled={
                 loading ||
                 Object.keys(validationErrors).some((key) =>
-                  [
-                    'bracketName',
-                    'group',
-                    'ringNumber',
-                    'bracketSequence',
-                  ].includes(key)
+                  ['bracketName', 'ringNumber', 'bracketSequence'].includes(key)
                 )
               }
             />
