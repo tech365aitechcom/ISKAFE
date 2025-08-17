@@ -76,23 +76,36 @@ export default function BoutListPage({ params }) {
     let filtered = [...allBouts]
 
     if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
       filtered = filtered.filter(
-        (bout) =>
-          bout.redCorner?.firstName
-            ?.toLowerCase()
-            .includes(filters.search.toLowerCase()) ||
-          bout.redCorner?.lastName
-            ?.toLowerCase()
-            .includes(filters.search.toLowerCase()) ||
-          bout.blueCorner?.firstName
-            ?.toLowerCase()
-            .includes(filters.search.toLowerCase()) ||
-          bout.blueCorner?.lastName
-            ?.toLowerCase()
-            .includes(filters.search.toLowerCase()) ||
-          bout.bracket?.name
-            ?.toLowerCase()
-            .includes(filters.search.toLowerCase())
+        (bout) => {
+          const boutNumber = bout.boutNumber?.toString() || ''
+          const redFirstName = bout.redCorner?.firstName || ''
+          const redLastName = bout.redCorner?.lastName || ''
+          const blueFirstName = bout.blueCorner?.firstName || ''
+          const blueLastName = bout.blueCorner?.lastName || ''
+          const bracketName = bout.bracket?.name || ''
+          const bracketTitle = bout.bracket?.divisionTitle || ''
+          const weightClass = bout.bracket?.weightClass ? 
+            `${bout.bracket.weightClass.min}-${bout.bracket.weightClass.max}` : ''
+          const ageClass = bout.bracket?.ageClass || ''
+          const ring = bout.bracket?.ring || ''
+          const group = bout.bracket?.group || ''
+          
+          return (
+            boutNumber.toLowerCase().includes(searchLower) ||
+            redFirstName.toLowerCase().includes(searchLower) ||
+            redLastName.toLowerCase().includes(searchLower) ||
+            blueFirstName.toLowerCase().includes(searchLower) ||
+            blueLastName.toLowerCase().includes(searchLower) ||
+            bracketName.toLowerCase().includes(searchLower) ||
+            bracketTitle.toLowerCase().includes(searchLower) ||
+            weightClass.toLowerCase().includes(searchLower) ||
+            ageClass.toLowerCase().includes(searchLower) ||
+            ring.toLowerCase().includes(searchLower) ||
+            group.toLowerCase().includes(searchLower)
+          )
+        }
       )
     }
 
@@ -215,7 +228,7 @@ export default function BoutListPage({ params }) {
               />
               <input
                 type='text'
-                placeholder='Search fighters or brackets...'
+                placeholder='Search fighters, brackets, bout numbers, weight class...'
                 value={filters.search}
                 onChange={(e) =>
                   setFilters({ ...filters, search: e.target.value })
@@ -280,21 +293,19 @@ export default function BoutListPage({ params }) {
             <table className='w-full text-sm text-left'>
               <thead>
                 <tr className='border-b border-gray-600'>
-                  <th className='px-4 py-3 text-left'>Bout</th>
-                  <th className='px-4 py-3 text-left'>Bracket Name</th>
-                  <th className='px-4 py-3 text-left whitespace-nowrap'>
-                    Weight Class
-                  </th>
-                  <th className='px-4 py-3 text-left whitespace-nowrap'>
-                    Age Group
-                  </th>
-                  <th className='px-4 py-3 text-left'>Red Fighter</th>
-                  <th className='px-4 py-3 text-left'>Blue Fighter</th>
-                  <th className='px-4 py-3 text-left'>Ring</th>
-                  <th className='px-4 py-3 text-left'>Group</th>
-                  <th className='px-4 py-3 text-left'>Start Time</th>
-                  <th className='px-4 py-3 text-left'>Result</th>
-                  <th className='px-4 py-3 text-left'>Actions</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Bout</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Round Number</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Number of Competitors</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Bracket Name</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Weight Class</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Age Group</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Red Fighter</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Blue Fighter</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Ring</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Group</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Start Time</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Result</th>
+                  <th className='px-4 py-3 text-left text-white font-medium whitespace-nowrap'>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -314,92 +325,80 @@ export default function BoutListPage({ params }) {
                       className='border-b border-gray-700 hover:bg-gray-800/30'
                     >
                       {/* Bout Number */}
-                      <td className='px-4 py-3 font-medium'>
-                        #{bout.boutNumber || 'TBD'}
-                      </td>
+                      <td className='px-4 py-3 font-medium whitespace-nowrap'>#{bout.boutNumber || 'TBD'}</td>
+
+                      {/* Round Number */}
+                      <td className='px-4 py-3 whitespace-nowrap'>{bout.roundNumber || bout.currentRound || 1}</td>
+
+                      {/* Number of Competitors */}
+                      <td className='px-4 py-3 whitespace-nowrap'>{((bout.redCorner ? 1 : 0) + (bout.blueCorner ? 1 : 0)) || 2}</td>
 
                       {/* Bracket Name */}
-                      <td className='px-4 py-3'>
-                        {bout.bracket?.divisionTitle || '-'}
-                      </td>
+                      <td className='px-4 py-3 whitespace-nowrap'>{bout.bracket?.divisionTitle || '-'}</td>
 
                       {/* Weight Class */}
-                      <td className='px-4 py-3'>
-                        {bout.bracket?.weightClass
-                          ? `${bout.bracket.weightClass.min} - ${bout.bracket.weightClass.max} lbs`
-                          : '-'}
+                      <td className='px-4 py-3 whitespace-nowrap'>
+                        {bout.bracket?.weightClass ? `${bout.bracket.weightClass.min}-${bout.bracket.weightClass.max} lbs` : '-'}
                       </td>
 
                       {/* Age Group */}
-                      <td className='px-4 py-3'>
-                        {bout.bracket?.ageClass || '-'}
-                      </td>
+                      <td className='px-4 py-3 whitespace-nowrap'>{bout.bracket?.ageClass || '-'}</td>
 
                       {/* Red Fighter */}
-                      <td className='px-4 py-3 text-red-400'>
+                      <td className='px-4 py-3 text-red-400 whitespace-nowrap'>
                         {bout.redCorner ? (
-                          <>
-                            <div>{`${bout.redCorner.firstName} ${bout.redCorner.lastName}`}</div>
-                            <div className='text-xs text-gray-400'>
-                              Age:{' '}
-                              {bout.redCorner.dateOfBirth
-                                ? new Date().getFullYear() -
-                                  new Date(
-                                    bout.redCorner.dateOfBirth
-                                  ).getFullYear()
-                                : 'N/A'}{' '}
-                              • {bout.redCorner.walkAroundWeight || 'N/A'}{' '}
-                              {bout.redCorner.weightUnit || 'lbs'}
-                            </div>
-                          </>
+                          <span>
+                            {`${bout.redCorner.firstName} ${bout.redCorner.lastName}`}
+                            {bout.redCorner.dateOfBirth || bout.redCorner.walkAroundWeight ? (
+                              <span className='text-xs text-gray-400 ml-2'>
+                                (Age: {bout.redCorner.dateOfBirth
+                                  ? new Date().getFullYear() - new Date(bout.redCorner.dateOfBirth).getFullYear()
+                                  : 'N/A'} • {bout.redCorner.walkAroundWeight || 'N/A'} {bout.redCorner.weightUnit || 'lbs'})
+                              </span>
+                            ) : null}
+                          </span>
                         ) : (
                           'TBD'
                         )}
                       </td>
 
                       {/* Blue Fighter */}
-                      <td className='px-4 py-3 text-blue-400'>
+                      <td className='px-4 py-3 text-blue-400 whitespace-nowrap'>
                         {bout.blueCorner ? (
-                          <>
-                            <div>{`${bout.blueCorner.firstName} ${bout.blueCorner.lastName}`}</div>
-                            <div className='text-xs text-gray-400'>
-                              Age:{' '}
-                              {bout.blueCorner.dateOfBirth
-                                ? new Date().getFullYear() -
-                                  new Date(
-                                    bout.blueCorner.dateOfBirth
-                                  ).getFullYear()
-                                : 'N/A'}{' '}
-                              • {bout.blueCorner.walkAroundWeight || 'N/A'}{' '}
-                              {bout.blueCorner.weightUnit || 'lbs'}
-                            </div>
-                          </>
+                          <span>
+                            {`${bout.blueCorner.firstName} ${bout.blueCorner.lastName}`}
+                            {bout.blueCorner.dateOfBirth || bout.blueCorner.walkAroundWeight ? (
+                              <span className='text-xs text-gray-400 ml-2'>
+                                (Age: {bout.blueCorner.dateOfBirth
+                                  ? new Date().getFullYear() - new Date(bout.blueCorner.dateOfBirth).getFullYear()
+                                  : 'N/A'} • {bout.blueCorner.walkAroundWeight || 'N/A'} {bout.blueCorner.weightUnit || 'lbs'})
+                              </span>
+                            ) : null}
+                          </span>
                         ) : (
                           'TBD'
                         )}
                       </td>
 
                       {/* Ring */}
-                      <td className='px-4 py-3'>{bout.bracket.ring || '-'}</td>
+                      <td className='px-4 py-3 whitespace-nowrap'>{bout.bracket.ring || '-'}</td>
 
                       {/* Group / Seq */}
-                      <td className='px-4 py-3'>{bout.bracket.group || '-'}</td>
+                      <td className='px-4 py-3 whitespace-nowrap'>{bout.bracket.group || '-'}</td>
 
                       {/* Start Time */}
-                      <td className='px-4 py-3'>
-                        {bout.startDate
-                          ? moment(bout.startDate).format('YYYY-MM-DD hh:mm A')
-                          : '-'}
+                      <td className='px-4 py-3 whitespace-nowrap'>
+                        {bout.startDate ? moment(bout.startDate).format('YYYY-MM-DD hh:mm A') : '-'}
                       </td>
 
                       {/* Result */}
-                      <td className='px-4 py-3'>{getResultText(bout)}</td>
+                      <td className='px-4 py-3 whitespace-nowrap'>{getResultText(bout)}</td>
 
                       {/* Actions */}
                       <td className='px-4 py-3 whitespace-nowrap'>
                         <button
                           onClick={() => handleResultEdit(bout)}
-                          className='flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm '
+                          className='flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm'
                         >
                           <Trophy size={14} />
                           {bout.fight ? 'Edit' : 'Enter'} Result

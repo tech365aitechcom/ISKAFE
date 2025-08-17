@@ -135,17 +135,14 @@ export default function BracketList({
     }
   }
 
-  if (!brackets || brackets.length === 0) {
-    return (
-      <div className='text-center py-12'>
-        <p className='text-gray-400'>No brackets found.</p>
-      </div>
-    )
-  }
-
   return (
     <div className='space-y-4'>
-      {brackets.map((bracket, index) => (
+      {!brackets || brackets.length === 0 ? (
+        <div className='text-center py-8'>
+          <p className='text-gray-400 text-lg'>No brackets available</p>
+        </div>
+      ) : (
+        brackets.map((bracket, index) => (
         <div
           key={bracket._id || index}
           className='border border-[#C5C5C5] rounded-xl overflow-hidden'
@@ -232,7 +229,7 @@ export default function BracketList({
                         activeTab === tab ? 'bg-[#2E3094] shadow-md' : ''
                       }`}
                     >
-                      {tab === 'props' && 'Bracket Properties'}
+                      {tab === 'props' && 'Props'}
                       {tab === 'fighters' && 'Fighters'}
                       {tab === 'bouts&results' && 'Bouts & Results'}
                     </button>
@@ -273,7 +270,8 @@ export default function BracketList({
             )}
           </div>
         </div>
-      ))}
+        ))
+      )}
 
       {/* Edit Bracket Modal */}
       {editingBracket && (

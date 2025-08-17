@@ -241,24 +241,46 @@ export default function TournamentBrackets() {
 
   // Apply filters to brackets
   const filteredBrackets = brackets.filter((bracket) => {
-    if (filters.title && bracket.title?.toLowerCase() !== filters.title.toLowerCase())
+    if (
+      filters.title &&
+      bracket.title?.toLowerCase() !== filters.title.toLowerCase()
+    )
       return false
-    if (filters.sport && bracket.sport?.toLowerCase() !== filters.sport.toLowerCase())
+    if (
+      filters.sport &&
+      bracket.sport?.toLowerCase() !== filters.sport.toLowerCase()
+    )
       return false
-    if (filters.discipline && bracket.discipline?.toLowerCase() !== filters.discipline.toLowerCase())
+    if (
+      filters.discipline &&
+      bracket.discipline?.toLowerCase() !== filters.discipline.toLowerCase()
+    )
       return false
-    if (filters.ageClass && bracket.ageClass?.toLowerCase() !== filters.ageClass.toLowerCase())
+    if (
+      filters.ageClass &&
+      bracket.ageClass?.toLowerCase() !== filters.ageClass.toLowerCase()
+    )
       return false
     if (
       filters.ruleStyle &&
       bracket.ruleStyle?.toLowerCase() !== filters.ruleStyle.toLowerCase()
     )
       return false
-    if (filters.bracketStatus && bracket.status?.toLowerCase() !== filters.bracketStatus.toLowerCase())
+    if (
+      filters.bracketStatus &&
+      bracket.status?.toLowerCase() !== filters.bracketStatus.toLowerCase()
+    )
       return false
-    if (filters.proClass && bracket.proClass?.toLowerCase() !== filters.proClass.toLowerCase())
+    if (
+      filters.proClass &&
+      bracket.proClass?.toLowerCase() !== filters.proClass.toLowerCase()
+    )
       return false
-    if (filters.bracketCriteria && bracket.bracketCriteria?.toLowerCase() !== filters.bracketCriteria.toLowerCase())
+    if (
+      filters.bracketCriteria &&
+      bracket.bracketCriteria?.toLowerCase() !==
+        filters.bracketCriteria.toLowerCase()
+    )
       return false
 
     if (filters.showWeightRange && filters.minWeight && filters.maxWeight) {
@@ -433,8 +455,12 @@ export default function TournamentBrackets() {
             >
               <option value=''>All Titles</option>
               <option value='World Championship'>World Championship</option>
-              <option value='National Championship'>National Championship</option>
-              <option value='Regional Championship'>Regional Championship</option>
+              <option value='National Championship'>
+                National Championship
+              </option>
+              <option value='Regional Championship'>
+                Regional Championship
+              </option>
               <option value='Local Tournament'>Local Tournament</option>
             </select>
 
@@ -460,9 +486,12 @@ export default function TournamentBrackets() {
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Age Classes</option>
-              <option value='youth'>Youth</option>
-              <option value='adult'>Adult</option>
-              <option value='senior'>Senior</option>
+              <option value='boys'>Boys</option>
+              <option value='men'>Men</option>
+              <option value='senior-men'>Senior Men</option>
+              <option value='girls'>Girls</option>
+              <option value='women'>Women</option>
+              <option value='senior-women'>Senior Women</option>
             </select>
 
             <select

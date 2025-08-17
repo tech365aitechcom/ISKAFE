@@ -326,7 +326,7 @@ export default function SuspensionModal({ fighter, onClose, onSave }) {
                 !formData.suspensionStartDate
               }
             >
-              {loading ? 'Adding...' : 'Add Suspension'}
+              {loading ? 'Saving...' : 'Save Suspension'}
             </button>
           </div>
         </form>

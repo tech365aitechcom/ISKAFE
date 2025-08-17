@@ -88,26 +88,26 @@ export default function AddFighterModal({
     })
   }
 
-  const handleAddFighters = async () => {
+  const handleSelectFighters = async () => {
     if (selectedFighters.length === 0) return
-
+    
     try {
-      console.log('=== Adding Fighters Debug ===')
-      console.log('Bracket data:', bracket)
-      console.log('Selected fighters:', selectedFighters)
-
-      // Get existing fighters in bracket and add new ones
-      const existingFighterIds = (bracket?.fighters || []).map(
-        (f) => f._id || f
-      )
-      const newFighterIds = selectedFighters.map((f) => f._id)
-      // Remove duplicates by using Set
-      const allFighterIds = [
-        ...new Set([...existingFighterIds, ...newFighterIds]),
+      // Get existing fighters and add new ones with incremental seeds
+      const existingFighters = bracket?.fighters || []
+      const existingCount = existingFighters.length
+      
+      const newFighters = [
+        // Keep existing fighters with their structure
+        ...existingFighters.map(f => ({
+          fighter: f.fighter || f._id || f,
+          seed: f.seed || 1
+        })),
+        // Add new fighters with incremental seeds
+        ...selectedFighters.map((fighter, index) => ({
+          fighter: fighter._id,
+          seed: existingCount + index + 1
+        }))
       ]
-
-      // Try PUT with clean bracket data
-      console.log('Updating bracket with new fighters...')
 
       const response = await fetch(`${API_BASE_URL}/brackets/${bracketId}`, {
         method: 'PUT',
@@ -115,31 +115,28 @@ export default function AddFighterModal({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user?.token}`,
         },
-        body: JSON.stringify({ fighters: allFighterIds }),
+        body: JSON.stringify({
+          fighters: newFighters,
+        }),
       })
 
-      console.log('Final response status:', response?.status)
-      const responseData = response
-        ? await response.json()
-        : { success: false, message: 'No response received' }
-      console.log('Final response data:', responseData)
-
       if (response.ok) {
-        enqueueSnackbar('Fighters added successfully!', {
+        enqueueSnackbar(`${selectedFighters.length} fighter(s) added successfully!`, {
           variant: 'success',
         })
-        onFighterAdded?.()
+        
+        // Reset and close
         setSelectedFighters([])
         onClose()
+        
+        // Trigger parent refresh
+        onFighterAdded?.()
       } else {
-        console.error('Failed to add fighters:', responseData)
-        enqueueSnackbar(responseData.message || 'Unknown error', {
-          variant: 'error',
-        })
+        throw new Error('Failed to add fighters')
       }
-    } catch (err) {
-      console.error('Error adding fighters:', err)
-      enqueueSnackbar(err.message, {
+    } catch (error) {
+      console.error('Error adding fighters:', error)
+      enqueueSnackbar('Failed to add fighters. Please try again.', {
         variant: 'error',
       })
     }
@@ -219,9 +216,7 @@ export default function AddFighterModal({
           ) : (
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {filteredFighters.map((fighter) => {
-                const isSelected = selectedFighters.find(
-                  (f) => f._id === fighter._id
-                )
+                const isSelected = selectedFighters.find((f) => f._id === fighter._id)
                 return (
                   <div
                     key={fighter._id}
@@ -294,7 +289,7 @@ export default function AddFighterModal({
             Cancel
           </button>
           <button
-            onClick={handleAddFighters}
+            onClick={handleSelectFighters}
             disabled={selectedFighters.length === 0}
             className={`px-6 py-2 rounded-lg font-medium ${
               selectedFighters.length > 0
@@ -302,9 +297,7 @@ export default function AddFighterModal({
                 : 'bg-gray-600 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Add{' '}
-            {selectedFighters.length > 0 ? `${selectedFighters.length} ` : ''}
-            Fighter{selectedFighters.length !== 1 ? 's' : ''}
+            Add {selectedFighters.length > 0 ? `${selectedFighters.length} ` : ''}Fighter{selectedFighters.length !== 1 ? 's' : ''}
           </button>
         </div>
       </div>

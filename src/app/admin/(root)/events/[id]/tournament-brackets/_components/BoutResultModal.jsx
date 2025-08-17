@@ -15,10 +15,18 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   const [resultMethod, setResultMethod] = useState(
     bout.fight?.resultMethod || ''
   )
-  const [resultDetails, setResultDetails] = useState({
-    round: bout.fight?.resultDetails?.round || '',
-    time: bout.fight?.resultDetails?.time || '',
-    reason: bout.fight?.resultDetails?.reason || '',
+  const [koDetails, setKoDetails] = useState({
+    round: bout.fight?.resultMethod === 'KO' ? bout.fight?.resultDetails?.round || '' : '',
+    time: bout.fight?.resultMethod === 'KO' ? bout.fight?.resultDetails?.time || '' : '',
+    reason: bout.fight?.resultMethod === 'KO' ? bout.fight?.resultDetails?.reason || '' : '',
+  })
+  const [tkoDetails, setTkoDetails] = useState({
+    round: bout.fight?.resultMethod === 'TKO' ? bout.fight?.resultDetails?.round || '' : '',
+    time: bout.fight?.resultMethod === 'TKO' ? bout.fight?.resultDetails?.time || '' : '',
+    reason: bout.fight?.resultMethod === 'TKO' ? bout.fight?.resultDetails?.reason || '' : '',
+  })
+  const [otherDetails, setOtherDetails] = useState({
+    reason: bout.fight?.resultMethod === 'Other' ? bout.fight?.resultDetails?.reason || '' : '',
   })
   const [judgeScores, setJudgeScores] = useState({
     red: bout.fight?.judgeScores?.red || ['', '', ''],
@@ -53,12 +61,12 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   ]
 
   useEffect(() => {
-    if (winner && !resultMethod) {
+    if (winner) {
       setShowWarning(true)
     } else {
       setShowWarning(false)
     }
-  }, [winner, resultMethod])
+  }, [winner])
 
   const handleBoutStart = async () => {
     try {
@@ -100,6 +108,37 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
       return
     }
 
+    // Validate required fields for KO/TKO methods
+    if (resultMethod === 'KO' && (!koDetails.round || !koDetails.time)) {
+      enqueueSnackbar('Please fill in Round and Time for KO result', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (resultMethod === 'TKO' && (!tkoDetails.round || !tkoDetails.time)) {
+      enqueueSnackbar('Please fill in Round and Time for TKO result', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    // Validate time format for KO/TKO methods
+    const timeFormatRegex = /^[0-9]{1,2}:[0-9]{2}$/
+    if (resultMethod === 'KO' && koDetails.time && !timeFormatRegex.test(koDetails.time)) {
+      enqueueSnackbar('Please enter time in mm:ss format (e.g., 2:30)', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (resultMethod === 'TKO' && tkoDetails.time && !timeFormatRegex.test(tkoDetails.time)) {
+      enqueueSnackbar('Please enter time in mm:ss format (e.g., 2:30)', {
+        variant: 'warning',
+      })
+      return
+    }
+
     setLoading(true)
     try {
       // Prepare fight result data
@@ -121,23 +160,28 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
         }
       }
 
-      // Add result details for KO/TKO
-      if (
-        (resultMethod === 'KO' || resultMethod === 'TKO') &&
-        resultDetails.round &&
-        resultDetails.time
-      ) {
+      // Add result details for KO
+      if (resultMethod === 'KO' && koDetails.round && koDetails.time) {
         fightData.resultDetails = {
-          round: parseInt(resultDetails.round),
-          time: resultDetails.time,
-          reason: resultDetails.reason,
+          round: parseInt(koDetails.round),
+          time: koDetails.time,
+          reason: koDetails.reason,
+        }
+      }
+
+      // Add result details for TKO
+      if (resultMethod === 'TKO' && tkoDetails.round && tkoDetails.time) {
+        fightData.resultDetails = {
+          round: parseInt(tkoDetails.round),
+          time: tkoDetails.time,
+          reason: tkoDetails.reason,
         }
       }
 
       // Add other result details
-      if (resultMethod === 'Other' && resultDetails.reason) {
+      if (resultMethod === 'Other' && otherDetails.reason) {
         fightData.resultDetails = {
-          reason: resultDetails.reason,
+          reason: otherDetails.reason,
         }
       }
 
@@ -168,6 +212,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
       if (response.ok) {
         const responseData = await response.json()
         console.log('Fight saved successfully:', responseData)
+        setShowWarning(false) // Hide warning when result is saved
         onUpdate()
         onClose()
         // Use notification
@@ -192,7 +237,9 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
 
   const renderJudgeScores = () => (
     <div className='space-y-4'>
-      <h4 className='font-medium text-white'>Judge Scores</h4>
+      <h4 className='font-medium text-white'>
+        Judge Scores <span className='text-red-500'>*</span>
+      </h4>
       <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
         {[1, 2, 3].map((judgeNum) => (
           <div key={judgeNum} className='space-y-3'>
@@ -202,7 +249,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
             <div className='space-y-2'>
               <div>
                 <label className='block text-xs text-red-400 mb-1'>
-                  Red Corner
+                  Red Corner <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type='number'
@@ -218,7 +265,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
               </div>
               <div>
                 <label className='block text-xs text-blue-400 mb-1'>
-                  Blue Corner
+                  Blue Corner <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type='number'
@@ -239,60 +286,83 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
     </div>
   )
 
-  const renderKODetails = () => (
-    <div className='space-y-4'>
-      <h4 className='font-medium text-white'>Stoppage Details</h4>
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-        <div>
-          <label className='block text-sm text-white mb-2'>Round</label>
-          <input
-            type='number'
-            min='1'
-            max={bout.numberOfRounds || 12}
-            value={resultDetails.round}
-            onChange={(e) =>
-              setResultDetails((prev) => ({ ...prev, round: e.target.value }))
-            }
-            className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-            placeholder='Round'
-          />
-        </div>
-        <div>
-          <label className='block text-sm text-white mb-2'>Time (mm:ss)</label>
-          <input
-            type='text'
-            pattern='[0-9]{1,2}:[0-9]{2}'
-            value={resultDetails.time}
-            onChange={(e) =>
-              setResultDetails((prev) => ({ ...prev, time: e.target.value }))
-            }
-            className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-            placeholder='2:30'
-          />
-        </div>
-        <div>
-          <label className='block text-sm text-white mb-2'>Reason</label>
-          <input
-            type='text'
-            value={resultDetails.reason}
-            onChange={(e) =>
-              setResultDetails((prev) => ({ ...prev, reason: e.target.value }))
-            }
-            className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-            placeholder='Knockout punch'
-          />
+  const renderKODetails = () => {
+    const currentDetails = resultMethod === 'KO' ? koDetails : tkoDetails
+    const setCurrentDetails = resultMethod === 'KO' ? setKoDetails : setTkoDetails
+
+    const handleTimeChange = (value) => {
+      // Only allow numbers, colon, and limit format to mm:ss
+      const timeRegex = /^[0-9:]*$/
+      if (timeRegex.test(value) && value.length <= 5) {
+        setCurrentDetails((prev) => ({ ...prev, time: value }))
+      }
+    }
+
+    const handleRoundChange = (value) => {
+      // Prevent 0 and negative values
+      const numValue = parseInt(value)
+      if (value === '' || (numValue >= 1 && numValue <= (bout.numberOfRounds || 12))) {
+        setCurrentDetails((prev) => ({ ...prev, round: value }))
+      }
+    }
+
+    return (
+      <div className='space-y-4'>
+        <h4 className='font-medium text-white'>Stoppage Details</h4>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          <div>
+            <label className='block text-sm text-white mb-2'>
+              Round <span className='text-red-500'>*</span>
+            </label>
+            <input
+              type='number'
+              min='1'
+              max={bout.numberOfRounds || 12}
+              value={currentDetails.round}
+              onChange={(e) => handleRoundChange(e.target.value)}
+              className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+              placeholder='Round'
+              required
+            />
+          </div>
+          <div>
+            <label className='block text-sm text-white mb-2'>
+              Time (mm:ss) <span className='text-red-500'>*</span>
+            </label>
+            <input
+              type='text'
+              pattern='[0-9]{1,2}:[0-9]{2}'
+              value={currentDetails.time}
+              onChange={(e) => handleTimeChange(e.target.value)}
+              className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+              placeholder='2:30'
+              required
+            />
+          </div>
+          <div>
+            <label className='block text-sm text-white mb-2'>Reason</label>
+            <input
+              type='text'
+              value={currentDetails.reason}
+              onChange={(e) =>
+                setCurrentDetails((prev) => ({ ...prev, reason: e.target.value }))
+              }
+              className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+              placeholder='Knockout punch'
+            />
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderOtherReason = () => (
     <div>
       <label className='block text-sm text-white mb-2'>Result Reason</label>
       <select
-        value={resultDetails.reason}
+        value={otherDetails.reason}
         onChange={(e) =>
-          setResultDetails((prev) => ({ ...prev, reason: e.target.value }))
+          setOtherDetails((prev) => ({ ...prev, reason: e.target.value }))
         }
         className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
       >
@@ -349,7 +419,9 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
         <div className='space-y-6'>
           {/* Winner Selection */}
           <div>
-            <h3 className='text-lg font-medium text-white mb-4'>Winner</h3>
+            <h3 className='text-lg font-medium text-white mb-4'>
+              Winner <span className='text-red-500'>*</span>
+            </h3>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Red Corner */}
               <button
@@ -401,7 +473,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
           {/* Result Method */}
           <div>
             <label className='block text-sm font-medium text-white mb-2'>
-              Result Method
+              Result Method <span className='text-red-500'>*</span>
             </label>
             <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
               {resultMethods.map((method) => (

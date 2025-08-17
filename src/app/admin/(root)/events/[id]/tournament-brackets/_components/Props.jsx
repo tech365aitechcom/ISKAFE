@@ -557,7 +557,7 @@ export default function Props({
       <div className='space-y-6'>
         <div className='bg-[#07091D] p-6 rounded-lg'>
           <h3 className='text-lg font-semibold text-white mb-4 border-b border-gray-600 pb-2'>
-            Bracket Properties
+            Props
           </h3>
 
           {/* Row 1: Title, Bracket Rule, Bracket Status, Pro Class */}

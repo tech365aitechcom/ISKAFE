@@ -21,7 +21,7 @@ import {
   generateBracketName,
   mapOldSportToNew,
   mapOldAgeClassToNew,
-  mapOldWeightClassToNew
+  mapOldWeightClassToNew,
 } from './bracketUtils'
 
 export default function EditBracketModal({ bracket, onClose, onUpdate }) {
@@ -44,11 +44,6 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
 
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
-
-
-
-
-
 
   // Initialize form data from existing bracket
   useEffect(() => {
@@ -281,7 +276,7 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 }`}
               >
                 {bracketStatusData.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.label}>
                     {option.label}
                   </option>
                 ))}

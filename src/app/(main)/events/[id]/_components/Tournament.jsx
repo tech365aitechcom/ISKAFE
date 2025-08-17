@@ -232,7 +232,10 @@ const Tournament = ({ eventDetails }) => {
                         </h4>
                         {bracket.fighters && bracket.fighters.length > 0 ? (
                           <div className='space-y-3'>
-                            {bracket.fighters.map((fighter, index) => {
+                            {bracket.fighters.map((fighterItem, index) => {
+                              // Handle new structure where fighter might be {fighter: {...}, seed: number}
+                              const fighter = fighterItem.fighter || fighterItem
+                              const seed = fighterItem.seed || index + 1
                               const fighterTitle = getFighterTitle(fighter)
                               return (
                                 <div
@@ -242,7 +245,7 @@ const Tournament = ({ eventDetails }) => {
                                   <div className='flex items-center justify-between'>
                                     <div className='flex items-center space-x-3'>
                                       <div className='w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-sm'>
-                                        {index + 1}
+                                        {seed}
                                       </div>
                                       <div>
                                         <div className='text-white font-medium'>

@@ -60,7 +60,21 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
         `${API_BASE_URL}/brackets/${bracket._id}`
       )
       console.log('Fetched fighters:', response.data.data)
-      setFighters(response.data.data.fighters || [])
+      
+      const bracketFighters = response.data.data.fighters || []
+      
+      // Handle new structure where fighters are {fighter: {...}, seed: number}
+      const fightersList = bracketFighters.map(f => {
+        if (f.fighter && typeof f.fighter === 'object') {
+          // New format - extract fighter object and add seed
+          return { ...f.fighter, seed: f.seed }
+        } else {
+          // Old format - fighter is already the object
+          return f
+        }
+      })
+      
+      setFighters(fightersList)
     } catch (err) {
       console.error('Error fetching fighters:', err)
     }
