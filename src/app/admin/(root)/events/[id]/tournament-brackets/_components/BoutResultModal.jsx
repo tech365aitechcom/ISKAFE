@@ -29,20 +29,6 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   const [showWarning, setShowWarning] = useState(false)
   const [showRedSuspensionModal, setShowRedSuspensionModal] = useState(false)
   const [showBlueSuspensionModal, setShowBlueSuspensionModal] = useState(false)
-  const hasBoutStarted = new Date() >= new Date(bout?.startDate)
-  const startTimeFormatted = moment(bout?.startDate).format(
-    'dddd, MMM D, YYYY h:mm A'
-  )
-
-  const now = new Date()
-  const start = new Date(bout?.startDate)
-
-  const boutStatusMessage =
-    now < start
-      ? `Scheduled to start at ${moment(start).format(
-          'dddd, MMM D, YYYY h:mm A'
-        )}`
-      : `Bout has ended at ${moment(start).format('dddd, MMM D, YYYY h:mm A')}`
 
   const resultMethods = [
     'Decision',
@@ -85,6 +71,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
         body: JSON.stringify({
           ...bout,
           startDate: new Date().toISOString(),
+          isStarted: true,
         }),
       })
 
@@ -327,19 +314,39 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
             Bout Result - {bout.redCorner?.firstName} vs{' '}
             {bout.blueCorner?.firstName}
           </h2>
-          <button onClick={onClose} className='text-gray-400 hover:text-white'>
-            <X size={24} />
-          </button>
+          <div className='flex items-center gap-3'>
+            <label className='flex items-center gap-2 text-sm text-white cursor-pointer'>
+              <div className='relative'>
+                <input
+                  type='checkbox'
+                  checked={bout.isStarted}
+                  onChange={handleBoutStart}
+                  className='sr-only'
+                />
+                <div
+                  className={`block w-10 h-6 rounded-full transition-colors duration-200 ${
+                    bout.isStarted ? 'bg-blue-600' : 'bg-gray-600'
+                  }`}
+                >
+                  <div
+                    className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${
+                      bout.isStarted ? 'transform translate-x-4' : ''
+                    }`}
+                  ></div>
+                </div>
+              </div>
+              Bout Has Started
+            </label>
+            <button
+              onClick={onClose}
+              className='text-gray-400 hover:text-white'
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         <div className='space-y-6'>
-          {/* Bout Started Toggle */}
-          <div className='flex items-center justify-between p-4 bg-[#07091D] rounded-lg'>
-            <div className='flex items-center gap-3'>
-              <Clock size={20} className='text-blue-400' />
-              <span className='text-white'>{boutStatusMessage}</span>
-            </div>
-          </div>
           {/* Winner Selection */}
           <div>
             <h3 className='text-lg font-medium text-white mb-4'>Winner</h3>
@@ -499,7 +506,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
             <button
               onClick={handleSaveResult}
               className='px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50'
-              disabled={loading || !winner || !resultMethod || hasBoutStarted}
+              disabled={loading || !winner || !resultMethod}
             >
               {loading ? 'Saving...' : 'Save Result'}
             </button>

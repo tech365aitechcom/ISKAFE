@@ -12,10 +12,21 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
   const [loading, setLoading] = useState(false)
   const [searchResults, setSearchResults] = useState([])
 
+  console.log('FighterSelectionScreen rendered with:', { eventDetails, purchaseData })
+
   useEffect(() => {
     // Load registered fighters for this event
     if (eventDetails?.registeredFighters) {
-      setFighters(eventDetails.registeredFighters)
+      console.log('Loading registered fighters:', eventDetails.registeredFighters)
+      // Filter out any invalid or admin entries
+      const validFighters = eventDetails.registeredFighters.filter(fighter => 
+        fighter && 
+        fighter.firstName && 
+        fighter.lastName && 
+        fighter.firstName.toLowerCase() !== 'admin' &&
+        fighter.lastName.toLowerCase() !== 'admin'
+      )
+      setFighters(validFighters)
     }
   }, [eventDetails])
 
@@ -48,16 +59,48 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
     return () => clearTimeout(debounceTimer)
   }, [searchTerm])
 
+  const getFighterUniqueId = (fighter) => {
+    return fighter.fighterProfileId || fighter._id || `${fighter.firstName}-${fighter.lastName}`
+  }
+
   const addFighter = (fighter) => {
-    if (!selectedFighters.find(f => f.fighterProfileId === fighter.fighterProfileId)) {
-      setSelectedFighters(prev => [...prev, fighter])
+    console.log('Adding fighter:', fighter)
+    
+    // Validate fighter data
+    if (!fighter || !fighter.firstName || !fighter.lastName) {
+      console.error('Invalid fighter data:', fighter)
+      return
     }
+    
+    // Prevent adding admin or invalid fighters
+    if (fighter.firstName.toLowerCase() === 'admin' || fighter.lastName.toLowerCase() === 'admin') {
+      console.error('Cannot add admin fighter:', fighter)
+      return
+    }
+    
+    const fighterUniqueId = getFighterUniqueId(fighter)
+    
+    // Check if fighter is already selected using unique identifier
+    const isAlreadySelected = selectedFighters.find(f => 
+      getFighterUniqueId(f) === fighterUniqueId
+    )
+    
+    if (!isAlreadySelected) {
+      setSelectedFighters(prev => [...prev, fighter])
+      console.log('Fighter added successfully:', fighter)
+    } else {
+      console.log('Fighter already selected:', fighter)
+    }
+    
     setSearchTerm('')
     setSearchResults([])
   }
 
-  const removeFighter = (fighterProfileId) => {
-    setSelectedFighters(prev => prev.filter(f => f.fighterProfileId !== fighterProfileId))
+  const removeFighter = (fighterUniqueId) => {
+    console.log('Removing fighter with ID:', fighterUniqueId)
+    setSelectedFighters(prev => prev.filter(f => 
+      getFighterUniqueId(f) !== fighterUniqueId
+    ))
   }
 
   const handleNext = () => {
@@ -100,7 +143,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
           <div className="absolute z-10 w-full mt-1 bg-[#0A1330] border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {searchResults.map((fighter, index) => (
               <div
-                key={`search-${fighter.fighterProfileId || fighter._id || 'unknown'}-${index}`}
+                key={`search-${getFighterUniqueId(fighter)}-${index}`}
                 onClick={() => addFighter(fighter)}
                 className="px-4 py-3 hover:bg-[#1b0c2e] cursor-pointer border-b border-gray-700 last:border-b-0"
               >
@@ -133,7 +176,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
           <div className="space-y-2">
             {selectedFighters.map((fighter, index) => (
               <div
-                key={`selected-${fighter.fighterProfileId || fighter._id || 'unknown'}-${index}`}
+                key={`selected-${getFighterUniqueId(fighter)}-${index}`}
                 className="bg-[#0A1330] rounded-lg p-4 flex justify-between items-center"
               >
                 <div>
@@ -143,7 +186,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
                   </p>
                 </div>
                 <button
-                  onClick={() => removeFighter(fighter.fighterProfileId)}
+                  onClick={() => removeFighter(getFighterUniqueId(fighter))}
                   className="text-red-400 hover:text-red-300 p-1"
                 >
                   <X size={20} />
@@ -160,12 +203,15 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
           <h3 className="text-lg font-medium mb-4">All Registered Fighters</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
             {fighters.map((fighter, index) => {
-              const isSelected = selectedFighters.find(f => f.fighterProfileId === fighter.fighterProfileId)
+              const fighterUniqueId = getFighterUniqueId(fighter)
+              const isSelected = selectedFighters.find(f => 
+                getFighterUniqueId(f) === fighterUniqueId
+              )
               
               return (
                 <div
-                  key={`all-${fighter.fighterProfileId || fighter._id || 'unknown'}-${index}`}
-                  onClick={() => isSelected ? removeFighter(fighter.fighterProfileId) : addFighter(fighter)}
+                  key={`all-${fighterUniqueId}-${index}`}
+                  onClick={() => isSelected ? removeFighter(fighterUniqueId) : addFighter(fighter)}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     isSelected 
                       ? 'bg-purple-600 hover:bg-purple-700' 
@@ -201,7 +247,10 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
 
       <div className="flex justify-center space-x-6 mt-4">
         <button
-          onClick={onBack}
+          onClick={() => {
+            console.log('Back button clicked in FighterSelectionScreen')
+            onBack()
+          }}
           className="text-gray-400 hover:text-white underline"
         >
           Back

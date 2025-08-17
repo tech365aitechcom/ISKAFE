@@ -28,6 +28,7 @@ const PaymentScreen = ({
   const [cashCode, setCashCode] = useState('')
   const [processing, setProcessing] = useState(false)
   const [errors, setErrors] = useState({})
+  const [paymentCompleted, setPaymentCompleted] = useState(false)
 
   // Square payment integration
   const cardRef = useRef(null)
@@ -281,7 +282,13 @@ const PaymentScreen = ({
     }
 
     console.log('✅ Square payment successful:', squareResult)
-    return squareResult.transactionId
+    return {
+      transactionId: squareResult.transactionId || squareResult.data?.transactionId,
+      orderId: squareResult.orderId || squareResult.data?.orderId,
+      receiptNumber: squareResult.receiptNumber || squareResult.data?.receiptNumber,
+      last4: squareResult.last4 || squareResult.data?.last4,
+      receiptUrl: squareResult.receiptUrl || squareResult.data?.receiptUrl,
+    }
   }
 
   const processPurchase = async () => {
@@ -442,12 +449,21 @@ const PaymentScreen = ({
       console.log('API Response:', data)
 
       if (data.success) {
+        console.log('Payment successful, response data:', data)
+        setPaymentCompleted(true)
         // enqueueSnackbar('Payment successful!', { variant: 'success' })
-        onNext('confirmation', {
-          purchaseResult: data.data,
-          qrCode: data.data?.qrCode,
-          ticketCode: data.data?.ticketCode,
-        })
+        
+        // Small delay to show payment completed state before navigating
+        setTimeout(() => {
+          const confirmationData = {
+            purchaseResult: data.data,
+            qrCode: data.data?.qrCode,
+            ticketCode: data.data?.ticketCode,
+          }
+          console.log('Sending to confirmation screen:', confirmationData)
+          console.log('QR Code data type and content:', typeof data.data?.qrCode, data.data?.qrCode)
+          onNext('confirmation', confirmationData)
+        }, 1000)
       } else {
         throw new Error(data.message || data.error || 'Payment failed')
       }
@@ -591,24 +607,26 @@ const PaymentScreen = ({
           <h3 className='text-lg font-bold mb-4'>Payment Method</h3>
           <div className='grid grid-cols-2 gap-4'>
             <button
-              onClick={() => setPaymentMethod('card')}
+              onClick={() => !processing && !paymentCompleted && setPaymentMethod('card')}
+              disabled={processing || paymentCompleted}
               className={`p-4 rounded-lg border-2 transition-colors ${
                 paymentMethod === 'card'
                   ? 'border-purple-500 bg-purple-500/20'
                   : 'border-gray-600 hover:border-gray-500'
-              }`}
+              } ${(processing || paymentCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <CreditCard className='mx-auto mb-2' size={24} />
               <div className='text-sm font-medium'>Credit/Debit Card</div>
             </button>
 
             <button
-              onClick={() => setPaymentMethod('cash')}
+              onClick={() => !processing && !paymentCompleted && setPaymentMethod('cash')}
+              disabled={processing || paymentCompleted}
               className={`p-4 rounded-lg border-2 transition-colors ${
                 paymentMethod === 'cash'
                   ? 'border-purple-500 bg-purple-500/20'
                   : 'border-gray-600 hover:border-gray-500'
-              }`}
+              } ${(processing || paymentCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <DollarSign className='mx-auto mb-2' size={24} />
               <div className='text-sm font-medium'>Cash Code</div>
@@ -639,7 +657,9 @@ const PaymentScreen = ({
             )}
 
             {squareConfigValid && squareLoaded && (
-              <div className='bg-[#0A1330] rounded-lg p-6'>
+              <div className={`bg-[#0A1330] rounded-lg p-6 ${
+                processing || paymentCompleted ? 'opacity-50 pointer-events-none' : ''
+              }`}>
                 <div
                   id='square-card-container'
                   ref={cardRef}
@@ -648,15 +668,24 @@ const PaymentScreen = ({
                 {errors.square && (
                   <p className='text-red-500 text-sm mt-2'>{errors.square}</p>
                 )}
-                <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
-                  <p className='text-blue-400 text-sm font-medium mb-1'>
-                    Test Card Information:
-                  </p>
-                  <p className='text-blue-300 text-xs'>
-                    For testing: Use card number 4111 1111 1111 1111, any future
-                    expiry date, and CVV 111
-                  </p>
-                </div>
+                {paymentCompleted && (
+                  <div className='mt-4 p-3 bg-green-900/20 border border-green-500 rounded-lg'>
+                    <p className='text-green-400 text-sm font-medium'>
+                      ✓ Payment completed successfully
+                    </p>
+                  </div>
+                )}
+                {!paymentCompleted && (
+                  <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
+                    <p className='text-blue-400 text-sm font-medium mb-1'>
+                      Test Card Information:
+                    </p>
+                    <p className='text-blue-300 text-xs'>
+                      For testing: Use card number 4111 1111 1111 1111, any future
+                      expiry date, and CVV 111
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -671,14 +700,19 @@ const PaymentScreen = ({
               type='text'
               value={cashCode}
               onChange={(e) => {
-                setCashCode(e.target.value.toUpperCase())
-                if (errors.cashCode) {
-                  setErrors((prev) => ({ ...prev, cashCode: '' }))
+                if (!processing && !paymentCompleted) {
+                  setCashCode(e.target.value.toUpperCase())
+                  if (errors.cashCode) {
+                    setErrors((prev) => ({ ...prev, cashCode: '' }))
+                  }
                 }
               }}
+              disabled={processing || paymentCompleted}
               className={`w-full bg-[#0A1330] border ${
                 errors.cashCode ? 'border-red-500' : 'border-gray-600'
-              } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500`}
+              } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 ${
+                processing || paymentCompleted ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               placeholder='Enter your cash code'
             />
             {errors.cashCode && (
@@ -693,10 +727,16 @@ const PaymentScreen = ({
         <div className='flex flex-col sm:flex-row gap-4'>
           <Button
             onClick={handlePay}
-            disabled={processing}
-            className='flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded font-medium disabled:opacity-50'
+            disabled={processing || paymentCompleted}
+            className={`flex-1 ${
+              paymentCompleted 
+                ? 'bg-green-500 cursor-default' 
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white px-6 py-3 rounded font-medium disabled:opacity-50`}
           >
-            {processing
+            {paymentCompleted
+              ? '✓ Payment Completed'
+              : processing
               ? 'Processing...'
               : `Pay $${getTotalPrice().toFixed(2)}`}
           </Button>
@@ -704,15 +744,24 @@ const PaymentScreen = ({
 
         <div className='flex justify-center space-x-6 mt-4'>
           <button
-            onClick={onBack}
-            disabled={processing}
+            onClick={() => {
+              if (!processing && !paymentCompleted) {
+                console.log('Back button clicked in PaymentScreen')
+                onBack()
+              }
+            }}
+            disabled={processing || paymentCompleted}
             className='text-gray-400 hover:text-white underline disabled:opacity-50'
           >
             Back
           </button>
           <button
-            onClick={onCancel}
-            disabled={processing}
+            onClick={() => {
+              if (!processing && !paymentCompleted) {
+                onCancel()
+              }
+            }}
+            disabled={processing || paymentCompleted}
             className='text-gray-400 hover:text-white underline disabled:opacity-50'
           >
             Cancel

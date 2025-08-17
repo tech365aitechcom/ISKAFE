@@ -18,6 +18,22 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const [returnUrl, setReturnUrl] = useState('')
+
+  // Check for return URL and pre-fill email from URL params
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const returnUrlParam = urlParams.get('returnUrl')
+    if (returnUrlParam) {
+      setReturnUrl(returnUrlParam)
+      // Extract email from return URL if available
+      const returnUrlObj = new URL(returnUrlParam, window.location.origin)
+      const emailFromReturn = returnUrlObj.searchParams.get('email')
+      if (emailFromReturn) {
+        setFormData(prev => ({ ...prev, email: emailFromReturn }))
+      }
+    }
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -38,7 +54,13 @@ const LoginPage = () => {
       if (res.status === apiConstants.success) {
         setUser({ ...res.data.user, token: res.data.token })
         enqueueSnackbar(res.data.message, { variant: 'success' })
-        router.push('/')
+        
+        // Redirect to return URL if available, otherwise go to home
+        if (returnUrl) {
+          router.push(returnUrl)
+        } else {
+          router.push('/')
+        }
       }
     } catch (error) {
   if (error.response?.status === 403) {
@@ -77,7 +99,7 @@ const LoginPage = () => {
                   type='email'
                   name='email'
                   placeholder='Email'
-                  value={formData.userName}
+                  value={formData.email}
                   onChange={handleChange}
                   className='w-full px-4 py-3 rounded border border-gray-700 bg-transparent text-white'
                   required

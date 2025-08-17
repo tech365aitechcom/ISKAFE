@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '../../../../../../../components/ui/button'
 import { API_BASE_URL } from '../../../../../../constants'
 
 const EmailEntryScreen = ({ onNext, onCancel, purchaseData }) => {
+  const router = useRouter()
   const [email, setEmail] = useState(purchaseData.email || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -49,8 +51,10 @@ const EmailEntryScreen = ({ onNext, onCancel, purchaseData }) => {
       const userExists = await checkUserExists(email)
       
       if (userExists) {
-        // Redirect to login screen
-        onNext('login', { email, isGuest: false })
+        // Redirect to main login page with return URL
+        const currentPath = window.location.pathname
+        const returnUrl = `${currentPath}?email=${encodeURIComponent(email)}&login=success`
+        router.push(`/login?returnUrl=${encodeURIComponent(returnUrl)}`)
       } else {
         // Continue as guest
         onNext('guest-details', { 

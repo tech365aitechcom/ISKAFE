@@ -24,7 +24,6 @@ export const disciplineData = [
 ]
 
 export const titleData = [
-  { value: '', label: 'No Title' },
   { value: 'world-championship', label: 'World Championship' },
   { value: 'continental-championship', label: 'Continental Championship' },
   { value: 'national-championship', label: 'National Championship' },
@@ -400,7 +399,9 @@ export const getWeightClasses = (ageClass) => {
 
   if (ageClass === 'boys' || ageClass === 'girls') {
     return youthWeightClasses
-  } else if (['men', 'senior-men', 'women', 'senior-women'].includes(ageClass)) {
+  } else if (
+    ['men', 'senior-men', 'women', 'senior-women'].includes(ageClass)
+  ) {
     return adultWeightClasses
   }
 
@@ -420,32 +421,39 @@ export const getDisciplines = (sport) => {
 
 // Map weight class object to dropdown value
 export const mapWeightClassToDisplay = (weightClassValue, weightClassObj) => {
-  if (!weightClassValue && weightClassObj && weightClassObj.min && weightClassObj.max) {
+  if (
+    !weightClassValue &&
+    weightClassObj &&
+    weightClassObj.min &&
+    weightClassObj.max
+  ) {
     const match = allWeightClasses.find(
-      (wc) => Math.abs(wc.min - weightClassObj.min) < 0.1 && Math.abs(wc.max - weightClassObj.max) < 0.1
-    );
-    return match ? match.value : '';
+      (wc) =>
+        Math.abs(wc.min - weightClassObj.min) < 0.1 &&
+        Math.abs(wc.max - weightClassObj.max) < 0.1
+    )
+    return match ? match.value : ''
   }
-  return weightClassValue || '';
+  return weightClassValue || ''
 }
 
 // Map old age class format to new format
 export const mapAgeClassFromOld = (oldAgeClass) => {
   const ageClassMap = {
-    'Youth': 'boys',
-    'Junior': 'boys',
-    'Adult': 'men',
-    'Senior': 'senior-men'
-  };
-  return ageClassMap[oldAgeClass] || oldAgeClass || '';
+    Youth: 'boys',
+    Junior: 'boys',
+    Adult: 'men',
+    Senior: 'senior-men',
+  }
+  return ageClassMap[oldAgeClass] || oldAgeClass || ''
 }
 
 // Convert weight class dropdown value back to API object format
 export const getWeightClassObject = (weightClassValue) => {
-  if (!weightClassValue) return null;
+  if (!weightClassValue) return null
 
-  const match = allWeightClasses.find(wc => wc.value === weightClassValue);
-  return match ? { min: match.min, max: match.max, unit: 'lbs' } : null;
+  const match = allWeightClasses.find((wc) => wc.value === weightClassValue)
+  return match ? { min: match.min, max: match.max, unit: 'lbs' } : null
 }
 
 // Map old sport format to new format
@@ -505,18 +513,26 @@ export const mapOldWeightClassToNew = (weightClass, ageClass) => {
 }
 
 // Generate bracket name from title components
-export const generateBracketName = (ageClass, bracketCriteria, weightClass, ageClassOptions, weightClassOptions) => {
+export const generateBracketName = (
+  ageClass,
+  bracketCriteria,
+  weightClass,
+  ageClassOptions,
+  weightClassOptions
+) => {
   const parts = []
 
   // 1. Age Class (with apostrophe for possessive)
   if (ageClass) {
-    const ageLabel = ageClassOptions.find((a) => a.value === ageClass)?.label || ''
+    const ageLabel =
+      ageClassOptions.find((a) => a.value === ageClass)?.label || ''
     parts.push(ageLabel + "'")
   }
 
   // 2. Bracket Criteria
   if (bracketCriteria && bracketCriteria !== 'none') {
-    const criteriaLabel = bracketCriteriaData.find((c) => c.value === bracketCriteria)?.label || ''
+    const criteriaLabel =
+      bracketCriteriaData.find((c) => c.value === bracketCriteria)?.label || ''
     const cleanCriteria = criteriaLabel.split(' –')[0].split(' - ')[0]
     parts.push(cleanCriteria)
   }

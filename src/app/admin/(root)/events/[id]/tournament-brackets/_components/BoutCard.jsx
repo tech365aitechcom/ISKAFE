@@ -1,10 +1,17 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Trash, Clock, User, Trophy, Play, Crown } from 'lucide-react'
+import { Trash, Clock, User, Trophy, Play, Crown, Edit } from 'lucide-react'
 import BoutResultModal from './BoutResultModal'
+import { sportsData, getAgeClasses } from './bracketUtils'
 
-export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
+export default function BoutCard({
+  bout,
+  onDelete,
+  onUpdate,
+  onEdit,
+  eventId,
+}) {
   const [showResultModal, setShowResultModal] = useState(false)
 
   const getStatusColor = (hasResult) => {
@@ -12,6 +19,18 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
       return 'text-green-500 bg-green-500/20'
     }
     return 'text-yellow-500 bg-yellow-500/20'
+  }
+
+  const getSportLabel = (sportValue) => {
+    const sport = sportsData.find((s) => s.value === sportValue)
+    return sport ? sport.label : sportValue
+  }
+
+  const getAgeClassLabel = (ageClassValue, sportValue) => {
+    if (!sportValue) return ageClassValue
+    const ageClasses = getAgeClasses(sportValue)
+    const ageClass = ageClasses.find((ac) => ac.value === ageClassValue)
+    return ageClass ? ageClass.label : ageClassValue
   }
 
   const getResultText = () => {
@@ -38,11 +57,16 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
                 bout.fight
               )}`}
             >
-              {bout.fight ? 'Completed' : 'Pending'}
+              {bout.fight
+                ? 'Completed'
+                : bout.isStarted
+                ? 'Started'
+                : 'Pending'}
             </span>
           </div>
           <div className='text-xs text-gray-400 mt-1'>
-            {bout.sport} • {bout.ruleStyle} • {bout.ageClass}
+            {getSportLabel(bout.sport)} •{' '}
+            {getAgeClassLabel(bout.ageClass, bout.sport)}
           </div>
         </div>
 
@@ -56,6 +80,13 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
               <Trophy size={16} />
             </button>
           )}
+          <button
+            onClick={() => onEdit(bout)}
+            className='p-1 text-gray-400 hover:text-gray-300'
+            title='Edit Bout'
+          >
+            <Edit size={16} />
+          </button>
           <button
             onClick={onDelete}
             className='p-1 text-red-400 hover:text-red-300'
@@ -88,10 +119,8 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
             </div>
             {bout.redCorner && (
               <div className='text-sm text-gray-400'>
-                {bout.redCorner.walkAroundWeight || 'N/A'}
-                <span className='lowercase ml-1'>
-                  {bout.redCorner.weightUnit || ''}
-                </span>
+                {bout.redCornerDetails?.weight || 'N/A'}
+                <span className='lowercase ml-1'>kg</span>
               </div>
             )}
           </div>
@@ -122,10 +151,8 @@ export default function BoutCard({ bout, onDelete, onUpdate, eventId }) {
             </div>
             {bout.blueCorner && (
               <div className='text-sm text-gray-400'>
-                {bout.blueCorner.walkAroundWeight || 'N/A'}
-                <span className='lowercase ml-1'>
-                  {bout.blueCorner.weightUnit || ''}
-                </span>
+                {bout.blueCornerDetails?.weight || 'N/A'}
+                <span className='lowercase ml-1'>kg</span>
               </div>
             )}
           </div>

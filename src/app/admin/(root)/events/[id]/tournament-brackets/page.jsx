@@ -26,11 +26,14 @@ export default function TournamentBrackets() {
 
   // Filter states
   const [filters, setFilters] = useState({
-    allAges: '',
+    title: '',
     sport: '',
+    discipline: '',
+    ageClass: '',
     ruleStyle: '',
-    ring: '',
-    group: '',
+    bracketStatus: '',
+    proClass: '',
+    bracketCriteria: '',
     minWeight: '',
     maxWeight: '',
     showWeightRange: false,
@@ -114,6 +117,9 @@ export default function TournamentBrackets() {
         enqueueSnackbar(response.data.message, {
           variant: 'success',
         })
+        // Refresh the brackets list after successful creation
+        await fetchBrackets(eventId)
+        setShowNewBracketModal(false)
       }
     } catch (err) {
       enqueueSnackbar(err.response?.data?.message, {
@@ -235,17 +241,25 @@ export default function TournamentBrackets() {
 
   // Apply filters to brackets
   const filteredBrackets = brackets.filter((bracket) => {
-    if (filters.allAges && bracket.ageClass?.toLowerCase() !== filters.allAges)
+    if (filters.title && bracket.title?.toLowerCase() !== filters.title.toLowerCase())
       return false
-    if (filters.sport && bracket.sport?.toLowerCase() !== filters.sport)
+    if (filters.sport && bracket.sport?.toLowerCase() !== filters.sport.toLowerCase())
+      return false
+    if (filters.discipline && bracket.discipline?.toLowerCase() !== filters.discipline.toLowerCase())
+      return false
+    if (filters.ageClass && bracket.ageClass?.toLowerCase() !== filters.ageClass.toLowerCase())
       return false
     if (
       filters.ruleStyle &&
-      bracket.ruleStyle?.toLowerCase() !== filters.ruleStyle
+      bracket.ruleStyle?.toLowerCase() !== filters.ruleStyle.toLowerCase()
     )
       return false
-    if (filters.ring && bracket.ring !== filters.ring) return false
-    if (filters.group && bracket.group !== filters.group) return false
+    if (filters.bracketStatus && bracket.status?.toLowerCase() !== filters.bracketStatus.toLowerCase())
+      return false
+    if (filters.proClass && bracket.proClass?.toLowerCase() !== filters.proClass.toLowerCase())
+      return false
+    if (filters.bracketCriteria && bracket.bracketCriteria?.toLowerCase() !== filters.bracketCriteria.toLowerCase())
+      return false
 
     if (filters.showWeightRange && filters.minWeight && filters.maxWeight) {
       const min = parseFloat(filters.minWeight)
@@ -409,18 +423,19 @@ export default function TournamentBrackets() {
 
         {/* Filters */}
         <div className='mb-6 p-4 bg-[#07091D] rounded-lg'>
-          <div className='grid grid-cols-1 md:grid-cols-6 gap-4 mb-4'>
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-4'>
             <select
-              value={filters.allAges}
+              value={filters.title}
               onChange={(e) =>
-                setFilters({ ...filters, allAges: e.target.value })
+                setFilters({ ...filters, title: e.target.value })
               }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
-              <option value=''>All Ages</option>
-              <option value='youth'>Youth</option>
-              <option value='adult'>Adult</option>
-              <option value='senior'>Senior</option>
+              <option value=''>All Titles</option>
+              <option value='World Championship'>World Championship</option>
+              <option value='National Championship'>National Championship</option>
+              <option value='Regional Championship'>Regional Championship</option>
+              <option value='Local Tournament'>Local Tournament</option>
             </select>
 
             <select
@@ -430,10 +445,51 @@ export default function TournamentBrackets() {
               }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
-              <option value=''>Sport</option>
+              <option value=''>All Sports</option>
               <option value='kickboxing'>Kickboxing</option>
               <option value='boxing'>Boxing</option>
               <option value='mma'>MMA</option>
+              <option value='bjj'>BJJ</option>
+            </select>
+
+            <select
+              value={filters.ageClass}
+              onChange={(e) =>
+                setFilters({ ...filters, ageClass: e.target.value })
+              }
+              className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
+            >
+              <option value=''>All Age Classes</option>
+              <option value='youth'>Youth</option>
+              <option value='adult'>Adult</option>
+              <option value='senior'>Senior</option>
+            </select>
+
+            <select
+              value={filters.bracketStatus}
+              onChange={(e) =>
+                setFilters({ ...filters, bracketStatus: e.target.value })
+              }
+              className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
+            >
+              <option value=''>All Status</option>
+              <option value='Open'>Open</option>
+              <option value='Started'>Started</option>
+              <option value='Completed'>Completed</option>
+            </select>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-4'>
+            <select
+              value={filters.discipline}
+              onChange={(e) =>
+                setFilters({ ...filters, discipline: e.target.value })
+              }
+              className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
+            >
+              <option value=''>All Disciplines</option>
+              <option value='gi'>Gi</option>
+              <option value='no-gi'>No-Gi</option>
             </select>
 
             <select
@@ -443,36 +499,40 @@ export default function TournamentBrackets() {
               }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
-              <option value=''>Rule Style</option>
+              <option value=''>All Rule Styles</option>
               <option value='muay thai'>Muay Thai</option>
               <option value='olympic'>Olympic</option>
               <option value='point sparring'>Point Sparring</option>
+              <option value='unified rules'>Unified Rules</option>
             </select>
 
             <select
-              value={filters.ring}
-              onChange={(e) => setFilters({ ...filters, ring: e.target.value })}
-              className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
-            >
-              <option value=''>Ring</option>
-              <option value='Ring 1'>Ring 1</option>
-              <option value='Ring 2'>Ring 2</option>
-              <option value='Ring 3'>Ring 3</option>
-            </select>
-
-            <select
-              value={filters.group}
+              value={filters.proClass}
               onChange={(e) =>
-                setFilters({ ...filters, group: e.target.value })
+                setFilters({ ...filters, proClass: e.target.value })
               }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
-              <option value=''>Group</option>
-              <option value='Group A'>Group A</option>
-              <option value='Group B'>Group B</option>
-              <option value='Group C'>Group C</option>
+              <option value=''>All Pro Classes</option>
+              <option value='Pro'>Pro</option>
+              <option value='Amateur'>Amateur</option>
             </select>
 
+            <select
+              value={filters.bracketCriteria}
+              onChange={(e) =>
+                setFilters({ ...filters, bracketCriteria: e.target.value })
+              }
+              className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
+            >
+              <option value=''>All Criteria</option>
+              <option value='none'>None</option>
+              <option value='experience'>Experience</option>
+              <option value='belt'>Belt</option>
+            </select>
+          </div>
+
+          <div className='flex items-center gap-4'>
             <div className='flex items-center'>
               <input
                 type='checkbox'
@@ -484,34 +544,34 @@ export default function TournamentBrackets() {
                 className='mr-2'
               />
               <label htmlFor='showWeightRange' className='text-sm'>
-                Show Weight Range
+                Filter by Weight Range
               </label>
             </div>
           </div>
 
           {filters.showWeightRange && (
-            <div className='flex gap-4 items-center'>
+            <div className='flex gap-4 items-center mt-4'>
               <div>
-                <label className='block text-sm mb-1'>Min Weight</label>
+                <label className='block text-sm mb-1'>Min Weight (lbs)</label>
                 <input
                   type='number'
                   value={filters.minWeight}
                   onChange={(e) =>
                     setFilters({ ...filters, minWeight: e.target.value })
                   }
-                  className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white w-24'
+                  className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white w-32'
                   placeholder='Min'
                 />
               </div>
               <div>
-                <label className='block text-sm mb-1'>Max Weight</label>
+                <label className='block text-sm mb-1'>Max Weight (lbs)</label>
                 <input
                   type='number'
                   value={filters.maxWeight}
                   onChange={(e) =>
                     setFilters({ ...filters, maxWeight: e.target.value })
                   }
-                  className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white w-24'
+                  className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white w-32'
                   placeholder='Max'
                 />
               </div>

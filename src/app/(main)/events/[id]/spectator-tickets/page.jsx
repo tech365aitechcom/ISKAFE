@@ -9,6 +9,7 @@ import GuestDetailsForm from './_components/GuestDetailsForm'
 import TicketSelectionScreen from './_components/TicketSelectionScreen'
 import FighterSelectionScreen from './_components/FighterSelectionScreen'
 import PaymentScreen from './_components/PaymentScreen'
+import ConfirmationScreen from './_components/ConfirmationScreen'
 import useStore from '../../../../../stores/useStore'
 
 const SpectatorTicketPurchasePage = () => {
@@ -18,8 +19,7 @@ const SpectatorTicketPurchasePage = () => {
 
   const [eventDetails, setEventDetails] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentStep, setCurrentStep] = useState('email') // email, guest-details, tickets, fighters, payment
-  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false)
+  const [currentStep, setCurrentStep] = useState('email') // email, guest-details, tickets, fighters, payment, confirmation
   const [purchaseData, setPurchaseData] = useState({
     eventId: params.id,
     email: '',
@@ -39,6 +39,11 @@ const SpectatorTicketPurchasePage = () => {
   useEffect(() => {
     fetchEventDetails()
 
+    // Check for login return from URL params
+    const urlParams = new URLSearchParams(window.location.search)
+    const loginSuccess = urlParams.get('login')
+    const emailFromUrl = urlParams.get('email')
+
     // If user is already logged in, skip email entry
     if (user) {
       setCurrentStep('tickets')
@@ -48,6 +53,16 @@ const SpectatorTicketPurchasePage = () => {
         userId: user._id, // Add user ID for backend API
         isGuest: false,
       }))
+    } else if (loginSuccess === 'success' && emailFromUrl) {
+      // User returned from successful login, go to tickets
+      setCurrentStep('tickets')
+      setPurchaseData((prev) => ({
+        ...prev,
+        email: emailFromUrl,
+        isGuest: false,
+      }))
+      // Clean up URL params
+      window.history.replaceState({}, '', window.location.pathname)
     }
   }, [params.id, user])
 
@@ -83,15 +98,8 @@ const SpectatorTicketPurchasePage = () => {
       return updated
     })
 
-    // If step is confirmation, show snackbar and redirect instead
-    if (step === 'confirmation') {
-      setShowSuccessSnackbar(true)
-      setTimeout(() => {
-        router.push(`/events/${params.id}`)
-      }, 2000)
-    } else {
-      setCurrentStep(step)
-    }
+    // Set the current step, including confirmation
+    setCurrentStep(step)
   }
 
   const handleCancel = () => {
@@ -99,6 +107,9 @@ const SpectatorTicketPurchasePage = () => {
   }
 
   const handleBack = () => {
+    console.log('handleBack called from step:', currentStep)
+    console.log('Current purchase data:', purchaseData)
+
     switch (currentStep) {
       case 'guest-details':
         setCurrentStep('email')
@@ -114,9 +125,12 @@ const SpectatorTicketPurchasePage = () => {
         setCurrentStep('tickets')
         break
       case 'payment':
+        // Ensure we go back to fighters step without any loading issues
+        console.log('Going back from payment to fighters')
         setCurrentStep('fighters')
         break
       default:
+        console.log('Default case - returning to event details')
         router.push(`/events/${params.id}`)
     }
   }
@@ -165,46 +179,50 @@ const SpectatorTicketPurchasePage = () => {
         {/* Progress Indicator */}
         <div className='mb-8'>
           <div className='flex items-center justify-center space-x-4'>
-            {['Email', 'Details', 'Tickets', 'Fighters', 'Payment'].map(
-              (step, index) => {
-                const stepKeys = [
-                  'email',
-                  'guest-details',
-                  'tickets',
-                  'fighters',
-                  'payment',
-                ]
-                const currentIndex = stepKeys.indexOf(currentStep)
-                const isActive = index === currentIndex
-                const isCompleted = index < currentIndex
+            {[
+              'Email',
+              'Details',
+              'Tickets',
+              'Fighters',
+              'Payment',
+              'Complete',
+            ].map((step, index) => {
+              const stepKeys = [
+                'email',
+                'guest-details',
+                'tickets',
+                'fighters',
+                'payment',
+                'confirmation',
+              ]
+              const currentIndex = stepKeys.indexOf(currentStep)
+              const isActive = index === currentIndex
+              const isCompleted = index < currentIndex
 
-                return (
-                  <div key={step} className='flex items-center'>
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                        isActive
-                          ? 'bg-purple-600 text-white'
-                          : isCompleted
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-600 text-gray-300'
-                      }`}
-                    >
-                      {isCompleted ? '✓' : index + 1}
-                    </div>
-                    <span
-                      className={`ml-2 text-sm ${
-                        isActive ? 'text-white' : 'text-gray-400'
-                      }`}
-                    >
-                      {step}
-                    </span>
-                    {index < 4 && (
-                      <div className='w-8 h-0.5 bg-gray-600 mx-4' />
-                    )}
+              return (
+                <div key={step} className='flex items-center'>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      isActive
+                        ? 'bg-purple-600 text-white'
+                        : isCompleted
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-600 text-gray-300'
+                    }`}
+                  >
+                    {isCompleted ? '✓' : index + 1}
                   </div>
-                )
-              }
-            )}
+                  <span
+                    className={`ml-2 text-sm ${
+                      isActive ? 'text-white' : 'text-gray-400'
+                    }`}
+                  >
+                    {step}
+                  </span>
+                  {index < 5 && <div className='w-8 h-0.5 bg-gray-600 mx-4' />}
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -256,27 +274,15 @@ const SpectatorTicketPurchasePage = () => {
               purchaseData={purchaseData}
             />
           )}
-        </div>
 
-        {/* Success Snackbar */}
-        {showSuccessSnackbar && (
-          <div className='fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-3'>
-            <div className='w-5 h-5 bg-white rounded-full flex items-center justify-center'>
-              <svg
-                className='w-3 h-3 text-green-600'
-                fill='currentColor'
-                viewBox='0 0 20 20'
-              >
-                <path
-                  fillRule='evenodd'
-                  d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
-                  clipRule='evenodd'
-                />
-              </svg>
-            </div>
-            <span className='font-medium'>Tickets purchased successfully!</span>
-          </div>
-        )}
+          {currentStep === 'confirmation' && (
+            <ConfirmationScreen
+              eventDetails={eventDetails}
+              purchaseData={purchaseData}
+              onReturnToEvent={() => router.push(`/events/${params.id}`)}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

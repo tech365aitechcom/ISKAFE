@@ -3,7 +3,7 @@ import { API_BASE_URL, apiConstants } from '../../../../constants/index'
 import useStore from '../../../../stores/useStore'
 import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
-import React, { useState } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 
 export default function FighterRegistrationForm({ setIsOpen, eventId }) {
   const user = useStore((state) => state.user)
@@ -72,6 +72,52 @@ export default function FighterRegistrationForm({ setIsOpen, eventId }) {
   })
 
   const [errors, setErrors] = useState({})
+  const [isLoadingSystemRecord, setIsLoadingSystemRecord] = useState(false)
+
+  // Function to fetch system record by email
+  const fetchSystemRecord = useCallback(async (email) => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      return
+    }
+
+    setIsLoadingSystemRecord(true)
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/auth/fighter/system-record/${encodeURIComponent(
+          email
+        )}`
+      )
+
+      if (response.data.success) {
+        const { systemRecord } = response.data.data
+
+        // Auto-populate the system record field
+        setFormData((prev) => ({
+          ...prev,
+          systemRecord,
+        }))
+      }
+    } catch (error) {
+      console.error('Error fetching system record:', error)
+      setFormData((prev) => ({
+        ...prev,
+        systemRecord: '0-0-0',
+      }))
+    } finally {
+      setIsLoadingSystemRecord(false)
+    }
+  }, [])
+
+  // Debounced email check effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.email) {
+        fetchSystemRecord(formData.email)
+      }
+    }, 1000) // Wait 1 second after user stops typing
+
+    return () => clearTimeout(timer)
+  }, [formData.email, fetchSystemRecord])
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
@@ -611,18 +657,21 @@ export default function FighterRegistrationForm({ setIsOpen, eventId }) {
 
       <div>
         <label className='text-white font-medium'>System Record</label>
-        <input
-          type='text'
-          name='systemRecord'
-          value={formData.systemRecord}
-          className='w-full mt-1 p-2 rounded bg-[#2e1b47] text-white'
-          readOnly
-        />
-        <p className='text-gray-400 text-sm mt-1'>
-          Auto-populated from platform
-        </p>
+        <div className='relative'>
+          <input
+            type='text'
+            name='systemRecord'
+            value={formData.systemRecord}
+            className='w-full mt-1 p-2 rounded bg-[#2e1b47] text-white pr-10'
+            readOnly
+          />
+          {isLoadingSystemRecord && (
+            <div className='absolute right-3 top-1/2 transform -translate-y-1/2'>
+              <div className='animate-spin h-4 w-4 border-2 border-yellow-500 border-t-transparent rounded-full'></div>
+            </div>
+          )}
+        </div>
       </div>
-
       <div>
         <label className='text-white font-medium'>Additional Records</label>
         <input

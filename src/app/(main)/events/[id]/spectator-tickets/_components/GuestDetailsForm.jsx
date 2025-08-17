@@ -32,12 +32,19 @@ const GuestDetailsForm = ({ onNext, onBack, onCancel, purchaseData }) => {
     return cleanPhone.length === 10
   }
 
+  const validateNameInput = (value) => {
+    // Only allow alphabetic characters, spaces, hyphens, and apostrophes
+    return value.replace(/[^a-zA-Z\s\-']/g, '')
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     
     let formattedValue = value
     if (name === 'phone') {
       formattedValue = formatPhoneNumber(value)
+    } else if (name === 'firstName' || name === 'lastName') {
+      formattedValue = validateNameInput(value)
     }
     
     setFormData(prev => ({
@@ -56,10 +63,14 @@ const GuestDetailsForm = ({ onNext, onBack, onCancel, purchaseData }) => {
     
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First name is required'
+    } else if (!/^[a-zA-Z\s\-']+$/.test(formData.firstName.trim())) {
+      newErrors.firstName = 'First name can only contain letters, spaces, hyphens, and apostrophes'
     }
     
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Last name is required'
+    } else if (!/^[a-zA-Z\s\-']+$/.test(formData.lastName.trim())) {
+      newErrors.lastName = 'Last name can only contain letters, spaces, hyphens, and apostrophes'
     }
     
     if (!formData.phone.trim()) {

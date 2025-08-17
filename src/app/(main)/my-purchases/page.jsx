@@ -4,12 +4,13 @@ import { ChevronDown, ChevronUp, Download, Search, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Loader from '../../_components/Loader'
 import useStore from '../../../stores/useStore'
-import axiosInstance from '../../../shared/axios'
+import axios from 'axios'
+import { API_BASE_URL } from '../../../constants'
 
 const MyPurchases = () => {
   const router = useRouter()
   const user = useStore((state) => state.user)
-  
+
   const [searchKeyword, setSearchKeyword] = useState('')
   const [transactionType, setTransactionType] = useState('')
   const [dateRangeStart, setDateRangeStart] = useState('')
@@ -26,55 +27,77 @@ const MyPurchases = () => {
       router.push('/login')
       return
     }
-    
+
     const getTransactions = async () => {
       try {
         setLoading(true)
         setError(null)
-        
-        const response = await axiosInstance.get('/spectator-ticket/purchase/user')
+
+        const response = await axios.get(
+          `${API_BASE_URL}/spectator-ticket/purchase/user`,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        )
         console.log('API Response:', response.data)
-        
+
         if (response.data.success && response.data.data.items) {
           // Transform API data to match component structure
-          const transformedTransactions = response.data.data.items.map(item => ({
-            _id: item._id,
-            pageTitle: `Spectator Ticket Purchase - ${item.event?.name || 'Unknown Event'}`,
-            instructionText: 'Purchase spectator tickets for the upcoming event',
-            purchaseDateTime: item.createdAt,
-            transactionType: 'Spectator Tickets',
-            productName: `${item.tier} Ticket x${item.quantity}`,
-            eventDate: item.event?.startDate,
-            amount: item.totalAmount / 100, // Convert cents to dollars
-            details: {
-              transactionId: item.transactionId || item._id,
-              paymentMethod: item.paymentMethod === 'cash' ? `Cash Payment (${item.cashCode})` : 'Credit Card',
-              itemName: `${item.tier} Tickets x${item.quantity}`,
-              eventName: item.event?.name || 'Unknown Event',
-              entryType: 'Spectator',
-              purchaseStatus: item.paymentStatus,
-              invoiceLink: true,
-              notes: item.redemptionStatus === 'Redeemed' ? 'Ticket has been used for entry' : 'Active ticket - ready to use',
-              qrCode: true,
-              ticketCode: item.ticketCode,
-              redemptionStatus: item.redemptionStatus,
-              redeemedAt: item.redeemedAt,
-              tickets: [{ 
-                tierName: item.tier, 
-                quantity: item.quantity, 
-                price: item.totalAmount / 100 / item.quantity 
-              }]
-            }
-          }))
-          
+          const transformedTransactions = response.data.data.items.map(
+            (item) => ({
+              _id: item._id,
+              pageTitle: `Spectator Ticket Purchase - ${
+                item.event?.name || 'Unknown Event'
+              }`,
+              instructionText:
+                'Purchase spectator tickets for the upcoming event',
+              purchaseDateTime: item.createdAt,
+              transactionType: 'Spectator Tickets',
+              productName: `${item.tier} Ticket x${item.quantity}`,
+              eventDate: item.event?.startDate,
+              amount: item.totalAmount,
+              details: {
+                transactionId: item.transactionId || item._id,
+                paymentMethod:
+                  item.paymentMethod === 'cash'
+                    ? `Cash Payment (${item.cashCode})`
+                    : 'Credit Card',
+                itemName: `${item.tier} Tickets x${item.quantity}`,
+                eventName: item.event?.name || 'Unknown Event',
+                entryType: 'Spectator',
+                purchaseStatus: item.paymentStatus,
+                invoiceLink: true,
+                notes:
+                  item.redemptionStatus === 'Redeemed'
+                    ? 'Ticket has been used for entry'
+                    : 'Active ticket - ready to use',
+                qrCode: true,
+                ticketCode: item.ticketCode,
+                redemptionStatus: item.redemptionStatus,
+                redeemedAt: item.redeemedAt,
+                tickets: [
+                  {
+                    tierName: item.tier,
+                    quantity: item.quantity,
+                    price: item.totalAmount / 100 / item.quantity,
+                  },
+                ],
+              },
+            })
+          )
+
           setTransactions(transformedTransactions)
         } else {
           setTransactions([])
         }
       } catch (error) {
         console.error('Error fetching transactions:', error)
-        setError(error.response?.data?.message || 'Failed to load purchase history')
-        
+        setError(
+          error.response?.data?.message || 'Failed to load purchase history'
+        )
+
         // Set empty array if API fails
         setTransactions([])
       } finally {
@@ -166,7 +189,9 @@ const MyPurchases = () => {
       <div className='flex justify-center items-center h-screen bg-black'>
         <div className='text-center'>
           <h2 className='text-white text-xl mb-4'>Authentication Required</h2>
-          <p className='text-gray-400'>Please log in to view your purchase history</p>
+          <p className='text-gray-400'>
+            Please log in to view your purchase history
+          </p>
         </div>
       </div>
     )
@@ -334,9 +359,11 @@ const MyPurchases = () => {
         <div className='bg-black w-full mx-auto px-4 py-16'>
           <div className='max-w-6xl mx-auto text-center py-16'>
             <div className='bg-red-900/20 border border-red-600 rounded-lg p-8'>
-              <h3 className='text-red-400 text-xl font-bold mb-4'>Unable to Load Purchases</h3>
+              <h3 className='text-red-400 text-xl font-bold mb-4'>
+                Unable to Load Purchases
+              </h3>
               <p className='text-white mb-6'>{error}</p>
-              <button 
+              <button
                 onClick={() => window.location.reload()}
                 className='bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded transition-colors'
               >
@@ -524,41 +551,64 @@ const MyPurchases = () => {
                                       </div>
 
                                       {/* Show QR Code and Ticket Code for Spectator Tickets */}
-                                      {transaction.transactionType === 'Spectator Tickets' && transaction.details.qrCode && (
-                                        <div className='mt-4 pt-4 border-t border-gray-600'>
-                                          <div className='space-y-3'>
-                                            <div className='flex flex-col sm:flex-row gap-4'>
-                                              <div>
-                                                <span className='text-gray-300 text-sm'>Ticket Code:</span>
-                                                <p className='text-white font-mono text-lg font-bold'>
-                                                  {transaction.details.ticketCode}
-                                                </p>
+                                      {transaction.transactionType ===
+                                        'Spectator Tickets' &&
+                                        transaction.details.qrCode && (
+                                          <div className='mt-4 pt-4 border-t border-gray-600'>
+                                            <div className='space-y-3'>
+                                              <div className='flex flex-col sm:flex-row gap-4'>
+                                                <div>
+                                                  <span className='text-gray-300 text-sm'>
+                                                    Ticket Code:
+                                                  </span>
+                                                  <p className='text-white font-mono text-lg font-bold'>
+                                                    {
+                                                      transaction.details
+                                                        .ticketCode
+                                                    }
+                                                  </p>
+                                                </div>
+                                                <div>
+                                                  <span className='text-gray-300 text-sm'>
+                                                    Ticket Status:
+                                                  </span>
+                                                  <p
+                                                    className={`font-medium ${
+                                                      transaction.details
+                                                        .redemptionStatus ===
+                                                      'Redeemed'
+                                                        ? 'text-green-400'
+                                                        : 'text-blue-400'
+                                                    }`}
+                                                  >
+                                                    {transaction.details
+                                                      .redemptionStatus ===
+                                                    'Redeemed'
+                                                      ? 'Used'
+                                                      : 'Active'}
+                                                  </p>
+                                                </div>
                                               </div>
-                                              <div>
-                                                <span className='text-gray-300 text-sm'>Ticket Status:</span>
-                                                <p className={`font-medium ${
-                                                  transaction.details.redemptionStatus === 'Redeemed' 
-                                                    ? 'text-green-400' 
-                                                    : 'text-blue-400'
-                                                }`}>
-                                                  {transaction.details.redemptionStatus === 'Redeemed' ? 'Used' : 'Active'}
-                                                </p>
-                                              </div>
+                                              {transaction.details
+                                                .redeemedAt && (
+                                                <div>
+                                                  <span className='text-gray-300 text-sm'>
+                                                    Used Date:
+                                                  </span>
+                                                  <p className='text-white text-sm'>
+                                                    {formatDateTime(
+                                                      transaction.details
+                                                        .redeemedAt
+                                                    )}
+                                                  </p>
+                                                </div>
+                                              )}
+                                              <button className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center transition-colors w-fit'>
+                                                View QR Code & Receipt
+                                              </button>
                                             </div>
-                                            {transaction.details.redeemedAt && (
-                                              <div>
-                                                <span className='text-gray-300 text-sm'>Used Date:</span>
-                                                <p className='text-white text-sm'>
-                                                  {formatDateTime(transaction.details.redeemedAt)}
-                                                </p>
-                                              </div>
-                                            )}
-                                            <button className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center transition-colors w-fit'>
-                                              View QR Code & Receipt
-                                            </button>
                                           </div>
-                                        </div>
-                                      )}
+                                        )}
                                     </div>
                                   </div>
                                 </div>

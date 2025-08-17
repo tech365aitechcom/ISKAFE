@@ -10,6 +10,7 @@ import axios from 'axios'
 import moment from 'moment'
 import PaginationHeader from '../../../../../_components/PaginationHeader'
 import Pagination from '../../../../../_components/Pagination'
+import { titleData } from '../tournament-brackets/_components/bracketUtils'
 
 export default function BoutListPage({ params }) {
   const { id } = use(params)
@@ -71,8 +72,6 @@ export default function BoutListPage({ params }) {
     }
   }
 
-  console.log('All bouts:', allBouts)
-
   const applyFilters = () => {
     let filtered = [...allBouts]
 
@@ -121,22 +120,6 @@ export default function BoutListPage({ params }) {
   const handleResultEdit = (bout) => {
     setSelectedBout(bout)
     setShowResultModal(true)
-  }
-
-  const getStatusBadge = (bout) => {
-    if (bout.fight) {
-      return (
-        <span className='px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs'>
-          Completed
-        </span>
-      )
-    } else {
-      return (
-        <span className='px-2 py-1 bg-gray-500/20 text-gray-400 rounded text-xs'>
-          Pending
-        </span>
-      )
-    }
   }
 
   const getResultText = (bout) => {
@@ -249,9 +232,9 @@ export default function BoutListPage({ params }) {
               className='bg-[#0B1739] border border-gray-600 rounded-md px-3 py-2 text-white'
             >
               <option value=''>All Brackets</option>
-              {brackets.map((bracket) => (
-                <option key={bracket._id} value={bracket._id}>
-                  {bracket.title || bracket.divisionTitle}
+              {titleData.map((title) => (
+                <option key={title.value} value={title.value}>
+                  {title.label}
                 </option>
               ))}
             </select>

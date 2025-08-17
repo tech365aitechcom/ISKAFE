@@ -14,6 +14,16 @@ import {
   mapAgeClassFromOld,
   getWeightClassObject,
   proClassData,
+  titleData,
+  sportsData,
+  disciplineData,
+  bracketCriteriaData,
+  bracketRuleData,
+  bracketStatusData,
+  getAgeClasses,
+  getWeightClasses,
+  getDisciplines,
+  generateBracketName,
 } from './bracketUtils'
 
 export default function Props({
@@ -38,22 +48,26 @@ export default function Props({
     useState(false)
   const [originalData, setOriginalData] = useState({})
 
-  // Title component fields for auto-generating bracket name
+  // Bracket form fields
   const [proClass, setProClass] = useState('')
   const [ruleStyle, setRuleStyle] = useState('')
   const [weightClass, setWeightClass] = useState('')
   const [ageClass, setAgeClass] = useState('')
+  const [title, setTitle] = useState('')
+  const [sport, setSport] = useState('')
+  const [discipline, setDiscipline] = useState('')
+  const [bracketCriteria, setBracketCriteria] = useState('')
+  const [bracketStatus, setBracketStatus] = useState('')
+  const [bracketNumber, setBracketNumber] = useState('')
+  const [group, setGroup] = useState('')
 
   useEffect(() => {
     if (expandedBracket) {
       const initialData = {
         bracketName: expandedBracket.divisionTitle || '',
         startDayNumber: expandedBracket.startDayNumber?.toString() || '',
-        ringNumber: expandedBracket.ringNumber || expandedBracket.ring || '',
-        bracketSequence:
-          expandedBracket.bracketSequence?.toString() ||
-          expandedBracket.bracketNumber?.toString() ||
-          '',
+        ringNumber: expandedBracket.ring || '',
+        bracketSequence: expandedBracket.sequenceNumber?.toString() || '',
         boutRound: expandedBracket.boutRound?.toString() || '',
         maxCompetitors:
           expandedBracket.maxCompetitors?.toString() ||
@@ -63,6 +77,13 @@ export default function Props({
         ruleStyle: expandedBracket.ruleStyle || '',
         weightClass: mapWeightClassToDisplay(null, expandedBracket.weightClass),
         ageClass: mapAgeClassFromOld(expandedBracket.ageClass),
+        title: expandedBracket.title || '',
+        sport: expandedBracket.sport || '',
+        discipline: expandedBracket.discipline || '',
+        bracketCriteria: expandedBracket.bracketCriteria || '',
+        bracketStatus: expandedBracket.status || '',
+        bracketNumber: expandedBracket.bracketNumber?.toString() || '',
+        group: expandedBracket.group || '',
       }
 
       // Store original data for comparison
@@ -80,6 +101,13 @@ export default function Props({
         setRuleStyle(initialData.ruleStyle)
         setWeightClass(initialData.weightClass)
         setAgeClass(initialData.ageClass)
+        setTitle(initialData.title)
+        setSport(initialData.sport)
+        setDiscipline(initialData.discipline)
+        setBracketCriteria(initialData.bracketCriteria)
+        setBracketStatus(initialData.bracketStatus)
+        setBracketNumber(initialData.bracketNumber)
+        setGroup(initialData.group)
       }
     }
   }, [expandedBracket, hasUnsavedChanges])
@@ -96,6 +124,20 @@ export default function Props({
     }
   }, [proClass, ruleStyle, weightClass, ageClass])
 
+  // Generate bracket name functionality
+  const handleGenerateName = () => {
+    const ageClassOptions = getAgeClasses(sport)
+    const weightClassOptions = getWeightClasses(ageClass)
+    const generatedName = generateBracketName(
+      ageClass,
+      bracketCriteria,
+      weightClass,
+      ageClassOptions,
+      weightClassOptions
+    )
+    setBracketName(generatedName)
+  }
+
   // Track changes to detect unsaved modifications for both sections
   useEffect(() => {
     const currentData = {
@@ -109,24 +151,42 @@ export default function Props({
       ruleStyle,
       weightClass,
       ageClass,
+      title,
+      sport,
+      discipline,
+      bracketCriteria,
+      bracketStatus,
+      bracketNumber,
+      group,
     }
 
     // Properties section fields
     const propertiesFields = [
       'bracketName',
-      'ringNumber',
-      'bracketSequence',
       'proClass',
       'ruleStyle',
       'weightClass',
       'ageClass',
+      'title',
+      'sport',
+      'discipline',
+      'bracketCriteria',
+      'bracketStatus',
+      'bracketNumber',
     ]
     const hasPropertiesChanges = propertiesFields.some(
       (key) => originalData[key] !== currentData[key]
     )
 
     // Settings section fields
-    const settingsFields = ['startDayNumber', 'boutRound', 'maxCompetitors']
+    const settingsFields = [
+      'startDayNumber',
+      'group',
+      'ringNumber',
+      'bracketSequence',
+      'boutRound',
+      'maxCompetitors',
+    ]
     const hasSettingsChanges = settingsFields.some(
       (key) => originalData[key] !== currentData[key]
     )
@@ -147,6 +207,13 @@ export default function Props({
     ruleStyle,
     weightClass,
     ageClass,
+    title,
+    sport,
+    discipline,
+    bracketCriteria,
+    bracketStatus,
+    bracketNumber,
+    group,
     originalData,
   ])
 
@@ -184,9 +251,6 @@ export default function Props({
       errors.bracketName = 'Bracket name is required'
     } else if (bracketName.trim().length > 100) {
       errors.bracketName = 'Bracket name must be less than 100 characters'
-    } else if (!/^[a-zA-Z0-9\s'&.+\-()/#:,_]+$/.test(bracketName.trim())) {
-      errors.bracketName =
-        'Bracket name contains invalid characters. Allowed: letters, numbers, spaces, and common punctuation'
     }
 
     // Ring Number validation (alphanumeric)
@@ -215,19 +279,25 @@ export default function Props({
       const weightClassObj = getWeightClassObject(weightClass)
 
       const updateData = {
-        title: bracketName.trim(), // Use the actual bracket name for the title
+        title: title || expandedBracket.title || '',
         divisionTitle: bracketName.trim(), // Store actual name in divisionTitle
         ringNumber: ringNumber || '',
-        bracketNumber:
-          parseInt(bracketSequence) || expandedBracket.bracketNumber,
+        sequenceNumber: parseInt(bracketSequence),
         // Include title component fields
         proClass: proClass || '',
         ruleStyle: ruleStyle || expandedBracket.ruleStyle || '',
         // Convert weight class value back to object structure for API
         weightClass: weightClassObj || expandedBracket.weightClass,
         ageClass: ageClass || expandedBracket.ageClass || '',
-        // Preserve other bracket data to avoid overwrites
-        sport: expandedBracket.sport,
+        // Include new dropdown fields
+        sport: sport || expandedBracket.sport || '',
+        discipline: discipline || expandedBracket.discipline || '',
+        bracketCriteria:
+          bracketCriteria || expandedBracket.bracketCriteria || '',
+        status: bracketStatus || expandedBracket.status || '',
+        bracketNumber:
+          parseInt(bracketNumber) || expandedBracket.bracketNumber || 1,
+        group: group || expandedBracket.group || '',
       }
 
       console.log('Updating bracket properties with data:', updateData)
@@ -303,7 +373,10 @@ export default function Props({
     setLoading(true)
     try {
       const updateData = {
-        startDayNumber: parseInt(startDayNumber),
+        startDayNumber: parseInt(startDayNumber) || undefined,
+        group: group || '',
+        ring: ringNumber || '',
+        sequenceNumber: parseInt(bracketSequence) || undefined,
         boutRound: parseInt(boutRound),
         maxCompetitors: parseInt(maxCompetitors),
       }
@@ -397,26 +470,6 @@ export default function Props({
     }
   }
 
-  const handleReset = () => {
-    // Reset to original data
-    setBracketName(originalData.bracketName || '')
-    setStartDayNumber(originalData.startDayNumber || '')
-    setRingNumber(originalData.ringNumber || '')
-    setBracketSequence(originalData.bracketSequence || '')
-    setBoutRound(originalData.boutRound || '')
-    setMaxCompetitors(originalData.maxCompetitors || '')
-    setProClass(originalData.proClass || '')
-    setRuleStyle(originalData.ruleStyle || '')
-    setWeightClass(originalData.weightClass || '')
-    setAgeClass(originalData.ageClass || '')
-
-    // Clear validation errors and unsaved changes flag
-    setValidationErrors({})
-    setHasUnsavedChanges(false)
-    setHasUnsavedPropertiesChanges(false)
-    setHasUnsavedSettingsChanges(false)
-  }
-
   const handleUpdateBracketStatus = async () => {
     if (!expandedBracket) return
 
@@ -500,77 +553,6 @@ export default function Props({
 
   return (
     <div>
-      <div className='flex justify-between items-center mb-6'>
-        <div className='bg-[#00000061] p-3 rounded w-2/3 flex items-center'>
-          <div className='w-full'>
-            <div className='text-xs mb-1 flex items-center justify-between'>
-              <span>
-                Bracket Name
-                <span className='text-red-500'>*</span>
-              </span>
-              {/* <button
-                onClick={() => setBracketName('')}
-                className='text-xs text-gray-400 hover:text-white'
-                title='Clear bracket name'
-              >
-                Reset
-              </button> */}
-            </div>
-            <input
-              type='text'
-              value={bracketName || ''}
-              onChange={(e) => {
-                // Allow characters commonly used in auto-generation and manual entry
-                const cleanValue = e.target.value.replace(
-                  /[^a-zA-Z0-9\s'&.+\-()/#:,_]/g,
-                  ''
-                )
-                setBracketName(cleanValue)
-                // Clear validation error when user starts typing
-                if (validationErrors.bracketName) {
-                  setValidationErrors((prev) => {
-                    const { bracketName, ...rest } = prev
-                    return rest
-                  })
-                }
-              }}
-              onKeyPress={(e) => {
-                // Prevent invalid characters - allow characters used in auto-generation
-                if (
-                  !/[a-zA-Z0-9\s'&.+\-()/#:,_]/.test(e.key) &&
-                  ![
-                    'Backspace',
-                    'Delete',
-                    'Tab',
-                    'ArrowLeft',
-                    'ArrowRight',
-                  ].includes(e.key)
-                ) {
-                  e.preventDefault()
-                }
-              }}
-              placeholder='Auto-generated or enter manually'
-              className={`w-full bg-transparent text-white text-xl rounded py-1 focus:outline-none placeholder-gray-400 ${
-                validationErrors.bracketName
-                  ? 'border-b-2 border-red-500'
-                  : 'focus:border-white'
-              }`}
-            />
-            {validationErrors.bracketName && (
-              <div className='text-red-400 text-xs mt-1'>
-                ⚠ {validationErrors.bracketName}
-              </div>
-            )}
-          </div>
-        </div>
-        <button
-          onClick={handleClose}
-          className='ml-4 p-2 hover:bg-gray-700 rounded'
-        >
-          <X size={20} />
-        </button>
-      </div>
-
       {/* Bracket Properties Section */}
       <div className='space-y-6'>
         <div className='bg-[#07091D] p-6 rounded-lg'>
@@ -578,149 +560,245 @@ export default function Props({
             Bracket Properties
           </h3>
 
-          {/* Title Components for Auto-generating Bracket Name */}
-          <div className='mb-6'>
-            <h4 className='text-md font-medium text-white mb-3'>
-              Title Components
-            </h4>
-            <div className='grid grid-cols-4 gap-4'>
-              <div>
-                <label className='block text-xs text-gray-300 mb-1'>
-                  Pro Class
-                </label>
-                <select
-                  value={proClass}
-                  onChange={(e) => setProClass(e.target.value)}
-                  className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
-                >
-                  <option value=''>Select Pro Class</option>
-                  {proClassData.map((option) => (
-                    <option key={option.value} value={option.label}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className='block text-xs text-gray-300 mb-1'>
-                  Age Class
-                </label>
-                <select
-                  value={ageClass}
-                  onChange={(e) => setAgeClass(e.target.value)}
-                  className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
-                >
-                  <option value=''>Select Age Class</option>
-                  <option value='boys'>Boys</option>
-                  <option value='girls'>Girls</option>
-                  <option value='men'>Men</option>
-                  <option value='women'>Women</option>
-                  <option value='senior-men'>Senior Men</option>
-                  <option value='senior-women'>Senior Women</option>
-                </select>
-              </div>
-
-              <div>
-                <label className='block text-xs text-gray-300 mb-1'>
-                  Rule Style
-                </label>
-                <select
-                  value={ruleStyle}
-                  onChange={(e) => setRuleStyle(e.target.value)}
-                  className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
-                >
-                  <option value=''>Select Rule Style</option>
-                  <option value='standard-single-elimination'>
-                    Standard Single Elimination
+          {/* Row 1: Title, Bracket Rule, Bracket Status, Pro Class */}
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Title <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+              >
+                <option value=''>Select Title</option>
+                {titleData.map((option) => (
+                  <option key={option.value} value={option.label}>
+                    {option.label}
                   </option>
-                  <option value='iska-single-elimination'>
-                    ISKA Single Elimination
-                  </option>
-                </select>
-              </div>
+                ))}
+              </select>
+            </div>
 
-              <div>
-                <label className='block text-xs text-gray-300 mb-1'>
-                  Weight Class
-                </label>
-                <select
-                  value={weightClass}
-                  onChange={(e) => setWeightClass(e.target.value)}
-                  className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white text-sm'
-                >
-                  <option value=''>Select Weight Class</option>
-                  {/* Youth Weight Classes - Boys/Girls */}
-                  {(ageClass === 'boys' || ageClass === 'girls') &&
-                    allWeightClasses
-                      .filter(
-                        (wc) =>
-                          wc.value.includes('youth') ||
-                          wc.value.includes('junior') ||
-                          wc.value === 'pinweight'
-                      )
-                      .map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                  {/* Adult Weight Classes - Men/Women/Senior */}
-                  {(ageClass === 'men' ||
-                    ageClass === 'women' ||
-                    ageClass === 'senior-men' ||
-                    ageClass === 'senior-women') &&
-                    allWeightClasses
-                      .filter((wc) => wc.value.includes('adult'))
-                      .map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                </select>
-              </div>
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Rule <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={ruleStyle}
+                onChange={(e) => setRuleStyle(e.target.value)}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+              >
+                <option value=''>Select Bracket Rule</option>
+                {bracketRuleData.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Status <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={bracketStatus}
+                onChange={(e) => setBracketStatus(e.target.value)}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+              >
+                {bracketStatusData.map((option) => (
+                  <option key={option.value} value={option.label}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Select Pro Class <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={proClass}
+                onChange={(e) => setProClass(e.target.value)}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+              >
+                <option value=''>Select Pro Class</option>
+                {proClassData.map((option) => (
+                  <option key={option.value} value={option.label}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className='grid grid-cols-4 gap-6'>
-            <InputBox
-              label='Ring Number'
-              placeholder='e.g., Ring 1'
-              value={ringNumber}
-              onChange={(value) => {
-                setRingNumber(value)
-                // Clear validation error when user starts typing
-                if (validationErrors.ringNumber) {
-                  setValidationErrors((prev) => {
-                    const { ringNumber, ...rest } = prev
-                    return rest
-                  })
-                }
-              }}
-              validation='alphanumeric'
-              error={validationErrors.ringNumber}
-              disabled={loading}
-            />
-            <InputBox
-              label='Bracket Sequence Number'
-              type='number'
-              placeholder='e.g., 1'
-              min='1'
-              value={bracketSequence}
-              onChange={(value) => {
-                setBracketSequence(value)
-                // Clear validation error when user starts typing
-                if (validationErrors.bracketSequence) {
-                  setValidationErrors((prev) => {
-                    const { bracketSequence, ...rest } = prev
-                    return rest
-                  })
-                }
-              }}
-              validation='numeric'
-              required={true}
-              error={validationErrors.bracketSequence}
-              disabled={loading}
-            />
+          {/* Row 2: Sport, Disciplines, Age Classes, Weight Class */}
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Select Sport <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={sport}
+                onChange={(e) => {
+                  setSport(e.target.value)
+                  setAgeClass('')
+                  setWeightClass('')
+                  setDiscipline('')
+                }}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+              >
+                <option value=''>Select Sport</option>
+                {sportsData.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Disciplines{' '}
+                {sport?.includes('bjj') && (
+                  <span className='text-red-500'>*</span>
+                )}
+              </label>
+              <select
+                value={discipline}
+                onChange={(e) => setDiscipline(e.target.value)}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+                disabled={!sport?.includes('bjj')}
+              >
+                <option value=''>Select Discipline</option>
+                {getDisciplines(sport).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Age Classes <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={ageClass}
+                onChange={(e) => {
+                  setAgeClass(e.target.value)
+                  setWeightClass('')
+                }}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+                disabled={!sport}
+              >
+                <option value=''>Select Age Class</option>
+                {getAgeClasses(sport).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Select Weight Class <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={weightClass}
+                onChange={(e) => setWeightClass(e.target.value)}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+                disabled={!ageClass}
+              >
+                <option value=''>Select Weight Class</option>
+                {getWeightClasses(ageClass).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Row 3: Bracket Criteria, Bracket Number */}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Criteria <span className='text-red-500'>*</span>
+              </label>
+              <select
+                value={bracketCriteria}
+                onChange={(e) => setBracketCriteria(e.target.value)}
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white'
+              >
+                {bracketCriteriaData.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Number <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='number'
+                value={bracketNumber}
+                onChange={(e) => setBracketNumber(e.target.value)}
+                min={1}
+                placeholder='e.g., 1'
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+              />
+            </div>
+          </div>
+
+          {/* Row 4: Bracket Name with Generate Button */}
+          <div className='space-y-4'>
+            <div className='flex gap-4 items-end'>
+              <div className='flex-1'>
+                <label className='block text-sm font-medium text-white mb-2'>
+                  Bracket Name <span className='text-red-500'>*</span>
+                </label>
+                <input
+                  type='text'
+                  value={bracketName || ''}
+                  onChange={(e) => {
+                    const cleanValue = e.target.value.replace(
+                      /[^a-zA-Z0-9\s'&.+\-()/#:,_]/g,
+                      ''
+                    )
+                    setBracketName(cleanValue)
+                    if (validationErrors.bracketName) {
+                      setValidationErrors((prev) => {
+                        const { bracketName, ...rest } = prev
+                        return rest
+                      })
+                    }
+                  }}
+                  placeholder='Generated bracket name will appear here'
+                  className={`w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                    validationErrors.bracketName ? 'border-red-500' : ''
+                  }`}
+                />
+                {validationErrors.bracketName && (
+                  <div className='text-red-400 text-xs mt-1'>
+                    ⚠ {validationErrors.bracketName}
+                  </div>
+                )}
+              </div>
+              <button
+                type='button'
+                onClick={handleGenerateName}
+                className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700'
+              >
+                Reset Bracket Name
+              </button>
+            </div>
           </div>
 
           {/* Bracket Properties Save Button */}
@@ -753,75 +831,97 @@ export default function Props({
           <h3 className='text-lg font-semibold text-white mb-4 border-b border-gray-600 pb-2'>
             Bracket Settings
           </h3>
-          <div className='grid grid-cols-4 gap-6'>
-            <InputBox
-              label='Start on Day Number'
-              required={true}
-              type='number'
-              placeholder='e.g., 1'
-              min='1'
-              value={startDayNumber}
-              onChange={(value) => {
-                setStartDayNumber(value)
-                // Clear validation error when user starts typing
-                if (validationErrors.startDayNumber) {
-                  setValidationErrors((prev) => {
-                    const { startDayNumber, ...rest } = prev
-                    return rest
-                  })
-                }
-              }}
-              validation='numeric'
-              error={validationErrors.startDayNumber}
-              disabled={loading}
-            />
-            <InputBox
-              label='Bout Round Duration (sec)'
-              required={true}
-              type='number'
-              placeholder='e.g., 120'
-              min='1'
-              value={boutRound}
-              onChange={(value) => {
-                setBoutRound(value)
-                // Clear validation error when user starts typing
-                if (validationErrors.boutRound) {
-                  setValidationErrors((prev) => {
-                    const { boutRound, ...rest } = prev
-                    return rest
-                  })
-                }
-              }}
-              validation='numeric'
-              error={validationErrors.boutRound}
-              disabled={loading}
-            />
-            <InputBox
-              label='Max Competitors'
-              required={true}
-              type='number'
-              placeholder='e.g., 16'
-              min='1'
-              value={maxCompetitors}
-              onChange={(value) => {
-                setMaxCompetitors(value)
-                // Clear validation error when user starts typing
-                if (validationErrors.maxCompetitors) {
-                  setValidationErrors((prev) => {
-                    const { maxCompetitors, ...rest } = prev
-                    return rest
-                  })
-                }
-              }}
-              validation='numeric'
-              error={validationErrors.maxCompetitors}
-              disabled={loading}
-            />
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+            {/* Row 1: Start Day Number, Group */}
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Starts on Day Number
+              </label>
+              <input
+                type='number'
+                value={startDayNumber}
+                onChange={(e) => setStartDayNumber(e.target.value)}
+                placeholder='OPTIONAL'
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Group
+              </label>
+              <input
+                type='number'
+                value={group}
+                onChange={(e) => setGroup(e.target.value)}
+                placeholder='OPTIONAL'
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+              />
+            </div>
           </div>
 
-          <div className='mt-4 text-sm text-gray-400'>
-            Note: The max competitor count for this bracket above only applies
-            to online registrations. It does not affect what you can do here.
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+            {/* Row 2: Ring Number, Bracket Sequence Number */}
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Ring Number
+              </label>
+              <input
+                type='number'
+                value={ringNumber}
+                onChange={(e) => setRingNumber(e.target.value)}
+                placeholder='OPTIONAL'
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bracket Sequence Number
+              </label>
+              <input
+                type='number'
+                value={bracketSequence}
+                onChange={(e) => setBracketSequence(e.target.value)}
+                placeholder='OPTIONAL'
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+              />
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-4'>
+            {/* Row 3: Bout Round Duration, Max Competitors */}
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Bout Round Duration (sec)
+              </label>
+              <input
+                type='number'
+                value={boutRound}
+                onChange={(e) => setBoutRound(e.target.value)}
+                placeholder='90'
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+              />
+            </div>
+
+            <div>
+              <label className='block text-sm font-medium text-white mb-2'>
+                Max Competitors
+              </label>
+              <input
+                type='number'
+                value={maxCompetitors || '4'}
+                onChange={(e) => setMaxCompetitors(e.target.value)}
+                placeholder='4'
+                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+              />
+            </div>
+          </div>
+
+          <div className='mt-4 text-sm text-gray-400 italic'>
+            The max competitor count for this bracket above only applies to
+            online registrations. It does not affect what you can do here.
           </div>
 
           {/* Bracket Settings Save Button */}

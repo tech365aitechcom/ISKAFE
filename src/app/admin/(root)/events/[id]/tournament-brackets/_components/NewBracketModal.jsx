@@ -15,10 +15,10 @@ import {
   getAgeClasses,
   getWeightClasses,
   getDisciplines,
-  generateBracketName
+  generateBracketName,
 } from './bracketUtils'
 
-export default function NewBracketModal({ eventId, onClose, onCreate }) {
+export default function NewBracketModal({ onClose, onCreate }) {
   const [formData, setFormData] = useState({
     bracketNumber: '',
     bracketName: '',
@@ -31,17 +31,11 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
     ageClass: '',
     weightClass: '',
     bracketCriteria: 'none',
-    ring: '',
-    fightStartTime: '',
-    weighInTime: '',
   })
 
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
-
-
-
-
+  const [isCreated, setIsCreated] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -97,6 +91,10 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
       newErrors.weightClass = 'Weight class is required'
     if (!formData.bracketName)
       newErrors.bracketName = 'Bracket name is required'
+    if (!formData.bracketNumber)
+      newErrors.bracketNumber = 'Bracket number is required'
+    if (!formData.bracketCriteria || formData.bracketCriteria === '')
+      newErrors.bracketCriteria = 'Bracket criteria is required'
 
     // BJJ specific validation
     if (formData.sport.includes('bjj') && !formData.discipline) {
@@ -132,7 +130,6 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
       ruleStyle: formData.bracketRule,
       proClass: formData.proClass,
       bracketCriteria: formData.bracketCriteria || 'none',
-      ring: formData.ring || null,
       weightClass: selectedWeightClass
         ? {
             min: selectedWeightClass.min,
@@ -140,8 +137,6 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
             unit: 'lbs',
           }
         : null,
-      fightStartTime: formData.fightStartTime || null,
-      weighInTime: formData.weighInTime || null,
       fighters: [],
     }
 
@@ -149,6 +144,27 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
 
     await onCreate(bracketData)
     setLoading(false)
+    setIsCreated(true)
+
+    // Reset form after successful creation
+    setTimeout(() => {
+      setFormData({
+        bracketNumber: '',
+        bracketName: '',
+        title: '',
+        bracketRule: '',
+        bracketStatus: 'Open',
+        proClass: '',
+        sport: '',
+        discipline: '',
+        ageClass: '',
+        weightClass: '',
+        bracketCriteria: 'none',
+      })
+      setErrors({})
+      setIsCreated(false)
+      onClose() // Close modal after successful creation
+    }, 2000) // Give user time to see success message
   }
 
   return (
@@ -162,6 +178,13 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
         </div>
 
         <form onSubmit={handleSubmit} className='space-y-6'>
+          {isCreated && (
+            <div className='mb-4 p-4 bg-green-500 bg-opacity-20 border border-green-500 rounded-lg'>
+              <p className='text-green-400'>
+                Bracket created successfully! Closing modal...
+              </p>
+            </div>
+          )}
           {/* Row 1: Title, Bracket Rule, Bracket Status, Pro Class */}
           <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
             <div>
@@ -371,17 +394,19 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
             </div>
           </div>
 
-          {/* Row 3: Bracket Criteria, Bracket Number, Ring */}
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          {/* Row 3: Bracket Criteria, Bracket Number */}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
               <label className='block text-sm font-medium text-white mb-2'>
-                Bracket Criteria
+                Bracket Criteria <span className='text-red-500'>*</span>
               </label>
               <select
                 name='bracketCriteria'
                 value={formData.bracketCriteria}
                 onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
+                  errors.bracketCriteria ? 'border-red-500' : 'border-gray-600'
+                }`}
               >
                 {bracketCriteriaData.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -389,11 +414,16 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                   </option>
                 ))}
               </select>
+              {errors.bracketCriteria && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {errors.bracketCriteria}
+                </p>
+              )}
             </div>
 
             <div>
               <label className='block text-sm font-medium text-white mb-2'>
-                Bracket Number
+                Bracket Number <span className='text-red-500'>*</span>
               </label>
               <input
                 type='number'
@@ -402,26 +432,15 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
                 onChange={handleChange}
                 min={1}
                 placeholder='e.g., 1'
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  errors.bracketNumber ? 'border-red-500' : 'border-gray-600'
+                }`}
               />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Ring
-              </label>
-              <select
-                name='ring'
-                value={formData.ring}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-              >
-                <option value=''>Select Ring</option>
-                <option value='Ring 1'>Ring 1</option>
-                <option value='Ring 2'>Ring 2</option>
-                <option value='Ring 3'>Ring 3</option>
-                <option value='Ring 4'>Ring 4</option>
-              </select>
+              {errors.bracketNumber && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {errors.bracketNumber}
+                </p>
+              )}
             </div>
           </div>
 
@@ -458,51 +477,26 @@ export default function NewBracketModal({ eventId, onClose, onCreate }) {
             </div>
           </div>
 
-          {/* Optional: Timing Information */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Fight Start Time
-              </label>
-              <input
-                type='datetime-local'
-                name='fightStartTime'
-                value={formData.fightStartTime}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-white mb-2'>
-                Weigh-In Time
-              </label>
-              <input
-                type='datetime-local'
-                name='weighInTime'
-                value={formData.weighInTime}
-                onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-              />
-            </div>
-          </div>
-
           {/* Submit Buttons */}
           <div className='flex justify-end gap-4 pt-4 border-t border-gray-600'>
             <button
               type='button'
               onClick={onClose}
               className='px-4 py-2 text-gray-300 border border-gray-600 rounded hover:bg-gray-700'
-              disabled={loading}
+              disabled={loading || isCreated}
             >
               Cancel
             </button>
             <button
               type='submit'
               className='px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50'
-              disabled={loading}
+              disabled={loading || isCreated}
             >
-              {loading ? 'Creating...' : 'Create Bracket'}
+              {loading
+                ? 'Creating...'
+                : isCreated
+                ? 'Created!'
+                : 'Create Bracket'}
             </button>
           </div>
         </form>

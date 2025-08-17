@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Edit, Trash, Play, Clock, User } from 'lucide-react'
 import { API_BASE_URL, apiConstants } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
-import NewBoutModal from './NewBoutModal'
+import BoutModal from './BoutModal'
 import BoutCard from './BoutCard'
 import Loader from '../../../../../../_components/Loader'
 import axios from 'axios'
@@ -19,6 +19,7 @@ export default function BoutsAndResults({ bracket, eventId }) {
   const [showNewBoutModal, setShowNewBoutModal] = useState(false)
   const [isDelete, setIsDelete] = useState(false)
   const [selectedBout, setSelectedBout] = useState(null)
+  const [editBout, setEditBout] = useState(null)
 
   useEffect(() => {
     if (bracket?._id && eventId) {
@@ -41,33 +42,69 @@ export default function BoutsAndResults({ bracket, eventId }) {
     }
   }
 
-  const handleCreateBout = async (boutData) => {
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/bouts`,
+  const handleCreateBoutClick = () => {
+    // Check if there are at least 2 fighters in the bracket
+    if (!bracket?.fighters || bracket.fighters.length < 2) {
+      enqueueSnackbar(
+        `Cannot create bout: Only ${bracket?.fighters?.length || 0} fighter(s) available in this bracket. At least 2 fighters are required to create a bout.`,
         {
-          ...boutData,
-          bracket: bracket._id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
+          variant: 'warning',
         }
       )
-      console.log('Bout created:', response.data)
-      if (response.status === apiConstants.create) {
+      return
+    }
+    setShowNewBoutModal(true)
+  }
+
+  const handleCreateBout = async (boutData) => {
+    try {
+      let response
+      if (editBout) {
+        // Update existing bout - this is handled in NewBoutModal
+        response = { status: apiConstants.success }
+      } else {
+        // Create new bout
+        response = await axios.post(
+          `${API_BASE_URL}/bouts`,
+          {
+            ...boutData,
+            bracket: bracket._id,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        )
+      }
+      
+      console.log('Bout operation completed:', response.data)
+      if (response.status === apiConstants.create || response.status === apiConstants.success) {
         await fetchBouts()
         setShowNewBoutModal(false)
-        enqueueSnackbar(response.data.message || 'Bout created successfully!', {
-          variant: 'success',
-        })
+        setEditBout(null)
+        enqueueSnackbar(
+          editBout 
+            ? 'Bout updated successfully!' 
+            : response.data?.message || 'Bout created successfully!', 
+          {
+            variant: 'success',
+          }
+        )
       }
     } catch (err) {
-      enqueueSnackbar(err.response?.data?.message || 'Error creating bout', {
-        variant: 'error',
-      })
+      enqueueSnackbar(
+        err.response?.data?.message || `Error ${editBout ? 'updating' : 'creating'} bout`, 
+        {
+          variant: 'error',
+        }
+      )
     }
+  }
+
+  const handleEditBout = (bout) => {
+    setEditBout(bout)
+    setShowNewBoutModal(true)
   }
 
   const handleDeleteBout = async (boutId) => {
@@ -117,7 +154,7 @@ export default function BoutsAndResults({ bracket, eventId }) {
             No bouts created yet for this bracket.
           </p>
           <button
-            onClick={() => setShowNewBoutModal(true)}
+            onClick={handleCreateBoutClick}
             className='bg-blue-600 px-6 py-3 rounded hover:bg-blue-700 text-white'
           >
             Create First Bout
@@ -127,7 +164,7 @@ export default function BoutsAndResults({ bracket, eventId }) {
         <div>
           <div className='flex justify-end w-full items-center mb-4'>
             <button
-              onClick={() => setShowNewBoutModal(true)}
+              onClick={handleCreateBoutClick}
               className='bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 text-white text-sm mb-2'
             >
               Add New Bout <Plus className='inline ml-2' size={16} />
@@ -149,6 +186,7 @@ export default function BoutsAndResults({ bracket, eventId }) {
                       setIsDelete(true)
                       setSelectedBout(bout?._id)
                     }}
+                    onEdit={handleEditBout}
                     onUpdate={fetchBouts}
                     eventId={eventId}
                   />
@@ -170,10 +208,14 @@ export default function BoutsAndResults({ bracket, eventId }) {
 
       {/* New Bout Modal */}
       {showNewBoutModal && (
-        <NewBoutModal
+        <BoutModal
           bracket={bracket}
-          onClose={() => setShowNewBoutModal(false)}
+          onClose={() => {
+            setShowNewBoutModal(false)
+            setEditBout(null)
+          }}
           onCreate={handleCreateBout}
+          editBout={editBout}
         />
       )}
     </div>
