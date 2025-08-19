@@ -9,11 +9,14 @@ import { API_BASE_URL } from '../../../../../../constants'
 import PaginationHeader from '../../../../../_components/PaginationHeader'
 import Pagination from '../../../../../_components/Pagination'
 import moment from 'moment'
+import useStore from '../../../../../../stores/useStore'
 
 const RegistrationPaymentsPage = () => {
   const params = useParams()
+  const user = useStore((state) => state.user)
   const eventId = params.id
   const [loading, setLoading] = useState(true)
+  const [event, setEvent] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(1)
@@ -32,13 +35,33 @@ const RegistrationPaymentsPage = () => {
   })
   const [totalCollected, setTotalCollected] = useState(0)
 
+  // Fetch event data
+  const fetchEvent = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setEvent(data.data)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching event:', err)
+    }
+  }
+
   // Fetch registration data from API
   useEffect(() => {
     const fetchRegistrations = async () => {
       try {
         setLoading(true)
         const response = await fetch(
-          `${API_BASE_URL}/registrations/event/${eventId}`
+          `${API_BASE_URL}/registrations/event/${eventId}/paid`
         )
         3
         const data = await response.json()
@@ -48,22 +71,20 @@ const RegistrationPaymentsPage = () => {
           const pagination = data.data.pagination
           const totalCollected = data.data.totalCollection
 
-          const paymentsData = registrations
-            .filter((reg) => reg.paymentStatus === 'Paid')
-            .map((reg, index) => ({
-              id: reg._id,
-              eventId: reg.event,
-              date: reg.createdAt,
-              description: `Event registration fee - ${reg.registrationType}`,
-              type: reg.paymentMethod,
-              total: reg.amount,
-              payer: `${reg.firstName} ${reg.lastName}`,
-              email: reg.email,
-              transactionId: reg.squareDetails?.transactionId || null,
-              receiptNumber: reg.squareDetails?.receiptNumber || null,
-              orderId: reg.squareDetails?.orderId || null,
-              last4: reg.squareDetails?.last4 || null,
-            }))
+          const paymentsData = registrations.map((reg, index) => ({
+            id: reg._id,
+            eventId: reg.event,
+            date: reg.createdAt,
+            description: `Event registration fee - ${reg.registrationType}`,
+            type: reg.paymentMethod,
+            total: reg.amount,
+            payer: `${reg.firstName} ${reg.lastName}`,
+            email: reg.email,
+            transactionId: reg.squareDetails?.transactionId || null,
+            receiptNumber: reg.squareDetails?.receiptNumber || null,
+            orderId: reg.squareDetails?.orderId || null,
+            last4: reg.squareDetails?.last4 || null,
+          }))
 
           setPayments(paymentsData)
           setTotalPages(pagination.totalPages)
@@ -79,8 +100,9 @@ const RegistrationPaymentsPage = () => {
 
     if (eventId) {
       fetchRegistrations()
+      fetchEvent()
     }
-  }, [eventId])
+  }, [eventId, limit, currentPage, user?.token])
 
   // Apply filters
   const filteredPayments = payments.filter((payment) => {
@@ -112,6 +134,80 @@ const RegistrationPaymentsPage = () => {
     )
   })
 
+  // Export to Excel function
+  const exportToExcel = () => {
+    if (filteredPayments.length === 0) {
+      alert('No data to export')
+      return
+    }
+
+    const headers = [
+      'Sr No',
+      'Reg Date',
+      'Description',
+      'Event ID',
+      'Type',
+      'Total',
+      'Payer',
+      'Email',
+      'Square Transaction ID',
+      'Square Receipt Number',
+      'Square Order ID',
+      'Last4',
+    ]
+
+    // Helper function to escape CSV values
+    const escapeCSVValue = (value) => {
+      if (value == null) return ''
+      const stringValue = String(value)
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n') || stringValue.includes('\r')) {
+        return `"${stringValue.replace(/"/g, '""')}"`
+      }
+      return stringValue
+    }
+
+    const data = filteredPayments.map((payment, index) => [
+      index + 1,
+      `${new Date(payment.date).toLocaleDateString()} ${new Date(payment.date).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`,
+      payment.description,
+      payment.eventId,
+      payment.type,
+      payment.total.toFixed(2), // Remove $ for Excel compatibility
+      payment.payer,
+      payment.email,
+      payment.transactionId || 'N/A',
+      payment.receiptNumber || 'N/A',
+      payment.orderId || 'N/A',
+      payment.last4 || 'N/A',
+    ])
+
+    // Add BOM for proper Excel UTF-8 handling
+    const BOM = '\uFEFF'
+    const csvContent = BOM + 
+      headers.map(escapeCSVValue).join(',') + 
+      '\n' + 
+      data.map(row => row.map(escapeCSVValue).join(',')).join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute(
+      'download',
+      `registration_payments_${(event?.name || 'event').replace(/[^a-z0-9]/gi, '_')}_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`
+    )
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
       <div className='flex items-center justify-center h-screen w-full bg-[#07091D]'>
@@ -133,11 +229,21 @@ const RegistrationPaymentsPage = () => {
             </Link>
             <div>
               <h1 className='text-2xl font-bold'>Registration Payments</h1>
-              <p className='text-[#AEB9E1] text-sm mt-1'></p>
+              {event && (
+                <p className='text-sm text-gray-300 mt-1'>
+                  {event.name} -{' '}
+                  {event.startDate
+                    ? new Date(event.startDate).toLocaleDateString()
+                    : 'Date not set'}
+                </p>
+              )}
             </div>
           </div>
           <div className='flex space-x-4'>
-            <button className='flex items-center px-4 py-2 bg-blue-600 rounded-lg'>
+            <button
+              onClick={exportToExcel}
+              className='flex items-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors'
+            >
               <Download size={16} className='mr-2' />
               Export
             </button>

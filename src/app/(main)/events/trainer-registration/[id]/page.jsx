@@ -84,9 +84,7 @@ const TrainerRegistrationPage = ({ params }) => {
         city: user.city || '',
         state: user.state || '',
         country: user.country || '',
-        waiverSignature: `${user.firstName || ''} ${
-          user.lastName || ''
-        }`.trim(),
+        waiverSignature: '',
       }))
     }
   }, [user])
@@ -271,6 +269,12 @@ const TrainerRegistrationPage = ({ params }) => {
       } else if (!/^[0-9+\- ]+$/.test(formData.phoneNumber)) {
         newErrors.phoneNumber = 'Invalid phone number format'
         isValid = false
+      } else {
+        const cleanedPhone = formData.phoneNumber.replace(/[^0-9]/g, '')
+        if (cleanedPhone.length < 10 || cleanedPhone.length > 15) {
+          newErrors.phoneNumber = 'Phone number must be 10-15 digits'
+          isValid = false
+        }
       }
 
       if (!formData.email.trim()) {
@@ -286,8 +290,12 @@ const TrainerRegistrationPage = ({ params }) => {
         isValid = false
       }
 
-      if (!formData.city) {
+      if (!formData.city.trim()) {
         newErrors.city = 'City is required'
+        isValid = false
+      } else if (!/^[A-Za-z\s'-]+$/.test(formData.city)) {
+        newErrors.city =
+          'City must contain only letters, spaces, hyphens, and apostrophes'
         isValid = false
       }
 
@@ -304,6 +312,10 @@ const TrainerRegistrationPage = ({ params }) => {
       if (!formData.postalCode.trim()) {
         newErrors.postalCode = 'Postal code is required'
         isValid = false
+      } else if (!/^[0-9A-Za-z\s-]{3,10}$/.test(formData.postalCode)) {
+        newErrors.postalCode =
+          'Postal code must be 3-10 characters (letters, numbers, spaces, hyphens only)'
+        isValid = false
       }
     }
 
@@ -311,6 +323,21 @@ const TrainerRegistrationPage = ({ params }) => {
       if (!formData.fightersRepresented.trim()) {
         newErrors.fightersRepresented = 'Please list at least one fighter'
         isValid = false
+      } else {
+        // Validate that fighters are listed properly (one per line, no special chars except spaces, hyphens, apostrophes)
+        const fighters = formData.fightersRepresented
+          .split('\n')
+          .filter((f) => f.trim())
+        const invalidFighters = fighters.filter((fighter) => {
+          const name = fighter.trim()
+          return !name || !/^[A-Za-z\s'-]+$/.test(name) || name.length < 2
+        })
+
+        if (invalidFighters.length > 0) {
+          newErrors.fightersRepresented =
+            'Each fighter name must contain only letters, spaces, hyphens, and apostrophes (minimum 2 characters)'
+          isValid = false
+        }
       }
     }
 
@@ -322,9 +349,6 @@ const TrainerRegistrationPage = ({ params }) => {
 
       if (!formData.waiverSignature.trim()) {
         newErrors.waiverSignature = 'Signature is required'
-        isValid = false
-      } else if (formData.waiverSignature.trim().split(' ').length < 2) {
-        newErrors.waiverSignature = 'Please enter your full name'
         isValid = false
       }
     }
@@ -367,7 +391,6 @@ const TrainerRegistrationPage = ({ params }) => {
 
     // Calculate amount in cents for Square (Trainer registration fee)
     const trainerFee = tournamentSettings?.simpleFees?.trainerFee || 75
-    const amountInCents = trainerFee * 100 // Convert to cents
 
     // Submit payment to Square
     const paymentData = {
@@ -375,12 +398,12 @@ const TrainerRegistrationPage = ({ params }) => {
     }
 
     console.log('Submitting payment to Square...', {
-      amountInCents,
+      trainerFee,
       paymentData,
     })
     const squareResult = await submitPayment(
       result.token,
-      amountInCents,
+      trainerFee,
       paymentData
     )
 
@@ -552,7 +575,9 @@ const TrainerRegistrationPage = ({ params }) => {
       </div>
 
       <div>
-        <label className='text-white font-medium'>Gender *</label>
+        <label className='text-white font-medium'>
+          Gender <span className='text-red-500'>*</span>
+        </label>
         <div className='flex space-x-4 mt-2'>
           <label className='text-white flex items-center'>
             <input
@@ -605,7 +630,7 @@ const TrainerRegistrationPage = ({ params }) => {
             name: 'email',
             type: 'email',
             required: true,
-            disabled: !!user?.email,
+            disabled: false,
           },
           { label: 'Street 1', name: 'street1', required: true },
           {
@@ -698,29 +723,23 @@ const TrainerRegistrationPage = ({ params }) => {
           <label className='block font-medium mb-1'>
             City<span className='text-red-500'>*</span>
           </label>
-          <select
+          <input
+            type='text'
             name='city'
             value={formData.city}
             onChange={handleChange}
-            className='w-full outline-none bg-transparent text-white'
+            placeholder='Enter City'
             required
-            disabled={!formData.state}
-          >
-            <option value='' className='text-black'>
-              Select City
-            </option>
-            {cities.map((city) => (
-              <option key={city.name} value={city.name} className='text-black'>
-                {city.name}
-              </option>
-            ))}
-          </select>
+            className='w-full outline-none bg-transparent text-white'
+          />
           {errors.city && (
             <p className='text-red-500 text-xs mt-1'>{errors.city}</p>
           )}
         </div>
         <div className='bg-[#00000061] p-2 rounded'>
-          <label className='text-white font-medium'>ZIP Code *</label>
+          <label className='text-white font-medium'>
+            ZIP Code <span className='text-red-500'>*</span>
+          </label>
           <input
             type='text'
             name='postalCode'
@@ -815,23 +834,22 @@ const TrainerRegistrationPage = ({ params }) => {
         <p className='text-red-500 text-xs mt-1'>{errors.agreementChecked}</p>
       )}
 
-      <div>
-        <label className='text-white font-medium'>Digital Signature *</label>
+      <div className='bg-[#00000061] p-2 rounded'>
+        <label className='text-white font-medium'>
+          Digital Signature
+          <span className='text-red-500'>*</span>
+        </label>
         <input
           type='text'
           name='waiverSignature'
           value={formData.waiverSignature}
           onChange={handleChange}
-          placeholder='Type your full name as signature'
-          className='w-full mt-1 p-2 rounded bg-[#00000061] text-white placeholder-gray-400'
-          required
+          placeholder='Type name to sign'
+          className='w-full bg-transparent text-white'
         />
         {errors.waiverSignature && (
-          <p className='text-red-500 text-xs mt-1'>{errors.waiverSignature}</p>
+          <p className='text-red-400 text-sm mt-1'>{errors.waiverSignature}</p>
         )}
-        <p className='text-gray-400 text-sm mt-1'>
-          This serves as your legal digital signature
-        </p>
       </div>
     </div>
   )

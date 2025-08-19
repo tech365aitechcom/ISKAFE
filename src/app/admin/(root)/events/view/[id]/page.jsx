@@ -16,6 +16,7 @@ import Loader from '../../../../../_components/Loader'
 import Image from 'next/image'
 import axiosInstance from '../../../../../../shared/axios'
 import TournamentSettingsModal from '../../_components/TournamentSettingsModal'
+import { enqueueSnackbar } from 'notistack'
 
 export default function EventDetailsPage({ params }) {
   // const router = useRouter();
@@ -48,6 +49,7 @@ export default function EventDetailsPage({ params }) {
   const [showTierForm, setShowTierForm] = useState(false)
   const [editingTier, setEditingTier] = useState(null)
   const [editingTierIndex, setEditingTierIndex] = useState(null)
+  const [saleMode, setSaleMode] = useState('Online')
   const [currentTier, setCurrentTier] = useState({
     order: 1,
     name: '',
@@ -127,8 +129,6 @@ export default function EventDetailsPage({ params }) {
     const nextOrder = spectatorTickets?.tiers
       ? spectatorTickets.tiers.length + 1
       : 1
-    const today = new Date()
-    const twoWeeksLater = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
 
     setCurrentTier({
       order: nextOrder,
@@ -138,9 +138,9 @@ export default function EventDetailsPage({ params }) {
       remaining: 0,
       description: '',
       availabilityMode: 'Online',
-      salesStartDate: new Date().toISOString(),
-      salesEndDate: twoWeeksLater.toISOString(),
-      limitPerUser: 2,
+      salesStartDate: '',
+      salesEndDate: '',
+      limitPerUser: 0,
       refundPolicyNotes: '',
     })
     setEditingTier(null)
@@ -152,7 +152,7 @@ export default function EventDetailsPage({ params }) {
   }
 
   const handleEditTier = (tier, index) => {
-    setCurrentTier({ ...tier, price: tier.price / 100 }) // Convert cents to dollars for editing
+    setCurrentTier({ ...tier })
     setEditingTier(tier)
     setEditingTierIndex(index)
     // Initialize date tracking - mark as unmodified when editing starts
@@ -178,43 +178,41 @@ export default function EventDetailsPage({ params }) {
     const errors = []
 
     if (!currentTier.name.trim()) {
-      errors.push('Name is required (max 64 characters)')
+      errors.push('Tier name is required')
     } else if (currentTier.name.length > 64) {
-      errors.push('Name must be 64 characters or less')
+      errors.push('Tier name must be 64 characters or less')
     }
 
-    if (!currentTier.description.trim()) {
-      errors.push('Description is required (max 128 characters)')
-    } else if (currentTier.description.length > 128) {
-      errors.push('Description must be 128 characters or less')
+    if (currentTier.description.length > 250) {
+      errors.push('Description must be 250 characters or less')
     }
 
-    if (currentTier.price < 0) {
-      errors.push('Price must be 0 or greater')
+    if (currentTier.price <= 0) {
+      errors.push('Price must be greater than 0')
     }
 
-    if (currentTier.capacity <= 0) {
-      errors.push('Capacity must be greater than 0')
+    if (!currentTier.capacity || currentTier.capacity <= 0) {
+      errors.push('Capacity is required and must be greater than 0')
     }
 
     if (currentTier.remaining < 0) {
-      errors.push('Remaining cannot be negative')
+      errors.push('Remaining tickets cannot be negative')
     }
 
     if (currentTier.remaining > currentTier.capacity) {
-      errors.push('Remaining cannot exceed capacity')
+      errors.push('Remaining tickets cannot exceed total capacity')
     }
 
-    if (currentTier.limitPerUser <= 0) {
-      errors.push('Limit per user must be greater than 0')
+    if (!currentTier.limitPerUser || currentTier.limitPerUser <= 0) {
+      errors.push('Limit per user is required and must be greater than 0')
     }
 
     if (!currentTier.salesStartDate) {
-      errors.push('Sales start date is required')
+      errors.push('Sales start date and time is required')
     }
 
     if (!currentTier.salesEndDate) {
-      errors.push('Sales end date is required')
+      errors.push('Sales end date and time is required')
     }
 
     if (currentTier.salesStartDate && currentTier.salesEndDate) {
@@ -226,11 +224,11 @@ export default function EventDetailsPage({ params }) {
 
       // Only validate start date if it was modified during editing
       if (dateModified.startDate && startDate < today) {
-        errors.push('Sales start date must be today or later')
+        errors.push('Sales start date must be today or in the future')
       }
 
       if (startDate >= endDate) {
-        errors.push('Sales end date must be after sales start date')
+        errors.push('Sales end date must be after the sales start date')
       }
     }
 
@@ -240,8 +238,15 @@ export default function EventDetailsPage({ params }) {
   const saveTier = async () => {
     const validationErrors = validateTier()
     if (validationErrors.length > 0) {
-      alert(
-        'Please fix the following errors:\n\n' + validationErrors.join('\n')
+      // Create a more user-friendly error display
+      const errorList = validationErrors
+        .map((error, index) => `${index + 1}. ${error}`)
+        .join('\n')
+      enqueueSnackbar(
+        `Please fix the following errors before saving:\n\n${errorList}`,
+        {
+          variant: 'error',
+        }
       )
       return
     }
@@ -255,7 +260,7 @@ export default function EventDetailsPage({ params }) {
           // Update existing tier - ensure proper data structure
           const updatedTier = {
             ...currentTier,
-            price: Math.round(currentTier.price * 100), // Convert to cents for backend
+            price: Math.round(currentTier.price),
             capacity: parseInt(currentTier.capacity),
             remaining: parseInt(currentTier.remaining),
             limitPerUser: parseInt(currentTier.limitPerUser),
@@ -268,7 +273,7 @@ export default function EventDetailsPage({ params }) {
           // Add new tier
           const newTier = {
             ...currentTier,
-            price: Math.round(currentTier.price * 100), // Convert to cents for backend
+            price: Math.round(currentTier.price),
             capacity: parseInt(currentTier.capacity),
             remaining: parseInt(currentTier.capacity), // New tier starts with full capacity
             limitPerUser: parseInt(currentTier.limitPerUser),
@@ -280,7 +285,7 @@ export default function EventDetailsPage({ params }) {
         // First tier
         const firstTier = {
           ...currentTier,
-          price: Math.round(currentTier.price * 100), // Convert to cents for backend
+          price: Math.round(currentTier.price),
           capacity: parseInt(currentTier.capacity),
           remaining: parseInt(currentTier.capacity),
           limitPerUser: parseInt(currentTier.limitPerUser),
@@ -314,10 +319,13 @@ export default function EventDetailsPage({ params }) {
         // Reset tracking states
         setDateModified({ startDate: false, endDate: false })
         setOriginalDates({ startDate: null, endDate: null })
-        alert(
+        enqueueSnackbar(
           editingTier
             ? 'Tier updated successfully!'
-            : 'Tier added successfully!'
+            : 'Tier added successfully!',
+          {
+            variant: 'success',
+          }
         )
       }
     } catch (err) {
@@ -325,7 +333,75 @@ export default function EventDetailsPage({ params }) {
       // More detailed error message
       const errorMessage =
         err.response?.data?.message || err.message || 'Unknown error occurred'
-      alert(`Error saving tier: ${errorMessage}`)
+      enqueueSnackbar(`Error saving tier: ${errorMessage}`, {
+        variant: 'error',
+      })
+    } finally {
+      setTicketsLoading(false)
+    }
+  }
+
+  const toggleTierAvailability = async (tierIndex, currentMode) => {
+    try {
+      setTicketsLoading(true)
+
+      // Toggle between Online and OnSite
+      const newMode = currentMode === 'Online' ? 'OnSite' : 'Online'
+
+      // Update the tier with new availability mode
+      const updatedTiers = spectatorTickets.tiers.map((tier, index) => {
+        if (index === tierIndex) {
+          return {
+            ...tier,
+            availabilityMode: newMode,
+            price:
+              typeof tier.price === 'number'
+                ? tier.price
+                : Math.round(tier.price || 0),
+            capacity: parseInt(tier.capacity) || 0,
+            remaining: parseInt(tier.remaining) || 0,
+            limitPerUser: parseInt(tier.limitPerUser) || 1,
+            order: parseInt(tier.order) || 1,
+          }
+        }
+        return {
+          ...tier,
+          price:
+            typeof tier.price === 'number'
+              ? tier.price
+              : Math.round(tier.price || 0),
+          capacity: parseInt(tier.capacity) || 0,
+          remaining: parseInt(tier.remaining) || 0,
+          limitPerUser: parseInt(tier.limitPerUser) || 1,
+          order: parseInt(tier.order) || 1,
+        }
+      })
+
+      const requestData = {
+        eventId: eventId,
+        tiers: updatedTiers,
+      }
+
+      const response = await axiosInstance.put(
+        `/spectator-ticket/${eventId}`,
+        requestData
+      )
+
+      if (response.data.success) {
+        setSpectatorTickets(response.data.data)
+        // Show success feedback
+        const modeText = newMode === 'Online' ? 'Online Only' : 'On-Site Only'
+        enqueueSnackbar(`Tier availability updated to ${modeText}`, {
+          variant: 'success',
+        })
+      }
+    } catch (err) {
+      console.error('Error updating tier availability:', err)
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Unknown error occurred'
+      enqueueSnackbar(`Error updating availability: ${errorMessage}`, {
+        variant: 'error',
+      })
     } finally {
       setTicketsLoading(false)
     }
@@ -355,7 +431,7 @@ export default function EventDetailsPage({ params }) {
         price:
           typeof tier.price === 'number'
             ? tier.price
-            : Math.round((tier.price || 0) * 100),
+            : Math.round(tier.price || 0),
         capacity: parseInt(tier.capacity) || 0,
         remaining: parseInt(tier.remaining) || 0,
         limitPerUser: parseInt(tier.limitPerUser) || 1,
@@ -381,7 +457,7 @@ export default function EventDetailsPage({ params }) {
           setShowTierForm(false)
           setEditingTier(null)
           setEditingTierIndex(null)
-          alert('All tiers deleted. Spectator tickets removed!')
+          enqueueSnackbar('All tiers deleted. Spectator tickets removed!')
         } else {
           throw new Error('Failed to delete spectator ticket')
         }
@@ -407,7 +483,9 @@ export default function EventDetailsPage({ params }) {
           // Reset tracking states
           setDateModified({ startDate: false, endDate: false })
           setOriginalDates({ startDate: null, endDate: null })
-          alert('Tier deleted successfully!')
+          enqueueSnackbar('Tier deleted successfully!', {
+            variant: 'success',
+          })
         } else {
           throw new Error(
             response.data.message || 'Failed to update tiers after deletion'
@@ -421,8 +499,11 @@ export default function EventDetailsPage({ params }) {
         err.response?.data?.message ||
         err.message ||
         'Unknown error occurred during tier deletion'
-      alert(
-        `Error deleting tier: ${errorMessage}\n\nPlease try again or contact support if the problem persists.`
+      enqueueSnackbar(
+        `Error deleting tier: ${errorMessage}\n\nPlease try again or contact support if the problem persists.`,
+        {
+          variant: 'error',
+        }
       )
     } finally {
       setTicketsLoading(false)
@@ -918,13 +999,15 @@ export default function EventDetailsPage({ params }) {
         <div className='border border-[#343B4F] rounded-lg p-4 relative mb-6'>
           <div className='flex justify-between items-center mb-6'>
             <h2 className='font-bold text-lg'>SPECTATOR TICKETING</h2>
-            <button
-              onClick={handleAddNewTier}
-              className='flex items-center px-4 py-2 bg-gradient-to-r from-[#CB3CFF] to-[#7F25FB] rounded-lg text-sm hover:opacity-90'
-            >
-              <Plus size={16} className='mr-2' />
-              Add New Tier
-            </button>
+            <div className='flex items-center gap-4'>
+              <button
+                onClick={handleAddNewTier}
+                className='flex items-center px-4 py-2 bg-gradient-to-r from-[#CB3CFF] to-[#7F25FB] rounded-lg text-sm hover:opacity-90'
+              >
+                <Plus size={16} className='mr-2' />
+                Add New Tier
+              </button>
+            </div>
           </div>
 
           {ticketsLoading && (
@@ -1003,17 +1086,46 @@ export default function EventDetailsPage({ params }) {
                           </div>
                           <div>
                             <p className='text-gray-400 mb-1'>Availability</p>
-                            <p className='font-medium'>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs ${
+                            <div className='flex items-center gap-2'>
+                              <button
+                                onClick={() =>
+                                  toggleTierAvailability(
+                                    index,
+                                    tier.availabilityMode
+                                  )
+                                }
+                                disabled={ticketsLoading}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
                                   tier.availabilityMode === 'Online'
-                                    ? 'bg-blue-500/20 text-blue-400'
-                                    : 'bg-orange-500/20 text-orange-400'
+                                    ? 'bg-blue-600'
+                                    : 'bg-orange-600'
+                                }`}
+                                title={`Click to switch to ${
+                                  tier.availabilityMode === 'Online'
+                                    ? 'On-Site'
+                                    : 'Online'
+                                } mode`}
+                              >
+                                <span
+                                  className={`inline-block h-3 w-3 transform rounded-full bg-white transition duration-200 ease-in-out ${
+                                    tier.availabilityMode === 'Online'
+                                      ? 'translate-x-5'
+                                      : 'translate-x-1'
+                                  }`}
+                                />
+                              </button>
+                              <span
+                                className={`text-xs font-medium ${
+                                  tier.availabilityMode === 'Online'
+                                    ? 'text-blue-400'
+                                    : 'text-orange-400'
                                 }`}
                               >
-                                {tier.availabilityMode}
+                                {tier.availabilityMode === 'Online'
+                                  ? 'Online'
+                                  : 'On-Site'}
                               </span>
-                            </p>
+                            </div>
                           </div>
                           <div>
                             <p className='text-gray-400 mb-1'>Limit Per User</p>
@@ -1122,7 +1234,7 @@ export default function EventDetailsPage({ params }) {
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Order
+                      Order <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='number'
@@ -1140,7 +1252,7 @@ export default function EventDetailsPage({ params }) {
 
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Price ($) - Required, must be greater than 0
+                      Price ($) <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='number'
@@ -1161,7 +1273,8 @@ export default function EventDetailsPage({ params }) {
 
                 <div>
                   <label className='block text-sm text-[#AEB9E1] mb-1'>
-                    Name (Required - 64 characters max)
+                    Name <span className='text-red-400'>*</span>{' '}
+                    <span className='text-xs'>(64 characters max)</span>
                   </label>
                   <input
                     type='text'
@@ -1181,7 +1294,7 @@ export default function EventDetailsPage({ params }) {
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Capacity
+                      Capacity <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='number'
@@ -1206,7 +1319,7 @@ export default function EventDetailsPage({ params }) {
 
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Remaining
+                      Remaining <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='number'
@@ -1224,7 +1337,10 @@ export default function EventDetailsPage({ params }) {
 
                 <div>
                   <label className='block text-sm text-[#AEB9E1] mb-1'>
-                    Description (Optional - 250 characters max)
+                    Description{' '}
+                    <span className='text-xs'>
+                      (optional - 250 characters max)
+                    </span>
                   </label>
                   <textarea
                     maxLength='250'
@@ -1247,7 +1363,7 @@ export default function EventDetailsPage({ params }) {
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Availability Mode
+                      Availability Mode <span className='text-red-400'>*</span>
                     </label>
                     <select
                       className='w-full bg-[#0A1330] border border-[#343B4F] text-white rounded px-3 py-2 text-sm'
@@ -1267,7 +1383,7 @@ export default function EventDetailsPage({ params }) {
 
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Limit Per User
+                      Limit Per User <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='number'
@@ -1287,7 +1403,8 @@ export default function EventDetailsPage({ params }) {
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Sales Start Date
+                      Sales Start Date & Time{' '}
+                      <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='datetime-local'
@@ -1301,23 +1418,26 @@ export default function EventDetailsPage({ params }) {
                           : ''
                       }
                       onChange={(e) => {
-                        setCurrentTier({
-                          ...currentTier,
-                          salesStartDate: new Date(
-                            e.target.value
-                          ).toISOString(),
-                        })
-                        setDateModified((prev) => ({
-                          ...prev,
-                          startDate: true,
-                        }))
+                        if (e.target.value) {
+                          setCurrentTier({
+                            ...currentTier,
+                            salesStartDate: new Date(
+                              e.target.value
+                            ).toISOString(),
+                          })
+                          setDateModified((prev) => ({
+                            ...prev,
+                            startDate: true,
+                          }))
+                        }
                       }}
                     />
                   </div>
 
                   <div>
                     <label className='block text-sm text-[#AEB9E1] mb-1'>
-                      Sales End Date
+                      Sales End Date & Time{' '}
+                      <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='datetime-local'
@@ -1337,11 +1457,18 @@ export default function EventDetailsPage({ params }) {
                           : ''
                       }
                       onChange={(e) => {
-                        setCurrentTier({
-                          ...currentTier,
-                          salesEndDate: new Date(e.target.value).toISOString(),
-                        })
-                        setDateModified((prev) => ({ ...prev, endDate: true }))
+                        if (e.target.value) {
+                          setCurrentTier({
+                            ...currentTier,
+                            salesEndDate: new Date(
+                              e.target.value
+                            ).toISOString(),
+                          })
+                          setDateModified((prev) => ({
+                            ...prev,
+                            endDate: true,
+                          }))
+                        }
                       }}
                     />
                   </div>
@@ -1349,7 +1476,8 @@ export default function EventDetailsPage({ params }) {
 
                 <div>
                   <label className='block text-sm text-[#AEB9E1] mb-1'>
-                    Refund Policy Notes
+                    Refund Policy Notes{' '}
+                    <span className='text-xs'>(optional)</span>
                   </label>
                   <input
                     type='text'

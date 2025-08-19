@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, ArrowLeft } from 'lucide-react'
 import useStore from '../../../../stores/useStore'
 import axiosInstance from '../../../../shared/axios'
 import { getEventStatus } from '../../../../utils/eventUtils'
@@ -122,7 +122,7 @@ export default function SpectatorTicketRedemption() {
           code: item.ticketCode,
           name: item.buyerName,
           type: item.tier,
-          price: item.amountPaid / 100, // Convert cents to dollars
+          price: item.amountPaid,
           redeemedAt: item.redeemedAt,
           redeemedBy: item.redeemedBy,
           redeemedByEmail: item.redeemedByEmail,
@@ -390,6 +390,20 @@ export default function SpectatorTicketRedemption() {
               </>
             ) : (
               <>
+                {/* Back Navigation */}
+                <div className='flex items-center mb-4'>
+                  <button
+                    onClick={() => {
+                      setShowRedemptionPanel(false)
+                      setSelectedEvent(null)
+                    }}
+                    className='flex items-center text-gray-400 hover:text-white transition-colors'
+                  >
+                    <ArrowLeft size={18} className='mr-2' />
+                    <span>Back to Event List</span>
+                  </button>
+                </div>
+
                 {/* Redemption Panel */}
                 <div className='flex items-center justify-between bg-[#AEBFFF33] p-3 rounded-md mb-6'>
                   <div>
@@ -407,6 +421,7 @@ export default function SpectatorTicketRedemption() {
                       setSelectedEvent(null)
                     }}
                     className='text-gray-400 hover:text-white'
+                    title='Close panel'
                   >
                     <X size={18} />
                   </button>

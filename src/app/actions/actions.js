@@ -7,7 +7,7 @@ BigInt.prototype.toJSON = function () {
   return this.toString()
 }
 
-export async function submitPayment(sourceId, amountInCents, paymentData = {}) {
+export async function submitPayment(sourceId, amount, paymentData = {}) {
   console.log(
     'Square Access Token:',
     process.env.NEXT_PUBLIC_SQUARE_ACCESS_TOKEN
@@ -24,7 +24,7 @@ export async function submitPayment(sourceId, amountInCents, paymentData = {}) {
       sourceId,
       amountMoney: {
         currency: 'USD',
-        amount: BigInt(Math.round(amountInCents)), // Convert to BigInt for Square API
+        amount: BigInt(Math.round(amount)), // Convert to BigInt for Square API
       },
     }
 

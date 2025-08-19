@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { X, Search, User } from 'lucide-react'
-import { API_BASE_URL } from '../../../../../../../constants'
+import { API_BASE_URL, apiConstants } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
+import axios from 'axios'
 
 export default function AddFighterModal({
   isOpen,
@@ -90,53 +91,50 @@ export default function AddFighterModal({
 
   const handleSelectFighters = async () => {
     if (selectedFighters.length === 0) return
-    
+
     try {
       // Get existing fighters and add new ones with incremental seeds
       const existingFighters = bracket?.fighters || []
       const existingCount = existingFighters.length
-      
+
       const newFighters = [
         // Keep existing fighters with their structure
-        ...existingFighters.map(f => ({
+        ...existingFighters.map((f) => ({
           fighter: f.fighter || f._id || f,
-          seed: f.seed || 1
+          seed: f.seed || 1,
         })),
         // Add new fighters with incremental seeds
         ...selectedFighters.map((fighter, index) => ({
           fighter: fighter._id,
-          seed: existingCount + index + 1
-        }))
+          seed: existingCount + index + 1,
+        })),
       ]
 
-      const response = await fetch(`${API_BASE_URL}/brackets/${bracketId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user?.token}`,
-        },
-        body: JSON.stringify({
+      const response = await axios.put(
+        `${API_BASE_URL}/brackets/${bracketId}`,
+        {
           fighters: newFighters,
-        }),
-      })
+        }
+      )
 
-      if (response.ok) {
-        enqueueSnackbar(`${selectedFighters.length} fighter(s) added successfully!`, {
-          variant: 'success',
-        })
-        
+      if (response.status === apiConstants.success) {
+        enqueueSnackbar(
+          `${selectedFighters.length} fighter(s) added successfully!`,
+          {
+            variant: 'success',
+          }
+        )
+
         // Reset and close
         setSelectedFighters([])
         onClose()
-        
+
         // Trigger parent refresh
         onFighterAdded?.()
-      } else {
-        throw new Error('Failed to add fighters')
       }
     } catch (error) {
-      console.error('Error adding fighters:', error)
-      enqueueSnackbar('Failed to add fighters. Please try again.', {
+      console.log('Error adding fighters:', error)
+      enqueueSnackbar(error?.response?.data?.message, {
         variant: 'error',
       })
     }
@@ -216,7 +214,9 @@ export default function AddFighterModal({
           ) : (
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {filteredFighters.map((fighter) => {
-                const isSelected = selectedFighters.find((f) => f._id === fighter._id)
+                const isSelected = selectedFighters.find(
+                  (f) => f._id === fighter._id
+                )
                 return (
                   <div
                     key={fighter._id}
@@ -297,7 +297,9 @@ export default function AddFighterModal({
                 : 'bg-gray-600 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Add {selectedFighters.length > 0 ? `${selectedFighters.length} ` : ''}Fighter{selectedFighters.length !== 1 ? 's' : ''}
+            Add{' '}
+            {selectedFighters.length > 0 ? `${selectedFighters.length} ` : ''}
+            Fighter{selectedFighters.length !== 1 ? 's' : ''}
           </button>
         </div>
       </div>

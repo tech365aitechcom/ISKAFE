@@ -114,57 +114,67 @@ export default function NewBracketModal({ onClose, onCreate }) {
 
     setLoading(true)
 
-    // Get weight class details
-    const selectedWeightClass = getWeightClasses(formData.ageClass).find(
-      (w) => w.value === formData.weightClass
-    )
+    try {
+      // Get weight class details
+      const selectedWeightClass = getWeightClasses(formData.ageClass).find(
+        (w) => w.value === formData.weightClass
+      )
 
-    const bracketData = {
-      bracketNumber: parseInt(formData.bracketNumber) || 1,
-      divisionTitle: formData.bracketName,
-      title: formData.title,
-      status: formData.bracketStatus,
-      sport: formData.sport,
-      discipline: formData.discipline || null,
-      ageClass: formData.ageClass,
-      ruleStyle: formData.bracketRule,
-      proClass: formData.proClass,
-      bracketCriteria: formData.bracketCriteria || 'none',
-      weightClass: selectedWeightClass
-        ? {
-            min: selectedWeightClass.min,
-            max: selectedWeightClass.max,
-            unit: 'lbs',
-          }
-        : null,
-      fighters: [],
-    }
+      const bracketData = {
+        bracketNumber: parseInt(formData.bracketNumber) || 1,
+        divisionTitle: formData.bracketName,
+        title: formData.title,
+        status: formData.bracketStatus,
+        sport: formData.sport,
+        discipline: formData.discipline || null,
+        ageClass: formData.ageClass,
+        ruleStyle: formData.bracketRule,
+        proClass: formData.proClass,
+        bracketCriteria: formData.bracketCriteria || 'none',
+        weightClass: selectedWeightClass
+          ? {
+              min: selectedWeightClass.min,
+              max: selectedWeightClass.max,
+              unit: 'lbs',
+            }
+          : null,
+        fighters: [],
+      }
 
-    console.log('Bracket data being sent:', bracketData)
+      console.log('Bracket data being sent:', bracketData)
 
-    await onCreate(bracketData)
-    setLoading(false)
-    setIsCreated(true)
+      await onCreate(bracketData)
+      
+      // Only show success and close modal if onCreate succeeded
+      setLoading(false)
+      setIsCreated(true)
 
-    // Reset form after successful creation
-    setTimeout(() => {
-      setFormData({
-        bracketNumber: '',
-        bracketName: '',
-        title: '',
-        bracketRule: '',
-        bracketStatus: 'Open',
-        proClass: '',
-        sport: '',
-        discipline: '',
-        ageClass: '',
-        weightClass: '',
-        bracketCriteria: 'none',
-      })
-      setErrors({})
+      // Reset form after successful creation
+      setTimeout(() => {
+        setFormData({
+          bracketNumber: '',
+          bracketName: '',
+          title: '',
+          bracketRule: '',
+          bracketStatus: 'Open',
+          proClass: '',
+          sport: '',
+          discipline: '',
+          ageClass: '',
+          weightClass: '',
+          bracketCriteria: 'none',
+        })
+        setErrors({})
+        setIsCreated(false)
+        onClose() // Close modal after successful creation
+      }, 2000) // Give user time to see success message
+    } catch (error) {
+      // Handle errors - don't show success message or close modal
+      setLoading(false)
       setIsCreated(false)
-      onClose() // Close modal after successful creation
-    }, 2000) // Give user time to see success message
+      console.error('Error creating bracket:', error)
+      // The error snackbar is already handled by the parent component
+    }
   }
 
   return (

@@ -81,7 +81,7 @@ const MyPurchases = () => {
                   {
                     tierName: item.tier,
                     quantity: item.quantity,
-                    price: item.totalAmount / 100 / item.quantity,
+                    price: item.totalAmount / item.quantity,
                   },
                 ],
               },

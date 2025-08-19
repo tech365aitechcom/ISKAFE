@@ -113,8 +113,9 @@ export default function EventListTable({
                         setSelectedEvent(event)
                         setShowRedemptionPanel(true)
                       }}
+                      disabled={['draft', 'closed'].includes(event.status.toLowerCase())}
                       className={`px-3 py-1 rounded text-sm font-medium ${
-                        !['draft'].includes(event.status.toLowerCase())
+                        ['upcoming', 'live'].includes(event.status.toLowerCase())
                           ? 'bg-gradient-to-r from-[#CB3CFF] to-[#7F25FB] text-white hover:opacity-90'
                           : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                       }`}

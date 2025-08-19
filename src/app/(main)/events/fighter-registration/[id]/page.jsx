@@ -130,6 +130,39 @@ const FighterRegistrationPage = ({ params }) => {
       ? City.getCitiesOfState(formData.country, formData.state)
       : []
 
+  // Function to fetch system record by email
+  const fetchSystemRecord = async (email) => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      return
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/auth/fighter/system-record/${encodeURIComponent(
+          email
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data.systemRecord) {
+          setFormData((prev) => ({
+            ...prev,
+            systemRecord: data.data.systemRecord,
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching system record:', error)
+      // Keep default 0-0-0 if fetch fails
+    }
+  }
+
   useEffect(() => {
     if (!user) return
 
@@ -150,7 +183,23 @@ const FighterRegistrationPage = ({ params }) => {
       city: user.city || '',
       profilePhoto: user.profilePhoto || '',
     })
+
+    // Fetch system record if user email is available
+    if (user.email) {
+      fetchSystemRecord(user.email)
+    }
   }, [user])
+
+  // Debounced email check effect for manual email input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.email && formData.email !== user?.email) {
+        fetchSystemRecord(formData.email)
+      }
+    }, 1000) // Wait 1 second after user stops typing
+
+    return () => clearTimeout(timer)
+  }, [formData.email, user?.email])
 
   // Fetch tournament settings
   useEffect(() => {
@@ -304,7 +353,8 @@ const FighterRegistrationPage = ({ params }) => {
   const validateEmail = (email) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) // Basic but solid email regex
 
-  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPostalCode = (postalCode) =>
+    /^[0-9A-Za-z\s-]{3,10}$/.test(postalCode)
 
   const validateStep = (step) => {
     const newErrors = {}
@@ -349,6 +399,9 @@ const FighterRegistrationPage = ({ params }) => {
 
         // City
         if (!formData.city.trim()) newErrors.city = 'City is required'
+        else if (!/^[A-Za-z\s'-]+$/.test(formData.city))
+          newErrors.city =
+            'City must contain only letters, spaces, hyphens, and apostrophes'
 
         // State
         if (!formData.state) newErrors.state = 'State is required'
@@ -360,7 +413,8 @@ const FighterRegistrationPage = ({ params }) => {
         if (!formData.postalCode.trim())
           newErrors.postalCode = 'ZIP code is required'
         else if (!validPostalCode(formData.postalCode))
-          newErrors.postalCode = 'Please enter valid postal code'
+          newErrors.postalCode =
+            'Postal code must be 3-10 characters (letters, numbers, spaces, hyphens)'
 
         // Profile photo
         if (!formData.profilePhoto)
@@ -371,10 +425,13 @@ const FighterRegistrationPage = ({ params }) => {
         if (!formData.height) {
           newErrors.height = 'Height is required'
         } else {
-          const heightInInches = parseFloat(formData.height)
-          if (isNaN(heightInInches) || heightInInches < 38) {
-            // 3'2" is 38 inches
-            newErrors.height = 'Height of at least 3\'2" is required'
+          const heightValue = parseFloat(formData.height)
+          if (isNaN(heightValue)) {
+            newErrors.height = 'Height must be a valid number'
+          } else if (formData.heightUnit === 'inches' && heightValue < 38) {
+            newErrors.height = 'Height must be at least 38 inches (3\'2")'
+          } else if (formData.heightUnit === 'cm' && heightValue < 97) {
+            newErrors.height = 'Height must be at least 97 cm (3\'2")'
           }
         }
 
@@ -382,9 +439,12 @@ const FighterRegistrationPage = ({ params }) => {
           newErrors.walkAroundWeight = 'Walk-around weight is required'
         } else {
           const weight = parseFloat(formData.walkAroundWeight)
-          if (isNaN(weight) || weight < 10) {
-            newErrors.walkAroundWeight =
-              'Is your Walk-Around Weight accurate? Please check before continuing.'
+          if (isNaN(weight)) {
+            newErrors.walkAroundWeight = 'Weight must be a valid number'
+          } else if (formData.weightUnit === 'LBS' && weight < 25) {
+            newErrors.walkAroundWeight = 'Weight must be at least 25 LBS'
+          } else if (formData.weightUnit === 'KG' && weight < 11) {
+            newErrors.walkAroundWeight = 'Weight must be at least 11 KG'
           }
         }
         break
@@ -394,6 +454,15 @@ const FighterRegistrationPage = ({ params }) => {
           newErrors.proFighter = 'Pro fighter status is required'
         if (formData.paidToFight === undefined || formData.paidToFight === '')
           newErrors.paidToFight = 'Paid to fight status is required'
+
+        // Additional Records validation
+        if (formData.additionalRecords && formData.additionalRecords.trim()) {
+          const recordPattern = /^\d+-\d+(-\d+)?$/
+          if (!recordPattern.test(formData.additionalRecords.trim())) {
+            newErrors.additionalRecords =
+              'Format must be W-L or W-L-D (e.g., 5-2 or 5-2-1)'
+          }
+        }
         break
 
       case 4: // Rule style
@@ -405,6 +474,40 @@ const FighterRegistrationPage = ({ params }) => {
           newErrors.weightClass = 'Weight class is required'
         if (!formData.skillLevel)
           newErrors.skillLevel = 'Skill level is required'
+
+        // Validate weight against selected weight class
+        if (formData.weightClass && formData.walkAroundWeight) {
+          const selectedWeightClass = weightClasses.find(
+            (wc) => wc.fullName === formData.weightClass
+          )
+          if (selectedWeightClass) {
+            let userWeight = parseFloat(formData.walkAroundWeight)
+
+            // Convert user weight to LBS if needed for comparison
+            if (formData.weightUnit === 'KG') {
+              userWeight = userWeight * 2.20462 // Convert KG to LBS
+            }
+
+            // Extract min and max from fullName (e.g., "Junior Featherweight (122.1–127)")
+            const weightRangeMatch = selectedWeightClass.fullName.match(
+              /\(([0-9.]+)[-–]([0-9.]+)\)/
+            )
+            if (weightRangeMatch) {
+              const minWeight = parseFloat(weightRangeMatch[1])
+              const maxWeight = parseFloat(weightRangeMatch[2])
+
+              if (userWeight < minWeight || userWeight > maxWeight) {
+                const convertedWeight =
+                  formData.weightUnit === 'KG'
+                    ? `${userWeight.toFixed(1)} LBS (${
+                        formData.walkAroundWeight
+                      } KG)`
+                    : `${formData.walkAroundWeight} ${formData.weightUnit}`
+                newErrors.weightClass = `Your weight ${convertedWeight} doesn't match the selected weight class range (${minWeight}-${maxWeight} LBS)`
+              }
+            }
+          }
+        }
         break
 
       // Trainer Info
@@ -502,7 +605,6 @@ const FighterRegistrationPage = ({ params }) => {
 
     // Calculate amount in cents for Square (Fighter registration fee)
     const fighterFee = tournamentSettings?.simpleFees?.fighterFee || 75
-    const amountInCents = fighterFee * 100 // Convert to cents
 
     // Submit payment to Square
     const paymentData = {
@@ -510,12 +612,12 @@ const FighterRegistrationPage = ({ params }) => {
     }
 
     console.log('Submitting payment to Square...', {
-      amountInCents,
+      fighterFee,
       paymentData,
     })
     const squareResult = await submitPayment(
       result.token,
-      amountInCents,
+      fighterFee,
       paymentData
     )
 
@@ -704,7 +806,9 @@ const FighterRegistrationPage = ({ params }) => {
       </div>
 
       <div>
-        <label className='text-white font-medium'>Gender *</label>
+        <label className='text-white font-medium'>
+          Gender <span className='text-red-500'>*</span>
+        </label>
         <div className='flex space-x-4 mt-2'>
           <label className='text-white'>
             <input
@@ -791,7 +895,9 @@ const FighterRegistrationPage = ({ params }) => {
           </div>
         ))}
         <div className='bg-[#00000061] p-2 rounded'>
-          <label className='block font-medium mb-1'>Country</label>
+          <label className='block font-medium mb-1'>
+            Country <span className='text-red-500'>*</span>
+          </label>
           <select
             name='country'
             value={formData.country}
@@ -816,7 +922,9 @@ const FighterRegistrationPage = ({ params }) => {
           )}
         </div>
         <div className='bg-[#00000061] p-2 rounded'>
-          <label className='block font-medium mb-1'>State</label>
+          <label className='block font-medium mb-1'>
+            State <span className='text-red-500'>*</span>
+          </label>
           <select
             name='state'
             value={formData.state}
@@ -917,8 +1025,11 @@ const FighterRegistrationPage = ({ params }) => {
           name='profilePhoto'
           onChange={handleChange}
           accept='image/jpeg,image/jpg,image/png'
-          className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+          className='max-w-fit outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
         />
+        {errors.profilePhoto && (
+          <p className='text-red-400 text-sm mt-1'>{errors.profilePhoto}</p>
+        )}
 
         <p className='text-xs text-gray-400 mt-1'>JPG/PNG, Max 2MB</p>
       </div>
@@ -1080,15 +1191,22 @@ const FighterRegistrationPage = ({ params }) => {
 
       <div className='bg-[#00000061] p-2 rounded'>
         <label className='text-white font-medium'>System Record</label>
-        <input
-          type='text'
-          name='systemRecord'
-          value={formData.systemRecord}
-          className='w-full outline-none bg-transparent text-white'
-          readOnly
-        />
+        <div className='relative'>
+          <input
+            type='text'
+            name='systemRecord'
+            value={formData.systemRecord}
+            className='w-full outline-none bg-transparent text-white pr-8'
+            readOnly
+          />
+          {loading && (
+            <div className='absolute right-2 top-1/2 transform -translate-y-1/2'>
+              <div className='animate-spin h-4 w-4 border-2 border-yellow-500 border-t-transparent rounded-full'></div>
+            </div>
+          )}
+        </div>
         <p className='text-gray-400 text-sm mt-1'>
-          Auto-populated from platform
+          Auto-populated from platform data
         </p>
       </div>
 
@@ -1099,9 +1217,14 @@ const FighterRegistrationPage = ({ params }) => {
           name='additionalRecords'
           value={formData.additionalRecords}
           onChange={handleChange}
-          placeholder='Style + W/L/D'
+          placeholder='Format: W-L-D (e.g., 5-2-1)'
           className='w-full outline-none bg-transparent text-white'
         />
+        {errors.additionalRecords && (
+          <p className='text-red-400 text-sm mt-1'>
+            {errors.additionalRecords}
+          </p>
+        )}
       </div>
     </div>
   )

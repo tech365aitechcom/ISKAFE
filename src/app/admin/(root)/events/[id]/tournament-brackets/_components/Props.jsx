@@ -253,20 +253,22 @@ export default function Props({
       errors.bracketName = 'Bracket name must be less than 100 characters'
     }
 
-    // Ring Number validation (alphanumeric)
-    if (ringNumber && !/^[a-zA-Z0-9\s'&.-]+$/.test(ringNumber.trim())) {
-      errors.ringNumber =
-        'Ring Number can only contain letters, numbers, spaces, and common punctuation'
+    // Ring Number validation (numeric and positive)
+    if (ringNumber && String(ringNumber).trim() !== '') {
+      const ringStr = String(ringNumber).trim()
+      if (!/^\d+$/.test(ringStr) || parseInt(ringStr) <= 0) {
+        errors.ringNumber = 'Ring Number must be a positive number'
+      }
     }
 
     // Bracket Sequence validation (required and numeric)
-    if (!bracketSequence || bracketSequence.trim() === '') {
+    if (!bracketSequence || String(bracketSequence).trim() === '') {
       errors.bracketSequence = 'Bracket Sequence Number is required'
-    } else if (
-      !/^\d+$/.test(bracketSequence.trim()) ||
-      parseInt(bracketSequence) <= 0
-    ) {
-      errors.bracketSequence = 'Bracket Sequence must be a positive number'
+    } else {
+      const seqStr = String(bracketSequence).trim()
+      if (!/^\d+$/.test(seqStr) || parseInt(seqStr) <= 0) {
+        errors.bracketSequence = 'Bracket Sequence must be a positive number'
+      }
     }
 
     if (Object.keys(errors).length > 0) {
@@ -340,29 +342,40 @@ export default function Props({
     const errors = {}
 
     // Mandatory field validation for numeric fields
-    if (!startDayNumber || startDayNumber.trim() === '') {
+    if (!startDayNumber || String(startDayNumber).trim() === '') {
       errors.startDayNumber = 'Start on Day Number is required'
-    } else if (
-      !/^\d+$/.test(startDayNumber.trim()) ||
-      parseInt(startDayNumber) <= 0
-    ) {
-      errors.startDayNumber = 'Start on Day Number must be a positive number'
+    } else {
+      const dayStr = String(startDayNumber).trim()
+      if (!/^\d+$/.test(dayStr) || parseInt(dayStr) <= 0) {
+        errors.startDayNumber = 'Start on Day Number must be a positive number'
+      }
     }
 
-    if (!boutRound || boutRound.trim() === '') {
+    if (!boutRound || String(boutRound).trim() === '') {
       errors.boutRound = 'Bout Round Duration is required'
-    } else if (!/^\d+$/.test(boutRound.trim()) || parseInt(boutRound) <= 0) {
-      errors.boutRound =
-        'Bout Round Duration must be a positive number (seconds)'
+    } else {
+      const roundStr = String(boutRound).trim()
+      if (!/^\d+$/.test(roundStr) || parseInt(roundStr) <= 0) {
+        errors.boutRound =
+          'Bout Round Duration must be a positive number (seconds)'
+      }
     }
 
-    if (!maxCompetitors || maxCompetitors.trim() === '') {
+    if (!maxCompetitors || String(maxCompetitors).trim() === '') {
       errors.maxCompetitors = 'Max Competitors is required'
-    } else if (
-      !/^\d+$/.test(maxCompetitors.trim()) ||
-      parseInt(maxCompetitors) <= 0
-    ) {
-      errors.maxCompetitors = 'Max Competitors must be a positive number'
+    } else {
+      const maxStr = String(maxCompetitors).trim()
+      if (!/^\d+$/.test(maxStr) || parseInt(maxStr) <= 0) {
+        errors.maxCompetitors = 'Max Competitors must be a positive number'
+      }
+    }
+
+    // Group validation (optional but must be positive if provided)
+    if (group && String(group).trim() !== '') {
+      const groupStr = String(group).trim()
+      if (!/^\d+$/.test(groupStr) || parseInt(groupStr) <= 0) {
+        errors.group = 'Group must be a positive number'
+      }
     }
 
     if (Object.keys(errors).length > 0) {
@@ -405,7 +418,7 @@ export default function Props({
       }
     } catch (error) {
       console.error('Save settings error:', error)
-      enqueueSnackbar('Error saving settings: ' + error.message, {
+      enqueueSnackbar(error?.response?.data?.message, {
         variant: 'error',
       })
     } finally {
@@ -841,10 +854,25 @@ export default function Props({
               <input
                 type='number'
                 value={startDayNumber}
-                onChange={(e) => setStartDayNumber(e.target.value)}
+                onChange={(e) => {
+                  setStartDayNumber(e.target.value)
+                  if (validationErrors.startDayNumber) {
+                    setValidationErrors((prev) => {
+                      const { startDayNumber, ...rest } = prev
+                      return rest
+                    })
+                  }
+                }}
                 placeholder='OPTIONAL'
-                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                className={`w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  validationErrors.startDayNumber ? 'border-red-500' : ''
+                }`}
               />
+              {validationErrors.startDayNumber && (
+                <div className='text-red-400 text-xs mt-1'>
+                  ⚠ {validationErrors.startDayNumber}
+                </div>
+              )}
             </div>
 
             <div>
@@ -854,10 +882,25 @@ export default function Props({
               <input
                 type='number'
                 value={group}
-                onChange={(e) => setGroup(e.target.value)}
+                onChange={(e) => {
+                  setGroup(e.target.value)
+                  if (validationErrors.group) {
+                    setValidationErrors((prev) => {
+                      const { group, ...rest } = prev
+                      return rest
+                    })
+                  }
+                }}
                 placeholder='OPTIONAL'
-                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                className={`w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  validationErrors.group ? 'border-red-500' : ''
+                }`}
               />
+              {validationErrors.group && (
+                <div className='text-red-400 text-xs mt-1'>
+                  ⚠ {validationErrors.group}
+                </div>
+              )}
             </div>
           </div>
 
@@ -870,10 +913,25 @@ export default function Props({
               <input
                 type='number'
                 value={ringNumber}
-                onChange={(e) => setRingNumber(e.target.value)}
+                onChange={(e) => {
+                  setRingNumber(e.target.value)
+                  if (validationErrors.ringNumber) {
+                    setValidationErrors((prev) => {
+                      const { ringNumber, ...rest } = prev
+                      return rest
+                    })
+                  }
+                }}
                 placeholder='OPTIONAL'
-                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                className={`w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  validationErrors.ringNumber ? 'border-red-500' : ''
+                }`}
               />
+              {validationErrors.ringNumber && (
+                <div className='text-red-400 text-xs mt-1'>
+                  ⚠ {validationErrors.ringNumber}
+                </div>
+              )}
             </div>
 
             <div>
@@ -883,10 +941,25 @@ export default function Props({
               <input
                 type='number'
                 value={bracketSequence}
-                onChange={(e) => setBracketSequence(e.target.value)}
+                onChange={(e) => {
+                  setBracketSequence(e.target.value)
+                  if (validationErrors.bracketSequence) {
+                    setValidationErrors((prev) => {
+                      const { bracketSequence, ...rest } = prev
+                      return rest
+                    })
+                  }
+                }}
                 placeholder='OPTIONAL'
-                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                className={`w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  validationErrors.bracketSequence ? 'border-red-500' : ''
+                }`}
               />
+              {validationErrors.bracketSequence && (
+                <div className='text-red-400 text-xs mt-1'>
+                  ⚠ {validationErrors.bracketSequence}
+                </div>
+              )}
             </div>
           </div>
 
@@ -899,10 +972,25 @@ export default function Props({
               <input
                 type='number'
                 value={boutRound}
-                onChange={(e) => setBoutRound(e.target.value)}
+                onChange={(e) => {
+                  setBoutRound(e.target.value)
+                  if (validationErrors.boutRound) {
+                    setValidationErrors((prev) => {
+                      const { boutRound, ...rest } = prev
+                      return rest
+                    })
+                  }
+                }}
                 placeholder='90'
-                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                className={`w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  validationErrors.boutRound ? 'border-red-500' : ''
+                }`}
               />
+              {validationErrors.boutRound && (
+                <div className='text-red-400 text-xs mt-1'>
+                  ⚠ {validationErrors.boutRound}
+                </div>
+              )}
             </div>
 
             <div>
@@ -912,10 +1000,25 @@ export default function Props({
               <input
                 type='number'
                 value={maxCompetitors || '4'}
-                onChange={(e) => setMaxCompetitors(e.target.value)}
+                onChange={(e) => {
+                  setMaxCompetitors(e.target.value)
+                  if (validationErrors.maxCompetitors) {
+                    setValidationErrors((prev) => {
+                      const { maxCompetitors, ...rest } = prev
+                      return rest
+                    })
+                  }
+                }}
                 placeholder='4'
-                className='w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                className={`w-full bg-[#00000061] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  validationErrors.maxCompetitors ? 'border-red-500' : ''
+                }`}
               />
+              {validationErrors.maxCompetitors && (
+                <div className='text-red-400 text-xs mt-1'>
+                  ⚠ {validationErrors.maxCompetitors}
+                </div>
+              )}
             </div>
           </div>
 
@@ -940,9 +1043,12 @@ export default function Props({
               disabled={
                 loading ||
                 Object.keys(validationErrors).some((key) =>
-                  ['startDayNumber', 'boutRound', 'maxCompetitors'].includes(
-                    key
-                  )
+                  [
+                    'startDayNumber',
+                    'boutRound',
+                    'maxCompetitors',
+                    'group',
+                  ].includes(key)
                 )
               }
             />

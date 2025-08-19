@@ -256,7 +256,7 @@ const PaymentScreen = ({
     console.log('✅ Square tokenization successful')
 
     // Calculate amount in cents for Square
-    const amountInCents = Math.round(getTotalPrice() * 100)
+    const amount = Math.round(getTotalPrice())
 
     // Submit payment to Square
     const paymentData = {
@@ -267,14 +267,10 @@ const PaymentScreen = ({
     }
 
     console.log('Submitting payment to Square...', {
-      amountInCents,
+      amount,
       paymentData,
     })
-    const squareResult = await submitPayment(
-      result.token,
-      amountInCents,
-      paymentData
-    )
+    const squareResult = await submitPayment(result.token, amount, paymentData)
 
     if (!squareResult.success) {
       console.error('❌ Square payment failed:', squareResult)
@@ -283,9 +279,11 @@ const PaymentScreen = ({
 
     console.log('✅ Square payment successful:', squareResult)
     return {
-      transactionId: squareResult.transactionId || squareResult.data?.transactionId,
+      transactionId:
+        squareResult.transactionId || squareResult.data?.transactionId,
       orderId: squareResult.orderId || squareResult.data?.orderId,
-      receiptNumber: squareResult.receiptNumber || squareResult.data?.receiptNumber,
+      receiptNumber:
+        squareResult.receiptNumber || squareResult.data?.receiptNumber,
       last4: squareResult.last4 || squareResult.data?.last4,
       receiptUrl: squareResult.receiptUrl || squareResult.data?.receiptUrl,
     }
@@ -452,7 +450,7 @@ const PaymentScreen = ({
         console.log('Payment successful, response data:', data)
         setPaymentCompleted(true)
         // enqueueSnackbar('Payment successful!', { variant: 'success' })
-        
+
         // Small delay to show payment completed state before navigating
         setTimeout(() => {
           const confirmationData = {
@@ -461,7 +459,11 @@ const PaymentScreen = ({
             ticketCode: data.data?.ticketCode,
           }
           console.log('Sending to confirmation screen:', confirmationData)
-          console.log('QR Code data type and content:', typeof data.data?.qrCode, data.data?.qrCode)
+          console.log(
+            'QR Code data type and content:',
+            typeof data.data?.qrCode,
+            data.data?.qrCode
+          )
           onNext('confirmation', confirmationData)
         }, 1000)
       } else {
@@ -607,26 +609,38 @@ const PaymentScreen = ({
           <h3 className='text-lg font-bold mb-4'>Payment Method</h3>
           <div className='grid grid-cols-2 gap-4'>
             <button
-              onClick={() => !processing && !paymentCompleted && setPaymentMethod('card')}
+              onClick={() =>
+                !processing && !paymentCompleted && setPaymentMethod('card')
+              }
               disabled={processing || paymentCompleted}
               className={`p-4 rounded-lg border-2 transition-colors ${
                 paymentMethod === 'card'
                   ? 'border-purple-500 bg-purple-500/20'
                   : 'border-gray-600 hover:border-gray-500'
-              } ${(processing || paymentCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${
+                processing || paymentCompleted
+                  ? 'opacity-50 cursor-not-allowed'
+                  : ''
+              }`}
             >
               <CreditCard className='mx-auto mb-2' size={24} />
               <div className='text-sm font-medium'>Credit/Debit Card</div>
             </button>
 
             <button
-              onClick={() => !processing && !paymentCompleted && setPaymentMethod('cash')}
+              onClick={() =>
+                !processing && !paymentCompleted && setPaymentMethod('cash')
+              }
               disabled={processing || paymentCompleted}
               className={`p-4 rounded-lg border-2 transition-colors ${
                 paymentMethod === 'cash'
                   ? 'border-purple-500 bg-purple-500/20'
                   : 'border-gray-600 hover:border-gray-500'
-              } ${(processing || paymentCompleted) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${
+                processing || paymentCompleted
+                  ? 'opacity-50 cursor-not-allowed'
+                  : ''
+              }`}
             >
               <DollarSign className='mx-auto mb-2' size={24} />
               <div className='text-sm font-medium'>Cash Code</div>
@@ -657,9 +671,13 @@ const PaymentScreen = ({
             )}
 
             {squareConfigValid && squareLoaded && (
-              <div className={`bg-[#0A1330] rounded-lg p-6 ${
-                processing || paymentCompleted ? 'opacity-50 pointer-events-none' : ''
-              }`}>
+              <div
+                className={`bg-[#0A1330] rounded-lg p-6 ${
+                  processing || paymentCompleted
+                    ? 'opacity-50 pointer-events-none'
+                    : ''
+                }`}
+              >
                 <div
                   id='square-card-container'
                   ref={cardRef}
@@ -681,8 +699,8 @@ const PaymentScreen = ({
                       Test Card Information:
                     </p>
                     <p className='text-blue-300 text-xs'>
-                      For testing: Use card number 4111 1111 1111 1111, any future
-                      expiry date, and CVV 111
+                      For testing: Use card number 4111 1111 1111 1111, any
+                      future expiry date, and CVV 111
                     </p>
                   </div>
                 )}
@@ -711,7 +729,9 @@ const PaymentScreen = ({
               className={`w-full bg-[#0A1330] border ${
                 errors.cashCode ? 'border-red-500' : 'border-gray-600'
               } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 ${
-                processing || paymentCompleted ? 'opacity-50 cursor-not-allowed' : ''
+                processing || paymentCompleted
+                  ? 'opacity-50 cursor-not-allowed'
+                  : ''
               }`}
               placeholder='Enter your cash code'
             />
@@ -729,8 +749,8 @@ const PaymentScreen = ({
             onClick={handlePay}
             disabled={processing || paymentCompleted}
             className={`flex-1 ${
-              paymentCompleted 
-                ? 'bg-green-500 cursor-default' 
+              paymentCompleted
+                ? 'bg-green-500 cursor-default'
                 : 'bg-green-600 hover:bg-green-700'
             } text-white px-6 py-3 rounded font-medium disabled:opacity-50`}
           >

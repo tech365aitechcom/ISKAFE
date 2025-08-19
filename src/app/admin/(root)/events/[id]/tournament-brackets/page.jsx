@@ -11,6 +11,16 @@ import useStore from '../../../../../../stores/useStore'
 import Loader from '../../../../../_components/Loader'
 import { enqueueSnackbar } from 'notistack'
 import axios from 'axios'
+import { 
+  titleData, 
+  sportsData, 
+  bracketRuleData, 
+  bracketStatusData, 
+  proClassData, 
+  bracketCriteriaData,
+  disciplineData,
+  getAgeClasses 
+} from './_components/bracketUtils'
 
 export default function TournamentBrackets() {
   const params = useParams()
@@ -122,9 +132,11 @@ export default function TournamentBrackets() {
         setShowNewBracketModal(false)
       }
     } catch (err) {
-      enqueueSnackbar(err.response?.data?.message, {
+      enqueueSnackbar(err.response?.data?.message || 'Failed to create bracket', {
         variant: 'error',
       })
+      // Re-throw the error so the modal can catch it and not show success
+      throw err
     }
   }
 
@@ -454,28 +466,26 @@ export default function TournamentBrackets() {
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Titles</option>
-              <option value='World Championship'>World Championship</option>
-              <option value='National Championship'>
-                National Championship
-              </option>
-              <option value='Regional Championship'>
-                Regional Championship
-              </option>
-              <option value='Local Tournament'>Local Tournament</option>
+              {titleData.map((option) => (
+                <option key={option.value} value={option.label}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
               value={filters.sport}
               onChange={(e) =>
-                setFilters({ ...filters, sport: e.target.value })
+                setFilters({ ...filters, sport: e.target.value, ageClass: '' })
               }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Sports</option>
-              <option value='kickboxing'>Kickboxing</option>
-              <option value='boxing'>Boxing</option>
-              <option value='mma'>MMA</option>
-              <option value='bjj'>BJJ</option>
+              {sportsData.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
@@ -484,14 +494,14 @@ export default function TournamentBrackets() {
                 setFilters({ ...filters, ageClass: e.target.value })
               }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
+              disabled={!filters.sport}
             >
               <option value=''>All Age Classes</option>
-              <option value='boys'>Boys</option>
-              <option value='men'>Men</option>
-              <option value='senior-men'>Senior Men</option>
-              <option value='girls'>Girls</option>
-              <option value='women'>Women</option>
-              <option value='senior-women'>Senior Women</option>
+              {filters.sport && getAgeClasses(filters.sport).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
@@ -502,9 +512,11 @@ export default function TournamentBrackets() {
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Status</option>
-              <option value='Open'>Open</option>
-              <option value='Started'>Started</option>
-              <option value='Completed'>Completed</option>
+              {bracketStatusData.map((option) => (
+                <option key={option.value} value={option.label}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -517,8 +529,11 @@ export default function TournamentBrackets() {
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Disciplines</option>
-              <option value='gi'>Gi</option>
-              <option value='no-gi'>No-Gi</option>
+              {disciplineData.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
@@ -529,10 +544,11 @@ export default function TournamentBrackets() {
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Rule Styles</option>
-              <option value='muay thai'>Muay Thai</option>
-              <option value='olympic'>Olympic</option>
-              <option value='point sparring'>Point Sparring</option>
-              <option value='unified rules'>Unified Rules</option>
+              {bracketRuleData.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
@@ -543,8 +559,11 @@ export default function TournamentBrackets() {
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Pro Classes</option>
-              <option value='Pro'>Pro</option>
-              <option value='Amateur'>Amateur</option>
+              {proClassData.map((option) => (
+                <option key={option.value} value={option.label}>
+                  {option.label}
+                </option>
+              ))}
             </select>
 
             <select
@@ -555,9 +574,11 @@ export default function TournamentBrackets() {
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
             >
               <option value=''>All Criteria</option>
-              <option value='none'>None</option>
-              <option value='experience'>Experience</option>
-              <option value='belt'>Belt</option>
+              {bracketCriteriaData.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 

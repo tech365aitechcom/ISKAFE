@@ -140,6 +140,7 @@ export default function CashPaymentAndCodesPage() {
         )
       }
     } catch (err) {
+      console.error('Error generating code:', err)
       enqueueSnackbar('Error generating code: ' + err.message, {
         variant: 'error',
       })

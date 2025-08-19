@@ -856,6 +856,18 @@ export const weightClasses = [
     fullName: 'Junior Junior Atomweight (50.1–55)',
   },
   {
+    _id: 'Junior Junior Flyweight (55.1–60)',
+    fullName: 'Junior Junior Flyweight (55.1–60)',
+  },
+  {
+    _id: 'Junior Junior Bantamweight (60.1–65)',
+    fullName: 'Junior Junior Bantamweight (60.1–65)',
+  },
+  {
+    _id: 'Junior Junior Featherweight (65.1–70)',
+    fullName: 'Junior Junior Featherweight (65.1–70)',
+  },
+  {
     _id: 'Junior Junior Lightweight (70.1–75)',
     fullName: 'Junior Junior Lightweight (70.1–75)',
   },

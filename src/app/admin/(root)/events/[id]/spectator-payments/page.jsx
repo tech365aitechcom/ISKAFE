@@ -5,16 +5,25 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronLeft, Download, Search } from 'lucide-react'
 import Loader from '../../../../../_components/Loader'
+import PaginationHeader from '../../../../../_components/PaginationHeader'
+import Pagination from '../../../../../_components/Pagination'
 import axios from '../../../../../../shared/axios'
 import { jsPDF } from 'jspdf'
+import { API_BASE_URL } from '../../../../../../constants'
+import useStore from '../../../../../../stores/useStore'
 
 const SpectatorPaymentsPage = () => {
   const params = useParams()
   const router = useRouter()
+  const user = useStore((state) => state.user)
   const eventId = params.id
   const [loading, setLoading] = useState(true)
+  const [event, setEvent] = useState(null)
   const [payments, setPayments] = useState([])
-  const [filteredPayments, setFilteredPayments] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
   const [filters, setFilters] = useState({
     name: '',
     email: '',
@@ -28,14 +37,38 @@ const SpectatorPaymentsPage = () => {
   })
 
   // Summary stats
-  const [stats, setStats] = useState(null)
+  const [stats, setStats] = useState({
+    totalFee: 0,
+    totalCollected: 0,
+    netRevenue: 0,
+  })
+
+  // Fetch event data
+  const fetchEvent = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setEvent(data.data)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching event:', err)
+    }
+  }
 
   // Fetch spectator payments data
   const fetchSpectatorPayments = async () => {
     try {
       setLoading(true)
       const response = await axios.get(
-        `/spectator-ticket/purchase/event/${eventId}`
+        `/spectator-ticket/purchase/event/${eventId}?page=${currentPage}&limit=${limit}`
       )
       console.log('API Response:', response.data)
       if (response.data.success) {
@@ -44,7 +77,7 @@ const SpectatorPaymentsPage = () => {
         // Transform API data to match UI requirements
         const transformedData = rawData.map((item, index) => ({
           id: item._id,
-          serialNumber: index + 1,
+          serialNumber: (currentPage - 1) * limit + index + 1,
           date: item.createdAt,
           payer: item.user
             ? `${item.user.firstName} ${item.user.lastName}`
@@ -72,13 +105,20 @@ const SpectatorPaymentsPage = () => {
         }))
 
         setPayments(transformedData)
-        setFilteredPayments(transformedData)
-        setStats(response.data.data.totals)
+        setTotalItems(response.data.data.pagination.totalItems)
+        setTotalPages(response.data.data.pagination.totalPages)
+
+        // Use backend totals instead of calculating from client data
+        const backendStats = {
+          totalFee: response.data.data.totals.totalFee,
+          totalCollected: response.data.data.totals.totalCollected,
+          netRevenue: response.data.data.totals.netRevenue,
+        }
+        setStats(backendStats)
       }
     } catch (error) {
       console.error('Error fetching spectator payments:', error)
       setPayments([])
-      setFilteredPayments([])
     } finally {
       setLoading(false)
     }
@@ -86,75 +126,10 @@ const SpectatorPaymentsPage = () => {
 
   useEffect(() => {
     if (eventId) {
+      fetchEvent()
       fetchSpectatorPayments()
     }
-  }, [eventId])
-
-  // Apply filters and calculate stats whenever payments or filters change
-  useEffect(() => {
-    let filtered = payments.filter((payment) => {
-      // Name filter
-      const nameMatch =
-        !filters.name ||
-        payment.payer.toLowerCase().includes(filters.name.toLowerCase())
-
-      // Email filter
-      const emailMatch =
-        !filters.email ||
-        payment.email.toLowerCase().includes(filters.email.toLowerCase())
-
-      // Date range filter
-      let dateMatch = true
-      if (filters.startDate || filters.endDate) {
-        const paymentDate = new Date(payment.date)
-        if (filters.startDate) {
-          const startDate = new Date(filters.startDate)
-          dateMatch = dateMatch && paymentDate >= startDate
-        }
-        if (filters.endDate) {
-          const endDate = new Date(filters.endDate)
-          dateMatch = dateMatch && paymentDate <= endDate
-        }
-      }
-
-      // Ticket type filter
-      const ticketTypeMatch =
-        !filters.ticketType ||
-        filters.ticketType === 'all' ||
-        payment.ticketDescription
-          .toLowerCase()
-          .includes(filters.ticketType.toLowerCase())
-
-      // Total amount range filter
-      let totalMatch = true
-      if (filters.minTotal) {
-        totalMatch = totalMatch && payment.total >= parseFloat(filters.minTotal)
-      }
-      if (filters.maxTotal) {
-        totalMatch = totalMatch && payment.total <= parseFloat(filters.maxTotal)
-      }
-
-      // Net revenue range filter
-      let netMatch = true
-      if (filters.minNet) {
-        netMatch = netMatch && payment.net >= parseFloat(filters.minNet)
-      }
-      if (filters.maxNet) {
-        netMatch = netMatch && payment.net <= parseFloat(filters.maxNet)
-      }
-
-      return (
-        nameMatch &&
-        emailMatch &&
-        dateMatch &&
-        ticketTypeMatch &&
-        totalMatch &&
-        netMatch
-      )
-    })
-
-    setFilteredPayments(filtered)
-  }, [payments, filters])
+  }, [eventId, currentPage, limit])
 
   // Export to CSV function
   const exportToCSV = () => {
@@ -170,8 +145,8 @@ const SpectatorPaymentsPage = () => {
       'Net',
     ]
 
-    const data = filteredPayments.map((payment) => [
-      payment.serialNumber,
+    const data = payments.map((payment, index) => [
+      index + 1,
       new Date(payment.date).toLocaleString(),
       payment.payer,
       payment.email,
@@ -225,8 +200,8 @@ const SpectatorPaymentsPage = () => {
         ],
       ]
 
-      const data = filteredPayments.map((payment) => [
-        payment.serialNumber,
+      const data = payments.map((payment, index) => [
+        index + 1,
         new Date(payment.date).toLocaleString(),
         payment.payer,
         payment.email,
@@ -287,7 +262,17 @@ const SpectatorPaymentsPage = () => {
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className='text-2xl font-bold'>Spectator Payments</h1>
+            <div>
+              <h1 className='text-2xl font-bold'>Spectator Payments</h1>
+              {event && (
+                <p className='text-sm text-gray-300 mt-1'>
+                  {event.name} -{' '}
+                  {event.startDate
+                    ? new Date(event.startDate).toLocaleDateString()
+                    : 'Date not set'}
+                </p>
+              )}
+            </div>
           </div>
           <div className='flex space-x-4'>
             <button
@@ -311,15 +296,21 @@ const SpectatorPaymentsPage = () => {
         <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
           <div className='bg-[#122046] rounded-lg p-6 text-center'>
             <p className='text-[#AEB9E1] text-sm'>Total Spectator Fees</p>
-            <p className='text-2xl font-bold mt-2'>${stats.totalFee}</p>
+            <p className='text-2xl font-bold mt-2'>
+              ${stats.totalFee.toFixed(2)}
+            </p>
           </div>
           <div className='bg-[#122046] rounded-lg p-6 text-center'>
             <p className='text-[#AEB9E1] text-sm'>Total Amount Collected</p>
-            <p className='text-2xl font-bold mt-2'>${stats.totalCollected}</p>
+            <p className='text-2xl font-bold mt-2'>
+              ${stats.totalCollected.toFixed(2)}
+            </p>
           </div>
           <div className='bg-[#122046] rounded-lg p-6 text-center'>
             <p className='text-[#AEB9E1] text-sm'>Total Net Revenue</p>
-            <p className='text-2xl font-bold mt-2'>${stats.netRevenue}</p>
+            <p className='text-2xl font-bold mt-2'>
+              ${stats.netRevenue.toFixed(2)}
+            </p>
           </div>
         </div>
 
@@ -476,56 +467,76 @@ const SpectatorPaymentsPage = () => {
         </div>
 
         {/* Payments Table */}
-        <div className='overflow-x-auto'>
-          <table className='w-full border-collapse'>
-            <thead>
-              <tr className='bg-[#122046]'>
-                <th className='p-4 text-left'>S. No.</th>
-                <th className='p-4 text-left'>Date</th>
-                <th className='p-4 text-left'>Payer</th>
-                <th className='p-4 text-left'>Email</th>
-                <th className='p-4 text-left'>Ticket Description</th>
-                <th className='p-4 text-left'>Ticket(s)</th>
-                <th className='p-4 text-left'>Fee</th>
-                <th className='p-4 text-left'>Total</th>
-                <th className='p-4 text-left'>Net</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPayments.length === 0 ? (
-                <tr>
-                  <td colSpan='9' className='text-center p-8'>
-                    No spectator payments found
-                  </td>
+        <div className='border border-[#343B4F] rounded-lg overflow-hidden'>
+          {/* Pagination Header */}
+          <PaginationHeader
+            limit={limit}
+            setLimit={setLimit}
+            currentPage={currentPage}
+            totalItems={totalItems}
+            label='payments'
+          />
+
+          <div className='overflow-x-auto'>
+            <table className='w-full border-collapse'>
+              <thead>
+                <tr className='bg-[#122046]'>
+                  <th className='p-4 text-left'>S. No.</th>
+                  <th className='p-4 text-left'>Date</th>
+                  <th className='p-4 text-left'>Payer</th>
+                  <th className='p-4 text-left'>Email</th>
+                  <th className='p-4 text-left'>Ticket Description</th>
+                  <th className='p-4 text-left'>Ticket(s)</th>
+                  <th className='p-4 text-left'>Fee</th>
+                  <th className='p-4 text-left'>Total</th>
+                  <th className='p-4 text-left'>Net</th>
                 </tr>
-              ) : (
-                filteredPayments.map((payment) => (
-                  <tr
-                    key={payment.id}
-                    className='border-b border-[#343B4F] hover:bg-[#122046]'
-                  >
-                    <td className='p-4'>{payment.serialNumber}</td>
-                    <td className='p-4'>
-                      {new Date(payment.date).toLocaleDateString()}{' '}
-                      {new Date(payment.date).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+              </thead>
+              <tbody>
+                {payments.length === 0 ? (
+                  <tr>
+                    <td colSpan='9' className='text-center p-8'>
+                      No spectator payments found
                     </td>
-                    <td className='p-4'>{payment.payer}</td>
-                    <td className='p-4'>{payment.email}</td>
-                    <td className='p-4'>{payment.ticketDescription}</td>
-                    <td className='p-4'>
-                      {payment.quantity} @ ${payment.unitPrice.toFixed(2)}
-                    </td>
-                    <td className='p-4'>${payment.fee.toFixed(2)}</td>
-                    <td className='p-4'>${payment.total.toFixed(2)}</td>
-                    <td className='p-4'>${payment.net.toFixed(2)}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  payments.map((payment, index) => {
+                    return (
+                      <tr
+                        key={payment.id}
+                        className='border-b border-[#343B4F] hover:bg-[#122046]'
+                      >
+                        <td className='p-4'>{payment.serialNumber}</td>
+                        <td className='p-4'>
+                          {new Date(payment.date).toLocaleDateString()}{' '}
+                          {new Date(payment.date).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td className='p-4'>{payment.payer}</td>
+                        <td className='p-4'>{payment.email}</td>
+                        <td className='p-4'>{payment.ticketDescription}</td>
+                        <td className='p-4'>
+                          {payment.quantity} @ ${payment.unitPrice.toFixed(2)}
+                        </td>
+                        <td className='p-4'>${payment.fee.toFixed(2)}</td>
+                        <td className='p-4'>${payment.total.toFixed(2)}</td>
+                        <td className='p-4'>${payment.net.toFixed(2)}</td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </div>
     </div>
