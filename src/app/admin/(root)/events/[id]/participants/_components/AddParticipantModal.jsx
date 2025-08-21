@@ -17,7 +17,9 @@ export default function AddParticipantModal({
   const [adding, setAdding] = useState(false)
   const [registrationType, setRegistrationType] = useState('fighter')
   const [errors, setErrors] = useState({})
-  const [formData, setFormData] = useState({
+
+  // Function to reset form data
+  const resetFormData = () => ({
     firstName: '',
     lastName: '',
     email: '',
@@ -25,28 +27,37 @@ export default function AddParticipantModal({
     gender: '',
     dateOfBirth: '',
   })
+  const [formData, setFormData] = useState(resetFormData())
 
   useEffect(() => {
     if (!isOpen) {
       // Reset form when modal closes
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        gender: '',
-        dateOfBirth: '',
-      })
+      setFormData(resetFormData())
       setRegistrationType('fighter')
       setErrors({})
     }
   }, [isOpen])
 
+  // Handle registration type change and reset form data
+  const handleRegistrationTypeChange = (newType) => {
+    setRegistrationType(newType)
+    setFormData(resetFormData()) // Reset form data when switching types
+    setErrors({}) // Clear any existing errors
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
+
+    // For name fields, filter out invalid characters in real-time
+    let processedValue = value
+    if (name === 'firstName' || name === 'lastName') {
+      // Only allow letters, spaces, hyphens, and apostrophes
+      processedValue = value.replace(/[^a-zA-Z\s\-']/g, '')
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: processedValue,
     }))
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -60,12 +71,22 @@ export default function AddParticipantModal({
   const validateForm = () => {
     const newErrors = {}
 
+    // Name validation regex - only alphabetic characters, spaces, hyphens, and apostrophes
+    const nameRegex = /^[a-zA-Z\s\-']+$/
+
     // Required fields
     if (!formData.firstName?.trim()) {
       newErrors.firstName = 'First name is required'
+    } else if (!nameRegex.test(formData.firstName.trim())) {
+      newErrors.firstName =
+        'First name can only contain letters, spaces, hyphens, and apostrophes'
     }
+
     if (!formData.lastName?.trim()) {
       newErrors.lastName = 'Last name is required'
+    } else if (!nameRegex.test(formData.lastName.trim())) {
+      newErrors.lastName =
+        'Last name can only contain letters, spaces, hyphens, and apostrophes'
     }
     if (!formData.email?.trim()) {
       newErrors.email = 'Email is required'
@@ -204,7 +225,7 @@ export default function AddParticipantModal({
                   name='registrationType'
                   value='fighter'
                   checked={registrationType === 'fighter'}
-                  onChange={(e) => setRegistrationType(e.target.value)}
+                  onChange={(e) => handleRegistrationTypeChange(e.target.value)}
                   className='mr-2'
                 />
                 <span className='text-white'>Fighter</span>
@@ -215,7 +236,7 @@ export default function AddParticipantModal({
                   name='registrationType'
                   value='trainer'
                   checked={registrationType === 'trainer'}
-                  onChange={(e) => setRegistrationType(e.target.value)}
+                  onChange={(e) => handleRegistrationTypeChange(e.target.value)}
                   className='mr-2'
                 />
                 <span className='text-white'>Trainer</span>
@@ -226,7 +247,7 @@ export default function AddParticipantModal({
                   name='registrationType'
                   value='official'
                   checked={registrationType === 'official'}
-                  onChange={(e) => setRegistrationType(e.target.value)}
+                  onChange={(e) => handleRegistrationTypeChange(e.target.value)}
                   className='mr-2'
                 />
                 <span className='text-white'>Official</span>

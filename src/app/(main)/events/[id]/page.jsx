@@ -225,7 +225,14 @@ const page = ({ params }) => {
             <h2 className='text-2xl font-bold text-yellow-500 mb-6'>Rules</h2>
             <div className='prose prose-lg max-w-none'>
               {eventDetails?.rules ? (
-                <PdfViewer pdfUrl={eventDetails.rules} />
+                eventDetails.rules.startsWith('http') ||
+                eventDetails.rules.endsWith('.pdf') ? (
+                  <PdfViewer pdfUrl={eventDetails.rules} />
+                ) : (
+                  <p className='text-gray-300 whitespace-pre-line'>
+                    {eventDetails.rules}
+                  </p>
+                )
               ) : (
                 <p className='text-gray-300'>No rules available</p>
               )}

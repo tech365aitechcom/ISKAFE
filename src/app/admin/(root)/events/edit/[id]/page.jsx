@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Edit, Pencil, Save, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { API_BASE_URL } from "../../../../../../constants";
+import { API_BASE_URL, sportTypes } from "../../../../../../constants";
 import Loader from "../../../../../_components/Loader";
 import Image from "next/image";
 import { enqueueSnackbar } from "notistack";
@@ -292,8 +292,57 @@ export default function EditEventPage() {
     }
 
     // Check required fields
+    const validationErrors = [];
+    
     if (!event.name?.trim()) {
-      enqueueSnackbar("Event name is required", { variant: "error" });
+      validationErrors.push("Event name is required");
+    }
+    
+    if (!event.format?.trim()) {
+      validationErrors.push("Event format is required");
+    }
+    
+    if (!event.koPolicy?.trim()) {
+      validationErrors.push("KO Policy is required");
+    }
+    
+    if (!event.sportType?.trim()) {
+      validationErrors.push("Sport Type is required");
+    }
+    
+    if (!event.matchingMethod?.trim()) {
+      validationErrors.push("Matching Method is required");
+    }
+    
+    if (!event.briefDescription?.trim()) {
+      validationErrors.push("Brief description is required");
+    }
+    
+    if (!event.sectioningBodyName?.trim()) {
+      validationErrors.push("Sanctioning Body Name is required");
+    }
+    
+    if (!event.weighInDateTime) {
+      validationErrors.push("Weigh-in date and time is required");
+    }
+    
+    if (!event.fightStartTime?.trim()) {
+      validationErrors.push("Fight start time is required");
+    }
+    
+    if (!selectedVenue) {
+      validationErrors.push("Venue selection is required");
+    }
+    
+    if (!selectedPromoter) {
+      validationErrors.push("Promoter selection is required");
+    }
+
+    if (validationErrors.length > 0) {
+      enqueueSnackbar(
+        "Please fix the following errors: " + validationErrors.join(", "),
+        { variant: "error" }
+      );
       return false;
     }
 
@@ -702,7 +751,7 @@ export default function EditEventPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
               {/* Event Name */}
               <div>
-                <label className="text-sm mb-1 block">Event Name</label>
+                <label className="text-sm mb-1 block">Event Name <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   name="name"
@@ -716,43 +765,62 @@ export default function EditEventPage() {
 
               {/* Event Format */}
               <div>
-                <label className="text-sm mb-1 block">Event Format</label>
-                <input
-                  type="text"
+                <label className="text-sm mb-1 block">Event Format <span className="text-red-500">*</span></label>
+                <select
                   name="format"
                   value={event.format || ""}
                   onChange={handleInputChange}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
+                >
+                  <option value="">Select Event Format</option>
+                  <option value="Semi Contact">Semi Contact</option>
+                  <option value="Full Contact">Full Contact</option>
+                  <option value="Point Sparring">Point Sparring</option>
+                </select>
               </div>
 
               {/* KO Policy */}
               <div>
-                <label className="text-sm mb-1 block">KO Policy</label>
-                <input
-                  type="text"
+                <label className="text-sm mb-1 block">KO Policy <span className="text-red-500">*</span></label>
+                <select
                   name="koPolicy"
                   value={event.koPolicy || ""}
                   onChange={handleInputChange}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
+                >
+                  <option value="">Select KO Policy</option>
+                  <option value="Not Allowed">Not Allowed</option>
+                  <option value="Allowed">Allowed</option>
+                </select>
               </div>
 
               {/* Sport Type */}
               <div>
-                <label className="text-sm mb-1 block">Sport Type</label>
-                <input
-                  type="text"
+                <label className="text-sm mb-1 block">Sport Type <span className="text-red-500">*</span></label>
+                <select
                   name="sportType"
                   value={event.sportType || ""}
                   onChange={handleInputChange}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
+                >
+                  <option value="">Select Sport Type</option>
+                  {sportTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Start Date */}
               <div>
-                <label className="text-sm mb-1 block">Start Date</label>
+                <label className="text-sm mb-1 block">Start Date <span className="text-red-500">*</span></label>
                 <input
                   type="datetime-local"
                   name="startDate"
@@ -765,6 +833,7 @@ export default function EditEventPage() {
                   onBlur={handleDateBlur}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   required
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
               </div>
 
@@ -798,7 +867,7 @@ export default function EditEventPage() {
               {/* Registration Start Date */}
               <div>
                 <label className="text-sm mb-1 block">
-                  Registration Start Date
+                  Registration Start Date <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="datetime-local"
@@ -816,7 +885,9 @@ export default function EditEventPage() {
                     validationErrors.registrationStartDate
                       ? "border-red-500"
                       : "border-[#343B4F]"
-                  } rounded px-3 py-2`}
+                  } rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
                 {validationErrors.registrationStartDate && (
                   <p className="text-red-500 text-xs mt-1">
@@ -828,7 +899,7 @@ export default function EditEventPage() {
               {/* Registration Deadline */}
               <div>
                 <label className="text-sm mb-1 block">
-                  Registration Deadline
+                  Registration Deadline <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="datetime-local"
@@ -846,7 +917,9 @@ export default function EditEventPage() {
                     validationErrors.registrationDeadline
                       ? "border-red-500"
                       : "border-[#343B4F]"
-                  } rounded px-3 py-2`}
+                  } rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
                 {validationErrors.registrationDeadline && (
                   <p className="text-red-500 text-xs mt-1">
@@ -857,7 +930,7 @@ export default function EditEventPage() {
 
               {/* Weigh-in Date/Time */}
               <div>
-                <label className="text-sm mb-1 block">Weigh-in Date/Time</label>
+                <label className="text-sm mb-1 block">Weigh-in Date/Time <span className="text-red-500">*</span></label>
                 <input
                   type="datetime-local"
                   name="weighInDateTime"
@@ -871,6 +944,8 @@ export default function EditEventPage() {
                   onChange={handleInputChange}
                   onBlur={handleDateBlur}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
               </div>
 
@@ -902,25 +977,29 @@ export default function EditEventPage() {
 
               {/* Fight Start Time */}
               <div>
-                <label className="text-sm mb-1 block">Fight Start Time</label>
+                <label className="text-sm mb-1 block">Fight Start Time <span className="text-red-500">*</span></label>
                 <input
-                  type="text"
+                  type="time"
                   name="fightStartTime"
                   value={event.fightStartTime || ""}
                   onChange={handleInputChange}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
               </div>
 
               {/* Brief Description */}
               <div className="md:col-span-2">
-                <label className="text-sm mb-1 block">Short Description</label>
+                <label className="text-sm mb-1 block">Short Description <span className="text-red-500">*</span></label>
                 <textarea
                   name="briefDescription"
                   value={event.briefDescription || ""}
                   onChange={handleInputChange}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   rows={3}
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
               </div>
 
@@ -950,14 +1029,20 @@ export default function EditEventPage() {
 
               {/* Matching Method */}
               <div>
-                <label className="text-sm mb-1 block">Matching Method</label>
-                <input
-                  type="text"
+                <label className="text-sm mb-1 block">Matching Method <span className="text-red-500">*</span></label>
+                <select
                   name="matchingMethod"
                   value={event.matchingMethod || ""}
                   onChange={handleInputChange}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
+                >
+                  <option value="">Select Matching Method</option>
+                  <option value="On-site">On-site</option>
+                  <option value="Pre-Matched">Pre-Matched</option>
+                  <option value="Final">Final</option>
+                </select>
               </div>
 
               {/* Age Categories */}
@@ -1007,7 +1092,7 @@ export default function EditEventPage() {
               {/* Sanctioning Body Name */}
               <div>
                 <label className="text-sm mb-1 block">
-                  Sanctioning Body Name
+                  Sanctioning Body Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1015,6 +1100,8 @@ export default function EditEventPage() {
                   value={event.sectioningBodyName || ""}
                   onChange={handleInputChange}
                   className="w-full bg-[#0A1330] border border-[#343B4F] rounded px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  required
+                  disabled={!selectedVenue || !selectedPromoter}
                 />
               </div>
 

@@ -13,15 +13,15 @@ import useStore from '../../../../../../stores/useStore'
 import Loader from '../../../../../_components/Loader'
 import { enqueueSnackbar } from 'notistack'
 import axios from 'axios'
-import { 
-  titleData, 
-  sportsData, 
-  bracketRuleData, 
-  bracketStatusData, 
-  proClassData, 
+import {
+  titleData,
+  sportsData,
+  bracketRuleData,
+  bracketStatusData,
+  proClassData,
   bracketCriteriaData,
   disciplineData,
-  getAgeClasses 
+  getAgeClasses,
 } from './_components/bracketUtils'
 
 export default function TournamentBrackets() {
@@ -136,9 +136,12 @@ export default function TournamentBrackets() {
         setShowNewBracketModal(false)
       }
     } catch (err) {
-      enqueueSnackbar(err.response?.data?.message || 'Failed to create bracket', {
-        variant: 'error',
-      })
+      enqueueSnackbar(
+        err.response?.data?.message || 'Failed to create bracket',
+        {
+          variant: 'error',
+        }
+      )
       // Re-throw the error so the modal can catch it and not show success
       throw err
     }
@@ -494,10 +497,9 @@ export default function TournamentBrackets() {
                 setFilters({ ...filters, ageClass: e.target.value })
               }
               className='bg-[#0B1739] border border-gray-600 rounded px-3 py-2 text-white'
-              disabled={!filters.sport}
             >
               <option value=''>All Age Classes</option>
-              {filters.sport && getAgeClasses(filters.sport).map((option) => (
+              {getAgeClasses(filters.sport).map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

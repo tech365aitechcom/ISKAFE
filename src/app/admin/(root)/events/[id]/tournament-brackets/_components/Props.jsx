@@ -1107,7 +1107,7 @@ export default function Props({
         {/* Action Buttons */}
         <div className='flex space-x-4 my-8 justify-center'>
           {(expandedBracket === 'Open' ||
-            expandedBracket.status === 'Started') && (
+            expandedBracket.status !== 'Started') && (
             <ActionButton
               icon={<Play size={14} />}
               label='Start Bracket'

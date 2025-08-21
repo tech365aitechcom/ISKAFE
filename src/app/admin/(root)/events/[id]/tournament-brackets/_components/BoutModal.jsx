@@ -167,13 +167,47 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
     value,
     subField = null
   ) => {
+    // Validate numeric input for weight and height fields
+    let processedValue = value
+    
+    if (field === 'weight' || (field === 'height' && subField)) {
+      // Only allow positive numbers and decimal points
+      processedValue = value.replace(/[^0-9.]/g, '')
+      
+      // Prevent multiple decimal points
+      const decimalCount = (processedValue.match(/\./g) || []).length
+      if (decimalCount > 1) {
+        const firstDecimalIndex = processedValue.indexOf('.')
+        processedValue = processedValue.substring(0, firstDecimalIndex + 1) + 
+                        processedValue.substring(firstDecimalIndex + 1).replace(/\./g, '')
+      }
+      
+      // For height in feet/inches, ensure reasonable limits
+      if (field === 'height') {
+        const numValue = parseFloat(processedValue)
+        if (subField === 'feet' && numValue > 8) {
+          processedValue = '8' // Max 8 feet
+        } else if (subField === 'inches' && numValue >= 12) {
+          processedValue = '11' // Max 11 inches
+        }
+      }
+      
+      // For weight, ensure reasonable limits (0-1000 lbs)
+      if (field === 'weight') {
+        const numValue = parseFloat(processedValue)
+        if (numValue > 1000) {
+          processedValue = '1000'
+        }
+      }
+    }
+    
     setFighterDetails((prev) => ({
       ...prev,
       [corner]: {
         ...prev[corner],
         [field]: subField
-          ? { ...prev[corner][field], [subField]: value }
-          : value,
+          ? { ...prev[corner][field], [subField]: processedValue }
+          : processedValue,
       },
     }))
   }
@@ -218,6 +252,70 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault()
+    
+    // Validate required fighter details
+    const errors = []
+    
+    if (!redFighter || !blueFighter) {
+      errors.push('Both Red Corner and Blue Corner fighters must be selected')
+    }
+    
+    // Validate weight fields (required)
+    if (!fighterDetails.redCornerDetails.weight || fighterDetails.redCornerDetails.weight.trim() === '') {
+      errors.push('Red Corner fighter weight is required')
+    }
+    
+    if (!fighterDetails.blueCornerDetails.weight || fighterDetails.blueCornerDetails.weight.trim() === '') {
+      errors.push('Blue Corner fighter weight is required')
+    }
+    
+    // Validate height fields (required)
+    if (!fighterDetails.redCornerDetails.height.feet || fighterDetails.redCornerDetails.height.feet.trim() === '') {
+      errors.push('Red Corner fighter height (feet) is required')
+    }
+    
+    if (!fighterDetails.redCornerDetails.height.inches || fighterDetails.redCornerDetails.height.inches.trim() === '') {
+      errors.push('Red Corner fighter height (inches) is required')
+    }
+    
+    if (!fighterDetails.blueCornerDetails.height.feet || fighterDetails.blueCornerDetails.height.feet.trim() === '') {
+      errors.push('Blue Corner fighter height (feet) is required')
+    }
+    
+    if (!fighterDetails.blueCornerDetails.height.inches || fighterDetails.blueCornerDetails.height.inches.trim() === '') {
+      errors.push('Blue Corner fighter height (inches) is required')
+    }
+    
+    // Validate numeric values
+    if (fighterDetails.redCornerDetails.weight && isNaN(parseFloat(fighterDetails.redCornerDetails.weight))) {
+      errors.push('Red Corner fighter weight must be a valid number')
+    }
+    
+    if (fighterDetails.blueCornerDetails.weight && isNaN(parseFloat(fighterDetails.blueCornerDetails.weight))) {
+      errors.push('Blue Corner fighter weight must be a valid number')
+    }
+    
+    if (fighterDetails.redCornerDetails.height.feet && isNaN(parseInt(fighterDetails.redCornerDetails.height.feet))) {
+      errors.push('Red Corner fighter height (feet) must be a valid number')
+    }
+    
+    if (fighterDetails.redCornerDetails.height.inches && isNaN(parseInt(fighterDetails.redCornerDetails.height.inches))) {
+      errors.push('Red Corner fighter height (inches) must be a valid number')
+    }
+    
+    if (fighterDetails.blueCornerDetails.height.feet && isNaN(parseInt(fighterDetails.blueCornerDetails.height.feet))) {
+      errors.push('Blue Corner fighter height (feet) must be a valid number')
+    }
+    
+    if (fighterDetails.blueCornerDetails.height.inches && isNaN(parseInt(fighterDetails.blueCornerDetails.height.inches))) {
+      errors.push('Blue Corner fighter height (inches) must be a valid number')
+    }
+    
+    if (errors.length > 0) {
+      alert('Please fix the following errors:\n• ' + errors.join('\n• '))
+      return
+    }
+    
     setLoading(true)
 
     // Get weight class details
@@ -608,10 +706,10 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                 <div className='grid grid-cols-2 gap-4 pt-4 border-t border-red-500/30'>
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Weight
+                      Weight <span className='text-red-500'>*</span>
                     </label>
                     <input
-                      type='number'
+                      type='text'
                       value={fighterDetails.redCornerDetails.weight}
                       onChange={(e) =>
                         handleFighterDetailsChange(
@@ -621,16 +719,17 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                         )
                       }
                       className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                      placeholder='0'
+                      placeholder='Enter weight (lbs)'
+                      required
                     />
                   </div>
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Height
+                      Height <span className='text-red-500'>*</span>
                     </label>
                     <div className='flex gap-2'>
                       <input
-                        type='number'
+                        type='text'
                         value={fighterDetails.redCornerDetails.height.feet}
                         onChange={(e) =>
                           handleFighterDetailsChange(
@@ -641,10 +740,11 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                           )
                         }
                         className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                        placeholder='ft'
+                        placeholder='Feet'
+                        required
                       />
                       <input
-                        type='number'
+                        type='text'
                         value={fighterDetails.redCornerDetails.height.inches}
                         onChange={(e) =>
                           handleFighterDetailsChange(
@@ -655,7 +755,8 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                           )
                         }
                         className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                        placeholder='in'
+                        placeholder='Inches'
+                        required
                       />
                     </div>
                   </div>
@@ -749,10 +850,10 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                 <div className='grid grid-cols-2 gap-4 pt-4 border-t border-blue-500/30'>
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Weight
+                      Weight <span className='text-red-500'>*</span>
                     </label>
                     <input
-                      type='number'
+                      type='text'
                       value={fighterDetails.blueCornerDetails.weight}
                       onChange={(e) =>
                         handleFighterDetailsChange(
@@ -762,16 +863,17 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                         )
                       }
                       className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                      placeholder='0'
+                      placeholder='Enter weight (lbs)'
+                      required
                     />
                   </div>
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Height
+                      Height <span className='text-red-500'>*</span>
                     </label>
                     <div className='flex gap-2'>
                       <input
-                        type='number'
+                        type='text'
                         value={fighterDetails.blueCornerDetails.height.feet}
                         onChange={(e) =>
                           handleFighterDetailsChange(
@@ -782,10 +884,11 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                           )
                         }
                         className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                        placeholder='ft'
+                        placeholder='Feet'
+                        required
                       />
                       <input
-                        type='number'
+                        type='text'
                         value={fighterDetails.blueCornerDetails.height.inches}
                         onChange={(e) =>
                           handleFighterDetailsChange(
@@ -796,7 +899,8 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                           )
                         }
                         className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                        placeholder='in'
+                        placeholder='Inches'
+                        required
                       />
                     </div>
                   </div>

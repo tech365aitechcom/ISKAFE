@@ -1489,13 +1489,14 @@ const FighterRegistrationPage = ({ params }) => {
           <button
             type='button'
             onClick={() =>
-              setFormData((prev) => ({ ...prev, paymentMethod: 'card' }))
+              !processing && setFormData((prev) => ({ ...prev, paymentMethod: 'card' }))
             }
+            disabled={processing}
             className={`p-4 rounded-lg border-2 transition-colors ${
               formData.paymentMethod === 'card'
                 ? 'border-purple-500 bg-purple-500/20'
                 : 'border-gray-600 hover:border-gray-500'
-            }`}
+            } ${processing ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <CreditCard className='mx-auto mb-2' size={24} />
             <div className='text-sm font-medium'>Credit/Debit Card</div>
@@ -1504,13 +1505,14 @@ const FighterRegistrationPage = ({ params }) => {
           <button
             type='button'
             onClick={() =>
-              setFormData((prev) => ({ ...prev, paymentMethod: 'cash' }))
+              !processing && setFormData((prev) => ({ ...prev, paymentMethod: 'cash' }))
             }
+            disabled={processing}
             className={`p-4 rounded-lg border-2 transition-colors ${
               formData.paymentMethod === 'cash'
                 ? 'border-purple-500 bg-purple-500/20'
                 : 'border-gray-600 hover:border-gray-500'
-            }`}
+            } ${processing ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <DollarSign className='mx-auto mb-2' size={24} />
             <div className='text-sm font-medium'>Cash Code</div>
@@ -1544,7 +1546,7 @@ const FighterRegistrationPage = ({ params }) => {
           )}
 
           {squareConfigValid && squareLoaded && (
-            <div className='bg-[#0A1330] rounded-lg p-6'>
+            <div className={`bg-[#0A1330] rounded-lg p-6 ${processing ? 'opacity-50 pointer-events-none' : ''}`}>
               <div
                 id='fighter-square-card-container'
                 ref={cardRef}
@@ -1553,15 +1555,24 @@ const FighterRegistrationPage = ({ params }) => {
               {errors.square && (
                 <p className='text-red-500 text-sm mt-2'>{errors.square}</p>
               )}
-              <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
-                <p className='text-blue-400 text-sm font-medium mb-1'>
-                  Test Card Information:
-                </p>
-                <p className='text-blue-300 text-xs'>
-                  For testing: Use card number 4111 1111 1111 1111, any future
-                  expiry date, and CVV 111
-                </p>
-              </div>
+              {processing && (
+                <div className='mt-4 p-3 bg-green-900/20 border border-green-500 rounded-lg'>
+                  <p className='text-green-400 text-sm font-medium'>
+                    ✓ Processing payment...
+                  </p>
+                </div>
+              )}
+              {!processing && (
+                <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
+                  <p className='text-blue-400 text-sm font-medium mb-1'>
+                    Test Card Information:
+                  </p>
+                  <p className='text-blue-300 text-xs'>
+                    For testing: Use card number 4111 1111 1111 1111, any future
+                    expiry date, and CVV 111
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1577,15 +1588,20 @@ const FighterRegistrationPage = ({ params }) => {
             name='cashCode'
             value={formData.cashCode}
             onChange={(e) => {
-              const newValue = e.target.value.toUpperCase()
-              setFormData((prev) => ({ ...prev, cashCode: newValue }))
-              if (errors.cashCode) {
-                setErrors((prev) => ({ ...prev, cashCode: '' }))
+              if (!processing) {
+                const newValue = e.target.value.toUpperCase()
+                setFormData((prev) => ({ ...prev, cashCode: newValue }))
+                if (errors.cashCode) {
+                  setErrors((prev) => ({ ...prev, cashCode: '' }))
+                }
               }
             }}
+            disabled={processing}
             className={`w-full bg-[#0A1330] border ${
               errors.cashCode ? 'border-red-500' : 'border-gray-600'
-            } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500`}
+            } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 ${
+              processing ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             placeholder='Enter your cash code'
           />
           {errors.cashCode && (
@@ -1740,7 +1756,10 @@ const FighterRegistrationPage = ({ params }) => {
                   <button
                     type='button'
                     onClick={handleBack}
-                    className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
+                    disabled={processing}
+                    className={`text-yellow-400 underline hover:text-yellow-300 transition-colors ${
+                      processing ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     Previous
                   </button>
@@ -1752,15 +1771,21 @@ const FighterRegistrationPage = ({ params }) => {
                     <Link href={`/events/${id}`}>
                       <button
                         type='button'
-                        className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                        disabled={processing}
+                        className={`border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors ${
+                          processing ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       >
                         Cancel
                       </button>
                     </Link>
                     <button
                       type='button'
-                      className='bg-yellow-500 text-black px-6 py-2 rounded font-semibold hover:bg-yellow-400 transition-colors'
+                      className={`bg-yellow-500 text-black px-6 py-2 rounded font-semibold hover:bg-yellow-400 transition-colors ${
+                        processing ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                       onClick={handleNext}
+                      disabled={processing}
                     >
                       Next
                     </button>
@@ -1770,7 +1795,10 @@ const FighterRegistrationPage = ({ params }) => {
                     <Link href={`/events/${id}`}>
                       <button
                         type='button'
-                        className='border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors'
+                        disabled={processing}
+                        className={`border border-gray-400 text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-700 hover:border-gray-500 transition-colors ${
+                          processing ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       >
                         Cancel
                       </button>

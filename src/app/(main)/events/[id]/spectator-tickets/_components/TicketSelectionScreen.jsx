@@ -6,6 +6,7 @@ import { Button } from '../../../../../../../components/ui/button'
 import { Plus, Minus, Loader2 } from 'lucide-react'
 import axios from '../../../../../../shared/axios'
 import { API_BASE_URL } from '../../../../../../constants'
+import { enqueueSnackbar } from 'notistack'
 
 const TicketSelectionScreen = ({
   eventDetails,
@@ -19,6 +20,7 @@ const TicketSelectionScreen = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [purchaseLimits, setPurchaseLimits] = useState(null)
 
   const [selectedTickets, setSelectedTickets] = useState(
     purchaseData.tickets || []
@@ -39,7 +41,7 @@ const TicketSelectionScreen = ({
         )
 
         if (response.data.success && response.data.data.tiers) {
-          const tiers = response.data.data.tiers.map((tier, index) => ({
+          const allTiers = response.data.data.tiers.map((tier, index) => ({
             id: `tier-${index}`,
             tierName: tier.name,
             price: tier.price,
@@ -54,17 +56,22 @@ const TicketSelectionScreen = ({
             order: tier.order,
           }))
 
-          // Sort by order
-          tiers.sort((a, b) => a.order - b.order)
+          // Filter tiers for online purchases - only show 'Online' and 'Both' availability modes
+          const onlineAvailableTiers = allTiers.filter(tier => 
+            tier.availabilityMode === 'Online' || tier.availabilityMode === 'Both'
+          )
 
-          setTicketTypes(tiers)
+          // Sort by order
+          onlineAvailableTiers.sort((a, b) => a.order - b.order)
+
+          setTicketTypes(onlineAvailableTiers)
 
           // Initialize selected tickets if not already set
           if (!purchaseData.tickets || purchaseData.tickets.length === 0) {
-            setSelectedTickets(tiers.map((type) => ({ ...type, quantity: 0 })))
+            setSelectedTickets(onlineAvailableTiers.map((type) => ({ ...type, quantity: 0 })))
           } else {
-            // Merge existing purchase data with new tier data
-            const mergedTickets = tiers.map((tier) => {
+            // Merge existing purchase data with new tier data (only for online available tiers)
+            const mergedTickets = onlineAvailableTiers.map((tier) => {
               const existingTicket = purchaseData.tickets.find(
                 (t) => t.id === tier.id
               )
@@ -74,6 +81,14 @@ const TicketSelectionScreen = ({
               }
             })
             setSelectedTickets(mergedTickets)
+          }
+
+          // Check if there are any online available tickets
+          if (onlineAvailableTiers.length === 0) {
+            setError('No tickets are currently available for online purchase. All tickets are set to "On-Site" only.')
+          } else {
+            // Fetch purchase limits if user data is available
+            await fetchPurchaseLimits()
           }
         } else {
           setError('No spectator tickets found for this event')
@@ -99,8 +114,49 @@ const TicketSelectionScreen = ({
       }
     }
 
+    const fetchPurchaseLimits = async () => {
+      // Only fetch limits if we have buyer information
+      if (!purchaseData.isGuest && !purchaseData.userId) return
+      if (
+        purchaseData.isGuest &&
+        !purchaseData.guestDetails?.email &&
+        !purchaseData.email
+      )
+        return
+
+      try {
+        const checkLimitPayload = {
+          eventId: params.id,
+          buyerType: purchaseData.isGuest ? 'guest' : 'user',
+          userId: purchaseData.userId || null,
+          guestEmail: purchaseData.isGuest
+            ? purchaseData.guestDetails?.email || purchaseData.email
+            : null,
+        }
+
+        const response = await axios.post(
+          `${API_BASE_URL}/spectator-ticket/check-limit`,
+          checkLimitPayload
+        )
+
+        if (response.data.success) {
+          setPurchaseLimits(response.data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching purchase limits:', error)
+        // Don't show error for this, it's just for user information
+      }
+    }
+
     fetchSpectatorTickets()
-  }, [params.id, purchaseData.tickets, retryCount])
+  }, [
+    params.id,
+    purchaseData.tickets,
+    retryCount,
+    purchaseData.userId,
+    purchaseData.email,
+    purchaseData.guestDetails?.email,
+  ])
 
   const updateQuantity = (ticketId, newQuantity) => {
     console.log('updateQuantity called:', {
@@ -120,16 +176,22 @@ const TicketSelectionScreen = ({
 
     // Check if the new quantity exceeds available tickets
     if (newQuantity > ticketType.remaining) {
-      alert(
-        `Only ${ticketType.remaining} tickets remaining for ${ticketType.tierName}`
+      enqueueSnackbar(
+        `Only ${ticketType.remaining} tickets remaining for ${ticketType.tierName}`,
+        {
+          variant: 'warning',
+        }
       )
       return
     }
 
     // Check if the new quantity exceeds per-user limit
     if (ticketType.limitPerUser && newQuantity > ticketType.limitPerUser) {
-      alert(
-        `Maximum ${ticketType.limitPerUser} tickets allowed per user for ${ticketType.tierName}`
+      enqueueSnackbar(
+        `Maximum ${ticketType.limitPerUser} tickets allowed per user for ${ticketType.tierName}`,
+        {
+          variant: 'warning',
+        }
       )
       return
     }
@@ -154,19 +216,111 @@ const TicketSelectionScreen = ({
     )
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const ticketsWithQuantity = selectedTickets.filter(
       (ticket) => ticket.quantity > 0
     )
 
     if (ticketsWithQuantity.length === 0) {
-      alert('Please select at least one ticket')
+      enqueueSnackbar('Please select at least one ticket', {
+        variant: 'warning',
+      })
       return
     }
 
-    onNext('fighters', {
-      tickets: ticketsWithQuantity,
-    })
+    // Check ticket limits before proceeding
+    try {
+      setLoading(true)
+
+      const checkLimitPayload = {
+        eventId: params.id,
+        buyerType: purchaseData.isGuest ? 'guest' : 'user',
+        userId: purchaseData.userId || null,
+        guestEmail: purchaseData.isGuest
+          ? purchaseData.guestDetails?.email || purchaseData.email
+          : null,
+      }
+
+      const response = await axios.post(
+        `${API_BASE_URL}/spectator-ticket/check-limit`,
+        checkLimitPayload
+      )
+
+      if (response.data.success) {
+        const { hasReachedMaxLimit, limitExceededTiers, tierLimits } =
+          response.data.data
+
+        // Check if user is trying to purchase tickets for tiers they've already maxed out
+        const attemptingToExceedLimit = ticketsWithQuantity.some((ticket) => {
+          const tierLimit = tierLimits[ticket.tierName]
+          return tierLimit && !tierLimit.canPurchaseMore
+        })
+
+        if (attemptingToExceedLimit) {
+          const exceededTierNames = ticketsWithQuantity
+            .filter((ticket) => {
+              const tierLimit = tierLimits[ticket.tierName]
+              return tierLimit && !tierLimit.canPurchaseMore
+            })
+            .map((ticket) => ticket.tierName)
+            .join(', ')
+
+          enqueueSnackbar(
+            `You have already purchased the maximum number of tickets allowed for: ${exceededTierNames}!`,
+            {
+              variant: 'warning',
+            }
+          )
+          setLoading(false)
+          return
+        }
+
+        // Check if the current selection would exceed any limits
+        const wouldExceedLimit = ticketsWithQuantity.some((ticket) => {
+          const tierLimit = tierLimits[ticket.tierName]
+          if (!tierLimit || !tierLimit.limitPerUser) return false
+
+          const totalAfterPurchase = tierLimit.purchased + ticket.quantity
+          return totalAfterPurchase > tierLimit.limitPerUser
+        })
+
+        if (wouldExceedLimit) {
+          const problematicTiers = ticketsWithQuantity
+            .filter((ticket) => {
+              const tierLimit = tierLimits[ticket.tierName]
+              if (!tierLimit || !tierLimit.limitPerUser) return false
+
+              const totalAfterPurchase = tierLimit.purchased + ticket.quantity
+              return totalAfterPurchase > tierLimit.limitPerUser
+            })
+            .map((ticket) => {
+              const tierLimit = tierLimits[ticket.tierName]
+              const remaining = tierLimit.limitPerUser - tierLimit.purchased
+              return `${ticket.tierName} (you can only purchase ${remaining} more)`
+            })
+            .join(', ')
+
+          enqueueSnackbar(
+            `Your selection would exceed the maximum ticket limits for: ${problematicTiers}`,
+            {
+              variant: 'warning',
+            }
+          )
+          setLoading(false)
+          return
+        }
+
+        // If all checks pass, proceed to next step
+        onNext('fighters', {
+          tickets: ticketsWithQuantity,
+        })
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Error checking ticket limits:', error)
+      enqueueSnackbar('Unable to verify ticket limits. Please try again.')
+      setLoading(false)
+    }
   }
 
   if (loading) {
@@ -285,6 +439,22 @@ const TicketSelectionScreen = ({
                       {ticketType.limitPerUser && (
                         <p>Max {ticketType.limitPerUser} per person</p>
                       )}
+                      {purchaseLimits &&
+                        purchaseLimits.tierLimits[ticketType.tierName] && (
+                          <p className='text-blue-400'>
+                            You've purchased:{' '}
+                            {
+                              purchaseLimits.tierLimits[ticketType.tierName]
+                                .purchased
+                            }
+                            {purchaseLimits.tierLimits[ticketType.tierName]
+                              .remaining !== null &&
+                              ` (${
+                                purchaseLimits.tierLimits[ticketType.tierName]
+                                  .remaining
+                              } remaining)`}
+                          </p>
+                        )}
                     </div>
                   </div>
                   {ticketType.refundPolicyNotes && (
@@ -342,10 +512,17 @@ const TicketSelectionScreen = ({
       <div className='flex flex-col sm:flex-row gap-4'>
         <Button
           onClick={handleNext}
-          disabled={getTotalQuantity() === 0}
+          disabled={getTotalQuantity() === 0 || loading}
           className='flex-1 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded font-medium disabled:opacity-50 disabled:cursor-not-allowed'
         >
-          Next
+          {loading ? (
+            <>
+              <Loader2 className='h-5 w-5 animate-spin mr-2' />
+              Checking Limits...
+            </>
+          ) : (
+            'Next'
+          )}
         </Button>
       </div>
 

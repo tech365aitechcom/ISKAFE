@@ -60,6 +60,9 @@ const TrainerRegistrationPage = ({ params }) => {
   })
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [registeredFighters, setRegisteredFighters] = useState([])
+  const [fighterSuggestions, setFighterSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // Square payment integration
   const cardRef = useRef(null)
@@ -89,7 +92,7 @@ const TrainerRegistrationPage = ({ params }) => {
     }
   }, [user])
 
-  // Fetch tournament settings
+  // Fetch tournament settings and registered fighters
   useEffect(() => {
     const loadTournamentSettings = async () => {
       try {
@@ -103,10 +106,42 @@ const TrainerRegistrationPage = ({ params }) => {
       }
     }
 
+    const loadRegisteredFighters = async () => {
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/registrations/event/${id}?registrationType=fighter`,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        )
+        if (response.data.success && response.data.data.items) {
+          const fighters = response.data.data.items
+            .map((registration) => ({
+              id: registration._id,
+              name: `${registration.firstName || ''} ${
+                registration.lastName || ''
+              }`.trim(),
+              firstName: registration.firstName,
+              lastName: registration.lastName,
+            }))
+            .filter((fighter) => fighter.name.length > 0)
+          setRegisteredFighters(fighters)
+        }
+      } catch (error) {
+        console.error('Error loading registered fighters:', error)
+        setRegisteredFighters([])
+      }
+    }
+
     if (id) {
       loadTournamentSettings()
+      if (user?.token) {
+        loadRegisteredFighters()
+      }
     }
-  }, [id])
+  }, [id, user?.token])
 
   // Square payment initialization
   useEffect(() => {
@@ -215,6 +250,25 @@ const TrainerRegistrationPage = ({ params }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }))
+
+    // Handle fighter suggestions for fightersRepresented field
+    if (name === 'fightersRepresented') {
+      const lines = value.split('\n')
+      const currentLine = lines[lines.length - 1]
+
+      if (currentLine.length >= 2) {
+        const suggestions = registeredFighters
+          .filter((fighter) =>
+            fighter.name.toLowerCase().includes(currentLine.toLowerCase())
+          )
+          .slice(0, 5)
+        setFighterSuggestions(suggestions)
+        setShowSuggestions(suggestions.length > 0)
+      } else {
+        setShowSuggestions(false)
+      }
+    }
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => {
@@ -324,19 +378,47 @@ const TrainerRegistrationPage = ({ params }) => {
         newErrors.fightersRepresented = 'Please list at least one fighter'
         isValid = false
       } else {
-        // Validate that fighters are listed properly (one per line, no special chars except spaces, hyphens, apostrophes)
+        // Validate that fighters are listed properly and exist in the registered fighters list
         const fighters = formData.fightersRepresented
           .split('\n')
           .filter((f) => f.trim())
-        const invalidFighters = fighters.filter((fighter) => {
-          const name = fighter.trim()
-          return !name || !/^[A-Za-z\s'-]+$/.test(name) || name.length < 2
-        })
 
-        if (invalidFighters.length > 0) {
-          newErrors.fightersRepresented =
-            'Each fighter name must contain only letters, spaces, hyphens, and apostrophes (minimum 2 characters)'
+        if (fighters.length === 0) {
+          newErrors.fightersRepresented = 'Please list at least one fighter'
           isValid = false
+        } else {
+          const invalidFormatFighters = []
+          const nonExistentFighters = []
+
+          fighters.forEach((fighter) => {
+            const name = fighter.trim()
+
+            // First check if fighter exists in registered fighters (regardless of format)
+            const exists = registeredFighters.some(
+              (regFighter) =>
+                regFighter.name.toLowerCase() === name.toLowerCase()
+            )
+
+            if (!exists) {
+              // If doesn't exist, check if it's a format issue or just not registered
+              if (!name || !/^[A-Za-z\s'-]+$/.test(name) || name.length < 2) {
+                invalidFormatFighters.push(name)
+              } else {
+                nonExistentFighters.push(name)
+              }
+            }
+          })
+
+          if (nonExistentFighters.length > 0) {
+            newErrors.fightersRepresented = `Fighter is invalid type: ${nonExistentFighters.join(
+              ', '
+            )}. Only registered fighters can be represented.`
+            isValid = false
+          } else if (invalidFormatFighters.length > 0) {
+            newErrors.fightersRepresented =
+              'Each fighter name must contain only letters, spaces, hyphens, and apostrophes (minimum 2 characters)'
+            isValid = false
+          }
         }
       }
     }
@@ -758,27 +840,55 @@ const TrainerRegistrationPage = ({ params }) => {
 
   const renderFighterAssociationStep = () => (
     <div className='space-y-4'>
-      <div className='bg-[#00000061] p-4 rounded'>
+      <div className='bg-[#00000061] p-4 rounded relative'>
         <label className='text-white font-medium'>
-          Fighters You Represent *
+          Fighters You Represent <span className='text-red-500'>*</span>
         </label>
-        <textarea
-          name='fightersRepresented'
-          value={formData.fightersRepresented}
-          onChange={handleChange}
-          placeholder='Enter fighter names (one per line)'
-          className='w-full outline-none bg-transparent text-white'
-          required
-          rows={5}
-        />
+        <div className='relative'>
+          <textarea
+            name='fightersRepresented'
+            value={formData.fightersRepresented}
+            onChange={handleChange}
+            onFocus={() => setShowSuggestions(false)}
+            placeholder='Start typing fighter names (one per line)...'
+            className='w-full outline-none bg-transparent text-white'
+            required
+            rows={5}
+          />
+          {showSuggestions && fighterSuggestions.length > 0 && (
+            <div className='absolute top-full left-0 right-0 bg-[#1a1a2e] border border-gray-600 rounded mt-1 max-h-40 overflow-y-auto z-10'>
+              {fighterSuggestions.map((fighter) => (
+                <div
+                  key={fighter.id}
+                  className='px-3 py-2 hover:bg-[#2d2d4a] cursor-pointer text-white text-sm'
+                  onClick={() => {
+                    const lines = formData.fightersRepresented.split('\n')
+                    lines[lines.length - 1] = fighter.name
+                    const newValue = lines.join('\n')
+                    setFormData((prev) => ({
+                      ...prev,
+                      fightersRepresented: newValue,
+                    }))
+                    setShowSuggestions(false)
+                  }}
+                >
+                  {fighter.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {errors.fightersRepresented && (
           <p className='text-red-500 text-xs mt-1'>
             {errors.fightersRepresented}
           </p>
         )}
-        <p className='text-gray-400 text-sm mt-1'>
-          List each fighter you represent on a separate line
-        </p>
+        <div className='mt-2'>
+          <p className='text-gray-400 text-sm'>
+            List each fighter you represent on a separate line. Only fighters
+            registered for this event can be represented.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -874,13 +984,15 @@ const TrainerRegistrationPage = ({ params }) => {
           <button
             type='button'
             onClick={() =>
+              !isSubmitting &&
               setFormData((prev) => ({ ...prev, paymentMethod: 'card' }))
             }
+            disabled={isSubmitting}
             className={`p-4 rounded-lg border-2 transition-colors ${
               formData.paymentMethod === 'card'
                 ? 'border-purple-500 bg-purple-500/20'
                 : 'border-gray-600 hover:border-gray-500'
-            }`}
+            } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <CreditCard className='mx-auto mb-2' size={24} />
             <div className='text-sm font-medium'>Credit/Debit Card</div>
@@ -889,13 +1001,15 @@ const TrainerRegistrationPage = ({ params }) => {
           <button
             type='button'
             onClick={() =>
+              !isSubmitting &&
               setFormData((prev) => ({ ...prev, paymentMethod: 'cash' }))
             }
+            disabled={isSubmitting}
             className={`p-4 rounded-lg border-2 transition-colors ${
               formData.paymentMethod === 'cash'
                 ? 'border-purple-500 bg-purple-500/20'
                 : 'border-gray-600 hover:border-gray-500'
-            }`}
+            } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <DollarSign className='mx-auto mb-2' size={24} />
             <div className='text-sm font-medium'>Cash Code</div>
@@ -926,7 +1040,11 @@ const TrainerRegistrationPage = ({ params }) => {
           )}
 
           {squareConfigValid && squareLoaded && (
-            <div className='bg-[#0A1330] rounded-lg p-6'>
+            <div
+              className={`bg-[#0A1330] rounded-lg p-6 ${
+                isSubmitting ? 'opacity-50 pointer-events-none' : ''
+              }`}
+            >
               <div
                 id='trainer-square-card-container'
                 ref={cardRef}
@@ -935,15 +1053,24 @@ const TrainerRegistrationPage = ({ params }) => {
               {errors.square && (
                 <p className='text-red-500 text-sm mt-2'>{errors.square}</p>
               )}
-              <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
-                <p className='text-blue-400 text-sm font-medium mb-1'>
-                  Test Card Information:
-                </p>
-                <p className='text-blue-300 text-xs'>
-                  For testing: Use card number 4111 1111 1111 1111, any future
-                  expiry date, and CVV 111
-                </p>
-              </div>
+              {isSubmitting && (
+                <div className='mt-4 p-3 bg-green-900/20 border border-green-500 rounded-lg'>
+                  <p className='text-green-400 text-sm font-medium'>
+                    ✓ Processing payment...
+                  </p>
+                </div>
+              )}
+              {!isSubmitting && (
+                <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
+                  <p className='text-blue-400 text-sm font-medium mb-1'>
+                    Test Card Information:
+                  </p>
+                  <p className='text-blue-300 text-xs'>
+                    For testing: Use card number 4111 1111 1111 1111, any future
+                    expiry date, and CVV 111
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -959,15 +1086,20 @@ const TrainerRegistrationPage = ({ params }) => {
             name='cashCode'
             value={formData.cashCode}
             onChange={(e) => {
-              const newValue = e.target.value.toUpperCase()
-              setFormData((prev) => ({ ...prev, cashCode: newValue }))
-              if (errors.cashCode) {
-                setErrors((prev) => ({ ...prev, cashCode: '' }))
+              if (!isSubmitting) {
+                const newValue = e.target.value.toUpperCase()
+                setFormData((prev) => ({ ...prev, cashCode: newValue }))
+                if (errors.cashCode) {
+                  setErrors((prev) => ({ ...prev, cashCode: '' }))
+                }
               }
             }}
+            disabled={isSubmitting}
             className={`w-full bg-[#0A1330] border ${
               errors.cashCode ? 'border-red-500' : 'border-gray-600'
-            } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500`}
+            } rounded px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 ${
+              isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             placeholder='Enter your cash code'
           />
           {errors.cashCode && (
@@ -1099,7 +1231,10 @@ const TrainerRegistrationPage = ({ params }) => {
               <Link href={`/events/${id}`}>
                 <button
                   type='button'
-                  className='text-yellow-400 underline hover:text-yellow-300 transition-colors'
+                  disabled={isSubmitting}
+                  className={`text-yellow-400 underline hover:text-yellow-300 transition-colors ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   Go back to event details
                 </button>
@@ -1110,7 +1245,10 @@ const TrainerRegistrationPage = ({ params }) => {
                   <button
                     type='button'
                     onClick={prevStep}
-                    className='flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded font-semibold hover:bg-gray-700 transition-colors'
+                    disabled={isSubmitting}
+                    className={`flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded font-semibold hover:bg-gray-700 transition-colors ${
+                      isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     <ChevronLeft className='w-4 h-4' />
                     <span>Previous</span>
@@ -1121,7 +1259,10 @@ const TrainerRegistrationPage = ({ params }) => {
                   <button
                     type='button'
                     onClick={nextStep}
-                    className='flex items-center space-x-2 bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-600 transition-colors'
+                    disabled={isSubmitting}
+                    className={`flex items-center space-x-2 bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-600 transition-colors ${
+                      isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     <span>Next</span>
                     <ChevronRight className='w-4 h-4' />
