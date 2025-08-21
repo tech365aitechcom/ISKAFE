@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import CompetitorDetailModal from './CompetitorDetailModal'
 import BoutResultModal from './BoutResultModal'
+import TicketDetailsModal from './TicketDetailsModal'
 import {
   Users,
   Calendar,
@@ -601,6 +602,7 @@ function DashboardTables({ dashboardData, onRefresh }) {
   const [selectedItem, setSelectedItem] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [showBoutResultModal, setShowBoutResultModal] = useState(false)
+  const [showTicketModal, setShowTicketModal] = useState(false)
 
   const handleAddResult = (bout) => {
     setSelectedItem(bout)
@@ -642,10 +644,8 @@ function DashboardTables({ dashboardData, onRefresh }) {
   const handleViewDetails = (ticket) => {
     setSelectedItem(ticket)
     setSelectedAction('viewDetails')
-    // Navigate to spectator ticket management
-    window.location.href = `/admin/spectators-ticket-management?ticketId=${
-      ticket.id || ticket._id
-    }`
+    // Show ticket details modal
+    setShowTicketModal(true)
   }
 
   // Use API data or show loading state
@@ -681,7 +681,9 @@ function DashboardTables({ dashboardData, onRefresh }) {
   return (
     <div className='bg-slate-900 p-6 rounded-xl m-6'>
       <div className='flex justify-between items-center mb-6'>
-        <h2 className='text-xl font-semibold'>Operational Data</h2>
+        <h2 className='text-xl font-semibold text-slate-400'>
+          Operational Data
+        </h2>
         <div className='flex gap-4'>
           <button
             onClick={() => {
@@ -711,22 +713,199 @@ function DashboardTables({ dashboardData, onRefresh }) {
             <span>Export CSV</span>
           </button>
           <button
-            onClick={() =>
-              alert(
-                'PDF export functionality will be implemented with a PDF library'
-              )
-            }
+            onClick={() => {
+              // Enhanced PDF export for table data
+              const printContent = `
+                <html>
+                <head>
+                  <title>IKF Dashboard - Operational Data Report</title>
+                  <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 20px; }
+                    .section { margin-bottom: 30px; }
+                    .section h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
+                    th { background-color: #f5f5f5; font-weight: bold; }
+                    .summary { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                    .footer { text-align: center; margin-top: 40px; font-size: 10px; color: #666; }
+                  </style>
+                </head>
+                <body>
+                  <div class="header">
+                    <h1>IKF Admin Dashboard - Operational Data Report</h1>
+                    <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+                  </div>
+                  
+                  <div class="summary">
+                    <h3>Summary Statistics</h3>
+                    <p><strong>Upcoming Events:</strong> ${
+                      upcomingEvents.length
+                    }</p>
+                    <p><strong>Recent Fighter Registrations:</strong> ${
+                      fighterRegistrations.length
+                    }</p>
+                    <p><strong>Bouts Missing Results:</strong> ${
+                      missingResults.length
+                    }</p>
+                    <p><strong>Fighter Alerts:</strong> ${
+                      fighterAlerts.length
+                    }</p>
+                    <p><strong>Spectator Ticket Logs:</strong> ${
+                      ticketLogs.length
+                    }</p>
+                  </div>
+
+                  <div class="section">
+                    <h2>Upcoming Events</h2>
+                    <table>
+                      <thead>
+                        <tr><th>Event</th><th>Date</th><th>Venue</th><th>Fighters</th></tr>
+                      </thead>
+                      <tbody>
+                        ${upcomingEvents
+                          .map(
+                            (event) => `
+                          <tr>
+                            <td>${event.name}</td>
+                            <td>${formatDate(event.startDate)}</td>
+                            <td>${
+                              event.venueName ||
+                              event.venue?.name ||
+                              event.venue
+                            }</td>
+                            <td>${event.registeredFighters}</td>
+                          </tr>
+                        `
+                          )
+                          .join('')}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="section">
+                    <h2>Spectator Ticket Logs</h2>
+                    <table>
+                      <thead>
+                        <tr><th>Type</th><th>Quantity</th><th>Revenue</th><th>Event</th><th>Event Date</th></tr>
+                      </thead>
+                      <tbody>
+                        ${ticketLogs
+                          .map(
+                            (ticket) => `
+                          <tr>
+                            <td>${ticket.tier}</td>
+                            <td>${ticket.quantity}</td>
+                            <td>$${ticket.totalAmount}</td>
+                            <td>${ticket.event?.name}</td>
+                            <td>${formatDateTime(ticket.event?.startDate)}</td>
+                          </tr>
+                        `
+                          )
+                          .join('')}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="footer">
+                    <p>This report was automatically generated by the IKF Admin Dashboard System.</p>
+                  </div>
+                </body>
+                </html>
+              `
+
+              const printWindow = window.open('', '_blank')
+              printWindow.document.write(printContent)
+              printWindow.document.close()
+              setTimeout(() => {
+                printWindow.print()
+              }, 500)
+            }}
             className='flex items-center gap-2 text-slate-400 hover:text-white text-sm'
           >
             <Download size={16} />
             <span>Export PDF</span>
           </button>
           <button
-            onClick={() =>
-              alert(
-                'Email report functionality will be implemented with email service integration'
-              )
-            }
+            onClick={() => {
+              // Enhanced email report with detailed operational data
+              const emailSubject = `IKF Dashboard Report - ${new Date().toLocaleDateString()}`
+              const emailBody = `IKF Admin Dashboard - Operational Data Report
+Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+
+=== SUMMARY STATISTICS ===
+• Upcoming Events: ${upcomingEvents.length}
+• Recent Fighter Registrations: ${fighterRegistrations.length}
+• Bouts Missing Results: ${missingResults.length}
+• Fighter Alerts: ${fighterAlerts.length}
+• Spectator Ticket Logs: ${ticketLogs.length}
+
+=== UPCOMING EVENTS ===
+${upcomingEvents
+  .map(
+    (event, index) =>
+      `${index + 1}. ${event.name} - ${formatDate(event.startDate)} at ${
+        event.venueName || event.venue?.name || event.venue
+      } (${event.registeredFighters} fighters)`
+  )
+  .join('\n')}
+
+=== RECENT FIGHTER REGISTRATIONS ===
+${fighterRegistrations
+  .map(
+    (fighter, index) =>
+      `${index + 1}. ${fighter.firstName} ${fighter.lastName} - ${
+        fighter.weightClass || fighter.class
+      } - ${formatDate(fighter.createdAt)}`
+  )
+  .join('\n')}
+
+=== SPECTATOR TICKET LOGS ===
+${ticketLogs
+  .map(
+    (ticket, index) =>
+      `${index + 1}. ${ticket.tier} - Qty: ${ticket.quantity} - Revenue: $${
+        ticket.totalAmount
+      } - Event: ${ticket.event?.name} - ${formatDateTime(
+        ticket.event?.startDate
+      )}`
+  )
+  .join('\n')}
+
+=== BOUTS MISSING RESULTS ===
+${missingResults
+  .map(
+    (bout, index) =>
+      `${index + 1}. Bout #${bout.boutNumber} - ${bout.bracket.title}-${
+        bout.bracket.divisionTitle
+      } - ${bout.bracket.event.name} - Scheduled: ${
+        bout.startDate ? formatDate(bout.startDate) : 'N/A'
+      }`
+  )
+  .join('\n')}
+
+=== FIGHTER ALERTS ===
+${fighterAlerts
+  .map(
+    (fighter, index) =>
+      `${index + 1}. ${fighter.fighterName || fighter.name} - ${
+        fighter.alertType || fighter.issue
+      } - Status: ${fighter.alertLevel || fighter.status}`
+  )
+  .join('\n')}
+
+---
+This report was automatically generated by the IKF Admin Dashboard System.
+For detailed analysis, please access the full dashboard at your admin portal.
+
+Best regards,
+IKF Admin System`
+
+              const mailtoLink = `mailto:?subject=${encodeURIComponent(
+                emailSubject
+              )}&body=${encodeURIComponent(emailBody)}`
+              window.location.href = mailtoLink
+            }}
             className='flex items-center gap-2 text-slate-400 hover:text-white text-sm'
           >
             <Mail size={16} />
@@ -837,10 +1016,13 @@ function DashboardTables({ dashboardData, onRefresh }) {
                         : ''}
                     </td>
                     <td className='px-4 py-3'>
-                      {fighter.weightClass || fighter.class}
+                      {fighter.weightClass || fighter.class || 'N/A'}
                     </td>
                     <td className='px-4 py-3'>
-                      {fighter.gymName || fighter.gym?.name || fighter.gym}
+                      {fighter.gymName ||
+                        fighter.gym?.name ||
+                        fighter.gym ||
+                        'N/A'}
                     </td>
                     <td className='px-4 py-3'>
                       {formatDate(fighter.createdAt)}
@@ -861,18 +1043,15 @@ function DashboardTables({ dashboardData, onRefresh }) {
         </div>
 
         {/* Bouts Missing Results */}
-        <div className='bg-slate-800 p-4 rounded-lg'>
+        <div className='bg-slate-800 p-4 rounded-lg flex flex-col h-96'>
           <div className='flex items-center gap-2 mb-4 text-slate-300'>
             <Clock size={16} />
             <h3 className='font-medium'>Bouts Missing Results</h3>
           </div>
-          <div className='overflow-x-auto'>
+          <div className='overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700 custom-scrollbar'>
             <table className='w-full text-sm text-left text-slate-400'>
               <thead className='text-xs uppercase bg-slate-700 text-slate-400'>
                 <tr>
-                  <th scope='col' className='px-4 py-3'>
-                    Bout
-                  </th>
                   <th scope='col' className='px-4 py-3'>
                     Bracket
                   </th>
@@ -899,9 +1078,6 @@ function DashboardTables({ dashboardData, onRefresh }) {
                     key={index}
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
-                    <td className='px-4 py-3 font-medium'>
-                      #{bout.boutNumber}
-                    </td>
                     <td className='px-4 py-3'>
                       {bout.bracket.title + '-' + bout.bracket.divisionTitle}
                     </td>
@@ -939,12 +1115,12 @@ function DashboardTables({ dashboardData, onRefresh }) {
         </div>
 
         {/* Fighters with Alerts */}
-        <div className='bg-slate-800 p-4 rounded-lg'>
+        <div className='bg-slate-800 p-4 rounded-lg flex flex-col h-96'>
           <div className='flex items-center gap-2 mb-4 text-slate-300'>
             <ShieldAlert size={16} />
             <h3 className='font-medium'>Fighters with Alerts</h3>
           </div>
-          <div className='overflow-x-auto'>
+          <div className='overflow-x-auto overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700 custom-scrollbar'>
             <table className='w-full text-sm text-left text-slate-400'>
               <thead className='text-xs uppercase bg-slate-700 text-slate-400'>
                 <tr>
@@ -971,18 +1147,16 @@ function DashboardTables({ dashboardData, onRefresh }) {
                     <td className='px-4 py-3 font-medium text-white'>
                       {fighter.fighterName || fighter.name}
                     </td>
-                    <td className='px-4 py-3'>
-                      {fighter.alertType || fighter.issue}
-                    </td>
+                    <td className='px-4 py-3'>{fighter.issueType}</td>
                     <td className='px-4 py-3'>
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          (fighter.alertLevel || fighter.status) === 'Critical'
+                          fighter.status === 'Critical'
                             ? 'bg-red-500/20 text-red-400'
                             : 'bg-yellow-500/20 text-yellow-400'
                         }`}
                       >
-                        {fighter.alertLevel || fighter.status}
+                        {fighter.status}
                       </span>
                     </td>
                     <td className='px-4 py-3'>
@@ -1033,9 +1207,9 @@ function DashboardTables({ dashboardData, onRefresh }) {
                   <th scope='col' className='px-4 py-3'>
                     Event Date
                   </th>
-                  {/* <th scope='col' className='px-4 py-3'>
+                  <th scope='col' className='px-4 py-3'>
                     Action
-                  </th> */}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1053,14 +1227,14 @@ function DashboardTables({ dashboardData, onRefresh }) {
                     <td className='px-4 py-3'>
                       {formatDateTime(ticket.event?.startDate)}
                     </td>
-                    {/* <td className='px-4 py-3'>
+                    <td className='px-4 py-3'>
                       <button
                         onClick={() => handleViewDetails(ticket)}
                         className='text-blue-500 hover:text-blue-400 text-sm'
                       >
                         Details
                       </button>
-                    </td> */}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1099,6 +1273,20 @@ function DashboardTables({ dashboardData, onRefresh }) {
                 if (onRefresh) {
                   onRefresh()
                 }
+              }}
+            />
+          )}
+
+        {/* Ticket Details Modal */}
+        {showTicketModal &&
+          selectedItem &&
+          selectedAction === 'viewDetails' && (
+            <TicketDetailsModal
+              ticket={selectedItem}
+              onClose={() => {
+                setShowTicketModal(false)
+                setSelectedItem(null)
+                setSelectedAction(null)
               }}
             />
           )}

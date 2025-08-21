@@ -110,6 +110,7 @@ const FighterRegistrationPage = ({ params }) => {
   })
   const [errors, setErrors] = useState({})
   const [processing, setProcessing] = useState(false)
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false)
   const router = useRouter()
 
   // Square payment integration
@@ -129,6 +130,57 @@ const FighterRegistrationPage = ({ params }) => {
     formData.country && formData.state
       ? City.getCitiesOfState(formData.country, formData.state)
       : []
+
+  // Function to check if email is already registered for this event
+  const checkEmailRegistration = async (email) => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      return { isRegistered: false }
+    }
+
+    try {
+      setEmailCheckLoading(true)
+      
+      // Check both fighter and trainer registrations
+      const [fighterResponse, trainerResponse] = await Promise.all([
+        axios.get(
+          `${API_BASE_URL}/registrations/event/${id}?registrationType=fighter&email=${encodeURIComponent(email)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        ).catch(() => ({ data: { success: false, data: { items: [] } } })),
+        axios.get(
+          `${API_BASE_URL}/registrations/event/${id}?registrationType=trainer&email=${encodeURIComponent(email)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        ).catch(() => ({ data: { success: false, data: { items: [] } } }))
+      ])
+
+      const fighterRegistrations = fighterResponse.data.success && fighterResponse.data.data.items ? fighterResponse.data.data.items : []
+      const trainerRegistrations = trainerResponse.data.success && trainerResponse.data.data.items ? trainerResponse.data.data.items : []
+
+      const existingFighter = fighterRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
+      const existingTrainer = trainerRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
+
+      if (existingFighter) {
+        return { isRegistered: true, type: 'fighter', registration: existingFighter }
+      }
+      if (existingTrainer) {
+        return { isRegistered: true, type: 'trainer', registration: existingTrainer }
+      }
+
+      return { isRegistered: false }
+    } catch (error) {
+      console.error('Error checking email registration:', error)
+      return { isRegistered: false }
+    } finally {
+      setEmailCheckLoading(false)
+    }
+  }
 
   // Function to fetch system record by email
   const fetchSystemRecord = async (email) => {
@@ -356,7 +408,7 @@ const FighterRegistrationPage = ({ params }) => {
   const validPostalCode = (postalCode) =>
     /^[0-9A-Za-z\s-]{3,10}$/.test(postalCode)
 
-  const validateStep = (step) => {
+  const validateStep = async (step) => {
     const newErrors = {}
 
     switch (step) {
@@ -389,9 +441,17 @@ const FighterRegistrationPage = ({ params }) => {
           newErrors.phoneNumber = 'Valid phone number required (10-15 digits)'
 
         // Email
-        if (!formData.email.trim()) newErrors.email = 'Email is required'
-        else if (!validateEmail(formData.email))
+        if (!formData.email.trim()) {
+          newErrors.email = 'Email is required'
+        } else if (!validateEmail(formData.email)) {
           newErrors.email = 'Valid email required'
+        } else {
+          // Check if email is already registered for this event
+          const emailCheck = await checkEmailRegistration(formData.email)
+          if (emailCheck.isRegistered) {
+            newErrors.email = `This email is already registered as a ${emailCheck.type} for this event. Please use a different email address.`
+          }
+        }
 
         // Street
         if (!formData.street1.trim())
@@ -569,8 +629,9 @@ const FighterRegistrationPage = ({ params }) => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
+  const handleNext = async () => {
+    const isValid = await validateStep(currentStep)
+    if (isValid) {
       console.log(formData, 'form data')
 
       if (currentStep < 10) {
@@ -639,7 +700,8 @@ const FighterRegistrationPage = ({ params }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!validateStep(10)) {
+    const isValid = await validateStep(10)
+    if (!isValid) {
       return
     }
 
@@ -877,18 +939,25 @@ const FighterRegistrationPage = ({ params }) => {
               {field.label}
               {field.required && <span className='text-red-500'>*</span>}
             </label>
-            <input
-              type={field.type || 'text'}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={handleChange}
-              placeholder={
-                field.placeholder || `Enter ${field.label.toLowerCase()}`
-              }
-              required={field.required}
-              disabled={field.disabled}
-              className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-            />
+            <div className="relative">
+              <input
+                type={field.type || 'text'}
+                name={field.name}
+                value={formData[field.name]}
+                onChange={handleChange}
+                placeholder={
+                  field.placeholder || `Enter ${field.label.toLowerCase()}`
+                }
+                required={field.required}
+                disabled={field.disabled || (field.name === 'email' && emailCheckLoading)}
+                className={`w-full outline-none bg-transparent text-white disabled:text-gray-400 ${field.name === 'email' && emailCheckLoading ? 'pr-6' : ''}`}
+              />
+              {field.name === 'email' && emailCheckLoading && (
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+            </div>
             {errors[field.name] && (
               <p className='text-red-500 text-xs mt-1'>{errors[field.name]}</p>
             )}

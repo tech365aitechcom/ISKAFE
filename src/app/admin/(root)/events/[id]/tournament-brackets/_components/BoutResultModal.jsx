@@ -16,17 +16,38 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
     bout.fight?.resultMethod || ''
   )
   const [koDetails, setKoDetails] = useState({
-    round: bout.fight?.resultMethod === 'KO' ? bout.fight?.resultDetails?.round || '' : '',
-    time: bout.fight?.resultMethod === 'KO' ? bout.fight?.resultDetails?.time || '' : '',
-    reason: bout.fight?.resultMethod === 'KO' ? bout.fight?.resultDetails?.reason || '' : '',
+    round:
+      bout.fight?.resultMethod === 'KO'
+        ? bout.fight?.resultDetails?.round || ''
+        : '',
+    time:
+      bout.fight?.resultMethod === 'KO'
+        ? bout.fight?.resultDetails?.time || ''
+        : '',
+    reason:
+      bout.fight?.resultMethod === 'KO'
+        ? bout.fight?.resultDetails?.reason || ''
+        : '',
   })
   const [tkoDetails, setTkoDetails] = useState({
-    round: bout.fight?.resultMethod === 'TKO' ? bout.fight?.resultDetails?.round || '' : '',
-    time: bout.fight?.resultMethod === 'TKO' ? bout.fight?.resultDetails?.time || '' : '',
-    reason: bout.fight?.resultMethod === 'TKO' ? bout.fight?.resultDetails?.reason || '' : '',
+    round:
+      bout.fight?.resultMethod === 'TKO'
+        ? bout.fight?.resultDetails?.round || ''
+        : '',
+    time:
+      bout.fight?.resultMethod === 'TKO'
+        ? bout.fight?.resultDetails?.time || ''
+        : '',
+    reason:
+      bout.fight?.resultMethod === 'TKO'
+        ? bout.fight?.resultDetails?.reason || ''
+        : '',
   })
   const [otherDetails, setOtherDetails] = useState({
-    reason: bout.fight?.resultMethod === 'Other' ? bout.fight?.resultDetails?.reason || '' : '',
+    reason:
+      bout.fight?.resultMethod === 'Other'
+        ? bout.fight?.resultDetails?.reason || ''
+        : '',
   })
   const [judgeScores, setJudgeScores] = useState({
     red: bout.fight?.judgeScores?.red || ['', '', ''],
@@ -37,6 +58,73 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   const [showWarning, setShowWarning] = useState(false)
   const [showRedSuspensionModal, setShowRedSuspensionModal] = useState(false)
   const [showBlueSuspensionModal, setShowBlueSuspensionModal] = useState(false)
+
+  // Helper functions for suspension display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    } catch {
+      return 'Invalid Date'
+    }
+  }
+
+  const getSuspensionStatus = (suspension) => {
+    if (suspension.indefinite) return 'Indefinite'
+    if (suspension.status === 'Closed') return 'Closed'
+    
+    const today = new Date()
+    const incidentDate = new Date(suspension.incidentDate)
+    
+    // Calculate end dates based on suspension type
+    let trainingEndDate = null
+    let competingEndDate = null
+    
+    if (suspension.daysWithoutTraining) {
+      trainingEndDate = new Date(incidentDate)
+      trainingEndDate.setDate(incidentDate.getDate() + suspension.daysWithoutTraining)
+    }
+    
+    if (suspension.daysBeforeCompeting) {
+      competingEndDate = new Date(incidentDate)
+      competingEndDate.setDate(incidentDate.getDate() + suspension.daysBeforeCompeting)
+    }
+    
+    // Check if any suspension period is still active
+    const isTrainingActive = trainingEndDate && today < trainingEndDate
+    const isCompetingActive = competingEndDate && today < competingEndDate
+    
+    if (isTrainingActive || isCompetingActive) {
+      return 'Active'
+    } else if (trainingEndDate || competingEndDate) {
+      return 'Expired'
+    }
+    
+    return suspension.status || 'Active'
+  }
+
+  const getSuspensionDetails = (suspension) => {
+    const details = []
+    if (suspension.daysWithoutTraining) {
+      details.push(`${suspension.daysWithoutTraining} days without training`)
+    }
+    if (suspension.daysBeforeCompeting) {
+      details.push(`${suspension.daysBeforeCompeting} days before competing`)
+    }
+    if (suspension.indefinite) {
+      details.push('Indefinite suspension')
+    }
+    return details.length > 0 ? details.join(', ') : 'No duration specified'
+  }
+
+  const hasActiveSuspensions = (fighter) => {
+    if (!fighter || !fighter.suspensions || fighter.suspensions.length === 0) return false
+    return fighter.suspensions.some(s => getSuspensionStatus(s) === 'Active')
+  }
 
   const resultMethods = [
     'Decision',
@@ -125,14 +213,22 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
 
     // Validate time format for KO/TKO methods
     const timeFormatRegex = /^[0-9]{1,2}:[0-9]{2}$/
-    if (resultMethod === 'KO' && koDetails.time && !timeFormatRegex.test(koDetails.time)) {
+    if (
+      resultMethod === 'KO' &&
+      koDetails.time &&
+      !timeFormatRegex.test(koDetails.time)
+    ) {
       enqueueSnackbar('Please enter time in mm:ss format (e.g., 2:30)', {
         variant: 'warning',
       })
       return
     }
 
-    if (resultMethod === 'TKO' && tkoDetails.time && !timeFormatRegex.test(tkoDetails.time)) {
+    if (
+      resultMethod === 'TKO' &&
+      tkoDetails.time &&
+      !timeFormatRegex.test(tkoDetails.time)
+    ) {
       enqueueSnackbar('Please enter time in mm:ss format (e.g., 2:30)', {
         variant: 'warning',
       })
@@ -288,7 +384,8 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
 
   const renderKODetails = () => {
     const currentDetails = resultMethod === 'KO' ? koDetails : tkoDetails
-    const setCurrentDetails = resultMethod === 'KO' ? setKoDetails : setTkoDetails
+    const setCurrentDetails =
+      resultMethod === 'KO' ? setKoDetails : setTkoDetails
 
     const handleTimeChange = (value) => {
       // Only allow numbers, colon, and limit format to mm:ss
@@ -301,7 +398,10 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
     const handleRoundChange = (value) => {
       // Prevent 0 and negative values
       const numValue = parseInt(value)
-      if (value === '' || (numValue >= 1 && numValue <= (bout.numberOfRounds || 12))) {
+      if (
+        value === '' ||
+        (numValue >= 1 && numValue <= (bout.numberOfRounds || 12))
+      ) {
         setCurrentDetails((prev) => ({ ...prev, round: value }))
       }
     }
@@ -345,7 +445,10 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
               type='text'
               value={currentDetails.reason}
               onChange={(e) =>
-                setCurrentDetails((prev) => ({ ...prev, reason: e.target.value }))
+                setCurrentDetails((prev) => ({
+                  ...prev,
+                  reason: e.target.value,
+                }))
               }
               className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
               placeholder='Knockout punch'
@@ -375,6 +478,69 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
       </select>
     </div>
   )
+
+  const renderSuspensionDisplay = (fighter, corner) => {
+    if (!fighter || !fighter.suspensions || fighter.suspensions.length === 0) {
+      return null
+    }
+
+    const activeSuspensions = fighter.suspensions.filter(s => getSuspensionStatus(s) === 'Active')
+    const allSuspensions = fighter.suspensions
+
+    return (
+      <div className='mt-3'>
+        {activeSuspensions.length > 0 && (
+          <div className='mb-2'>
+            <span className='px-2 py-1 bg-red-500 bg-opacity-20 text-red-300 text-xs rounded font-medium'>
+              🚫 CURRENTLY SUSPENDED
+            </span>
+          </div>
+        )}
+        
+        <div className='space-y-2 max-h-32 overflow-y-auto'>
+          {allSuspensions.map((suspension, index) => {
+            const status = getSuspensionStatus(suspension)
+            const statusColor = 
+              status === 'Active' ? 'text-red-400' :
+              status === 'Expired' ? 'text-gray-400' :
+              status === 'Closed' ? 'text-green-400' :
+              'text-yellow-400'
+            
+            return (
+              <div key={suspension._id || index} className='bg-slate-900 rounded p-2 text-xs'>
+                <div className='flex items-center gap-2 mb-1'>
+                  <span className={`px-1 py-0.5 rounded text-xs font-medium bg-opacity-20 ${
+                    suspension.type === 'Medical' 
+                      ? 'bg-blue-500 text-blue-300' 
+                      : 'bg-orange-500 text-orange-300'
+                  }`}>
+                    {suspension.type}
+                  </span>
+                  <span className={`px-1 py-0.5 rounded text-xs font-medium ${statusColor} bg-opacity-20`}>
+                    {status}
+                  </span>
+                  {suspension.medicalClearance && (
+                    <span className='px-1 py-0.5 rounded text-xs font-medium bg-purple-500 bg-opacity-20 text-purple-300'>
+                      Medical
+                    </span>
+                  )}
+                </div>
+                <div className='text-gray-300'>
+                  <div>Incident: {formatDate(suspension.incidentDate)}</div>
+                  <div>Duration: {getSuspensionDetails(suspension)}</div>
+                  {suspension.description && (
+                    <div className='text-gray-400 mt-1 line-clamp-2'>
+                      {suspension.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className='fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50'>
@@ -518,42 +684,54 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {/* Red Fighter Suspension */}
               <div className='p-4 border border-red-500/30 rounded-lg bg-red-900/10'>
-                <div className='flex justify-between items-center mb-3'>
+                <div className='flex justify-between items-start mb-3'>
                   <h4 className='font-medium text-red-400'>Red Corner</h4>
-                  <button
-                    onClick={() => setShowRedSuspensionModal(true)}
-                    className='flex items-center gap-1 px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm'
-                  >
-                    <Plus size={14} />
-                    Add Suspension
-                  </button>
+                  {!hasActiveSuspensions(bout.redCorner) && (
+                    <button
+                      onClick={() => setShowRedSuspensionModal(true)}
+                      className='flex items-center gap-1 px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm'
+                    >
+                      <Plus size={14} />
+                      Add Suspension
+                    </button>
+                  )}
                 </div>
                 <div className='text-sm text-gray-300'>
                   {bout.redCorner?.firstName} {bout.redCorner?.lastName}
                 </div>
-                <div className='text-xs text-gray-400 mt-1'>
-                  Add disciplinary or medical suspensions post-bout
-                </div>
+                {hasActiveSuspensions(bout.redCorner) ? (
+                  renderSuspensionDisplay(bout.redCorner, 'red')
+                ) : (
+                  <div className='text-xs text-gray-400 mt-1'>
+                    Add disciplinary or medical suspensions post-bout
+                  </div>
+                )}
               </div>
 
               {/* Blue Fighter Suspension */}
               <div className='p-4 border border-blue-500/30 rounded-lg bg-blue-900/10'>
-                <div className='flex justify-between items-center mb-3'>
+                <div className='flex justify-between items-start mb-3'>
                   <h4 className='font-medium text-blue-400'>Blue Corner</h4>
-                  <button
-                    onClick={() => setShowBlueSuspensionModal(true)}
-                    className='flex items-center gap-1 px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm'
-                  >
-                    <Plus size={14} />
-                    Add Suspension
-                  </button>
+                  {!hasActiveSuspensions(bout.blueCorner) && (
+                    <button
+                      onClick={() => setShowBlueSuspensionModal(true)}
+                      className='flex items-center gap-1 px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm'
+                    >
+                      <Plus size={14} />
+                      Add Suspension
+                    </button>
+                  )}
                 </div>
                 <div className='text-sm text-gray-300'>
                   {bout.blueCorner?.firstName} {bout.blueCorner?.lastName}
                 </div>
-                <div className='text-xs text-gray-400 mt-1'>
-                  Add disciplinary or medical suspensions post-bout
-                </div>
+                {hasActiveSuspensions(bout.blueCorner) ? (
+                  renderSuspensionDisplay(bout.blueCorner, 'blue')
+                ) : (
+                  <div className='text-xs text-gray-400 mt-1'>
+                    Add disciplinary or medical suspensions post-bout
+                  </div>
+                )}
               </div>
             </div>
           </div>

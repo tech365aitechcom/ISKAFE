@@ -63,6 +63,7 @@ const TrainerRegistrationPage = ({ params }) => {
   const [registeredFighters, setRegisteredFighters] = useState([])
   const [fighterSuggestions, setFighterSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false)
 
   // Square payment integration
   const cardRef = useRef(null)
@@ -244,6 +245,57 @@ const TrainerRegistrationPage = ({ params }) => {
       ? City.getCitiesOfState(formData.country, formData.state)
       : []
 
+  // Function to check if email is already registered for this event
+  const checkEmailRegistration = async (email) => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      return { isRegistered: false }
+    }
+
+    try {
+      setEmailCheckLoading(true)
+      
+      // Check both fighter and trainer registrations
+      const [fighterResponse, trainerResponse] = await Promise.all([
+        axios.get(
+          `${API_BASE_URL}/registrations/event/${id}?registrationType=fighter&email=${encodeURIComponent(email)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        ).catch(() => ({ data: { success: false, data: { items: [] } } })),
+        axios.get(
+          `${API_BASE_URL}/registrations/event/${id}?registrationType=trainer&email=${encodeURIComponent(email)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${user?.token}`,
+            },
+          }
+        ).catch(() => ({ data: { success: false, data: { items: [] } } }))
+      ])
+
+      const fighterRegistrations = fighterResponse.data.success && fighterResponse.data.data.items ? fighterResponse.data.data.items : []
+      const trainerRegistrations = trainerResponse.data.success && trainerResponse.data.data.items ? trainerResponse.data.data.items : []
+
+      const existingFighter = fighterRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
+      const existingTrainer = trainerRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
+
+      if (existingFighter) {
+        return { isRegistered: true, type: 'fighter', registration: existingFighter }
+      }
+      if (existingTrainer) {
+        return { isRegistered: true, type: 'trainer', registration: existingTrainer }
+      }
+
+      return { isRegistered: false }
+    } catch (error) {
+      console.error('Error checking email registration:', error)
+      return { isRegistered: false }
+    } finally {
+      setEmailCheckLoading(false)
+    }
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setFormData((prev) => ({
@@ -279,7 +331,7 @@ const TrainerRegistrationPage = ({ params }) => {
     }
   }
 
-  const validateStep = (step) => {
+  const validateStep = async (step) => {
     const newErrors = {}
     let isValid = true
 
@@ -337,6 +389,13 @@ const TrainerRegistrationPage = ({ params }) => {
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = 'Invalid email format'
         isValid = false
+      } else {
+        // Check if email is already registered for this event
+        const emailCheck = await checkEmailRegistration(formData.email)
+        if (emailCheck.isRegistered) {
+          newErrors.email = `This email is already registered as a ${emailCheck.type} for this event. Please use a different email address.`
+          isValid = false
+        }
       }
 
       if (!formData.street1.trim()) {
@@ -441,8 +500,9 @@ const TrainerRegistrationPage = ({ params }) => {
     return isValid
   }
 
-  const nextStep = () => {
-    if (validateStep(currentStep) && currentStep < 4) {
+  const nextStep = async () => {
+    const isValid = await validateStep(currentStep)
+    if (isValid && currentStep < 4) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -726,18 +786,25 @@ const TrainerRegistrationPage = ({ params }) => {
               {field.label}
               <span className='text-red-500'>{field.required ? '*' : ''}</span>
             </label>
-            <input
-              type={field.type || 'text'}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={handleChange}
-              placeholder={
-                field.placeholder || `Enter ${field.label.toLowerCase()}`
-              }
-              disabled={field.disabled}
-              className={`w-full outline-none bg-transparent text-white disabled:text-gray-400`}
-              required={!field.disabled}
-            />
+            <div className="relative">
+              <input
+                type={field.type || 'text'}
+                name={field.name}
+                value={formData[field.name]}
+                onChange={handleChange}
+                placeholder={
+                  field.placeholder || `Enter ${field.label.toLowerCase()}`
+                }
+                disabled={field.disabled || (field.name === 'email' && emailCheckLoading)}
+                className={`w-full outline-none bg-transparent text-white disabled:text-gray-400 ${field.name === 'email' && emailCheckLoading ? 'pr-6' : ''}`}
+                required={!field.disabled}
+              />
+              {field.name === 'email' && emailCheckLoading && (
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+            </div>
             {errors[field.name] && (
               <p className='text-red-500 text-xs mt-1'>{errors[field.name]}</p>
             )}
