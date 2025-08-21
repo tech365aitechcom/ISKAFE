@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { X, User, Plus, Loader2 } from 'lucide-react'
-import { API_BASE_URL } from '../../../../../../../constants'
+import { API_BASE_URL, apiConstants } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
+import { enqueueSnackbar } from 'notistack'
+import axios from 'axios'
 
 export default function AddParticipantModal({
   isOpen,
@@ -72,7 +74,9 @@ export default function AddParticipantModal({
     }
     if (!formData.phoneNumber?.trim()) {
       newErrors.phoneNumber = 'Phone number is required'
-    } else if (!/^[\d\s\-\(\)\+]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))) {
+    } else if (
+      !/^[\d\s\-\(\)\+]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))
+    ) {
       newErrors.phoneNumber = 'Please enter a valid phone number (10-15 digits)'
     }
     if (!formData.gender) {
@@ -85,11 +89,14 @@ export default function AddParticipantModal({
       const today = new Date()
       let age = today.getFullYear() - birthDate.getFullYear()
       const monthDiff = today.getMonth() - birthDate.getMonth()
-      
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
         age--
       }
-      
+
       if (birthDate > today) {
         newErrors.dateOfBirth = 'Date of birth cannot be in the future'
       } else if (age < 5) {
@@ -120,8 +127,8 @@ export default function AddParticipantModal({
         phoneNumber: formData.phoneNumber?.trim() || '',
         dateOfBirth: formData.dateOfBirth || '',
         gender: formData.gender || '',
-        status: 'Approved',
-        paymentStatus: 'Completed',
+        status: 'Verified',
+        paymentStatus: 'Paid',
         paymentMethod: 'cash',
         waiverAgreed: true,
         legalDisclaimerAccepted: true,
@@ -132,33 +139,32 @@ export default function AddParticipantModal({
 
       console.log('Adding participant:', registrationData)
 
-      const response = await fetch(`${API_BASE_URL}/registrations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user?.token}`,
-        },
-        body: JSON.stringify(registrationData),
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/registrations`,
+        registrationData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
 
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        console.log('Participant added successfully:', result)
-        alert(
-          `✅ ${formData.firstName} ${formData.lastName} has been added to the event as a ${registrationType}!`
-        )
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(`Participant added successfully!`, {
+          variant: 'success',
+        })
         onParticipantAdded?.()
         onClose()
-      } else {
-        console.error('Failed to add participant:', result)
-        alert(
-          `❌ Failed to add participant: ${result.message || 'Unknown error'}`
-        )
       }
     } catch (err) {
-      console.error('Error adding participant:', err)
-      alert(`❌ Error adding participant: ${err.message}`)
+      console.log(err)
+      enqueueSnackbar(
+        err.response?.data?.message || 'Failed to add participant',
+        {
+          variant: 'error',
+        }
+      )
     } finally {
       setAdding(false)
     }
@@ -247,12 +253,16 @@ export default function AddParticipantModal({
                   onChange={handleInputChange}
                   placeholder='Enter first name'
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none ${
-                    errors.firstName ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-blue-500'
+                    errors.firstName
+                      ? 'border-red-500 focus:border-red-500'
+                      : 'border-gray-600 focus:border-blue-500'
                   }`}
                   required
                 />
                 {errors.firstName && (
-                  <p className='text-red-400 text-xs mt-1'>{errors.firstName}</p>
+                  <p className='text-red-400 text-xs mt-1'>
+                    {errors.firstName}
+                  </p>
                 )}
               </div>
 
@@ -268,7 +278,9 @@ export default function AddParticipantModal({
                   onChange={handleInputChange}
                   placeholder='Enter last name'
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none ${
-                    errors.lastName ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-blue-500'
+                    errors.lastName
+                      ? 'border-red-500 focus:border-red-500'
+                      : 'border-gray-600 focus:border-blue-500'
                   }`}
                   required
                 />
@@ -289,7 +301,9 @@ export default function AddParticipantModal({
                   onChange={handleInputChange}
                   placeholder='Enter email address'
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none ${
-                    errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-blue-500'
+                    errors.email
+                      ? 'border-red-500 focus:border-red-500'
+                      : 'border-gray-600 focus:border-blue-500'
                   }`}
                   required
                 />
@@ -310,12 +324,16 @@ export default function AddParticipantModal({
                   onChange={handleInputChange}
                   placeholder='Enter phone number'
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none ${
-                    errors.phoneNumber ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-blue-500'
+                    errors.phoneNumber
+                      ? 'border-red-500 focus:border-red-500'
+                      : 'border-gray-600 focus:border-blue-500'
                   }`}
                   required
                 />
                 {errors.phoneNumber && (
-                  <p className='text-red-400 text-xs mt-1'>{errors.phoneNumber}</p>
+                  <p className='text-red-400 text-xs mt-1'>
+                    {errors.phoneNumber}
+                  </p>
                 )}
               </div>
 
@@ -329,7 +347,9 @@ export default function AddParticipantModal({
                   value={formData.gender}
                   onChange={handleInputChange}
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white focus:outline-none ${
-                    errors.gender ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-blue-500'
+                    errors.gender
+                      ? 'border-red-500 focus:border-red-500'
+                      : 'border-gray-600 focus:border-blue-500'
                   }`}
                   required
                 >
@@ -353,12 +373,16 @@ export default function AddParticipantModal({
                   value={formData.dateOfBirth}
                   onChange={handleInputChange}
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white focus:outline-none ${
-                    errors.dateOfBirth ? 'border-red-500 focus:border-red-500' : 'border-gray-600 focus:border-blue-500'
+                    errors.dateOfBirth
+                      ? 'border-red-500 focus:border-red-500'
+                      : 'border-gray-600 focus:border-blue-500'
                   }`}
                   required
                 />
                 {errors.dateOfBirth && (
-                  <p className='text-red-400 text-xs mt-1'>{errors.dateOfBirth}</p>
+                  <p className='text-red-400 text-xs mt-1'>
+                    {errors.dateOfBirth}
+                  </p>
                 )}
               </div>
             </div>

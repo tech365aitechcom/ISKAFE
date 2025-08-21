@@ -221,9 +221,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='title'
                 value={formData.title}
                 onChange={handleChange}
+                disabled={loading}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.title ? 'border-red-500' : 'border-gray-600'
-                }`}
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value=''>Select Title</option>
                 {titleData.map((option) => (
@@ -245,9 +246,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='bracketRule'
                 value={formData.bracketRule}
                 onChange={handleChange}
+                disabled={loading}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.bracketRule ? 'border-red-500' : 'border-gray-600'
-                }`}
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value=''>Select Bracket Rule</option>
                 {bracketRuleData.map((option) => (
@@ -271,9 +273,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='bracketStatus'
                 value={formData.bracketStatus}
                 onChange={handleChange}
+                disabled={loading}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.bracketStatus ? 'border-red-500' : 'border-gray-600'
-                }`}
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {bracketStatusData.map((option) => (
                   <option key={option.value} value={option.label}>
@@ -296,9 +299,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='proClass'
                 value={formData.proClass}
                 onChange={handleChange}
+                disabled={loading}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.proClass ? 'border-red-500' : 'border-gray-600'
-                }`}
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value=''>Select Pro Class</option>
                 {proClassData.map((option) => (
@@ -323,9 +327,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='sport'
                 value={formData.sport}
                 onChange={handleChange}
+                disabled={loading}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.sport ? 'border-red-500' : 'border-gray-600'
-                }`}
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value=''>Select Sport</option>
                 {sportsData.map((option) => (
@@ -350,10 +355,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='discipline'
                 value={formData.discipline}
                 onChange={handleChange}
+                disabled={loading || !formData.sport.includes('bjj')}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.discipline ? 'border-red-500' : 'border-gray-600'
-                }`}
-                disabled={!formData.sport.includes('bjj')}
+                } ${loading || !formData.sport.includes('bjj') ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value=''>Select Discipline</option>
                 {getDisciplines(formData.sport).map((option) => (
@@ -375,10 +380,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='ageClass'
                 value={formData.ageClass}
                 onChange={handleChange}
+                disabled={loading || !formData.sport}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.ageClass ? 'border-red-500' : 'border-gray-600'
-                }`}
-                disabled={!formData.sport}
+                } ${loading || !formData.sport ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value=''>Select Age Class</option>
                 {getAgeClasses(formData.sport).map((option) => (
@@ -400,10 +405,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='weightClass'
                 value={formData.weightClass}
                 onChange={handleChange}
+                disabled={loading || !formData.ageClass}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.weightClass ? 'border-red-500' : 'border-gray-600'
-                }`}
-                disabled={!formData.ageClass}
+                } ${loading || !formData.ageClass ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value=''>Select Weight Class</option>
                 {getWeightClasses(formData.ageClass).map((option) => (
@@ -430,7 +435,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='bracketCriteria'
                 value={formData.bracketCriteria}
                 onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+                disabled={loading}
+                className={`w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 {bracketCriteriaData.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -451,7 +459,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 onChange={handleChange}
                 min={1}
                 placeholder='e.g., 1'
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400'
+                disabled={loading}
+                className={`w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               />
             </div>
 
@@ -463,7 +474,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='ring'
                 value={formData.ring}
                 onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+                disabled={loading}
+                className={`w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <option value=''>Select Ring</option>
                 <option value='Ring 1'>Ring 1</option>
@@ -487,9 +501,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                   value={formData.bracketName}
                   onChange={handleChange}
                   placeholder='Generated bracket name will appear here'
+                  disabled={loading}
                   className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white placeholder-gray-400 ${
                     errors.bracketName ? 'border-red-500' : 'border-gray-600'
-                  }`}
+                  } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 />
                 {errors.bracketName && (
                   <p className='text-red-500 text-xs mt-1'>
@@ -500,7 +515,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
               <button
                 type='button'
                 onClick={handleGenerateName}
-                className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700'
+                disabled={loading}
+                className={`px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 Generate Bracket Name
               </button>
@@ -518,7 +536,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='fightStartTime'
                 value={formData.fightStartTime}
                 onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+                disabled={loading}
+                className={`w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               />
             </div>
 
@@ -531,7 +552,10 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 name='weighInTime'
                 value={formData.weighInTime}
                 onChange={handleChange}
-                className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
+                disabled={loading}
+                className={`w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               />
             </div>
           </div>

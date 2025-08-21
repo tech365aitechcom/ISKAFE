@@ -3,6 +3,8 @@
 import { ArrowUpDown, Trash, Plus, Settings, Users, Play } from 'lucide-react'
 import BracketList from './_components/BracketList'
 import NewBracketModal from './_components/NewBracketModal'
+import MoveFightersModal from './_components/MoveFightersModal'
+import ReseedBracketsModal from './_components/ReseedBracketsModal'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
@@ -32,6 +34,8 @@ export default function TournamentBrackets() {
   const [mode, setMode] = useState('view') // view, edit, move, reorder, delete
   const [showActionsDropdown, setShowActionsDropdown] = useState(false)
   const [showNewBracketModal, setShowNewBracketModal] = useState(false)
+  const [showMoveFightersModal, setShowMoveFightersModal] = useState(false)
+  const [showReseedBracketsModal, setShowReseedBracketsModal] = useState(false)
   const [event, setEvent] = useState(null)
 
   // Filter states
@@ -377,19 +381,15 @@ export default function TournamentBrackets() {
               Edit Brackets
             </button>
             <button
-              onClick={() => setMode(mode === 'move' ? 'view' : 'move')}
-              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass(
-                'move'
-              )}`}
+              onClick={() => setShowMoveFightersModal(true)}
+              className='px-3 py-1 text-sm rounded flex items-center gap-1 border border-white text-white hover:bg-white hover:text-black'
             >
               <Users size={14} />
               Move Fighters
             </button>
             <button
-              onClick={() => setMode(mode === 'reorder' ? 'view' : 'reorder')}
-              className={`px-3 py-1 text-sm rounded flex items-center gap-1 ${getModeButtonClass(
-                'reorder'
-              )}`}
+              onClick={() => setShowReseedBracketsModal(true)}
+              className='px-3 py-1 text-sm rounded flex items-center gap-1 border border-white text-white hover:bg-white hover:text-black'
             >
               <ArrowUpDown size={14} />
               Reseed Brackets
@@ -665,6 +665,29 @@ export default function TournamentBrackets() {
             eventId={eventId}
             onClose={() => setShowNewBracketModal(false)}
             onCreate={handleCreateBracket}
+          />
+        )}
+
+        {/* Move Fighters Modal */}
+        {showMoveFightersModal && (
+          <MoveFightersModal
+            isOpen={showMoveFightersModal}
+            onClose={() => setShowMoveFightersModal(false)}
+            brackets={brackets}
+            eventId={eventId}
+            onUpdate={() => fetchBrackets(eventId)}
+          />
+        )}
+
+        {/* Reseed Brackets Modal */}
+        {showReseedBracketsModal && (
+          <ReseedBracketsModal
+            isOpen={showReseedBracketsModal}
+            onClose={() => setShowReseedBracketsModal(false)}
+            brackets={brackets}
+            eventId={eventId}
+            onUpdate={() => fetchBrackets(eventId)}
+            filters={filters}
           />
         )}
       </div>

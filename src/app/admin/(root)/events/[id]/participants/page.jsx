@@ -320,8 +320,7 @@ export default function CompetitorList() {
   }
 
   const handleParticipantAdded = () => {
-    console.log('Participant added successfully, refreshing list...')
-    // Refresh the participants list
+    setShowAddParticipantModal(false)
     if (eventId) {
       fetchCompetitors(eventId)
     }

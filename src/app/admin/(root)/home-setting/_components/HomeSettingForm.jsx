@@ -46,6 +46,7 @@ export const HomeSettingsForm = () => {
     latestNews: '',
     upcomingEvents: [],
     topFighters: [],
+    featuredResult: '',
   })
 
   // For image previews
@@ -59,6 +60,7 @@ export const HomeSettingsForm = () => {
   const [newsList, setNewsList] = useState([])
   const [eventsList, setEventsList] = useState([])
   const [fightersList, setFightersList] = useState([])
+  const [fightResultsList, setFightResultsList] = useState([])
 
   const [newMenuItem, setNewMenuItem] = useState({
     label: '',
@@ -103,6 +105,7 @@ export const HomeSettingsForm = () => {
           latestNews: data.latestNews._id || '',
           upcomingEvents: data.upcomingEvents || [],
           topFighters: data.topFighters || [],
+          featuredResult: data.featuredResult?._id || '',
         })
         setExistingId(data._id)
 
@@ -128,6 +131,11 @@ export const HomeSettingsForm = () => {
       const fightersResponse = await axios.get(`${API_BASE_URL}/fighters`)
       console.log(fightersResponse.data, 'fightersResponse.data')
       setFightersList(fightersResponse.data.data.items || [])
+
+      // Fetch completed fight results
+      const fightResultsResponse = await axios.get(`${API_BASE_URL}/fights`)
+      console.log(fightResultsResponse.data, 'fightResultsResponse.data')
+      setFightResultsList(fightResultsResponse.data.data?.items || [])
     } catch (err) {
       console.error('Error fetching data:', err)
       enqueueSnackbar('Failed to load data', { variant: 'error' })
@@ -135,6 +143,7 @@ export const HomeSettingsForm = () => {
       setNewsList([])
       setEventsList([])
       setFightersList([])
+      setFightResultsList([])
     } finally {
       setLoading(false)
       setDataLoading(false)
@@ -892,7 +901,6 @@ export const HomeSettingsForm = () => {
               />
             </div>
             {/* Top Fighters */}
-
             <div className='bg-[#00000061] py-1 px-2 rounded'>
               <label className='block text-sm font-medium mb-2'>
                 Top Fighters
@@ -915,6 +923,51 @@ export const HomeSettingsForm = () => {
                   }))
                 }}
               />
+            </div>
+
+            {/* Featured Result */}
+            <div className='bg-[#00000061] py-1 px-2 rounded'>
+              <label className='block font-medium mb-2'>
+                Featured Fight Result
+              </label>
+              <select
+                name='featuredResult'
+                value={formData.featuredResult}
+                onChange={handleChange}
+                className='w-full outline-none bg-transparent disabled:cursor-not-allowed'
+              >
+                <option value='' className='text-black'>
+                  Select a fight result
+                </option>
+                {Array.isArray(fightResultsList) &&
+                  fightResultsList.map((fight) => {
+                    const bout = fight.bout
+                    const winner = fight.winner
+                    const bracket = fight.bracket
+                    const redCorner = bout?.redCorner
+                    const blueCorner = bout?.blueCorner
+
+                    if (!winner || !bout) return null
+
+                    const displayText = `${
+                      bracket?.divisionTitle || 'Fight'
+                    }: ${redCorner?.firstName} ${redCorner?.lastName} vs ${
+                      blueCorner?.firstName
+                    } ${blueCorner?.lastName} - Winner: ${winner.firstName} ${
+                      winner.lastName
+                    }`
+
+                    return (
+                      <option
+                        key={fight._id}
+                        value={fight._id}
+                        className='text-black'
+                      >
+                        {displayText}
+                      </option>
+                    )
+                  })}
+              </select>
             </div>
           </div>
 

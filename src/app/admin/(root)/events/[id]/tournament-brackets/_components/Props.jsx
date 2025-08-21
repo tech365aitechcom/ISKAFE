@@ -261,10 +261,8 @@ export default function Props({
       }
     }
 
-    // Bracket Sequence validation (required and numeric)
-    if (!bracketSequence || String(bracketSequence).trim() === '') {
-      errors.bracketSequence = 'Bracket Sequence Number is required'
-    } else {
+    // Bracket Sequence validation (optional - only validate if provided)
+    if (bracketSequence && String(bracketSequence).trim() !== '') {
       const seqStr = String(bracketSequence).trim()
       if (!/^\d+$/.test(seqStr) || parseInt(seqStr) <= 0) {
         errors.bracketSequence = 'Bracket Sequence must be a positive number'
@@ -341,10 +339,8 @@ export default function Props({
     // Enhanced validation for settings
     const errors = {}
 
-    // Mandatory field validation for numeric fields
-    if (!startDayNumber || String(startDayNumber).trim() === '') {
-      errors.startDayNumber = 'Start on Day Number is required'
-    } else {
+    // Start on Day Number is OPTIONAL - only validate if provided
+    if (startDayNumber && String(startDayNumber).trim() !== '') {
       const dayStr = String(startDayNumber).trim()
       if (!/^\d+$/.test(dayStr) || parseInt(dayStr) <= 0) {
         errors.startDayNumber = 'Start on Day Number must be a positive number'
@@ -386,10 +382,16 @@ export default function Props({
     setLoading(true)
     try {
       const updateData = {
-        startDayNumber: parseInt(startDayNumber) || undefined,
+        startDayNumber:
+          startDayNumber && startDayNumber.trim() !== ''
+            ? parseInt(startDayNumber)
+            : undefined,
         group: group || '',
         ring: ringNumber || '',
-        sequenceNumber: parseInt(bracketSequence) || undefined,
+        sequenceNumber:
+          bracketSequence && bracketSequence.trim() !== ''
+            ? parseInt(bracketSequence)
+            : undefined,
         boutRound: parseInt(boutRound),
         maxCompetitors: parseInt(maxCompetitors),
       }
@@ -417,7 +419,6 @@ export default function Props({
         )
       }
     } catch (error) {
-      console.error('Save settings error:', error)
       enqueueSnackbar(error?.response?.data?.message, {
         variant: 'error',
       })
@@ -967,7 +968,8 @@ export default function Props({
             {/* Row 3: Bout Round Duration, Max Competitors */}
             <div>
               <label className='block text-sm font-medium text-white mb-2'>
-                Bout Round Duration (sec)
+                Bout Round Duration (sec){' '}
+                <span className='text-red-500'>*</span>
               </label>
               <input
                 type='number'
@@ -995,7 +997,7 @@ export default function Props({
 
             <div>
               <label className='block text-sm font-medium text-white mb-2'>
-                Max Competitors
+                Max Competitors <span className='text-red-500'>*</span>
               </label>
               <input
                 type='number'
