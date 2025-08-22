@@ -3,16 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import {
-  Search,
-  Filter,
   Users,
   UserCheck,
-  Phone,
   Mail,
   FileText,
   ArrowLeft,
   X,
-  ChevronDown,
   User,
   MapPin,
   Calendar,
@@ -22,6 +18,8 @@ import Link from 'next/link'
 import { API_BASE_URL } from '../../../../../../constants'
 import useStore from '../../../../../../stores/useStore'
 import Loader from '../../../../../_components/Loader'
+import Pagination from '../../../../../_components/Pagination'
+import PaginationHeader from '../../../../../_components/PaginationHeader'
 import CompetitorTable from './_components/CompetitorTable'
 import SearchFilters from './_components/SearchFilters'
 import CompetitorDetailModal from './_components/CompetitorDetailModal'
@@ -69,9 +67,9 @@ export default function CompetitorList() {
     if (params?.id) {
       setEventId(params.id)
       fetchEvent(params.id)
-      fetchCompetitors(params.id)
+      fetchCompetitors(params.id, currentPage)
     }
-  }, [params, activeTab, searchTerm, filters])
+  }, [params, activeTab, searchTerm, filters, currentPage, limit])
 
   const fetchEvent = async (id) => {
     try {
@@ -110,7 +108,7 @@ export default function CompetitorList() {
       }
       if (filters.eventParticipation) queryParams.append('participated', 'true')
       queryParams.append('page', page.toString())
-      queryParams.append('limit', '100') // Get more records for client-side filtering
+      queryParams.append('limit', limit.toString())
 
       const response = await fetch(
         `${API_BASE_URL}/registrations/event/${id}?${queryParams}`,
@@ -248,6 +246,12 @@ export default function CompetitorList() {
           setCompetitors(filteredItems)
           setTotalPages(pagination.totalPages)
           setTotalItems(pagination.totalItems)
+          setPagination({
+            currentPage: page,
+            totalPages: pagination.totalPages,
+            totalItems: pagination.totalItems,
+            pageSize: limit,
+          })
         } else {
           console.log('API returned unsuccessful response')
           setCompetitors([])
@@ -296,19 +300,15 @@ export default function CompetitorList() {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
-    setPagination((prev) => ({ ...prev, currentPage: 1 }))
+    setCurrentPage(1)
   }
 
   const handleSearch = (term) => {
     setSearchTerm(term)
-    setPagination((prev) => ({ ...prev, currentPage: 1 }))
+    setCurrentPage(1)
   }
 
   const handleFilterChange = (newFilters) => {
-    console.log('=== Parent: Received Filter Change ===')
-    console.log('Previous filters:', filters)
-    console.log('New filters:', newFilters)
-    console.log('Filter changes:')
     Object.keys(newFilters).forEach((key) => {
       if (filters[key] !== newFilters[key]) {
         console.log(`  - ${key}: "${filters[key]}" → "${newFilters[key]}"`)
@@ -316,7 +316,7 @@ export default function CompetitorList() {
     })
 
     setFilters(newFilters)
-    setPagination((prev) => ({ ...prev, currentPage: 1 }))
+    setCurrentPage(1)
   }
 
   const handleParticipantAdded = () => {
@@ -550,33 +550,6 @@ export default function CompetitorList() {
             totalPages={totalPages}
             totalItems={totalItems}
           />
-        )}
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className='flex justify-center items-center gap-4 mt-6'>
-            <button
-              onClick={() =>
-                fetchCompetitors(eventId, pagination.currentPage - 1)
-              }
-              disabled={pagination.currentPage === 1}
-              className='px-4 py-2 bg-gray-600 rounded disabled:opacity-50'
-            >
-              Previous
-            </button>
-            <span className='text-sm'>
-              Page {pagination.currentPage} of {pagination.totalPages}
-            </span>
-            <button
-              onClick={() =>
-                fetchCompetitors(eventId, pagination.currentPage + 1)
-              }
-              disabled={pagination.currentPage === pagination.totalPages}
-              className='px-4 py-2 bg-gray-600 rounded disabled:opacity-50'
-            >
-              Next
-            </button>
-          </div>
         )}
 
         {/* Error Display */}

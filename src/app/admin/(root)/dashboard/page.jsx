@@ -794,7 +794,9 @@ function DashboardTables({ dashboardData, onRefresh }) {
                           .map(
                             (ticket) => `
                           <tr>
-                            <td>${ticket.tier}</td>
+                            <td>${ticket.tiers && ticket.tiers.length > 1 
+                              ? ticket.tiers.map(t => t.tierName).join(', ')
+                              : ticket.tier}</td>
                             <td>${ticket.quantity}</td>
                             <td>$${ticket.totalAmount}</td>
                             <td>${ticket.event?.name}</td>
@@ -864,7 +866,9 @@ ${fighterRegistrations
 ${ticketLogs
   .map(
     (ticket, index) =>
-      `${index + 1}. ${ticket.tier} - Qty: ${ticket.quantity} - Revenue: $${
+      `${index + 1}. ${ticket.tiers && ticket.tiers.length > 1 
+        ? ticket.tiers.map(t => t.tierName).join(', ')
+        : ticket.tier} - Qty: ${ticket.quantity} - Revenue: $${
         ticket.totalAmount
       } - Event: ${ticket.event?.name} - ${formatDateTime(
         ticket.event?.startDate
@@ -916,12 +920,12 @@ IKF Admin System`
 
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         {/* Upcoming Events */}
-        <div className='bg-slate-800 p-4 rounded-lg'>
+        <div className='bg-slate-800 p-4 rounded-lg flex flex-col h-96'>
           <div className='flex items-center gap-2 mb-4 text-slate-300'>
             <Calendar size={16} />
             <h3 className='font-medium'>Upcoming Events</h3>
           </div>
-          <div className='overflow-x-auto'>
+          <div className='overflow-x-auto overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700 custom-scrollbar'>
             <table className='w-full text-sm text-left text-slate-400'>
               <thead className='text-xs uppercase bg-slate-700 text-slate-400'>
                 <tr>
@@ -972,12 +976,12 @@ IKF Admin System`
         </div>
 
         {/* Recent Fighter Registrations */}
-        <div className='bg-slate-800 p-4 rounded-lg'>
+        <div className='bg-slate-800 p-4 rounded-lg flex flex-col h-96'>
           <div className='flex items-center gap-2 mb-4 text-slate-300'>
             <User size={16} />
             <h3 className='font-medium'>Recent Fighter Registrations</h3>
           </div>
-          <div className='overflow-x-auto'>
+          <div className='overflow-x-auto overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700 custom-scrollbar'>
             <table className='w-full text-sm text-left text-slate-400'>
               <thead className='text-xs uppercase bg-slate-700 text-slate-400'>
                 <tr>
@@ -1219,7 +1223,9 @@ IKF Admin System`
                     className='border-b border-slate-700 hover:bg-slate-750'
                   >
                     <td className='px-4 py-3 font-medium text-white'>
-                      {ticket.tier}
+                      {ticket.tiers && ticket.tiers.length > 1 
+                        ? ticket.tiers.map(t => t.tierName).join(', ')
+                        : ticket.tier}
                     </td>
                     <td className='px-4 py-3'>{ticket.quantity}</td>
                     <td className='px-4 py-3'>{`$${ticket.totalAmount}`}</td>

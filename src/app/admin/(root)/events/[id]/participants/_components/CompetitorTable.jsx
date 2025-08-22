@@ -23,24 +23,6 @@ export default function CompetitorTable({
     )
   }
 
-  const getStatusBadge = (status) => {
-    const statusColors = {
-      Pending: 'bg-yellow-500/20 text-yellow-400',
-      Approved: 'bg-green-500/20 text-green-400',
-      Rejected: 'bg-red-500/20 text-red-400',
-    }
-
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs ${
-          statusColors[status] || 'bg-gray-500/20 text-gray-400'
-        }`}
-      >
-        {status}
-      </span>
-    )
-  }
-
   const formatPhoneNumber = (phone) => {
     if (!phone) return 'N/A'
     // Format as (XXX) XXX-XXXX if possible
@@ -51,76 +33,6 @@ export default function CompetitorTable({
       )}`
     }
     return phone
-  }
-
-  const formatHeight = (height, heightUnit) => {
-    if (!height) return 'N/A'
-
-    if (heightUnit === 'inches' || !heightUnit) {
-      // Convert inches to feet and inches format
-      const feet = Math.floor(height / 12)
-      const inches = height % 12
-      return `${feet}'${inches}"`
-    }
-
-    return `${height} ${heightUnit}`
-  }
-
-  const formatWeight = (weight, weightUnit) => {
-    if (!weight) return 'N/A'
-    return `${weight} ${(weightUnit || 'LBS').toUpperCase()}`
-  }
-
-  const formatNameWithDetails = (competitor) => {
-    const age = calculateAge(competitor.dateOfBirth)
-    const height = formatHeight(competitor.height, competitor.heightUnit)
-    const weight = formatWeight(
-      competitor.walkAroundWeight || competitor.weight,
-      competitor.weightUnit
-    )
-    const gender = competitor.gender || 'N/A'
-
-    const details = []
-    if (age && age !== 'N/A') details.push(`Age: ${age}`)
-    if (gender && gender !== 'N/A') details.push(`Gender: ${gender}`)
-    if (height && height !== 'N/A') details.push(`Height: ${height}`)
-    if (weight && weight !== 'N/A') details.push(`Weight: ${weight}`)
-
-    return {
-      fullName:
-        `${competitor.firstName || ''} ${competitor.lastName || ''}`.trim() ||
-        'N/A',
-      details: details.join(', '),
-    }
-  }
-
-  const getWeighInStatus = (competitor) => {
-    // Check if competitor has been weighed in - using checkInStatus as a proxy for now
-    const isWeighedIn =
-      competitor.checkInStatus === 'Checked In' || competitor.weighedIn === true
-    return {
-      status: isWeighedIn,
-      icon: isWeighedIn ? (
-        <CheckCircle className='text-green-400' size={16} />
-      ) : (
-        <XCircle className='text-red-400' size={16} />
-      ),
-      text: isWeighedIn ? 'Weighed In' : 'Not Weighed',
-    }
-  }
-
-  const getMedExamStatus = (competitor) => {
-    // Check medical exam status
-    const hasExam = competitor.medicalExamDone === true
-    return {
-      status: hasExam,
-      icon: hasExam ? (
-        <CheckCircle className='text-green-400' size={16} />
-      ) : (
-        <XCircle className='text-red-400' size={16} />
-      ),
-      text: hasExam ? 'Completed' : 'Pending',
-    }
   }
 
   return (
@@ -144,8 +56,8 @@ export default function CompetitorTable({
                 Last Name
               </th>
               <th className='p-4 text-sm font-medium text-gray-300'>Age</th>
-              <th className='p-4 text-sm font-medium text-gray-300'>Phone</th>
               <th className='p-4 text-sm font-medium text-gray-300'>Email</th>
+              <th className='p-4 text-sm font-medium text-gray-300'>Phone</th>
               <th className='p-4 text-sm font-medium text-gray-300'>Actions</th>
             </tr>
           </thead>
@@ -180,12 +92,16 @@ export default function CompetitorTable({
                         </span>
                       </div>
                     </td>
-                    <td className='p-4'>{competitor.firstName}</td>
-                    <td className='p-4'>{competitor.lastName}</td>
-                    <td className='p-4'>
+                    <td className='p-4 whitespace-nowrap'>
+                      {competitor.firstName}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
+                      {competitor.lastName}
+                    </td>
+                    <td className='p-4 whitespace-nowrap'>
                       {calculateAge(competitor.dateOfBirth)}
                     </td>
-                    <td className='p-4'>
+                    <td className='p-4 whitespace-nowrap'>
                       <div className='flex items-center gap-2'>
                         <Mail size={14} className='text-gray-400' />
                         <span className='text-sm break-all'>
@@ -193,7 +109,7 @@ export default function CompetitorTable({
                         </span>
                       </div>
                     </td>
-                    <td className='p-4'>
+                    <td className='p-4 whitespace-nowrap'>
                       <div className='flex items-center gap-2'>
                         <Phone size={14} className='text-gray-400' />
                         <span className='text-sm'>

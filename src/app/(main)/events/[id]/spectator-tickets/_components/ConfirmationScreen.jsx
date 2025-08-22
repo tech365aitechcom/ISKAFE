@@ -147,15 +147,30 @@ const ConfirmationScreen = ({
 
         <div className='border-t border-gray-600 pt-4 mt-4'>
           <h4 className='font-bold mb-3'>Tickets:</h4>
-          <div className='flex justify-between mb-2'>
-            <span>
-              {purchaseData.purchaseResult?.tier || 'General Admission'} x
-              {purchaseData.purchaseResult?.quantity || 1}
-            </span>
-            <span>
-              ${(purchaseData.purchaseResult?.totalAmount || 0).toFixed(2)}
-            </span>
-          </div>
+          {purchaseData.purchaseResult?.tiers && purchaseData.purchaseResult.tiers.length > 0 ? (
+            // Display multiple tiers
+            purchaseData.purchaseResult.tiers.map((tier, index) => (
+              <div key={index} className='flex justify-between mb-2'>
+                <span>
+                  {tier.tierName} x{tier.quantity}
+                </span>
+                <span>
+                  ${(tier.price * tier.quantity).toFixed(2)}
+                </span>
+              </div>
+            ))
+          ) : (
+            // Fallback to single tier display for backward compatibility
+            <div className='flex justify-between mb-2'>
+              <span>
+                {purchaseData.purchaseResult?.tier || 'General Admission'} x
+                {purchaseData.purchaseResult?.quantity || 1}
+              </span>
+              <span>
+                ${(purchaseData.purchaseResult?.totalAmount || 0).toFixed(2)}
+              </span>
+            </div>
+          )}
 
           <div className='border-t border-gray-600 pt-3 mt-3'>
             <div className='flex justify-between text-xl font-bold'>

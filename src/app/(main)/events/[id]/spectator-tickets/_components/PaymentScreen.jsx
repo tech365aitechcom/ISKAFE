@@ -310,14 +310,21 @@ const PaymentScreen = ({
 
       console.log('Tickets to process:', purchaseData.tickets)
 
-      // Get the first ticket (assuming single ticket type purchase for now)
-      const firstTicket = purchaseData.tickets[0]
+      // Filter tickets with quantity > 0
+      const ticketsWithQuantity = purchaseData.tickets.filter(ticket => ticket.quantity > 0)
+      
+      if (ticketsWithQuantity.length === 0) {
+        throw new Error('No tickets selected for purchase')
+      }
 
       // Prepare the purchase data according to the backend API
       const purchasePayload = {
         eventId: purchaseData.eventId,
-        tierName: firstTicket.tierName || firstTicket.name,
-        quantity: firstTicket.quantity,
+        tickets: ticketsWithQuantity.map(ticket => ({
+          tierName: ticket.tierName || ticket.name,
+          quantity: ticket.quantity,
+          price: ticket.price
+        })),
         buyerType: purchaseData.isGuest ? 'guest' : 'user',
         paymentMethod: paymentMethod,
         paymentStatus: 'Paid', // Set as paid since we're processing payment
@@ -409,8 +416,7 @@ const PaymentScreen = ({
       // Double check all required fields are present for the backend API
       const requiredFields = [
         'eventId',
-        'tierName',
-        'quantity',
+        'tickets',
         'buyerType',
         'paymentMethod',
       ]
@@ -421,6 +427,12 @@ const PaymentScreen = ({
       if (missingFields.length > 0) {
         console.error('Missing required fields in payload:', missingFields)
         throw new Error(`Missing required fields: ${missingFields.join(', ')}`)
+      }
+
+      // Validate tickets array
+      if (!Array.isArray(purchasePayload.tickets) || purchasePayload.tickets.length === 0) {
+        console.error('Tickets must be a non-empty array')
+        throw new Error('At least one ticket must be selected')
       }
 
       // Check buyer-specific required fields

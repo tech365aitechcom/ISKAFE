@@ -57,7 +57,9 @@ const MyPurchases = () => {
                 'Purchase spectator tickets for the upcoming event',
               purchaseDateTime: item.createdAt,
               transactionType: 'Spectator Tickets',
-              productName: `${item.tier} Ticket x${item.quantity}`,
+              productName: item.tiers && item.tiers.length > 1 
+                ? `Multiple Tiers (${item.quantity} total tickets)`
+                : `${item.tier} Ticket x${item.quantity}`,
               eventDate: item.event?.startDate,
               amount: item.totalAmount,
               details: {
@@ -66,7 +68,9 @@ const MyPurchases = () => {
                   item.paymentMethod === 'cash'
                     ? `Cash Payment (${item.cashCode})`
                     : 'Credit Card',
-                itemName: `${item.tier} Tickets x${item.quantity}`,
+                itemName: item.tiers && item.tiers.length > 1 
+                  ? item.tiers.map(t => `${t.tierName} (${t.quantity})`).join(' + ')
+                  : `${item.tier} Tickets x${item.quantity}`,
                 eventName: item.event?.name || 'Unknown Event',
                 entryType: 'Spectator',
                 purchaseStatus: item.paymentStatus,
@@ -79,13 +83,19 @@ const MyPurchases = () => {
                 ticketCode: item.ticketCode,
                 redemptionStatus: item.redemptionStatus,
                 redeemedAt: item.redeemedAt,
-                tickets: [
-                  {
-                    tierName: item.tier,
-                    quantity: item.quantity,
-                    price: item.totalAmount / item.quantity,
-                  },
-                ],
+                tickets: item.tiers && item.tiers.length > 0 
+                  ? item.tiers.map(tier => ({
+                      tierName: tier.tierName,
+                      quantity: tier.quantity,
+                      price: tier.price,
+                    }))
+                  : [
+                      {
+                        tierName: item.tier,
+                        quantity: item.quantity,
+                        price: item.totalAmount / item.quantity,
+                      },
+                    ],
               },
             })
           )

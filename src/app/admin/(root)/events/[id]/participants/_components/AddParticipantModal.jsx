@@ -51,14 +51,30 @@ export default function AddParticipantModal({
     // For name fields, filter out invalid characters in real-time
     let processedValue = value
     if (name === 'firstName' || name === 'lastName') {
-      // Only allow letters, spaces, hyphens, and apostrophes
-      processedValue = value.replace(/[^a-zA-Z\s\-']/g, '')
+      // Allow letters, spaces, hyphens, apostrophes, and international characters
+      processedValue = value.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ\s\-']/g, '')
+    } else if (name === 'phoneNumber') {
+      // Only allow digits, spaces, hyphens, parentheses, and plus sign
+      processedValue = value.replace(/[^0-9\s\-\(\)\+]/g, '')
+    } else if (name === 'email') {
+      // Convert email to lowercase for consistency
+      processedValue = value.toLowerCase().trim()
     }
 
     setFormData((prev) => ({
       ...prev,
       [name]: processedValue,
     }))
+
+    // Real-time validation for specific fields (from signup)
+    if (name === 'firstName' || name === 'lastName') {
+      validateNameField(name, processedValue)
+    } else if (name === 'email') {
+      validateEmailField(processedValue)
+    } else if (name === 'phoneNumber') {
+      validatePhoneNumberField(processedValue)
+    }
+
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({
@@ -68,41 +84,119 @@ export default function AddParticipantModal({
     }
   }
 
+  // Validation helper functions (from signup)
+  const validateLettersOnly = (text) => {
+    const trimmed = text.trim();
+    // Reject empty, only-spaces, or multiple consecutive spaces
+    if (!trimmed || /\s{2,}/.test(trimmed)) return false;
+    return /^[A-Za-zÀ-ÖØ-öø-ÿ'-]+(?: [A-Za-zÀ-ÖØ-öø-ÿ'-]+)*$/.test(trimmed);
+  };
+
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validateMobileNumber = (number) => {
+    // Check if number contains only digits and has reasonable length (10-12 digits for our use case)
+    const cleanNumber = number.replace(/[\s\-\(\)\+]/g, '');
+    return /^\d{10,12}$/.test(cleanNumber);
+  };
+
+  // Individual field validation functions
+  const validateNameField = (fieldName, value) => {
+    if (value && !validateLettersOnly(value)) {
+      const fieldDisplayName =
+        fieldName === 'firstName' ? 'First Name' : 'Last Name';
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: `${fieldDisplayName} should contain only letters and spaces`,
+      }));
+    } else if (value && (value.trim().length < 2 || value.trim().length > 50)) {
+      const fieldDisplayName =
+        fieldName === 'firstName' ? 'First Name' : 'Last Name';
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: `${fieldDisplayName} must be between 2-50 characters`,
+      }));
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: '',
+      }));
+    }
+  };
+
+  const validateEmailField = (email) => {
+    if (email && !validateEmail(email)) {
+      setErrors((prev) => ({
+        ...prev,
+        email: 'Please enter a valid email address',
+      }));
+    } else if (email && email.length > 100) {
+      setErrors((prev) => ({
+        ...prev,
+        email: 'Email address must not exceed 100 characters',
+      }));
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        email: '',
+      }));
+    }
+  };
+
+  const validatePhoneNumberField = (phoneNumber) => {
+    if (phoneNumber && !validateMobileNumber(phoneNumber)) {
+      setErrors((prev) => ({
+        ...prev,
+        phoneNumber: 'Phone number should contain 10-12 digits only',
+      }));
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        phoneNumber: '',
+      }));
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {}
 
-    // Name validation regex - only alphabetic characters, spaces, hyphens, and apostrophes
-    const nameRegex = /^[a-zA-Z\s\-']+$/
-
-    // Required fields
+    // Required fields validation using signup logic
     if (!formData.firstName?.trim()) {
       newErrors.firstName = 'First name is required'
-    } else if (!nameRegex.test(formData.firstName.trim())) {
-      newErrors.firstName =
-        'First name can only contain letters, spaces, hyphens, and apostrophes'
+    } else if (!validateLettersOnly(formData.firstName)) {
+      newErrors.firstName = 'First name should contain only letters and spaces'
+    } else if (formData.firstName.trim().length < 2 || formData.firstName.trim().length > 50) {
+      newErrors.firstName = 'First name must be between 2-50 characters'
     }
 
     if (!formData.lastName?.trim()) {
       newErrors.lastName = 'Last name is required'
-    } else if (!nameRegex.test(formData.lastName.trim())) {
-      newErrors.lastName =
-        'Last name can only contain letters, spaces, hyphens, and apostrophes'
+    } else if (!validateLettersOnly(formData.lastName)) {
+      newErrors.lastName = 'Last name should contain only letters and spaces'
+    } else if (formData.lastName.trim().length < 2 || formData.lastName.trim().length > 50) {
+      newErrors.lastName = 'Last name must be between 2-50 characters'
     }
+
     if (!formData.email?.trim()) {
       newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    } else if (!validateEmail(formData.email.trim())) {
       newErrors.email = 'Please enter a valid email address'
+    } else if (formData.email.trim().length > 100) {
+      newErrors.email = 'Email address must not exceed 100 characters'
     }
+
     if (!formData.phoneNumber?.trim()) {
       newErrors.phoneNumber = 'Phone number is required'
-    } else if (
-      !/^[\d\s\-\(\)\+]{10,15}$/.test(formData.phoneNumber.replace(/\s/g, ''))
-    ) {
-      newErrors.phoneNumber = 'Please enter a valid phone number (10-15 digits)'
+    } else if (!validateMobileNumber(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Phone number should contain 10-12 digits only'
     }
+
     if (!formData.gender) {
       newErrors.gender = 'Gender is required'
     }
+
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = 'Date of birth is required'
     } else {
@@ -132,19 +226,59 @@ export default function AddParticipantModal({
   }
 
   const handleAddParticipant = async () => {
-    // Validate form data
-    if (!validateForm()) {
-      return
-    }
-
     try {
       setAdding(true)
 
+      const trimmedFirstName = formData.firstName.trim()
+      const trimmedLastName = formData.lastName.trim()
+      const trimmedEmail = formData.email.trim()
+
+      // Additional validation before submission (from signup logic)
+      if (!validateLettersOnly(trimmedFirstName)) {
+        enqueueSnackbar(
+          'First name is invalid. Avoid multiple or trailing spaces.',
+          { variant: 'warning' }
+        )
+        setAdding(false)
+        return
+      }
+
+      if (!validateLettersOnly(trimmedLastName)) {
+        enqueueSnackbar(
+          'Last name is invalid. Avoid multiple or trailing spaces.',
+          { variant: 'warning' }
+        )
+        setAdding(false)
+        return
+      }
+
+      if (!validateEmail(trimmedEmail)) {
+        enqueueSnackbar('Please enter a valid email address', {
+          variant: 'warning',
+        })
+        setAdding(false)
+        return
+      }
+
+      if (!validateMobileNumber(formData.phoneNumber)) {
+        enqueueSnackbar('Phone number should contain 10-12 digits only', {
+          variant: 'warning',
+        })
+        setAdding(false)
+        return
+      }
+
+      // Final form validation
+      if (!validateForm()) {
+        setAdding(false)
+        return
+      }
+
       const registrationData = {
         registrationType: registrationType,
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim(),
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        email: trimmedEmail,
         phoneNumber: formData.phoneNumber?.trim() || '',
         dateOfBirth: formData.dateOfBirth || '',
         gender: formData.gender || '',
@@ -273,6 +407,7 @@ export default function AddParticipantModal({
                   value={formData.firstName}
                   onChange={handleInputChange}
                   placeholder='Enter first name'
+                  maxLength={50}
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none ${
                     errors.firstName
                       ? 'border-red-500 focus:border-red-500'
@@ -298,6 +433,7 @@ export default function AddParticipantModal({
                   value={formData.lastName}
                   onChange={handleInputChange}
                   placeholder='Enter last name'
+                  maxLength={50}
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none ${
                     errors.lastName
                       ? 'border-red-500 focus:border-red-500'
@@ -343,7 +479,8 @@ export default function AddParticipantModal({
                   name='phoneNumber'
                   value={formData.phoneNumber}
                   onChange={handleInputChange}
-                  placeholder='Enter phone number'
+                  placeholder='e.g., +1 (555) 123-4567 or 555-123-4567'
+                  maxLength={12}
                   className={`w-full bg-[#07091D] border rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none ${
                     errors.phoneNumber
                       ? 'border-red-500 focus:border-red-500'
@@ -377,6 +514,7 @@ export default function AddParticipantModal({
                   <option value=''>Select Gender</option>
                   <option value='Male'>Male</option>
                   <option value='Female'>Female</option>
+                  <option value='Other'>Other</option>
                 </select>
                 {errors.gender && (
                   <p className='text-red-400 text-xs mt-1'>{errors.gender}</p>

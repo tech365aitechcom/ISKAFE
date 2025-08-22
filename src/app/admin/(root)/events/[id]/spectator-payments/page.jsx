@@ -89,9 +89,14 @@ const SpectatorPaymentsPage = () => {
             : item.guestDetails
             ? item.guestDetails.email
             : '',
-          ticketDescription: `${item.tier} - Event Ticket`,
+          ticketDescription: item.tiers && item.tiers.length > 1 
+            ? item.tiers.map(t => `${t.tierName} (${t.quantity})`).join(' + ')
+            : `${item.tier}`,
           quantity: item.quantity,
           unitPrice: item.totalAmount / item.quantity,
+          tierBreakdown: item.tiers && item.tiers.length > 0 
+            ? item.tiers.map(t => `${t.quantity}@${t.price.toFixed(2)}`).join('\n')
+            : `${item.quantity}@${(item.totalAmount / item.quantity).toFixed(2)}`,
           fee: item.fee || 0,
           total: item.totalAmount,
           net: item.netRevenue,
@@ -151,7 +156,7 @@ const SpectatorPaymentsPage = () => {
       payment.payer,
       payment.email,
       payment.ticketDescription,
-      `${payment.quantity} @ $${payment.unitPrice.toFixed(2)}`,
+      payment.tierBreakdown,
       `$${payment.fee.toFixed(2)}`,
       `$${payment.total.toFixed(2)}`,
       `$${payment.net.toFixed(2)}`,
@@ -206,7 +211,7 @@ const SpectatorPaymentsPage = () => {
         payment.payer,
         payment.email,
         payment.ticketDescription,
-        `${payment.quantity} @ $${payment.unitPrice.toFixed(2)}`,
+        payment.tierBreakdown,
         `$${payment.fee.toFixed(2)}`,
         `$${payment.total.toFixed(2)}`,
         `$${payment.net.toFixed(2)}`,
@@ -518,7 +523,9 @@ const SpectatorPaymentsPage = () => {
                         <td className='p-4'>{payment.email}</td>
                         <td className='p-4'>{payment.ticketDescription}</td>
                         <td className='p-4'>
-                          {payment.quantity} @ ${payment.unitPrice.toFixed(2)}
+                          <div className='whitespace-pre-line'>
+                            {payment.tierBreakdown}
+                          </div>
                         </td>
                         <td className='p-4'>${payment.fee.toFixed(2)}</td>
                         <td className='p-4'>${payment.total.toFixed(2)}</td>
