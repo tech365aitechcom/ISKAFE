@@ -287,15 +287,8 @@ export default function CompetitorList() {
   }
 
   const handleViewRegistration = (competitor) => {
-    console.log('=== Opening Participant Detail Modal ===')
-    console.log('Selected competitor:', competitor)
-    console.log(
-      'Modal will show for:',
-      `${competitor.firstName} ${competitor.lastName}`
-    )
     setSelectedCompetitor(competitor)
     setShowDetailModal(true)
-    console.log('Modal state set to true, showDetailModal:', true)
   }
 
   const handleTabChange = (tab) => {

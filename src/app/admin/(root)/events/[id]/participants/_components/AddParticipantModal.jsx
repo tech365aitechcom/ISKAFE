@@ -86,78 +86,78 @@ export default function AddParticipantModal({
 
   // Validation helper functions (from signup)
   const validateLettersOnly = (text) => {
-    const trimmed = text.trim();
+    const trimmed = text.trim()
     // Reject empty, only-spaces, or multiple consecutive spaces
-    if (!trimmed || /\s{2,}/.test(trimmed)) return false;
-    return /^[A-Za-zÀ-ÖØ-öø-ÿ'-]+(?: [A-Za-zÀ-ÖØ-öø-ÿ'-]+)*$/.test(trimmed);
-  };
+    if (!trimmed || /\s{2,}/.test(trimmed)) return false
+    return /^[A-Za-zÀ-ÖØ-öø-ÿ'-]+(?: [A-Za-zÀ-ÖØ-öø-ÿ'-]+)*$/.test(trimmed)
+  }
 
   const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
 
   const validateMobileNumber = (number) => {
     // Check if number contains only digits and has reasonable length (10-12 digits for our use case)
-    const cleanNumber = number.replace(/[\s\-\(\)\+]/g, '');
-    return /^\d{10,12}$/.test(cleanNumber);
-  };
+    const cleanNumber = number.replace(/[\s\-\(\)\+]/g, '')
+    return /^\d{10,12}$/.test(cleanNumber)
+  }
 
   // Individual field validation functions
   const validateNameField = (fieldName, value) => {
     if (value && !validateLettersOnly(value)) {
       const fieldDisplayName =
-        fieldName === 'firstName' ? 'First Name' : 'Last Name';
+        fieldName === 'firstName' ? 'First Name' : 'Last Name'
       setErrors((prev) => ({
         ...prev,
         [fieldName]: `${fieldDisplayName} should contain only letters and spaces`,
-      }));
+      }))
     } else if (value && (value.trim().length < 2 || value.trim().length > 50)) {
       const fieldDisplayName =
-        fieldName === 'firstName' ? 'First Name' : 'Last Name';
+        fieldName === 'firstName' ? 'First Name' : 'Last Name'
       setErrors((prev) => ({
         ...prev,
         [fieldName]: `${fieldDisplayName} must be between 2-50 characters`,
-      }));
+      }))
     } else {
       setErrors((prev) => ({
         ...prev,
         [fieldName]: '',
-      }));
+      }))
     }
-  };
+  }
 
   const validateEmailField = (email) => {
     if (email && !validateEmail(email)) {
       setErrors((prev) => ({
         ...prev,
         email: 'Please enter a valid email address',
-      }));
+      }))
     } else if (email && email.length > 100) {
       setErrors((prev) => ({
         ...prev,
         email: 'Email address must not exceed 100 characters',
-      }));
+      }))
     } else {
       setErrors((prev) => ({
         ...prev,
         email: '',
-      }));
+      }))
     }
-  };
+  }
 
   const validatePhoneNumberField = (phoneNumber) => {
     if (phoneNumber && !validateMobileNumber(phoneNumber)) {
       setErrors((prev) => ({
         ...prev,
         phoneNumber: 'Phone number should contain 10-12 digits only',
-      }));
+      }))
     } else {
       setErrors((prev) => ({
         ...prev,
         phoneNumber: '',
-      }));
+      }))
     }
-  };
+  }
 
   const validateForm = () => {
     const newErrors = {}
@@ -167,7 +167,10 @@ export default function AddParticipantModal({
       newErrors.firstName = 'First name is required'
     } else if (!validateLettersOnly(formData.firstName)) {
       newErrors.firstName = 'First name should contain only letters and spaces'
-    } else if (formData.firstName.trim().length < 2 || formData.firstName.trim().length > 50) {
+    } else if (
+      formData.firstName.trim().length < 2 ||
+      formData.firstName.trim().length > 50
+    ) {
       newErrors.firstName = 'First name must be between 2-50 characters'
     }
 
@@ -175,7 +178,10 @@ export default function AddParticipantModal({
       newErrors.lastName = 'Last name is required'
     } else if (!validateLettersOnly(formData.lastName)) {
       newErrors.lastName = 'Last name should contain only letters and spaces'
-    } else if (formData.lastName.trim().length < 2 || formData.lastName.trim().length > 50) {
+    } else if (
+      formData.lastName.trim().length < 2 ||
+      formData.lastName.trim().length > 50
+    ) {
       newErrors.lastName = 'Last name must be between 2-50 characters'
     }
 
@@ -283,10 +289,10 @@ export default function AddParticipantModal({
         dateOfBirth: formData.dateOfBirth || '',
         gender: formData.gender || '',
         status: 'Verified',
-        paymentStatus: 'Paid',
+        paymentStatus: 'Pending',
         paymentMethod: 'cash',
-        waiverAgreed: true,
-        legalDisclaimerAccepted: true,
+        waiverAgreed: false,
+        legalDisclaimerAccepted: false,
         medicalExamDone: false,
         checkInStatus: 'Not Checked',
         event: eventId,
