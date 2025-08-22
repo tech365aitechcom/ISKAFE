@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import SelectFromList from './_components/SelectFromList'
 import SpecifyEventID from './_components/SpecifyEventID'
 import RequestCode from './_components/RequestCode'
-import { API_BASE_URL } from '../../../../constants'
+import { API_BASE_URL, apiConstants } from '../../../../constants'
 import useStore from '../../../../stores/useStore'
 import Loader from '../../../_components/Loader'
 import { enqueueSnackbar } from 'notistack'
@@ -109,39 +109,26 @@ export default function CashPaymentAndCodesPage() {
         payload.userId = codeData.userId
       }
 
-      const response = await fetch(`${API_BASE_URL}/cash-code`, {
-        method: 'POST',
+      const response = await axios.post(`${API_BASE_URL}/cash-code`, payload, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user.token}`,
         },
-        body: JSON.stringify(payload),
       })
       console.log('Response for code creation:', response)
-      if (response.ok) {
-        const data = await response.json()
-        console.log('data for code creation:', data)
-        if (data.success) {
-          await fetchCashCodes(codeData.eventId)
-          setShowRequestDemo(false)
-          enqueueSnackbar(data.message || 'Code generated successfully', {
-            variant: 'success',
-          })
-        } else {
-          enqueueSnackbar('Error generating code: ' + data.message, {
-            variant: 'error',
-          })
-        }
+      if (response.status === apiConstants.create) {
+        await fetchCashCodes(codeData.eventId)
+        setShowRequestDemo(false)
+        enqueueSnackbar(response.data.message, {
+          variant: 'success',
+        })
       } else {
-        const errorData = await response.json().catch(() => ({}))
-        enqueueSnackbar(
-          'Error generating code: ' +
-            (errorData.message || 'Server error', { variant: 'error' })
-        )
+        enqueueSnackbar(response.data.message, {
+          variant: 'error',
+        })
       }
     } catch (err) {
-      console.error('Error generating code:', err)
-      enqueueSnackbar('Error generating code: ' + err.message, {
+      enqueueSnackbar(err.response.data.message, {
         variant: 'error',
       })
     }

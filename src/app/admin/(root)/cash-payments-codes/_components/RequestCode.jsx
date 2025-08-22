@@ -110,17 +110,40 @@ export default function RequestCode({
       setFilteredUsers([])
       return
     }
+
     const filtered = users.filter((user) => {
       const fullName = `${user.firstName || ''} ${user.middleName || ''} ${
         user.lastName || ''
       }`
         .trim()
         .toLowerCase()
-      return (
+
+      const matchesQuery =
         fullName.includes(query.toLowerCase()) ||
         (user.email && user.email.toLowerCase().includes(query.toLowerCase()))
-      )
+
+      // Role-based filtering
+      const matchesRole = () => {
+        switch (activeButton) {
+          case 'spectator':
+            // For spectators, show users with role 'user' or no specific role
+            return (
+              user.role === 'user' || !user.role || user.role === 'spectator'
+            )
+          case 'trainer':
+            // For trainers, show only users with role 'trainer'
+            return user.role === 'trainer'
+          case 'fighter':
+            // For fighters, show only users with role 'fighter'
+            return user.role === 'fighter'
+          default:
+            return true
+        }
+      }
+
+      return matchesQuery && matchesRole()
     })
+
     setFilteredUsers(filtered)
   }
 
@@ -256,6 +279,7 @@ export default function RequestCode({
     setSelectedUser(null)
     setShowUserDropdown(false)
     setFieldErrors({})
+    setFilteredUsers([])
   }
 
   const getPreviewData = () => {
