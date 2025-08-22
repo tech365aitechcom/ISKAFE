@@ -203,8 +203,8 @@ export default function FighterCheckinPage({ params }) {
                         {fighter.skillLevel || fighter.category || 'N/A'}
                       </td>
                       <td className='px-6 py-4'>
-                        {fighter.walkAroundWeight || fighter.weight || 'N/A'}{' '}
-                        {fighter.weightUnit || 'lbs'}
+                        {fighter.walkAroundWeight || fighter.weight || 'N/A'}
+                        {fighter.weightUnit}
                       </td>
                       <td className='px-6 py-4'>
                         <span
@@ -228,7 +228,10 @@ export default function FighterCheckinPage({ params }) {
                             }
                             onSuccess={fetchFighters}
                           />
-                          <DetailsButton fighter={fighter} />
+                          <DetailsButton
+                            fighter={fighter}
+                            onSuccess={fetchFighters}
+                          />
                           <NoShowButton
                             fighter={fighter}
                             onNoShow={(data) =>

@@ -116,15 +116,10 @@ function CheckinForm({ fighter, onCheckin, onSuccess }) {
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors)
 
-      // Show error notification
-      if (window.enqueueSnackbar) {
-        window.enqueueSnackbar(
-          'Please fix the validation errors before submitting',
-          { variant: 'error' }
-        )
-      } else {
-        alert('Please fix the validation errors before submitting')
-      }
+      enqueueSnackbar('Please fix the validation errors before submitting', {
+        variant: 'error',
+      })
+
       return
     }
 
@@ -134,29 +129,19 @@ function CheckinForm({ fighter, onCheckin, onSuccess }) {
       const result = await onCheckin(formData)
       if (result.success) {
         setIsModalOpen(false)
-        if (window.enqueueSnackbar) {
-          window.enqueueSnackbar('Fighter checked in successfully', {
-            variant: 'success',
-          })
-        }
+        enqueueSnackbar('Fighter checked in successfully', {
+          variant: 'success',
+        })
       } else {
-        if (window.enqueueSnackbar) {
-          window.enqueueSnackbar(result.error || 'Check-in failed', {
-            variant: 'error',
-          })
-        } else {
-          alert(result.error || 'Check-in failed')
-        }
+        enqueueSnackbar(result.error || 'Check-in failed', {
+          variant: 'error',
+        })
       }
     } catch (error) {
       console.error('Check-in error:', error)
-      if (window.enqueueSnackbar) {
-        window.enqueueSnackbar('An error occurred during check-in', {
-          variant: 'error',
-        })
-      } else {
-        alert('An error occurred during check-in')
-      }
+      enqueueSnackbar('An error occurred during check-in', {
+        variant: 'error',
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -235,7 +220,9 @@ function CheckinForm({ fighter, onCheckin, onSuccess }) {
                     </label>
                     <input
                       type='text'
-                      value={`${fighter.walkAroundWeight || fighter.weight || 'N/A'} ${fighter.weightUnit || 'lbs'}`}
+                      value={`${
+                        fighter.walkAroundWeight || fighter.weight || 'N/A'
+                      } ${fighter.weightUnit || 'lbs'}`}
                       className='w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-gray-300'
                       readOnly
                     />
@@ -251,7 +238,8 @@ function CheckinForm({ fighter, onCheckin, onSuccess }) {
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                   <div>
                     <label className='block text-sm mb-1'>
-                      Weigh-In Value (lbs) <span className='text-red-400'>*</span>
+                      Weigh-In Value (lbs){' '}
+                      <span className='text-red-400'>*</span>
                     </label>
                     <input
                       type='number'
@@ -331,7 +319,7 @@ function CheckinForm({ fighter, onCheckin, onSuccess }) {
                           ? 'border-red-500 focus:border-red-500'
                           : 'border-[#343B4F] focus:border-blue-500'
                       }`}
-                      placeholder="e.g., 68"
+                      placeholder='e.g., 68'
                       min='36'
                       max='96'
                     />

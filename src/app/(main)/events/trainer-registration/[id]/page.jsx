@@ -8,9 +8,7 @@ import {
   ChevronRight,
   CreditCard,
   DollarSign,
-  FileText,
   User,
-  MapPin,
   Users,
   PenTool,
   CheckCircle,
@@ -21,7 +19,7 @@ import { useRouter } from 'next/navigation'
 import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../../stores/useStore'
 import { fetchTournamentSettings } from '../../../../../utils/eventUtils'
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+import { API_BASE_URL, apiConstants } from '../../../../../constants'
 
 const TrainerRegistrationPage = ({ params }) => {
   const { id } = use(params)
@@ -673,41 +671,16 @@ const TrainerRegistrationPage = ({ params }) => {
         }
       )
 
-      enqueueSnackbar('Registration successful!', { variant: 'success' })
-
-      // Redirect to event details page after successful registration
-      setTimeout(() => {
-        router.push(`/events/${id}`)
-      }, 1500) // Small delay to let user see the success message
-    } catch (error) {
-      console.error('Trainer registration error:', error)
-
-      // Handle different error types
-      let errorMessage = 'Registration failed'
-
-      if (error.response) {
-        // Server responded with error status
-        const { data, status } = error.response
-        if (data.message) {
-          errorMessage = data.message
-        } else if (data.error) {
-          errorMessage = data.error
-        } else if (status === 400) {
-          errorMessage =
-            'Invalid registration data. Please check your information and try again.'
-        } else if (status === 500) {
-          errorMessage = 'Server error. Please try again later.'
-        }
-      } else if (error.request) {
-        // Network error
-        errorMessage =
-          'Network error. Please check your connection and try again.'
-      } else {
-        // Other error (including Square payment errors)
-        errorMessage = error.message
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message || 'Registration successful!', {
+          variant: 'success',
+        })
+        setTimeout(() => {
+          router.push(`/events/${id}`)
+        }, 1500)
       }
-
-      enqueueSnackbar(errorMessage, { variant: 'error' })
+    } catch (error) {
+      enqueueSnackbar(error.response.data.message, { variant: 'error' })
     } finally {
       setIsSubmitting(false)
     }

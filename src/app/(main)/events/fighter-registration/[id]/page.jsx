@@ -201,7 +201,7 @@ const FighterRegistrationPage = ({ params }) => {
 
       return { isRegistered: false }
     } catch (error) {
-      console.error('Error checking email registration:', error)
+      console.log('Error checking email registration:', error)
       return { isRegistered: false }
     } finally {
       setEmailCheckLoading(false)
@@ -236,7 +236,7 @@ const FighterRegistrationPage = ({ params }) => {
         }
       }
     } catch (error) {
-      console.error('Error fetching system record:', error)
+      console.log('Error fetching system record:', error)
       // Keep default 0-0-0 if fetch fails
     }
   }
@@ -287,7 +287,7 @@ const FighterRegistrationPage = ({ params }) => {
         const settings = await fetchTournamentSettings(id)
         setTournamentSettings(settings)
       } catch (error) {
-        console.error('Error loading tournament settings:', error)
+        console.log('Error loading tournament settings:', error)
       } finally {
         setLoading(false)
       }
@@ -356,7 +356,7 @@ const FighterRegistrationPage = ({ params }) => {
           'fighter-square-card-container'
         )
         if (!container) {
-          console.error('❌ Fighter Square card container not found in DOM')
+          console.log('❌ Fighter Square card container not found in DOM')
           return
         }
 
@@ -367,7 +367,7 @@ const FighterRegistrationPage = ({ params }) => {
         // Clear any previous errors if successful
         setErrors((prev) => ({ ...prev, square: null }))
       } catch (error) {
-        console.error('❌ Fighter Square card initialization error:', error)
+        console.log('❌ Fighter Square card initialization error:', error)
         setErrors((prev) => ({
           ...prev,
           square: `Failed to initialize payment form: ${error.message}`,
@@ -681,7 +681,7 @@ const FighterRegistrationPage = ({ params }) => {
     const result = await cardInstance.current.tokenize()
 
     if (result.status !== 'OK') {
-      console.error('❌ Square tokenization failed:', result)
+      console.log('❌ Square tokenization failed:', result)
       throw new Error(
         result.errors?.[0]?.detail ||
           'Card payment failed. Please check your card details.'
@@ -709,7 +709,7 @@ const FighterRegistrationPage = ({ params }) => {
     )
 
     if (!squareResult.success) {
-      console.error('❌ Square payment failed:', squareResult)
+      console.log('❌ Square payment failed:', squareResult)
       throw new Error(squareResult.error || 'Payment processing failed')
     }
 
@@ -821,34 +821,7 @@ const FighterRegistrationPage = ({ params }) => {
         handleCancel()
       }
     } catch (error) {
-      console.error('Fighter registration error:', error)
-
-      // Handle different error types
-      let errorMessage = 'Registration failed'
-
-      if (error.response) {
-        // Server responded with error status
-        const { data, status } = error.response
-        if (data.message) {
-          errorMessage = data.message
-        } else if (data.error) {
-          errorMessage = data.error
-        } else if (status === 400) {
-          errorMessage =
-            'Invalid registration data. Please check your information and try again.'
-        } else if (status === 500) {
-          errorMessage = 'Server error. Please try again later.'
-        }
-      } else if (error.request) {
-        // Network error
-        errorMessage =
-          'Network error. Please check your connection and try again.'
-      } else {
-        // Other error (including Square payment errors)
-        errorMessage = error.message
-      }
-
-      enqueueSnackbar(errorMessage, { variant: 'error' })
+      enqueueSnackbar(error.response.data.message, { variant: 'error' })
     } finally {
       setProcessing(false)
     }
@@ -1787,7 +1760,7 @@ const FighterRegistrationPage = ({ params }) => {
           setSquareLoaded(true)
         }}
         onError={(error) => {
-          console.error(
+          console.log(
             '❌ Square script failed to load for fighter registration:',
             error
           )
