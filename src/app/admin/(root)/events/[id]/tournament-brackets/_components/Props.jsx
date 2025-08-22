@@ -581,6 +581,36 @@ export default function Props({
     }
   }
 
+  const handleReset = async () => {
+    if (!expandedBracket) return
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/brackets/${expandedBracket._id}/reset`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+
+      if (response.ok) {
+        enqueueSnackbar('Bracket reset successfully!', {
+          variant: 'success',
+        })
+        onUpdate()
+      }
+    } catch (error) {
+      enqueueSnackbar('Error resetting bracket: ' + error.message, {
+        variant: 'error',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (!expandedBracket) return
 
@@ -955,7 +985,10 @@ export default function Props({
                 value={bracketNumber}
                 onChange={(e) => {
                   const value = e.target.value
-                  if (value === '' || (parseInt(value) > 0 && !isNaN(parseInt(value)))) {
+                  if (
+                    value === '' ||
+                    (parseInt(value) > 0 && !isNaN(parseInt(value)))
+                  ) {
                     setBracketNumber(value)
                     if (validationErrors.bracketNumber) {
                       setValidationErrors((prev) => {
@@ -1077,7 +1110,10 @@ export default function Props({
                 value={startDayNumber}
                 onChange={(e) => {
                   const value = e.target.value
-                  if (value === '' || (parseInt(value) >= 0 && !isNaN(parseInt(value)))) {
+                  if (
+                    value === '' ||
+                    (parseInt(value) >= 0 && !isNaN(parseInt(value)))
+                  ) {
                     setStartDayNumber(value)
                     if (validationErrors.startDayNumber) {
                       setValidationErrors((prev) => {
@@ -1109,7 +1145,10 @@ export default function Props({
                 value={group}
                 onChange={(e) => {
                   const value = e.target.value
-                  if (value === '' || (parseInt(value) >= 0 && !isNaN(parseInt(value)))) {
+                  if (
+                    value === '' ||
+                    (parseInt(value) >= 0 && !isNaN(parseInt(value)))
+                  ) {
                     setGroup(value)
                     if (validationErrors.group) {
                       setValidationErrors((prev) => {
@@ -1144,7 +1183,10 @@ export default function Props({
                 value={ringNumber}
                 onChange={(e) => {
                   const value = e.target.value
-                  if (value === '' || (parseInt(value) >= 0 && !isNaN(parseInt(value)))) {
+                  if (
+                    value === '' ||
+                    (parseInt(value) >= 0 && !isNaN(parseInt(value)))
+                  ) {
                     setRingNumber(value)
                     if (validationErrors.ringNumber) {
                       setValidationErrors((prev) => {
@@ -1176,7 +1218,10 @@ export default function Props({
                 value={bracketSequence}
                 onChange={(e) => {
                   const value = e.target.value
-                  if (value === '' || (parseInt(value) >= 0 && !isNaN(parseInt(value)))) {
+                  if (
+                    value === '' ||
+                    (parseInt(value) >= 0 && !isNaN(parseInt(value)))
+                  ) {
                     setBracketSequence(value)
                     if (validationErrors.bracketSequence) {
                       setValidationErrors((prev) => {
@@ -1212,7 +1257,10 @@ export default function Props({
                 value={boutRound}
                 onChange={(e) => {
                   const value = e.target.value
-                  if (value === '' || (parseInt(value) > 0 && !isNaN(parseInt(value)))) {
+                  if (
+                    value === '' ||
+                    (parseInt(value) > 0 && !isNaN(parseInt(value)))
+                  ) {
                     setBoutRound(value)
                     if (validationErrors.boutRound) {
                       setValidationErrors((prev) => {
@@ -1244,7 +1292,10 @@ export default function Props({
                 value={maxCompetitors || '4'}
                 onChange={(e) => {
                   const value = e.target.value
-                  if (value === '' || (parseInt(value) > 0 && !isNaN(parseInt(value)))) {
+                  if (
+                    value === '' ||
+                    (parseInt(value) > 0 && !isNaN(parseInt(value)))
+                  ) {
                     setMaxCompetitors(value)
                     if (validationErrors.maxCompetitors) {
                       setValidationErrors((prev) => {
@@ -1350,40 +1401,81 @@ export default function Props({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className='flex space-x-4 my-8 justify-center'>
-          {(expandedBracket === 'Open' ||
-            expandedBracket.status !== 'Started') && (
-            <ActionButton
-              icon={<Play size={14} />}
-              label='Start Bracket'
-              bg='#4CAF50'
-              onClick={handleUpdateBracketStatus}
-              disabled={loading}
-            />
+        {/* Action Buttons with Descriptions */}
+        <div className='my-8'>
+          {/* Start Bracket - Only show if status is Open */}
+          {(expandedBracket?.status === 'Open' || 
+            expandedBracket?.status !== 'Started') && (
+            <div className='text-center mb-8'>
+              <p className='text-white text-sm mb-4'>
+                Start the bracket to begin tournament matches.
+              </p>
+              <div className='flex justify-center'>
+                <ActionButton
+                  icon={<Play size={14} />}
+                  label='Start Bracket'
+                  bg='#4CAF50'
+                  onClick={handleUpdateBracketStatus}
+                  disabled={loading}
+                />
+              </div>
+            </div>
           )}
 
-          <ActionButton
-            icon={<Copy size={14} />}
-            label='Duplicate'
-            bg='#FFCA28'
-            onClick={handleDuplicate}
-            disabled={loading}
-          />
-          {/* <ActionButton
-            icon={<RotateCcw size={14} />}
-            label='Reset'
-            border
-            onClick={handleReset}
-            disabled={loading}
-          /> */}
-          <ActionButton
-            icon={<Trash size={14} color='#fff' />}
-            label='Delete'
-            bg='#F35050'
-            onClick={handleDelete}
-            disabled={loading}
-          />
+          {/* Reset Bracket */}
+          <div className='text-center mb-8'>
+            <p className='text-white text-sm mb-4'>
+              Reset the bracket back to it was before it was started.{' '}
+              <strong>NOTE: This will delete all bouts and results.</strong>
+            </p>
+            <div className='flex justify-center'>
+              <ActionButton
+                icon={<RotateCcw size={14} />}
+                label='Reset Bracket'
+                bg='#FFA500'
+                onClick={handleReset}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          {/* Duplicate Bracket */}
+          <div className='text-center mb-8'>
+            <p className='text-white text-sm mb-4'>
+              Make a copy of this bracket. Note that only the bracket will be
+              copied, but not its fighters or bouts.
+            </p>
+            <div className='flex justify-center'>
+              <ActionButton
+                icon={<Copy size={14} />}
+                label='Duplicate Bracket'
+                bg='#6B7280'
+                onClick={handleDuplicate}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          {/* Delete Bracket */}
+          <div className='text-center mb-8'>
+            <p className='text-white text-sm mb-4'>
+              Delete this bracket.{' '}
+              <strong>
+                NOTE: This will delete the bracket, its bouts, any bout results,
+                and any suspensions issued for those bouts, and it cannot be
+                undone.
+              </strong>
+            </p>
+            <div className='flex justify-center'>
+              <ActionButton
+                icon={<Trash size={14} color='#fff' />}
+                label='Delete Bracket'
+                bg='#F35050'
+                onClick={handleDelete}
+                disabled={loading}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
