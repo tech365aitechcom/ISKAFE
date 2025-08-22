@@ -311,8 +311,10 @@ const PaymentScreen = ({
       console.log('Tickets to process:', purchaseData.tickets)
 
       // Filter tickets with quantity > 0
-      const ticketsWithQuantity = purchaseData.tickets.filter(ticket => ticket.quantity > 0)
-      
+      const ticketsWithQuantity = purchaseData.tickets.filter(
+        (ticket) => ticket.quantity > 0
+      )
+
       if (ticketsWithQuantity.length === 0) {
         throw new Error('No tickets selected for purchase')
       }
@@ -320,14 +322,15 @@ const PaymentScreen = ({
       // Prepare the purchase data according to the backend API
       const purchasePayload = {
         eventId: purchaseData.eventId,
-        tickets: ticketsWithQuantity.map(ticket => ({
+        tickets: ticketsWithQuantity.map((ticket) => ({
           tierName: ticket.tierName || ticket.name,
           quantity: ticket.quantity,
-          price: ticket.price
+          price: ticket.price,
         })),
         buyerType: purchaseData.isGuest ? 'guest' : 'user',
         paymentMethod: paymentMethod,
-        paymentStatus: 'Paid', // Set as paid since we're processing payment
+        paymentStatus: 'Paid',
+        role: 'spectator',
       }
 
       // Add buyer details - ensure all required fields are present
@@ -430,7 +433,10 @@ const PaymentScreen = ({
       }
 
       // Validate tickets array
-      if (!Array.isArray(purchasePayload.tickets) || purchasePayload.tickets.length === 0) {
+      if (
+        !Array.isArray(purchasePayload.tickets) ||
+        purchasePayload.tickets.length === 0
+      ) {
         console.error('Tickets must be a non-empty array')
         throw new Error('At least one ticket must be selected')
       }

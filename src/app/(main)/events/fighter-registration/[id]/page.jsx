@@ -139,38 +139,64 @@ const FighterRegistrationPage = ({ params }) => {
 
     try {
       setEmailCheckLoading(true)
-      
+
       // Check both fighter and trainer registrations
       const [fighterResponse, trainerResponse] = await Promise.all([
-        axios.get(
-          `${API_BASE_URL}/registrations/event/${id}?registrationType=fighter&email=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${user?.token}`,
-            },
-          }
-        ).catch(() => ({ data: { success: false, data: { items: [] } } })),
-        axios.get(
-          `${API_BASE_URL}/registrations/event/${id}?registrationType=trainer&email=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${user?.token}`,
-            },
-          }
-        ).catch(() => ({ data: { success: false, data: { items: [] } } }))
+        axios
+          .get(
+            `${API_BASE_URL}/registrations/event/${id}?registrationType=fighter&email=${encodeURIComponent(
+              email
+            )}`,
+            {
+              headers: {
+                Authorization: `Bearer ${user?.token}`,
+              },
+            }
+          )
+          .catch(() => ({ data: { success: false, data: { items: [] } } })),
+        axios
+          .get(
+            `${API_BASE_URL}/registrations/event/${id}?registrationType=trainer&email=${encodeURIComponent(
+              email
+            )}`,
+            {
+              headers: {
+                Authorization: `Bearer ${user?.token}`,
+              },
+            }
+          )
+          .catch(() => ({ data: { success: false, data: { items: [] } } })),
       ])
 
-      const fighterRegistrations = fighterResponse.data.success && fighterResponse.data.data.items ? fighterResponse.data.data.items : []
-      const trainerRegistrations = trainerResponse.data.success && trainerResponse.data.data.items ? trainerResponse.data.data.items : []
+      const fighterRegistrations =
+        fighterResponse.data.success && fighterResponse.data.data.items
+          ? fighterResponse.data.data.items
+          : []
+      const trainerRegistrations =
+        trainerResponse.data.success && trainerResponse.data.data.items
+          ? trainerResponse.data.data.items
+          : []
 
-      const existingFighter = fighterRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
-      const existingTrainer = trainerRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
+      const existingFighter = fighterRegistrations.find(
+        (reg) => reg.email?.toLowerCase() === email.toLowerCase()
+      )
+      const existingTrainer = trainerRegistrations.find(
+        (reg) => reg.email?.toLowerCase() === email.toLowerCase()
+      )
 
       if (existingFighter) {
-        return { isRegistered: true, type: 'fighter', registration: existingFighter }
+        return {
+          isRegistered: true,
+          type: 'fighter',
+          registration: existingFighter,
+        }
       }
       if (existingTrainer) {
-        return { isRegistered: true, type: 'trainer', registration: existingTrainer }
+        return {
+          isRegistered: true,
+          type: 'trainer',
+          registration: existingTrainer,
+        }
       }
 
       return { isRegistered: false }
@@ -741,8 +767,9 @@ const FighterRegistrationPage = ({ params }) => {
         waiverSignature: formData.waiverSignature,
         amount: tournamentSettings?.simpleFees?.fighterFee,
         paymentMethod: formData.paymentMethod,
-        paymentStatus: 'Paid', // Set as paid since we're processing payment
+        paymentStatus: 'Paid',
         event: id,
+        role: 'fighter',
       }
 
       // Handle profile photo upload
@@ -939,7 +966,7 @@ const FighterRegistrationPage = ({ params }) => {
               {field.label}
               {field.required && <span className='text-red-500'>*</span>}
             </label>
-            <div className="relative">
+            <div className='relative'>
               <input
                 type={field.type || 'text'}
                 name={field.name}
@@ -949,12 +976,17 @@ const FighterRegistrationPage = ({ params }) => {
                   field.placeholder || `Enter ${field.label.toLowerCase()}`
                 }
                 required={field.required}
-                disabled={field.disabled || (field.name === 'email' && emailCheckLoading)}
-                className={`w-full outline-none bg-transparent text-white disabled:text-gray-400 ${field.name === 'email' && emailCheckLoading ? 'pr-6' : ''}`}
+                disabled={
+                  field.disabled ||
+                  (field.name === 'email' && emailCheckLoading)
+                }
+                className={`w-full outline-none bg-transparent text-white disabled:text-gray-400 ${
+                  field.name === 'email' && emailCheckLoading ? 'pr-6' : ''
+                }`}
               />
               {field.name === 'email' && emailCheckLoading && (
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <div className='absolute right-2 top-1/2 transform -translate-y-1/2'>
+                  <div className='animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full'></div>
                 </div>
               )}
             </div>
@@ -1558,7 +1590,8 @@ const FighterRegistrationPage = ({ params }) => {
           <button
             type='button'
             onClick={() =>
-              !processing && setFormData((prev) => ({ ...prev, paymentMethod: 'card' }))
+              !processing &&
+              setFormData((prev) => ({ ...prev, paymentMethod: 'card' }))
             }
             disabled={processing}
             className={`p-4 rounded-lg border-2 transition-colors ${
@@ -1574,7 +1607,8 @@ const FighterRegistrationPage = ({ params }) => {
           <button
             type='button'
             onClick={() =>
-              !processing && setFormData((prev) => ({ ...prev, paymentMethod: 'cash' }))
+              !processing &&
+              setFormData((prev) => ({ ...prev, paymentMethod: 'cash' }))
             }
             disabled={processing}
             className={`p-4 rounded-lg border-2 transition-colors ${
@@ -1615,7 +1649,11 @@ const FighterRegistrationPage = ({ params }) => {
           )}
 
           {squareConfigValid && squareLoaded && (
-            <div className={`bg-[#0A1330] rounded-lg p-6 ${processing ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div
+              className={`bg-[#0A1330] rounded-lg p-6 ${
+                processing ? 'opacity-50 pointer-events-none' : ''
+              }`}
+            >
               <div
                 id='fighter-square-card-container'
                 ref={cardRef}

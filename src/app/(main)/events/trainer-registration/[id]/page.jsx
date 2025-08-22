@@ -253,38 +253,64 @@ const TrainerRegistrationPage = ({ params }) => {
 
     try {
       setEmailCheckLoading(true)
-      
+
       // Check both fighter and trainer registrations
       const [fighterResponse, trainerResponse] = await Promise.all([
-        axios.get(
-          `${API_BASE_URL}/registrations/event/${id}?registrationType=fighter&email=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${user?.token}`,
-            },
-          }
-        ).catch(() => ({ data: { success: false, data: { items: [] } } })),
-        axios.get(
-          `${API_BASE_URL}/registrations/event/${id}?registrationType=trainer&email=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${user?.token}`,
-            },
-          }
-        ).catch(() => ({ data: { success: false, data: { items: [] } } }))
+        axios
+          .get(
+            `${API_BASE_URL}/registrations/event/${id}?registrationType=fighter&email=${encodeURIComponent(
+              email
+            )}`,
+            {
+              headers: {
+                Authorization: `Bearer ${user?.token}`,
+              },
+            }
+          )
+          .catch(() => ({ data: { success: false, data: { items: [] } } })),
+        axios
+          .get(
+            `${API_BASE_URL}/registrations/event/${id}?registrationType=trainer&email=${encodeURIComponent(
+              email
+            )}`,
+            {
+              headers: {
+                Authorization: `Bearer ${user?.token}`,
+              },
+            }
+          )
+          .catch(() => ({ data: { success: false, data: { items: [] } } })),
       ])
 
-      const fighterRegistrations = fighterResponse.data.success && fighterResponse.data.data.items ? fighterResponse.data.data.items : []
-      const trainerRegistrations = trainerResponse.data.success && trainerResponse.data.data.items ? trainerResponse.data.data.items : []
+      const fighterRegistrations =
+        fighterResponse.data.success && fighterResponse.data.data.items
+          ? fighterResponse.data.data.items
+          : []
+      const trainerRegistrations =
+        trainerResponse.data.success && trainerResponse.data.data.items
+          ? trainerResponse.data.data.items
+          : []
 
-      const existingFighter = fighterRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
-      const existingTrainer = trainerRegistrations.find(reg => reg.email?.toLowerCase() === email.toLowerCase())
+      const existingFighter = fighterRegistrations.find(
+        (reg) => reg.email?.toLowerCase() === email.toLowerCase()
+      )
+      const existingTrainer = trainerRegistrations.find(
+        (reg) => reg.email?.toLowerCase() === email.toLowerCase()
+      )
 
       if (existingFighter) {
-        return { isRegistered: true, type: 'fighter', registration: existingFighter }
+        return {
+          isRegistered: true,
+          type: 'fighter',
+          registration: existingFighter,
+        }
       }
       if (existingTrainer) {
-        return { isRegistered: true, type: 'trainer', registration: existingTrainer }
+        return {
+          isRegistered: true,
+          type: 'trainer',
+          registration: existingTrainer,
+        }
       }
 
       return { isRegistered: false }
@@ -605,7 +631,8 @@ const TrainerRegistrationPage = ({ params }) => {
         agreementChecked: formData.agreementChecked,
         amount: tournamentSettings?.simpleFees?.trainerFee,
         paymentMethod: formData.paymentMethod,
-        paymentStatus: 'Paid', // Set as paid since we're processing payment
+        paymentStatus: 'Paid',
+        role: 'trainer',
       }
 
       // Handle payment processing
@@ -786,7 +813,7 @@ const TrainerRegistrationPage = ({ params }) => {
               {field.label}
               <span className='text-red-500'>{field.required ? '*' : ''}</span>
             </label>
-            <div className="relative">
+            <div className='relative'>
               <input
                 type={field.type || 'text'}
                 name={field.name}
@@ -795,13 +822,18 @@ const TrainerRegistrationPage = ({ params }) => {
                 placeholder={
                   field.placeholder || `Enter ${field.label.toLowerCase()}`
                 }
-                disabled={field.disabled || (field.name === 'email' && emailCheckLoading)}
-                className={`w-full outline-none bg-transparent text-white disabled:text-gray-400 ${field.name === 'email' && emailCheckLoading ? 'pr-6' : ''}`}
+                disabled={
+                  field.disabled ||
+                  (field.name === 'email' && emailCheckLoading)
+                }
+                className={`w-full outline-none bg-transparent text-white disabled:text-gray-400 ${
+                  field.name === 'email' && emailCheckLoading ? 'pr-6' : ''
+                }`}
                 required={!field.disabled}
               />
               {field.name === 'email' && emailCheckLoading && (
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <div className='absolute right-2 top-1/2 transform -translate-y-1/2'>
+                  <div className='animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full'></div>
                 </div>
               )}
             </div>
