@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Move, Users, ArrowRight } from 'lucide-react'
+import { X, Move, Users, ArrowRight, Lock } from 'lucide-react'
 import { API_BASE_URL } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
@@ -103,11 +103,132 @@ export default function MoveFightersModal({
     setDragOverBracket(bracketId)
   }
 
+  const getBracketDropStatus = (bracket) => {
+    if (!draggedFighter) return 'normal'
+
+    const { fighter, sourceBracketId } = draggedFighter
+    const sourceBracket = bracketsWithFighters.find(
+      (b) => b._id === sourceBracketId
+    )
+
+    if (!sourceBracket) return 'normal'
+    if (sourceBracketId === bracket._id) return 'same'
+
+    const validationErrors = validateFighterMove(
+      fighter,
+      sourceBracket,
+      bracket
+    )
+    return validationErrors.length > 0 ? 'invalid' : 'valid'
+  }
+
   const handleDragLeave = (e) => {
     // Only clear drag over if we're leaving the bracket container entirely
     if (!e.currentTarget.contains(e.relatedTarget)) {
       setDragOverBracket(null)
     }
+  }
+
+  const validateFighterMove = (fighter, sourceBracket, targetBracket) => {
+    const fighterData = fighter.fighter || fighter
+    const errors = []
+
+    // Check sport match
+    if (sourceBracket.sport !== targetBracket.sport) {
+      errors.push(
+        `Fighter is from ${sourceBracket.sport} bracket but target is ${targetBracket.sport}`
+      )
+    }
+
+    // Check age class match
+    if (sourceBracket.ageClass !== targetBracket.ageClass) {
+      errors.push(
+        `Fighter is from ${sourceBracket.ageClass} bracket but target is ${targetBracket.ageClass}`
+      )
+    }
+
+    // Check rule style match
+    if (sourceBracket.ruleStyle !== targetBracket.ruleStyle) {
+      errors.push(
+        `Fighter is from ${sourceBracket.ruleStyle} bracket but target is ${targetBracket.ruleStyle}`
+      )
+    }
+
+    // Check pro class match
+    if (sourceBracket.proClass !== targetBracket.proClass) {
+      errors.push(
+        `Fighter is from ${sourceBracket.proClass} bracket but target is ${targetBracket.proClass}`
+      )
+    }
+
+    // Check discipline match (if applicable)
+    if (
+      sourceBracket.discipline &&
+      targetBracket.discipline &&
+      sourceBracket.discipline !== targetBracket.discipline
+    ) {
+      errors.push(
+        `Fighter is from ${sourceBracket.discipline} bracket but target is ${targetBracket.discipline}`
+      )
+    }
+
+    // Check weight class compatibility
+    if (sourceBracket.weightClass && targetBracket.weightClass) {
+      const sourceMin = sourceBracket.weightClass.min
+      const sourceMax = sourceBracket.weightClass.max
+      const targetMin = targetBracket.weightClass.min
+      const targetMax = targetBracket.weightClass.max
+
+      if (sourceMin !== targetMin || sourceMax !== targetMax) {
+        errors.push(
+          `Fighter is from ${sourceMin}-${sourceMax} lbs bracket but target is ${targetMin}-${targetMax} lbs`
+        )
+      }
+    }
+
+    // Check gender compatibility (infer from fighter data if available)
+    if (fighterData.gender) {
+      // This is a basic implementation - you may need to adjust based on how gender is stored
+      const fighterGender = fighterData.gender.toLowerCase()
+
+      // Simple heuristic: check if bracket names suggest gender restrictions
+      const sourceBracketName = (
+        sourceBracket.divisionTitle ||
+        sourceBracket.title ||
+        ''
+      ).toLowerCase()
+      const targetBracketName = (
+        targetBracket.divisionTitle ||
+        targetBracket.title ||
+        ''
+      ).toLowerCase()
+
+      const sourceIsMale =
+        sourceBracketName.includes('men') ||
+        sourceBracketName.includes('male') ||
+        sourceBracketName.includes('boy')
+      const sourceIsFemale =
+        sourceBracketName.includes('women') ||
+        sourceBracketName.includes('female') ||
+        sourceBracketName.includes('girl')
+      const targetIsMale =
+        targetBracketName.includes('men') ||
+        targetBracketName.includes('male') ||
+        targetBracketName.includes('boy')
+      const targetIsFemale =
+        targetBracketName.includes('women') ||
+        targetBracketName.includes('female') ||
+        targetBracketName.includes('girl')
+
+      if (
+        (sourceIsMale && targetIsFemale) ||
+        (sourceIsFemale && targetIsMale)
+      ) {
+        errors.push('Cannot move fighter between male and female brackets')
+      }
+    }
+
+    return errors
   }
 
   const handleDrop = async (e, targetBracketId) => {
@@ -126,11 +247,36 @@ export default function MoveFightersModal({
       return
     }
 
-    // Check if fighter already exists in target bracket
-    const fighterId = fighter._id || fighter.fighter?._id
+    // Get source and target brackets
+    const sourceBracket = bracketsWithFighters.find(
+      (b) => b._id === sourceBracketId
+    )
     const targetBracket = bracketsWithFighters.find(
       (b) => b._id === targetBracketId
     )
+
+    if (!sourceBracket || !targetBracket) {
+      enqueueSnackbar('Source or target bracket not found', {
+        variant: 'error',
+      })
+      return
+    }
+
+    // Validate the move
+    const validationErrors = validateFighterMove(
+      fighter,
+      sourceBracket,
+      targetBracket
+    )
+    if (validationErrors.length > 0) {
+      enqueueSnackbar(`${validationErrors[0]}`, {
+        variant: 'error',
+      })
+      return
+    }
+
+    // Check if fighter already exists in target bracket
+    const fighterId = fighter._id || fighter.fighter?._id
     const fighterAlreadyExists = targetBracket?.fighters?.some(
       (f) => (f._id || f.fighter?._id) === fighterId
     )
@@ -347,115 +493,167 @@ export default function MoveFightersModal({
             </div>
           ) : (
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 h-full overflow-y-auto'>
-              {bracketsWithFighters.map((bracket) => (
-                <div
-                  key={bracket._id}
-                  className={`relative bg-[#07091D] rounded-lg border-2 transition-all duration-200 ${
-                    dragOverBracket === bracket._id
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragEnter={(e) => handleDragEnter(e, bracket._id)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, bracket._id)}
-                >
-                  {/* Bracket Header */}
-                  <div className='p-4 border-b border-gray-600'>
-                    <div className='flex items-center justify-between mb-2'>
-                      <h3 className='font-semibold text-white truncate'>
-                        {bracket.divisionTitle || bracket.title}
-                      </h3>
-                      <span className='text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded'>
-                        #{bracket.bracketNumber || 1}
-                      </span>
-                    </div>
-                    <p className='text-sm text-gray-400 mb-1 truncate'>
-                      {bracket.ageClass} • {bracket.sport}
-                    </p>
-                    <div className='flex items-center justify-between'>
-                      <span className='text-xs text-gray-500'>
-                        {getFighterCount(bracket)} fighters
-                      </span>
-                      <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          bracket.status === 'Open'
-                            ? 'bg-blue-500/20 text-blue-300'
-                            : bracket.status === 'Started'
-                            ? 'bg-green-500/20 text-green-300'
-                            : 'bg-gray-500/20 text-gray-300'
-                        }`}
-                      >
-                        {bracket.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Fighters List */}
-                  <div className='p-4 space-y-2 max-h-96 overflow-y-auto'>
-                    {bracket.fighters && bracket.fighters.length > 0 ? (
-                      bracket.fighters.map((fighter, index) => {
-                        const fighterId = fighter._id || fighter.fighter?._id
-                        return (
-                          <div
-                            key={fighterId || index}
-                            draggable
-                            onDragStart={(e) =>
-                              handleDragStart(e, fighter, bracket._id)
-                            }
-                            onDragEnd={handleDragEnd}
-                            className={`p-3 bg-gray-800 rounded-lg cursor-move hover:bg-gray-700 transition-colors border-l-4 border-purple-500 ${
-                              draggedFighter?.fighter?._id === fighterId
-                                ? 'opacity-50'
-                                : ''
+              {bracketsWithFighters
+                .sort((a, b) => {
+                  const seqA = a.sequenceNumber || 999
+                  const seqB = b.sequenceNumber || 999
+                  return seqA - seqB
+                })
+                .map((bracket) => {
+                  const dropStatus = getBracketDropStatus(bracket)
+                  return (
+                    <div
+                      key={bracket._id}
+                      className={`relative bg-[#07091D] rounded-lg border-2 transition-all duration-200 ${
+                        dragOverBracket === bracket._id
+                          ? dropStatus === 'valid'
+                            ? 'border-green-500 bg-green-500/10'
+                            : dropStatus === 'invalid'
+                            ? 'border-red-500 bg-red-500/10'
+                            : dropStatus === 'same'
+                            ? 'border-yellow-500 bg-yellow-500/10'
+                            : 'border-purple-500 bg-purple-500/10'
+                          : dropStatus === 'invalid' && draggedFighter
+                          ? 'border-red-300 opacity-50'
+                          : dropStatus === 'same' && draggedFighter
+                          ? 'border-yellow-300 opacity-50'
+                          : 'border-gray-600 hover:border-gray-500'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragEnter={(e) => handleDragEnter(e, bracket._id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, bracket._id)}
+                    >
+                      {/* Bracket Header */}
+                      <div className='p-4 border-b border-gray-600'>
+                        <div className='flex items-center justify-between mb-2'>
+                          <h3 className='font-semibold text-white truncate'>
+                            {bracket.divisionTitle || bracket.title}
+                          </h3>
+                          <span className='text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded'>
+                            #{bracket.bracketNumber || 1}
+                          </span>
+                        </div>
+                        <p className='text-sm text-gray-400 mb-1 truncate'>
+                          {bracket.ageClass} • {bracket.sport}
+                        </p>
+                        <div className='flex items-center justify-between'>
+                          <span className='text-xs text-gray-500'>
+                            {getFighterCount(bracket)} fighters
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${
+                              bracket.status === 'Open'
+                                ? 'bg-blue-500/20 text-blue-300'
+                                : bracket.status === 'Started'
+                                ? 'bg-green-500/20 text-green-300'
+                                : 'bg-gray-500/20 text-gray-300'
                             }`}
                           >
-                            <div className='flex items-center justify-between'>
-                              <div className='flex items-center gap-2'>
-                                <span className='text-xs bg-purple-600 text-white px-2 py-1 rounded font-mono'>
-                                  #{fighter.seed || index + 1}
-                                </span>
-                                <span className='text-sm font-medium text-white'>
-                                  {getFighterName(fighter)}
-                                </span>
-                              </div>
-                              <Move size={14} className='text-gray-500' />
-                            </div>
-                            {fighter.fighter?.email || fighter.email ? (
-                              <p className='text-xs text-gray-400 mt-1 ml-8'>
-                                {fighter.fighter?.email || fighter.email}
-                              </p>
-                            ) : null}
-                          </div>
-                        )
-                      })
-                    ) : (
-                      <div className='text-center py-8'>
-                        <Users
-                          className='mx-auto text-gray-600 mb-2'
-                          size={32}
-                        />
-                        <p className='text-gray-500 text-sm'>
-                          No fighters in this bracket
-                        </p>
-                        <p className='text-gray-600 text-xs mt-1'>
-                          Drop fighters here to add them
-                        </p>
+                            {bracket.status}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Drop Zone Indicator */}
-                  {dragOverBracket === bracket._id && draggedFighter && (
-                    <div className='absolute inset-0 bg-purple-500/20 border-2 border-purple-500 border-dashed rounded-lg flex items-center justify-center'>
-                      <div className='bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2'>
-                        <ArrowRight size={16} />
-                        <span>Drop to move fighter here</span>
+                      {/* Fighters List */}
+                      <div className='p-4 space-y-2 max-h-96 overflow-y-auto'>
+                        {bracket.fighters && bracket.fighters.length > 0 ? (
+                          bracket.fighters.map((fighter, index) => {
+                            const fighterId =
+                              fighter._id || fighter.fighter?._id
+                            const canDrag = true
+                            return (
+                              <div
+                                key={fighterId || index}
+                                draggable={canDrag}
+                                onDragStart={(e) =>
+                                  canDrag
+                                    ? handleDragStart(e, fighter, bracket._id)
+                                    : e.preventDefault()
+                                }
+                                onDragEnd={handleDragEnd}
+                                className={`p-3 bg-gray-800 rounded-lg cursor-move hover:bg-gray-700 transition-colors border-l-4 border-purple-500 ${
+                                  draggedFighter?.fighter?._id === fighterId
+                                    ? 'opacity-50'
+                                    : ''
+                                }`}
+                                title='Drag to move fighter'
+                              >
+                                <div className='flex items-center justify-between'>
+                                  <div className='flex items-center gap-2'>
+                                    <span className='text-xs bg-purple-600 text-white px-2 py-1 rounded font-mono'>
+                                      #{fighter.seed || index + 1}
+                                    </span>
+                                    <span className='text-sm font-medium text-white'>
+                                      {getFighterName(fighter)}
+                                    </span>
+                                  </div>
+                                  <Move size={14} className='text-gray-500' />
+                                </div>
+                                {fighter.fighter?.email || fighter.email ? (
+                                  <p className='text-xs text-gray-400 mt-1 ml-8'>
+                                    {fighter.fighter?.email || fighter.email}
+                                  </p>
+                                ) : null}
+                              </div>
+                            )
+                          })
+                        ) : (
+                          <div className='text-center py-8'>
+                            <Users
+                              className='mx-auto text-gray-600 mb-2'
+                              size={32}
+                            />
+                            <p className='text-gray-500 text-sm'>
+                              No fighters in this bracket
+                            </p>
+                            <p className='text-gray-600 text-xs mt-1'>
+                              Drop fighters here to add them
+                            </p>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Drop Zone Indicator */}
+                      {dragOverBracket === bracket._id && draggedFighter && (
+                        <div
+                          className={`absolute inset-0 border-2 border-dashed rounded-lg flex items-center justify-center ${
+                            dropStatus === 'valid'
+                              ? 'bg-green-500/20 border-green-500'
+                              : dropStatus === 'invalid'
+                              ? 'bg-red-500/20 border-red-500'
+                              : dropStatus === 'same'
+                              ? 'bg-yellow-500/20 border-yellow-500'
+                              : 'bg-purple-500/20 border-purple-500'
+                          }`}
+                        >
+                          <div
+                            className={`px-4 py-2 rounded-lg flex items-center gap-2 text-white ${
+                              dropStatus === 'valid'
+                                ? 'bg-green-600'
+                                : dropStatus === 'invalid'
+                                ? 'bg-red-600'
+                                : dropStatus === 'same'
+                                ? 'bg-yellow-600'
+                                : 'bg-purple-600'
+                            }`}
+                          >
+                            <ArrowRight size={16} />
+                            <span>
+                              {dropStatus === 'valid'
+                                ? 'Drop to move fighter here'
+                                : dropStatus === 'invalid'
+                                ? 'Cannot move fighter here'
+                                : dropStatus === 'same'
+                                ? 'Same bracket'
+                                : 'Drop to move fighter here'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
+                  )
+                })}
             </div>
           )}
         </div>

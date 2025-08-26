@@ -11,6 +11,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
   const [selectedFighters, setSelectedFighters] = useState(purchaseData.selectedFighters || [])
   const [loading, setLoading] = useState(false)
   const [searchResults, setSearchResults] = useState([])
+  const [showAllFighters, setShowAllFighters] = useState(false)
 
   console.log('FighterSelectionScreen rendered with:', { eventDetails, purchaseData })
 
@@ -117,6 +118,30 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
 
   return (
     <div className="bg-[#1b0c2e] rounded-lg p-8">
+      <style jsx>{`
+        .fighter-scroll-container {
+          -webkit-overflow-scrolling: touch;
+          overflow-scrolling: touch;
+        }
+        
+        .fighter-scroll-container::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .fighter-scroll-container::-webkit-scrollbar-track {
+          background: #1F2937;
+          border-radius: 4px;
+        }
+        
+        .fighter-scroll-container::-webkit-scrollbar-thumb {
+          background: #4B5563;
+          border-radius: 4px;
+        }
+        
+        .fighter-scroll-container::-webkit-scrollbar-thumb:hover {
+          background: #6B7280;
+        }
+      `}</style>
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold mb-2">Support Your Fighters</h2>
         <p className="text-gray-400">
@@ -140,7 +165,7 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
         
         {/* Search Results */}
         {searchResults.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-[#0A1330] border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-10 w-full mt-1 bg-[#0A1330] border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto fighter-scroll-container">
             {searchResults.map((fighter, index) => (
               <div
                 key={`search-${getFighterUniqueId(fighter)}-${index}`}
@@ -200,31 +225,64 @@ const FighterSelectionScreen = ({ eventDetails, onNext, onBack, onCancel, purcha
       {/* All Registered Fighters */}
       {fighters.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-4">All Registered Fighters</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
-            {fighters.map((fighter, index) => {
-              const fighterUniqueId = getFighterUniqueId(fighter)
-              const isSelected = selectedFighters.find(f => 
-                getFighterUniqueId(f) === fighterUniqueId
-              )
-              
-              return (
-                <div
-                  key={`all-${fighterUniqueId}-${index}`}
-                  onClick={() => isSelected ? removeFighter(fighterUniqueId) : addFighter(fighter)}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    isSelected 
-                      ? 'bg-purple-600 hover:bg-purple-700' 
-                      : 'bg-[#0A1330] hover:bg-[#1b0c2e]'
-                  }`}
-                >
-                  <p className="font-medium text-sm">{fighter.firstName} {fighter.lastName}</p>
-                  <p className="text-xs text-gray-400">
-                    {fighter.weightClass} • {fighter.country}
-                  </p>
-                </div>
-              )
-            })}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">All Registered Fighters ({fighters.length})</h3>
+            {fighters.length > 12 && (
+              <button
+                onClick={() => setShowAllFighters(!showAllFighters)}
+                className="text-purple-400 hover:text-purple-300 text-sm underline"
+              >
+                {showAllFighters ? 'Show Less' : 'Show All'}
+              </button>
+            )}
+          </div>
+          <div className="border border-gray-600 rounded-lg bg-[#0A1330] p-2">
+            <div 
+              className={`fighter-scroll-container grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto ${
+                showAllFighters || fighters.length <= 12 ? 'max-h-none' : 'max-h-80'
+              }`}
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#4B5563 #1F2937',
+                minHeight: '200px',
+              }}
+            >
+              {fighters.map((fighter, index) => {
+                const fighterUniqueId = getFighterUniqueId(fighter)
+                const isSelected = selectedFighters.find(f => 
+                  getFighterUniqueId(f) === fighterUniqueId
+                )
+                
+                return (
+                  <div
+                    key={`all-${fighterUniqueId}-${index}`}
+                    onClick={() => isSelected ? removeFighter(fighterUniqueId) : addFighter(fighter)}
+                    className={`p-3 rounded-lg cursor-pointer transition-colors border ${
+                      isSelected 
+                        ? 'bg-purple-600 hover:bg-purple-700 border-purple-400' 
+                        : 'bg-[#1b0c2e] hover:bg-[#2a1540] border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    <p className="font-medium text-sm">{fighter.firstName} {fighter.lastName}</p>
+                    <p className="text-xs text-gray-400">
+                      {fighter.weightClass} • {fighter.country}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          <div className="mt-2 text-center">
+            <p className="text-xs text-gray-500">
+              {fighters.length > 12 && !showAllFighters 
+                ? 'Scroll to see more fighters, or click "Show All" above' 
+                : `${fighters.length} fighter${fighters.length !== 1 ? 's' : ''} registered`}
+            </p>
+            {fighters.length > 12 && !showAllFighters && (
+              <div className="flex items-center justify-center mt-1">
+                <div className="text-purple-400 text-xs">↕️ Scroll or expand to see all</div>
+              </div>
+            )}
           </div>
         </div>
       )}

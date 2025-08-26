@@ -90,7 +90,7 @@ export default function RegistrationSection({
       <div className='mt-6 w-full'>
         <Link
           href={`/events/${eventId}/spectator-tickets`}
-          className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 my-2 w-full rounded-sm text-xl inline-block text-center font-semibold'
+          className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl inline-block text-center font-semibold'
         >
           Buy Spectator Tickets
         </Link>

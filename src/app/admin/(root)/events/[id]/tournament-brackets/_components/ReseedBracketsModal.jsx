@@ -16,6 +16,7 @@ export default function ReseedBracketsModal({
   const user = useStore((state) => state.user)
   const [bracketSettings, setBracketSettings] = useState({})
   const [loading, setLoading] = useState(false)
+  const [validationErrors, setValidationErrors] = useState({})
 
   // Apply filters to brackets
   const filteredBrackets = brackets.filter((bracket) => {
@@ -93,19 +94,69 @@ export default function ReseedBracketsModal({
     }
   }, [isOpen])
 
+  const validateBracket = (bracketId, settings) => {
+    const errors = {}
+    const requiredFields = [
+      'startDayNumber',
+      'group',
+      'ringNumber',
+      'bracketSequence',
+    ]
+
+    requiredFields.forEach((field) => {
+      if (!settings[field] || settings[field].toString().trim() === '') {
+        errors[field] = 'This field is required'
+      }
+    })
+
+    return errors
+  }
+
   const handleSettingChange = (bracketId, field, value) => {
-    setBracketSettings((prev) => ({
-      ...prev,
-      [bracketId]: {
-        ...prev[bracketId],
-        [field]: value,
-      },
-    }))
+    setBracketSettings((prev) => {
+      const newSettings = {
+        ...prev,
+        [bracketId]: {
+          ...prev[bracketId],
+          [field]: value,
+        },
+      }
+
+      // Validate the bracket after updating
+      const bracketErrors = validateBracket(bracketId, newSettings[bracketId])
+      setValidationErrors((prevErrors) => ({
+        ...prevErrors,
+        [bracketId]: bracketErrors,
+      }))
+
+      return newSettings
+    })
   }
 
   const handleSave = async () => {
     try {
       setLoading(true)
+
+      // Validate all brackets before saving
+      let hasErrors = false
+      const allErrors = {}
+
+      for (const [bracketId, settings] of Object.entries(bracketSettings)) {
+        const errors = validateBracket(bracketId, settings)
+        if (Object.keys(errors).length > 0) {
+          hasErrors = true
+          allErrors[bracketId] = errors
+        }
+      }
+
+      if (hasErrors) {
+        setValidationErrors(allErrors)
+        enqueueSnackbar('Please fill in all required fields', {
+          variant: 'error',
+        })
+        setLoading(false)
+        return
+      }
 
       const updates = []
 
@@ -204,17 +255,27 @@ export default function ReseedBracketsModal({
                 className='mb-6 bg-[#07091D] rounded-lg p-4'
               >
                 <div className='mb-4'>
-                  <div className='flex items-center gap-3'>
-                    <h3 className='text-lg font-semibold text-white'>
-                      {bracket.divisionTitle ||
-                        bracket.title ||
-                        `Bracket ${bracket.sequenceNumber || index + 1}`}
-                    </h3>
-                    {bracket.sequenceNumber && (
-                      <span className='px-2 py-1 bg-blue-600 text-white text-xs rounded'>
-                        Seq: {bracket.sequenceNumber}
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <h3 className='text-lg font-semibold text-white'>
+                        {bracket.divisionTitle ||
+                          bracket.title ||
+                          `Bracket ${bracket.sequenceNumber || index + 1}`}
+                      </h3>
+                      {bracket.sequenceNumber && (
+                        <span className='px-2 py-1 bg-blue-600 text-white text-xs rounded'>
+                          Seq: {bracket.sequenceNumber}
+                        </span>
+                      )}
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <span className='text-sm text-gray-400'>
+                        Registration Status:
                       </span>
-                    )}
+                      <span className='text-white text-xs'>
+                        {bracket.status}
+                      </span>
+                    </div>
                   </div>
                   <p className='text-sm text-gray-400'>
                     {bracket.sport} • {bracket.ageClass} • {bracket.discipline}
@@ -222,12 +283,11 @@ export default function ReseedBracketsModal({
                       ` • ${bracket.weightClass.min}-${bracket.weightClass.max} lbs`}
                   </p>
                 </div>
-
-                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
                   {/* Start Day Number */}
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Start Day Number
+                      Start Day Number <span className='text-red-500'>*</span>
                     </label>
                     <input
                       type='number'
@@ -240,15 +300,24 @@ export default function ReseedBracketsModal({
                           e.target.value
                         )
                       }
-                      placeholder='Optional'
-                      className='w-full px-3 py-2 bg-[#0B1739] border border-gray-600 rounded text-white placeholder-gray-400'
+                      placeholder='Enter day number'
+                      className={`w-full px-3 py-2 bg-[#0B1739] border rounded text-white placeholder-gray-400 ${
+                        validationErrors[bracket._id]?.startDayNumber
+                          ? 'border-red-500'
+                          : 'border-gray-600'
+                      }`}
                     />
+                    {validationErrors[bracket._id]?.startDayNumber && (
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors[bracket._id].startDayNumber}
+                      </p>
+                    )}
                   </div>
 
                   {/* Group */}
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Group
+                      Group <span className='text-red-500'>*</span>
                     </label>
                     <input
                       type='number'
@@ -261,15 +330,24 @@ export default function ReseedBracketsModal({
                           e.target.value
                         )
                       }
-                      placeholder='Optional'
-                      className='w-full px-3 py-2 bg-[#0B1739] border border-gray-600 rounded text-white placeholder-gray-400'
+                      placeholder='Enter group number'
+                      className={`w-full px-3 py-2 bg-[#0B1739] border rounded text-white placeholder-gray-400 ${
+                        validationErrors[bracket._id]?.group
+                          ? 'border-red-500'
+                          : 'border-gray-600'
+                      }`}
                     />
+                    {validationErrors[bracket._id]?.group && (
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors[bracket._id].group}
+                      </p>
+                    )}
                   </div>
 
                   {/* Ring Number */}
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Ring Number
+                      Ring Number <span className='text-red-500'>*</span>
                     </label>
                     <input
                       type='number'
@@ -282,15 +360,24 @@ export default function ReseedBracketsModal({
                           e.target.value
                         )
                       }
-                      placeholder='Optional'
-                      className='w-full px-3 py-2 bg-[#0B1739] border border-gray-600 rounded text-white placeholder-gray-400'
+                      placeholder='Enter ring number'
+                      className={`w-full px-3 py-2 bg-[#0B1739] border rounded text-white placeholder-gray-400 ${
+                        validationErrors[bracket._id]?.ringNumber
+                          ? 'border-red-500'
+                          : 'border-gray-600'
+                      }`}
                     />
+                    {validationErrors[bracket._id]?.ringNumber && (
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors[bracket._id].ringNumber}
+                      </p>
+                    )}
                   </div>
 
                   {/* Bracket Sequence */}
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      Bracket Sequence
+                      Bracket Sequence <span className='text-red-500'>*</span>
                     </label>
                     <input
                       type='number'
@@ -305,51 +392,18 @@ export default function ReseedBracketsModal({
                           e.target.value
                         )
                       }
-                      placeholder='Optional'
-                      className='w-full px-3 py-2 bg-[#0B1739] border border-gray-600 rounded text-white placeholder-gray-400'
+                      placeholder='Enter sequence number'
+                      className={`w-full px-3 py-2 bg-[#0B1739] border rounded text-white placeholder-gray-400 ${
+                        validationErrors[bracket._id]?.bracketSequence
+                          ? 'border-red-500'
+                          : 'border-gray-600'
+                      }`}
                     />
-                  </div>
-
-                  {/* Bout Round Duration */}
-                  <div>
-                    <label className='block text-sm font-medium text-white mb-2'>
-                      Bout Round Duration (sec)
-                    </label>
-                    <input
-                      type='number'
-                      min='1'
-                      value={bracketSettings[bracket._id]?.boutRound || ''}
-                      onChange={(e) =>
-                        handleSettingChange(
-                          bracket._id,
-                          'boutRound',
-                          e.target.value
-                        )
-                      }
-                      placeholder='90'
-                      className='w-full px-3 py-2 bg-[#0B1739] border border-gray-600 rounded text-white placeholder-gray-400'
-                    />
-                  </div>
-
-                  {/* Max Competitors */}
-                  <div>
-                    <label className='block text-sm font-medium text-white mb-2'>
-                      Max Competitors
-                    </label>
-                    <input
-                      type='number'
-                      min='2'
-                      value={bracketSettings[bracket._id]?.maxCompetitors || ''}
-                      onChange={(e) =>
-                        handleSettingChange(
-                          bracket._id,
-                          'maxCompetitors',
-                          e.target.value
-                        )
-                      }
-                      placeholder='4'
-                      className='w-full px-3 py-2 bg-[#0B1739] border border-gray-600 rounded text-white placeholder-gray-400'
-                    />
+                    {validationErrors[bracket._id]?.bracketSequence && (
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors[bracket._id].bracketSequence}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
