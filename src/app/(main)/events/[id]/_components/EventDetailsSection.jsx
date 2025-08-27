@@ -221,7 +221,8 @@ const EventDetailsSection = ({ id, eventDetails }) => {
                   Age Groups
                 </h3>
                 <p className='text-white'>
-                  {eventDetails?.ageCategories?.join(', ') || 'All Ages'}
+                  {eventDetails?.ageCategories?.join(', ') ||
+                    'Open for all ages'}
                 </p>
               </div>
               <div>
@@ -229,7 +230,8 @@ const EventDetailsSection = ({ id, eventDetails }) => {
                   Weight Classes
                 </h3>
                 <p className='text-white'>
-                  {eventDetails?.weightClasses?.join(', ') || 'Open Weight'}
+                  {eventDetails?.weightClasses?.join(', ') ||
+                    'Open for all weight class'}
                 </p>
               </div>
               <div>

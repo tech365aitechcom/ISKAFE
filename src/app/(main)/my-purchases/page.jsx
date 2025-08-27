@@ -6,6 +6,8 @@ import Loader from '../../_components/Loader'
 import useStore from '../../../stores/useStore'
 import axios from 'axios'
 import { API_BASE_URL } from '../../../constants'
+import Pagination from '../../_components/Pagination'
+import PaginationHeader from '../../_components/PaginationHeader'
 
 const MyPurchases = () => {
   const router = useRouter()
@@ -24,67 +26,72 @@ const MyPurchases = () => {
   const [showQRModal, setShowQRModal] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState(null)
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/login')
-      return
-    }
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
-    const getTransactions = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+  const getTransactions = async (page = currentPage, pageLimit = limit) => {
+    try {
+      setLoading(true)
+      setError(null)
 
-        const response = await axios.get(
-          `${API_BASE_URL}/spectator-ticket/purchase/user`,
-          {
-            headers: {
-              Authorization: `Bearer ${user?.token}`,
-            },
-          }
-        )
-        console.log('API Response:', response.data)
+      const response = await axios.get(
+        `${API_BASE_URL}/spectator-ticket/purchase/user?page=${page}&limit=${pageLimit}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
+      console.log('API Response:', response.data)
 
-        if (response.data.success && response.data.data.items) {
-          // Transform API data to match component structure
-          const transformedTransactions = response.data.data.items.map(
-            (item) => ({
-              _id: item._id,
-              pageTitle: `Spectator Ticket Purchase - ${
-                item.event?.name || 'Unknown Event'
-              }`,
-              instructionText:
-                'Purchase spectator tickets for the upcoming event',
-              purchaseDateTime: item.createdAt,
-              transactionType: 'Spectator Tickets',
-              productName: item.tiers && item.tiers.length > 1 
+      if (response.data.success && response.data.data.items) {
+        // Transform API data to match component structure
+        const transformedTransactions = response.data.data.items.map(
+          (item) => ({
+            _id: item._id,
+            pageTitle: `Spectator Ticket Purchase - ${
+              item.event?.name || 'Unknown Event'
+            }`,
+            instructionText:
+              'Purchase spectator tickets for the upcoming event',
+            purchaseDateTime: item.createdAt,
+            transactionType: 'Spectator Tickets',
+            productName:
+              item.tiers && item.tiers.length > 1
                 ? `Multiple Tiers (${item.quantity} total tickets)`
                 : `${item.tier} Ticket x${item.quantity}`,
-              eventDate: item.event?.startDate,
-              amount: item.totalAmount,
-              details: {
-                transactionId: item.transactionId || item._id,
-                paymentMethod:
-                  item.paymentMethod === 'cash'
-                    ? `Cash Payment (${item.cashCode})`
-                    : 'Credit Card',
-                itemName: item.tiers && item.tiers.length > 1 
-                  ? item.tiers.map(t => `${t.tierName} (${t.quantity})`).join(' + ')
+            eventDate: item.event?.startDate,
+            amount: item.totalAmount,
+            details: {
+              transactionId: item.transactionId || item._id,
+              paymentMethod:
+                item.paymentMethod === 'cash'
+                  ? `Cash Payment (${item.cashCode})`
+                  : 'Credit Card',
+              itemName:
+                item.tiers && item.tiers.length > 1
+                  ? item.tiers
+                      .map((t) => `${t.tierName} (${t.quantity})`)
+                      .join(' + ')
                   : `${item.tier} Tickets x${item.quantity}`,
-                eventName: item.event?.name || 'Unknown Event',
-                entryType: 'Spectator',
-                purchaseStatus: item.paymentStatus,
-                invoiceLink: true,
-                notes:
-                  item.redemptionStatus === 'Redeemed'
-                    ? 'Ticket has been used for entry'
-                    : 'Active ticket - ready to use',
-                qrCode: true,
-                ticketCode: item.ticketCode,
-                redemptionStatus: item.redemptionStatus,
-                redeemedAt: item.redeemedAt,
-                tickets: item.tiers && item.tiers.length > 0 
-                  ? item.tiers.map(tier => ({
+              eventName: item.event?.name || 'Unknown Event',
+              entryType: 'Spectator',
+              purchaseStatus: item.paymentStatus,
+              invoiceLink: true,
+              notes:
+                item.redemptionStatus === 'Redeemed'
+                  ? 'Ticket has been used for entry'
+                  : 'Active ticket - ready to use',
+              qrCode: true,
+              ticketCode: item.ticketCode,
+              redemptionStatus: item.redemptionStatus,
+              redeemedAt: item.redeemedAt,
+              tickets:
+                item.tiers && item.tiers.length > 0
+                  ? item.tiers.map((tier) => ({
                       tierName: tier.tierName,
                       quantity: tier.quantity,
                       price: tier.price,
@@ -96,28 +103,43 @@ const MyPurchases = () => {
                         price: item.totalAmount / item.quantity,
                       },
                     ],
-              },
-            })
-          )
-
-          setTransactions(transformedTransactions)
-        } else {
-          setTransactions([])
-        }
-      } catch (error) {
-        console.error('Error fetching transactions:', error)
-        setError(
-          error.response?.data?.message || 'Failed to load purchase history'
+            },
+          })
         )
 
-        // Set empty array if API fails
+        setTransactions(transformedTransactions)
+
+        // Set pagination data
+        const paginationData = response.data.data.pagination
+        setTotalItems(paginationData.totalItems)
+        setTotalPages(paginationData.totalPages)
+        setCurrentPage(paginationData.currentPage)
+      } else {
         setTransactions([])
-      } finally {
-        setLoading(false)
+        setTotalItems(0)
+        setTotalPages(0)
       }
+    } catch (error) {
+      console.error('Error fetching transactions:', error)
+      setError(
+        error.response?.data?.message || 'Failed to load purchase history'
+      )
+
+      // Set empty array if API fails
+      setTransactions([])
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
     getTransactions()
-  }, [user, router])
+  }, [user, router, currentPage, limit])
 
   console.log('Transactions:', transactions)
 
@@ -143,13 +165,19 @@ const MyPurchases = () => {
   }
 
   const handleSearch = () => {
-    console.log('Searching for:', {
-      searchKeyword,
-      transactionType,
-      dateRangeStart,
-      dateRangeEnd,
-      paymentStatus,
-    })
+    setCurrentPage(1)
+    getTransactions(1, limit)
+  }
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    getTransactions(page, limit)
+  }
+
+  const handleLimitChange = (newLimit) => {
+    setLimit(newLimit)
+    setCurrentPage(1)
+    getTransactions(1, newLimit)
   }
 
   const handleClearFilters = () => {
@@ -158,6 +186,8 @@ const MyPurchases = () => {
     setDateRangeStart('')
     setDateRangeEnd('')
     setPaymentStatus('')
+    setCurrentPage(1)
+    getTransactions(1, limit)
   }
 
   const toggleExpanded = (transactionId) => {
@@ -166,104 +196,257 @@ const MyPurchases = () => {
     )
   }
 
-  const handleDownloadInvoice = (transaction) => {
-    // Generate and download invoice PDF
-    const invoiceHTML = `
-      <html>
-      <head>
-        <title>Invoice - ${transaction.details.transactionId}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
-          .header { text-align: center; border-bottom: 3px solid #8B5CF6; padding-bottom: 20px; margin-bottom: 30px; }
-          .company-name { font-size: 28px; font-weight: bold; color: #8B5CF6; margin-bottom: 5px; }
-          .invoice-title { font-size: 24px; margin: 20px 0; }
-          .invoice-info { display: flex; justify-content: space-between; margin-bottom: 30px; }
-          .invoice-details, .customer-details { width: 45%; }
-          .invoice-details h3, .customer-details h3 { color: #8B5CF6; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-          .items-table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-          .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-          .items-table th { background-color: #8B5CF6; color: white; }
-          .total-section { text-align: right; margin-top: 30px; }
-          .total-amount { font-size: 20px; font-weight: bold; color: #8B5CF6; }
-          .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 20px; }
-          .status { display: inline-block; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; }
-          .status.paid { background-color: #10B981; color: white; }
-          .status.pending { background-color: #F59E0B; color: white; }
-          .status.refunded { background-color: #EF4444; color: white; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="company-name">IKF FIGHTING CHAMPIONSHIPS</div>
-          <div>Professional Martial Arts Organization</div>
-          <h1 class="invoice-title">INVOICE</h1>
-        </div>
+  const handleDownloadInvoice = async (transaction) => {
+    try {
+      // Use jsPDF like the dashboard export
+      const { jsPDF } = await import('jspdf')
+      const pdf = new jsPDF('p', 'mm', 'a4')
 
-        <div class="invoice-info">
-          <div class="invoice-details">
-            <h3>Invoice Details</h3>
-            <p><strong>Invoice #:</strong> ${transaction.details.transactionId}</p>
-            <p><strong>Date:</strong> ${formatDate(transaction.purchaseDateTime)}</p>
-            <p><strong>Due Date:</strong> ${formatDate(transaction.purchaseDateTime)}</p>
-            <p><strong>Status:</strong> <span class="status ${transaction.details.purchaseStatus.toLowerCase()}">${transaction.details.purchaseStatus}</span></p>
-          </div>
-          <div class="customer-details">
-            <h3>Bill To</h3>
-            <p><strong>${user?.firstName || ''} ${user?.lastName || ''}</strong></p>
-            <p>${user?.email || ''}</p>
-            <p>Customer ID: ${user?._id || 'N/A'}</p>
-          </div>
-        </div>
+      // Colors matching the application theme
+      const colors = {
+        primary: '#8B5CF6', // Purple
+        secondary: '#6B46C1',
+        dark: '#4C1D95',
+        text: '#374151',
+        lightText: '#6B7280',
+        white: '#FFFFFF',
+        light: '#F3F4F6',
+      }
 
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Event</th>
-              <th>Quantity</th>
-              <th>Unit Price</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${transaction.details.itemName}</td>
-              <td>${transaction.details.eventName}</td>
-              <td>${transaction.details.tickets?.[0]?.quantity || 1}</td>
-              <td>$${(transaction.details.tickets?.[0]?.price || transaction.amount).toFixed(2)}</td>
-              <td>$${transaction.amount.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
+      // Helper function to add text with word wrap
+      const addWrappedText = (text, x, y, maxWidth, fontSize = 10) => {
+        pdf.setFontSize(fontSize)
+        const textLines = pdf.splitTextToSize(text, maxWidth)
+        pdf.text(textLines, x, y)
+        return y + textLines.length * (fontSize * 0.4)
+      }
 
-        <div class="total-section">
-          <p><strong>Subtotal: $${transaction.amount.toFixed(2)}</strong></p>
-          <p><strong>Tax: $0.00</strong></p>
-          <p class="total-amount">Total: $${transaction.amount.toFixed(2)}</p>
-        </div>
+      let yPos = 20
 
-        <div style="margin-top: 30px;">
-          <h3 style="color: #8B5CF6;">Payment Information</h3>
-          <p><strong>Payment Method:</strong> ${transaction.details.paymentMethod}</p>
-          <p><strong>Transaction Type:</strong> ${transaction.transactionType}</p>
-          ${transaction.details.ticketCode ? `<p><strong>Ticket Code:</strong> ${transaction.details.ticketCode}</p>` : ''}
-        </div>
+      // Header with company branding
+      pdf.setFillColor(colors.primary)
+      pdf.rect(0, 0, 210, 50, 'F')
 
-        <div class="footer">
-          <p>Thank you for your business!</p>
-          <p>This invoice was automatically generated on ${new Date().toLocaleDateString()}</p>
-          <p>IKF Fighting Championships • Visit our website for more information</p>
-        </div>
-      </body>
-      </html>
-    `
+      // Add company logo
+      try {
+        const logoResponse = await fetch('/logo1.png')
+        const logoBlob = await logoResponse.blob()
+        const logoDataUrl = await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result)
+          reader.readAsDataURL(logoBlob)
+        })
+        pdf.addImage(logoDataUrl, 'PNG', 15, 10, 30, 30)
+      } catch (error) {
+        console.log('Logo not found, using text placeholder')
+        // Fallback to text if logo fails to load
+        pdf.setFillColor(colors.white)
+        pdf.rect(15, 10, 30, 30, 'F')
+        pdf.setTextColor(colors.primary)
+        pdf.setFontSize(12)
+        pdf.text('ISKA', 25, 28)
+      }
 
-    const printWindow = window.open('', '_blank')
-    printWindow.document.write(invoiceHTML)
-    printWindow.document.close()
-    setTimeout(() => {
-      printWindow.print()
-    }, 500)
+      // Company name and details
+      pdf.setTextColor(colors.white)
+      pdf.setFontSize(20)
+      pdf.text('ISKA FIGHTING CHAMPIONSHIPS', 50, 25)
+      pdf.setFontSize(10)
+      pdf.text('Professional Martial Arts Organization', 50, 32)
+      pdf.text('Invoice', 50, 39)
+
+      yPos = 60
+
+      // Invoice title
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(24)
+      pdf.text('INVOICE', 15, yPos)
+      yPos += 15
+
+      // Invoice and customer info section
+      pdf.setFillColor(colors.light)
+      pdf.rect(15, yPos, 180, 40, 'F')
+
+      // Invoice details (left side)
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(12)
+      pdf.text('Invoice Details', 20, yPos + 8)
+      pdf.setFontSize(10)
+      pdf.text(`Invoice #: ${transaction.details.transactionId}`, 20, yPos + 16)
+      pdf.text(
+        `Date: ${formatDate(transaction.purchaseDateTime)}`,
+        20,
+        yPos + 22
+      )
+      pdf.text(
+        `Due Date: ${formatDate(transaction.purchaseDateTime)}`,
+        20,
+        yPos + 28
+      )
+
+      // Status with color coding
+      const status = transaction.details.purchaseStatus
+      let statusColor = colors.primary
+      if (status === 'Paid') statusColor = '#10B981'
+      else if (status === 'Pending') statusColor = '#F59E0B'
+      else if (status === 'Refunded') statusColor = '#EF4444'
+
+      pdf.setTextColor(statusColor)
+      pdf.text(`Status: ${status}`, 20, yPos + 34)
+
+      // Customer details (right side)
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(12)
+      pdf.text('Bill To', 115, yPos + 8)
+      pdf.setFontSize(10)
+      pdf.text(
+        `${user?.firstName || ''} ${user?.lastName || ''}`,
+        115,
+        yPos + 16
+      )
+      pdf.text(`${user?.email || ''}`, 115, yPos + 22)
+      pdf.text(
+        `Customer ID: ${user?._id?.substring(0, 8) || 'N/A'}...`,
+        115,
+        yPos + 28
+      )
+
+      yPos += 50
+
+      // Items table header
+      pdf.setFillColor(colors.primary)
+      pdf.rect(15, yPos, 180, 12, 'F')
+      pdf.setTextColor(colors.white)
+      pdf.setFontSize(10)
+      pdf.text('Description', 20, yPos + 8)
+      pdf.text('Event', 80, yPos + 8)
+      pdf.text('Qty', 130, yPos + 8)
+      pdf.text('Price', 150, yPos + 8)
+      pdf.text('Total', 170, yPos + 8)
+      yPos += 12
+
+      // Items table content
+      pdf.setFillColor(colors.white)
+      pdf.rect(15, yPos, 180, 20, 'F')
+      pdf.setDrawColor(colors.lightText)
+      pdf.rect(15, yPos, 180, 20, 'S')
+
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(9)
+
+      // Handle long text for description
+      const description = transaction.details.itemName
+      const wrappedDesc = pdf.splitTextToSize(description, 55)
+      pdf.text(wrappedDesc, 20, yPos + 6)
+
+      // Event name (truncated if too long)
+      const eventName =
+        transaction.details.eventName.length > 20
+          ? transaction.details.eventName.substring(0, 17) + '...'
+          : transaction.details.eventName
+      pdf.text(eventName, 80, yPos + 6)
+
+      // Quantity, unit price, and total
+      const quantity = transaction.details.tickets?.[0]?.quantity || 1
+      const unitPrice =
+        transaction.details.tickets?.[0]?.price || transaction.amount
+
+      pdf.text(quantity.toString(), 130, yPos + 6)
+      pdf.text(`$${unitPrice.toFixed(2)}`, 150, yPos + 6)
+      pdf.text(`$${transaction.amount.toFixed(2)}`, 170, yPos + 6)
+      yPos += 25
+
+      // Totals section
+      pdf.setFillColor(colors.light)
+      pdf.rect(120, yPos, 75, 25, 'F')
+
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(10)
+      pdf.text('Subtotal:', 125, yPos + 8)
+      pdf.text(`$${transaction.amount.toFixed(2)}`, 170, yPos + 8)
+      pdf.text('Tax:', 125, yPos + 14)
+      pdf.text('$0.00', 170, yPos + 14)
+
+      // Total amount (highlighted)
+      pdf.setFontSize(12)
+      pdf.setTextColor(colors.primary)
+      pdf.text('Total:', 125, yPos + 22)
+      pdf.text(`$${transaction.amount.toFixed(2)}`, 170, yPos + 22)
+
+      yPos += 35
+
+      // Payment information section
+      pdf.setFillColor(colors.light)
+      pdf.rect(15, yPos, 180, 35, 'F')
+
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(12)
+      pdf.text('Payment Information', 20, yPos + 8)
+
+      pdf.setFontSize(10)
+      pdf.text(
+        `Payment Method: ${transaction.details.paymentMethod}`,
+        20,
+        yPos + 16
+      )
+      pdf.text(
+        `Transaction Type: ${transaction.transactionType}`,
+        20,
+        yPos + 22
+      )
+
+      if (transaction.details.ticketCode) {
+        pdf.text(
+          `Ticket Code: ${transaction.details.ticketCode}`,
+          20,
+          yPos + 28
+        )
+      }
+
+      yPos += 45
+
+      // Footer
+      pdf.setDrawColor(colors.lightText)
+      pdf.line(15, yPos, 195, yPos)
+      yPos += 10
+
+      pdf.setTextColor(colors.lightText)
+      pdf.setFontSize(9)
+      pdf.text('Thank you for your business!', 15, yPos)
+      pdf.text(
+        `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+        15,
+        yPos + 6
+      )
+      pdf.text(
+        'ISKA Fighting Championships • Professional Martial Arts Organization',
+        15,
+        yPos + 12
+      )
+
+      // Terms and conditions (small print)
+      yPos += 20
+      pdf.setFontSize(8)
+      pdf.text(
+        'Terms: This invoice represents a completed transaction. For questions or concerns, please contact our support team.',
+        15,
+        yPos
+      )
+      pdf.text(
+        'Refund Policy: Refunds are subject to event terms and conditions. Processing may take 3-5 business days.',
+        15,
+        yPos + 5
+      )
+
+      // Save the PDF
+      const fileName = `invoice-${transaction.details.transactionId}-${
+        new Date().toISOString().split('T')[0]
+      }.pdf`
+      pdf.save(fileName)
+    } catch (error) {
+      console.error('Error generating invoice PDF:', error)
+      alert('Failed to generate invoice PDF. Please try again.')
+    }
   }
 
   const handleViewQRCode = (transaction) => {
@@ -515,6 +698,17 @@ const MyPurchases = () => {
                   </h3>
                 </div>
 
+                {/* Pagination Header */}
+                <div className='bg-purple-900 text-white'>
+                  <PaginationHeader
+                    limit={limit}
+                    setLimit={handleLimitChange}
+                    currentPage={currentPage}
+                    totalItems={totalItems}
+                    label='transactions'
+                  />
+                </div>
+
                 {/* Table Content */}
                 <div className='overflow-x-auto custom-scrollbar'>
                   <table className='w-full text-white'>
@@ -650,8 +844,10 @@ const MyPurchases = () => {
                                         <span className='text-gray-300 text-sm'>
                                           Invoice Download:
                                         </span>
-                                        <button 
-                                          onClick={() => handleDownloadInvoice(transaction)}
+                                        <button
+                                          onClick={() =>
+                                            handleDownloadInvoice(transaction)
+                                          }
                                           className='ml-2 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm flex items-center transition-colors'
                                         >
                                           <Download
@@ -723,8 +919,10 @@ const MyPurchases = () => {
                                                   </p>
                                                 </div>
                                               )}
-                                              <button 
-                                                onClick={() => handleViewQRCode(transaction)}
+                                              <button
+                                                onClick={() =>
+                                                  handleViewQRCode(transaction)
+                                                }
                                                 className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm flex items-center transition-colors w-fit'
                                               >
                                                 View QR Code & Receipt
@@ -742,6 +940,15 @@ const MyPurchases = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination */}
+                <div className='bg-purple-900 px-6 py-4'>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
                 </div>
               </div>
             </div>
@@ -764,7 +971,7 @@ const MyPurchases = () => {
               <h3 className='text-xl font-bold text-gray-800 mb-4'>
                 QR Code & Receipt
               </h3>
-              
+
               <div className='mb-6'>
                 <div className='text-sm text-gray-600 mb-2'>Event</div>
                 <div className='font-medium text-gray-800'>
@@ -780,7 +987,7 @@ const MyPurchases = () => {
               </div>
 
               {/* QR Code Placeholder - You can replace this with an actual QR code generator */}
-              <div className='mb-6'>
+              {/* <div className='mb-6'>
                 <div className='text-sm text-gray-600 mb-2'>QR Code</div>
                 <div className='flex justify-center'>
                   <div className='w-48 h-48 bg-gray-200 border-2 border-dashed border-gray-400 flex items-center justify-center text-gray-600'>
@@ -792,14 +999,18 @@ const MyPurchases = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               <div className='mb-6 text-left'>
-                <div className='text-sm text-gray-600 mb-2'>Receipt Details</div>
+                <div className='text-sm text-gray-600 mb-2'>
+                  Receipt Details
+                </div>
                 <div className='bg-gray-50 p-4 rounded space-y-2 text-sm'>
                   <div className='flex justify-between'>
                     <span>Transaction ID:</span>
-                    <span className='font-mono'>{selectedTransaction.details.transactionId}</span>
+                    <span className='font-mono'>
+                      {selectedTransaction.details.transactionId}
+                    </span>
                   </div>
                   <div className='flex justify-between'>
                     <span>Item:</span>
@@ -807,99 +1018,41 @@ const MyPurchases = () => {
                   </div>
                   <div className='flex justify-between'>
                     <span>Amount:</span>
-                    <span className='font-bold'>${selectedTransaction.amount.toFixed(2)}</span>
+                    <span className='font-bold'>
+                      ${selectedTransaction.amount.toFixed(2)}
+                    </span>
                   </div>
                   <div className='flex justify-between'>
                     <span>Status:</span>
-                    <span className={`font-medium ${
-                      selectedTransaction.details.redemptionStatus === 'Redeemed'
-                        ? 'text-green-600'
-                        : 'text-blue-600'
-                    }`}>
-                      {selectedTransaction.details.redemptionStatus === 'Redeemed' ? 'Used' : 'Active'}
+                    <span
+                      className={`font-medium ${
+                        selectedTransaction.details.redemptionStatus ===
+                        'Redeemed'
+                          ? 'text-green-600'
+                          : 'text-blue-600'
+                      }`}
+                    >
+                      {selectedTransaction.details.redemptionStatus ===
+                      'Redeemed'
+                        ? 'Used'
+                        : 'Active'}
                     </span>
                   </div>
                   <div className='flex justify-between'>
                     <span>Purchase Date:</span>
-                    <span>{formatDateTime(selectedTransaction.purchaseDateTime)}</span>
+                    <span>
+                      {formatDateTime(selectedTransaction.purchaseDateTime)}
+                    </span>
                   </div>
                   {selectedTransaction.details.redeemedAt && (
                     <div className='flex justify-between'>
                       <span>Used Date:</span>
-                      <span>{formatDateTime(selectedTransaction.details.redeemedAt)}</span>
+                      <span>
+                        {formatDateTime(selectedTransaction.details.redeemedAt)}
+                      </span>
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div className='flex gap-3 justify-center'>
-                <button
-                  onClick={() => {
-                    // Print receipt functionality
-                    const receiptHTML = `
-                      <html>
-                      <head>
-                        <title>Receipt - ${selectedTransaction.details.ticketCode}</title>
-                        <style>
-                          body { font-family: Arial, sans-serif; margin: 20px; color: #333; text-align: center; }
-                          .header { border-bottom: 2px solid #8B5CF6; padding-bottom: 15px; margin-bottom: 20px; }
-                          .company-name { font-size: 20px; font-weight: bold; color: #8B5CF6; }
-                          .ticket-code { font-family: monospace; font-size: 18px; font-weight: bold; background: #f5f5f5; padding: 10px; margin: 15px 0; border: 1px solid #ddd; }
-                          .details { text-align: left; margin: 20px 0; }
-                          .details table { width: 100%; border-collapse: collapse; }
-                          .details td { padding: 8px; border-bottom: 1px solid #eee; }
-                          .details td:first-child { font-weight: bold; }
-                          .footer { margin-top: 30px; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 15px; }
-                        </style>
-                      </head>
-                      <body>
-                        <div class="header">
-                          <div class="company-name">IKF FIGHTING CHAMPIONSHIPS</div>
-                          <div>Ticket Receipt</div>
-                        </div>
-                        
-                        <h2>${selectedTransaction.details.eventName}</h2>
-                        
-                        <div class="ticket-code">
-                          Ticket Code: ${selectedTransaction.details.ticketCode}
-                        </div>
-                        
-                        <div class="details">
-                          <table>
-                            <tr><td>Transaction ID:</td><td>${selectedTransaction.details.transactionId}</td></tr>
-                            <tr><td>Item:</td><td>${selectedTransaction.details.itemName}</td></tr>
-                            <tr><td>Amount:</td><td>$${selectedTransaction.amount.toFixed(2)}</td></tr>
-                            <tr><td>Payment Method:</td><td>${selectedTransaction.details.paymentMethod}</td></tr>
-                            <tr><td>Purchase Date:</td><td>${formatDateTime(selectedTransaction.purchaseDateTime)}</td></tr>
-                            <tr><td>Status:</td><td>${selectedTransaction.details.redemptionStatus === 'Redeemed' ? 'Used' : 'Active'}</td></tr>
-                            ${selectedTransaction.details.redeemedAt ? `<tr><td>Used Date:</td><td>${formatDateTime(selectedTransaction.details.redeemedAt)}</td></tr>` : ''}
-                          </table>
-                        </div>
-                        
-                        <div class="footer">
-                          <p>Present this ticket code at the event entrance</p>
-                          <p>Receipt generated on ${new Date().toLocaleDateString()}</p>
-                        </div>
-                      </body>
-                      </html>
-                    `
-                    const printWindow = window.open('', '_blank')
-                    printWindow.document.write(receiptHTML)
-                    printWindow.document.close()
-                    setTimeout(() => {
-                      printWindow.print()
-                    }, 500)
-                  }}
-                  className='bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm transition-colors'
-                >
-                  Print Receipt
-                </button>
-                <button
-                  onClick={() => setShowQRModal(false)}
-                  className='bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors'
-                >
-                  Close
-                </button>
               </div>
             </div>
           </div>
