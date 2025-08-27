@@ -77,7 +77,7 @@ const LoginPage = () => {
   useEffect(() => {
     if (user && user.role == roles.superAdmin) {
       console.log('User is already logged in:', user.role)
-      router.push('/admin/events')
+      router.push('/admin/dashboard')
     }
   }, [user, router])
 

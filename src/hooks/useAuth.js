@@ -14,7 +14,7 @@ export const useAuth = () => {
   }, [])
 
   // Logout function
-  const logout = useCallback((redirectPath = '/admin/login') => {
+  const logout = useCallback((redirectPath = '/login') => {
     clearUser()
     authManager.logout(redirectPath)
   }, [clearUser])
@@ -25,9 +25,15 @@ export const useAuth = () => {
       return await authenticatedFetch(url, options)
     } catch (error) {
       console.error('API request failed:', error)
+      
+      // If authentication failed, logout
+      if (error.message === 'Authentication required' || error.message === 'Authentication failed') {
+        logout()
+      }
+      
       throw error
     }
-  }, [])
+  }, [logout])
 
   // Auto-refresh token periodically
   useEffect(() => {
@@ -39,11 +45,13 @@ export const useAuth = () => {
         await authManager.ensureValidToken()
       } catch (error) {
         console.error('Token refresh failed:', error)
+        // If refresh fails, logout the user
+        logout()
       }
     }, 5 * 60 * 1000) // 5 minutes
 
     return () => clearInterval(interval)
-  }, [user?.token])
+  }, [user?.token, logout])
 
   return {
     user,
