@@ -159,7 +159,7 @@ const EditRegisterTrainingFacilityPage = ({ params }) => {
     }
 
     fetchFacilityData()
-  }, [id, user?.token, router])
+  }, [id, router])
 
   // Fetch existing trainers and fighters
   useEffect(() => {

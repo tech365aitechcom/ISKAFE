@@ -30,7 +30,7 @@ const MainLayout = ({ children }) => {
     }
 
     validateToken()
-  }, [_hasHydrated, user?.token, clearUser])
+  }, [_hasHydrated, user?.id, clearUser])
 
   if (!_hasHydrated || isValidating) {
     return (

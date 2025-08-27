@@ -59,7 +59,7 @@ export default function TournamentBrackets() {
       fetchEvent(params.id)
       fetchBrackets(params.id)
     }
-  }, [params, user?.token])
+  }, [params?.id])
 
   const fetchEvent = async (id) => {
     try {

@@ -102,7 +102,7 @@ const RegistrationPaymentsPage = () => {
       fetchRegistrations()
       fetchEvent()
     }
-  }, [eventId, limit, currentPage, user?.token])
+  }, [eventId, limit, currentPage])
 
   // Apply filters
   const filteredPayments = payments.filter((payment) => {
