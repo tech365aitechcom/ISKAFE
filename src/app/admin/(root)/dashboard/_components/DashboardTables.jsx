@@ -11,7 +11,12 @@ import {
   ShieldAlert,
   CreditCard,
 } from 'lucide-react'
-import { formatDate, formatDateTime, calculateAge } from '../utils/dashboardUtils'
+import {
+  formatDate,
+  formatDateTime,
+  calculateAge,
+  sendEmailReport,
+} from '../utils/dashboardUtils'
 
 export default function DashboardTables({ dashboardData, onRefresh }) {
   const [selectedAction, setSelectedAction] = useState(null)
@@ -125,121 +130,425 @@ export default function DashboardTables({ dashboardData, onRefresh }) {
             <span>Export CSV</span>
           </button>
           <button
-            onClick={() => {
-              // Enhanced PDF export for table data
-              const printContent = `
-                <html>
-                <head>
-                  <title>ISKA Dashboard - Operational Data Report</title>
-                  <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 20px; }
-                    .section { margin-bottom: 30px; }
-                    .section h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
-                    th { background-color: #f5f5f5; font-weight: bold; }
-                    .summary { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-                    .footer { text-align: center; margin-top: 40px; font-size: 10px; color: #666; }
-                  </style>
-                </head>
-                <body>
-                  <div class="header">
-                    <h1>ISKA Admin Dashboard - Operational Data Report</h1>
-                    <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-                  </div>
-                  
-                  <div class="summary">
-                    <h3>Summary Statistics</h3>
-                    <p><strong>Upcoming Events:</strong> ${
-                      upcomingEvents.length
-                    }</p>
-                    <p><strong>Recent Fighter Registrations:</strong> ${
-                      fighterRegistrations.length
-                    }</p>
-                    <p><strong>Bouts Missing Results:</strong> ${
-                      missingResults.length
-                    }</p>
-                    <p><strong>Fighter Alerts:</strong> ${
-                      fighterAlerts.length
-                    }</p>
-                    <p><strong>Spectator Ticket Logs:</strong> ${
-                      ticketLogs.length
-                    }</p>
-                  </div>
+            onClick={async () => {
+              // Export Operational Data as PDF using jsPDF
+              try {
+                const { jsPDF } = await import('jspdf')
+                const pdf = new jsPDF('p', 'mm', 'a4')
 
-                  <div class="section">
-                    <h2>Upcoming Events</h2>
-                    <table>
-                      <thead>
-                        <tr><th>Event</th><th>Date</th><th>Venue</th><th>Fighters</th></tr>
-                      </thead>
-                      <tbody>
-                        ${upcomingEvents
-                          .map(
-                            (event) => `
-                          <tr>
-                            <td>${event.name}</td>
-                            <td>${formatDate(event.startDate)}</td>
-                            <td>${
-                              event.venueName ||
-                              event.venue?.name ||
-                              event.venue
-                            }</td>
-                            <td>${event.registeredFighters}</td>
-                          </tr>
-                        `
-                          )
-                          .join('')}
-                      </tbody>
-                    </table>
-                  </div>
+                const colors = {
+                  primary: '#020617',
+                  secondary: '#0f172a',
+                  accent: '#1e293b',
+                  border: '#334155',
+                  text: '#94a3b8',
+                  white: '#ffffff',
+                  blue: '#3b82f6',
+                  green: '#10b981',
+                  red: '#ef4444',
+                }
 
-                  <div class="section">
-                    <h2>Spectator Ticket Logs</h2>
-                    <table>
-                      <thead>
-                        <tr><th>Type</th><th>Quantity</th><th>Revenue</th><th>Event</th><th>Event Date</th></tr>
-                      </thead>
-                      <tbody>
-                        ${ticketLogs
-                          .map(
-                            (ticket) => `
-                          <tr>
-                            <td>${
-                              ticket.tiers && ticket.tiers.length > 1
-                                ? ticket.tiers.map((t) => t.tierName).join(', ')
-                                : ticket.tier
-                            }</td>
-                            <td>${ticket.quantity}</td>
-                            <td>$${ticket.totalAmount}</td>
-                            <td>${ticket.event?.name}</td>
-                            <td>${formatDateTime(ticket.event?.startDate)}</td>
-                          </tr>
-                        `
-                          )
-                          .join('')}
-                      </tbody>
-                    </table>
-                  </div>
+                let yPos = 20
 
-                  <div class="footer">
-                    <p>This report was automatically generated by the ISKA Admin Dashboard System.</p>
-                  </div>
-                </body>
-                </html>
-              `
+                // Add header
+                pdf.setFillColor(colors.primary)
+                pdf.rect(0, 0, 210, 40, 'F')
 
-              // Create a blob with the HTML content and trigger download
-              const blob = new Blob([printContent], { type: 'text/html' })
-              const url = window.URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `dashboard-detailed-report-${new Date().toISOString().split('T')[0]}.html`
-              document.body.appendChild(a)
-              a.click()
-              document.body.removeChild(a)
-              window.URL.revokeObjectURL(url)
+                pdf.setTextColor(colors.white)
+                pdf.setFontSize(24)
+                pdf.text('ISKA Dashboard - Operational Data', 20, 25)
+
+                pdf.setFontSize(10)
+                pdf.text(
+                  `Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+                  20,
+                  32
+                )
+
+                yPos = 50
+
+                // Summary Statistics Section
+                pdf.setTextColor(colors.text)
+                pdf.setFontSize(16)
+                pdf.text('Summary Statistics', 20, yPos)
+                yPos += 10
+
+                const operationalStats = [
+                  {
+                    label: 'Upcoming Events',
+                    value: upcomingEvents.length.toString(),
+                  },
+                  {
+                    label: 'Recent Fighter Registrations',
+                    value: fighterRegistrations.length.toString(),
+                  },
+                  {
+                    label: 'Bouts Missing Results',
+                    value: missingResults.length.toString(),
+                  },
+                  {
+                    label: 'Fighter Alerts',
+                    value: fighterAlerts.length.toString(),
+                  },
+                  {
+                    label: 'Spectator Ticket Logs',
+                    value: ticketLogs.length.toString(),
+                  },
+                ]
+
+                // Stats in a grid layout
+                const colWidth = 80
+                let col = 0
+                const maxCols = 2
+
+                operationalStats.forEach((stat, index) => {
+                  const xPos = 20 + col * colWidth
+
+                  // Draw stat box
+                  pdf.setFillColor(colors.secondary)
+                  pdf.rect(xPos, yPos, colWidth - 5, 25, 'F')
+
+                  pdf.setTextColor(colors.text)
+                  pdf.setFontSize(9)
+                  pdf.text(stat.label, xPos + 3, yPos + 8)
+
+                  pdf.setTextColor(colors.white)
+                  pdf.setFontSize(14)
+                  pdf.text(stat.value, xPos + 3, yPos + 18)
+
+                  col++
+                  if (col >= maxCols) {
+                    col = 0
+                    yPos += 30
+                  }
+                })
+
+                if (col !== 0) yPos += 30
+                yPos += 10
+
+                // Upcoming Events Section
+                pdf.setTextColor(colors.text)
+                pdf.setFontSize(14)
+                pdf.text('Upcoming Events', 20, yPos)
+                yPos += 10
+
+                if (upcomingEvents.length > 0) {
+                  // Table header
+                  pdf.setFillColor(colors.accent)
+                  pdf.rect(20, yPos, 170, 8, 'F')
+
+                  pdf.setTextColor(colors.white)
+                  pdf.setFontSize(9)
+                  pdf.text('Event', 22, yPos + 5)
+                  pdf.text('Date', 90, yPos + 5)
+                  pdf.text('Venue', 130, yPos + 5)
+                  pdf.text('Fighters', 170, yPos + 5)
+                  yPos += 8
+
+                  // Table rows
+                  upcomingEvents.slice(0, 10).forEach((event, index) => {
+                    const rowColor =
+                      index % 2 === 0 ? colors.secondary : colors.primary
+                    pdf.setFillColor(rowColor)
+                    pdf.rect(20, yPos, 170, 6, 'F')
+
+                    pdf.setTextColor(colors.white)
+                    pdf.setFontSize(8)
+                    pdf.text(event.name.substring(0, 25), 22, yPos + 4)
+                    pdf.text(formatDate(event.startDate), 90, yPos + 4)
+                    const venueName =
+                      event.venueName ||
+                      event.venue?.name ||
+                      event.venue ||
+                      'N/A'
+                    pdf.text(venueName.substring(0, 15), 130, yPos + 4)
+                    pdf.text(event.registeredFighters.toString(), 170, yPos + 4)
+                    yPos += 6
+                  })
+                } else {
+                  pdf.setFontSize(10)
+                  pdf.text('No upcoming events found', 20, yPos)
+                  yPos += 10
+                }
+
+                yPos += 10
+
+                // Recent Fighter Registrations Section
+                if (yPos > 250) {
+                  pdf.addPage()
+                  yPos = 20
+                }
+
+                pdf.setTextColor(colors.text)
+                pdf.setFontSize(14)
+                pdf.text('Recent Fighter Registrations', 20, yPos)
+                yPos += 10
+
+                if (fighterRegistrations.length > 0) {
+                  // Table header
+                  pdf.setFillColor(colors.accent)
+                  pdf.rect(20, yPos, 170, 8, 'F')
+
+                  pdf.setTextColor(colors.white)
+                  pdf.setFontSize(9)
+                  pdf.text('Name', 22, yPos + 5)
+                  pdf.text('Class', 80, yPos + 5)
+                  pdf.text('Gym', 120, yPos + 5)
+                  pdf.text('Date', 160, yPos + 5)
+                  yPos += 8
+
+                  // Table rows
+                  fighterRegistrations
+                    .slice(0, 15)
+                    .forEach((fighter, index) => {
+                      if (yPos > 280) {
+                        pdf.addPage()
+                        yPos = 20
+                      }
+
+                      const rowColor =
+                        index % 2 === 0 ? colors.secondary : colors.primary
+                      pdf.setFillColor(rowColor)
+                      pdf.rect(20, yPos, 170, 6, 'F')
+
+                      pdf.setTextColor(colors.white)
+                      pdf.setFontSize(8)
+                      const name = `${fighter.firstName} ${fighter.lastName}`
+                      pdf.text(name.substring(0, 20), 22, yPos + 4)
+                      pdf.text(
+                        (
+                          fighter.weightClass ||
+                          fighter.class ||
+                          'N/A'
+                        ).substring(0, 12),
+                        80,
+                        yPos + 4
+                      )
+                      const gym =
+                        fighter.gymName ||
+                        fighter.gym?.name ||
+                        fighter.gym ||
+                        'N/A'
+                      pdf.text(gym.substring(0, 12), 120, yPos + 4)
+                      pdf.text(formatDate(fighter.createdAt), 160, yPos + 4)
+                      yPos += 6
+                    })
+                } else {
+                  pdf.setFontSize(10)
+                  pdf.text('No recent registrations found', 20, yPos)
+                  yPos += 10
+                }
+
+                yPos += 10
+
+                // Bouts Missing Results Section
+                if (yPos > 240) {
+                  pdf.addPage()
+                  yPos = 20
+                }
+
+                pdf.setTextColor(colors.text)
+                pdf.setFontSize(14)
+                pdf.text('Bouts Missing Results', 20, yPos)
+                yPos += 10
+
+                if (missingResults.length > 0) {
+                  // Table header
+                  pdf.setFillColor(colors.accent)
+                  pdf.rect(20, yPos, 170, 8, 'F')
+
+                  pdf.setTextColor(colors.white)
+                  pdf.setFontSize(9)
+                  pdf.text('Bracket', 22, yPos + 5)
+                  pdf.text('Event', 80, yPos + 5)
+                  pdf.text('Fighter 1', 120, yPos + 5)
+                  pdf.text('Fighter 2', 155, yPos + 5)
+                  yPos += 8
+
+                  // Table rows
+                  missingResults.slice(0, 10).forEach((bout, index) => {
+                    if (yPos > 280) {
+                      pdf.addPage()
+                      yPos = 20
+                    }
+
+                    const rowColor =
+                      index % 2 === 0 ? colors.secondary : colors.primary
+                    pdf.setFillColor(rowColor)
+                    pdf.rect(20, yPos, 170, 6, 'F')
+
+                    pdf.setTextColor(colors.white)
+                    pdf.setFontSize(7)
+                    const bracketName = `${bout.bracket.title}-${bout.bracket.divisionTitle}`
+                    pdf.text(bracketName.substring(0, 15), 22, yPos + 4)
+                    pdf.text(
+                      bout.bracket.event.name.substring(0, 12),
+                      80,
+                      yPos + 4
+                    )
+                    const fighter1 = bout.redCorner
+                      ? `${bout.redCorner.firstName} ${bout.redCorner.lastName}`
+                      : 'N/A'
+                    pdf.text(fighter1.substring(0, 12), 120, yPos + 4)
+                    const fighter2 = bout.blueCorner
+                      ? `${bout.blueCorner.firstName} ${bout.blueCorner.lastName}`
+                      : 'N/A'
+                    pdf.text(fighter2.substring(0, 12), 155, yPos + 4)
+                    yPos += 6
+                  })
+                } else {
+                  pdf.setFontSize(10)
+                  pdf.text('No missing results found', 20, yPos)
+                  yPos += 10
+                }
+
+                yPos += 10
+
+                // Fighters with Alerts Section
+                if (yPos > 240) {
+                  pdf.addPage()
+                  yPos = 20
+                }
+
+                pdf.setTextColor(colors.text)
+                pdf.setFontSize(14)
+                pdf.text('Fighters with Alerts', 20, yPos)
+                yPos += 10
+
+                if (fighterAlerts.length > 0) {
+                  // Table header
+                  pdf.setFillColor(colors.accent)
+                  pdf.rect(20, yPos, 170, 8, 'F')
+
+                  pdf.setTextColor(colors.white)
+                  pdf.setFontSize(9)
+                  pdf.text('Fighter Name', 22, yPos + 5)
+                  pdf.text('Issue Type', 90, yPos + 5)
+                  pdf.text('Status', 140, yPos + 5)
+                  yPos += 8
+
+                  // Table rows
+                  fighterAlerts.slice(0, 12).forEach((fighter, index) => {
+                    if (yPos > 280) {
+                      pdf.addPage()
+                      yPos = 20
+                    }
+
+                    const rowColor =
+                      index % 2 === 0 ? colors.secondary : colors.primary
+                    pdf.setFillColor(rowColor)
+                    pdf.rect(20, yPos, 170, 6, 'F')
+
+                    pdf.setTextColor(colors.white)
+                    pdf.setFontSize(8)
+                    const fighterName =
+                      fighter.fighterName || fighter.name || 'N/A'
+                    pdf.text(fighterName.substring(0, 25), 22, yPos + 4)
+                    pdf.text(
+                      (fighter.issueType || 'N/A').substring(0, 20),
+                      90,
+                      yPos + 4
+                    )
+
+                    // Color code status
+                    const status = fighter.status || 'N/A'
+                    if (status === 'Critical') {
+                      pdf.setTextColor(colors.red)
+                    } else if (status === 'Warning') {
+                      pdf.setTextColor('#f59e0b')
+                    } else {
+                      pdf.setTextColor(colors.white)
+                    }
+                    pdf.text(status, 140, yPos + 4)
+                    pdf.setTextColor(colors.white) // Reset color
+                    yPos += 6
+                  })
+                } else {
+                  pdf.setFontSize(10)
+                  pdf.text('No fighter alerts found', 20, yPos)
+                  yPos += 10
+                }
+
+                yPos += 10
+
+                // Spectator Ticket Logs Section
+                if (yPos > 230) {
+                  pdf.addPage()
+                  yPos = 20
+                }
+
+                pdf.setTextColor(colors.text)
+                pdf.setFontSize(14)
+                pdf.text('Spectator Ticket Logs', 20, yPos)
+                yPos += 10
+
+                if (ticketLogs.length > 0) {
+                  // Table header
+                  pdf.setFillColor(colors.accent)
+                  pdf.rect(20, yPos, 170, 8, 'F')
+
+                  pdf.setTextColor(colors.white)
+                  pdf.setFontSize(9)
+                  pdf.text('Type', 22, yPos + 5)
+                  pdf.text('Qty', 70, yPos + 5)
+                  pdf.text('Revenue', 100, yPos + 5)
+                  pdf.text('Event', 140, yPos + 5)
+                  yPos += 8
+
+                  // Table rows
+                  ticketLogs.slice(0, 15).forEach((ticket, index) => {
+                    if (yPos > 280) {
+                      pdf.addPage()
+                      yPos = 20
+                    }
+
+                    const rowColor =
+                      index % 2 === 0 ? colors.secondary : colors.primary
+                    pdf.setFillColor(rowColor)
+                    pdf.rect(20, yPos, 170, 6, 'F')
+
+                    pdf.setTextColor(colors.white)
+                    pdf.setFontSize(8)
+                    const ticketType =
+                      ticket.tiers && ticket.tiers.length > 1
+                        ? ticket.tiers.map((t) => t.tierName).join(', ')
+                        : ticket.tier
+
+                    pdf.text(ticketType.substring(0, 15), 22, yPos + 4)
+                    pdf.text(ticket.quantity.toString(), 70, yPos + 4)
+                    pdf.text(`$${ticket.totalAmount}`, 100, yPos + 4)
+                    pdf.text(
+                      (ticket.event?.name || 'N/A').substring(0, 20),
+                      140,
+                      yPos + 4
+                    )
+                    yPos += 6
+                  })
+                } else {
+                  pdf.setFontSize(10)
+                  pdf.text('No ticket logs found', 20, yPos)
+                  yPos += 10
+                }
+
+                // Footer
+                yPos = Math.max(yPos + 20, 285)
+                pdf.setTextColor(colors.text)
+                pdf.setFontSize(8)
+                pdf.text(
+                  'Generated by ISKA Admin Dashboard System - Operational Data Report',
+                  20,
+                  yPos
+                )
+
+                pdf.save(
+                  `operational-data-report-${
+                    new Date().toISOString().split('T')[0]
+                  }.pdf`
+                )
+              } catch (error) {
+                console.error('Error generating PDF:', error)
+                alert('PDF generation failed. Please try again.')
+              }
             }}
             className='flex items-center gap-2 text-slate-400 hover:text-white text-sm'
           >
@@ -248,85 +557,7 @@ export default function DashboardTables({ dashboardData, onRefresh }) {
           </button>
           <button
             onClick={() => {
-              // Enhanced email report with detailed operational data
-              const emailSubject = `ISKA Dashboard Report - ${new Date().toLocaleDateString()}`
-              const emailBody = `ISKA Admin Dashboard - Operational Data Report
-Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
-
-=== SUMMARY STATISTICS ===
-• Upcoming Events: ${upcomingEvents.length}
-• Recent Fighter Registrations: ${fighterRegistrations.length}
-• Bouts Missing Results: ${missingResults.length}
-• Fighter Alerts: ${fighterAlerts.length}
-• Spectator Ticket Logs: ${ticketLogs.length}
-
-=== UPCOMING EVENTS ===
-${upcomingEvents
-  .map(
-    (event, index) =>
-      `${index + 1}. ${event.name} - ${formatDate(event.startDate)} at ${
-        event.venueName || event.venue?.name || event.venue
-      } (${event.registeredFighters} fighters)`
-  )
-  .join('\n')}
-
-=== RECENT FIGHTER REGISTRATIONS ===
-${fighterRegistrations
-  .map(
-    (fighter, index) =>
-      `${index + 1}. ${fighter.firstName} ${fighter.lastName} - ${
-        fighter.weightClass || fighter.class
-      } - ${formatDate(fighter.createdAt)}`
-  )
-  .join('\n')}
-
-=== SPECTATOR TICKET LOGS ===
-${ticketLogs
-  .map(
-    (ticket, index) =>
-      `${index + 1}. ${
-        ticket.tiers && ticket.tiers.length > 1
-          ? ticket.tiers.map((t) => t.tierName).join(', ')
-          : ticket.tier
-      } - Qty: ${ticket.quantity} - Revenue: $${ticket.totalAmount} - Event: ${
-        ticket.event?.name
-      } - ${formatDateTime(ticket.event?.startDate)}`
-  )
-  .join('\n')}
-
-=== BOUTS MISSING RESULTS ===
-${missingResults
-  .map(
-    (bout, index) =>
-      `${index + 1}. Bout #${bout.boutNumber} - ${bout.bracket.title}-${
-        bout.bracket.divisionTitle
-      } - ${bout.bracket.event.name} - Scheduled: ${
-        bout.startDate ? formatDate(bout.startDate) : 'N/A'
-      }`
-  )
-  .join('\n')}
-
-=== FIGHTER ALERTS ===
-${fighterAlerts
-  .map(
-    (fighter, index) =>
-      `${index + 1}. ${fighter.fighterName || fighter.name} - ${
-        fighter.alertType || fighter.issue
-      } - Status: ${fighter.alertLevel || fighter.status}`
-  )
-  .join('\n')}
-
----
-This report was automatically generated by the ISKA Admin Dashboard System.
-For detailed analysis, please access the full dashboard at your admin portal.
-
-Best regards,
-ISKA Admin System`
-
-              const mailtoLink = `mailto:?subject=${encodeURIComponent(
-                emailSubject
-              )}&body=${encodeURIComponent(emailBody)}`
-              window.location.href = mailtoLink
+              sendEmailReport(dashboardData)
             }}
             className='flex items-center gap-2 text-slate-400 hover:text-white text-sm'
           >

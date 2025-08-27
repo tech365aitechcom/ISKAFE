@@ -555,7 +555,7 @@ export default function Props({
             Authorization: `Bearer ${user?.token}`,
           },
           body: JSON.stringify({
-            status: expandedBracket.status === 'Open' ? 'Started' : 'Completed',
+            status: 'Started',
           }),
         }
       )
@@ -1404,7 +1404,7 @@ export default function Props({
         {/* Action Buttons with Descriptions */}
         <div className='my-8'>
           {/* Start Bracket - Only show if status is Open */}
-          {(expandedBracket?.status === 'Open' || 
+          {(expandedBracket?.status === 'Open' ||
             expandedBracket?.status !== 'Started') && (
             <div className='text-center mb-8'>
               <p className='text-white text-sm mb-4'>

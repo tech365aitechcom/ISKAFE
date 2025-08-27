@@ -31,7 +31,7 @@ const TicketTable = ({ eventId }) => {
         }
       } catch (err) {
         console.error('Error fetching spectator tickets:', err)
-        setError('Failed to load spectator tickets')
+        setError('No spectator tickets found for this event')
       } finally {
         setLoading(false)
       }
@@ -64,7 +64,6 @@ const TicketTable = ({ eventId }) => {
     return (
       <div className='bg-[#1b0c2e] rounded-lg p-6'>
         <div className='text-center py-8'>
-          <p className='text-red-400 mb-2'>Error</p>
           <p className='text-gray-400'>{error}</p>
         </div>
       </div>

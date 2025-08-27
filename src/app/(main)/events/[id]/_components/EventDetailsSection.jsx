@@ -285,14 +285,16 @@ const EventDetailsSection = ({ id, eventDetails }) => {
         </div>
 
         {/* Description */}
-        <div className='bg-[#1b0c2e] rounded-lg p-6'>
-          <h2 className='text-xl font-bold text-yellow-500 mb-4 border-b border-gray-700 pb-2'>
-            About This Event
-          </h2>
-          <div className='text-gray-300 leading-relaxed mb-4 prose prose-invert'>
-            <ReactMarkdown>{cleanDescription}</ReactMarkdown>
+        {cleanDescription && (
+          <div className='bg-[#1b0c2e] rounded-lg p-6'>
+            <h2 className='text-xl font-bold text-yellow-500 mb-4 border-b border-gray-700 pb-2'>
+              About This Event
+            </h2>
+            <div className='text-gray-300 leading-relaxed mb-4 prose prose-invert'>
+              <ReactMarkdown>{cleanDescription}</ReactMarkdown>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
