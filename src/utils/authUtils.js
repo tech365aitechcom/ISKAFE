@@ -152,14 +152,19 @@ export const authenticatedFetch = async (url, options = {}) => {
 export const validateTokenOnLoad = async () => {
   const { user } = useStore.getState()
   
+  console.log('validateTokenOnLoad called with user:', !!user?.token)
+  
   if (!user?.token) {
+    console.log('No token found, returning invalid')
     return { isValid: false, shouldRedirect: false }
   }
 
   // If token is expired, try to refresh it
   if (authManager.isTokenExpired(user.token)) {
+    console.log('Token is expired, attempting to refresh...')
     try {
       await authManager.ensureValidToken()
+      console.log('Token refreshed successfully')
       return { isValid: true, shouldRedirect: false }
     } catch (error) {
       console.error('Token validation failed:', error)
@@ -167,14 +172,9 @@ export const validateTokenOnLoad = async () => {
     }
   }
 
-  // Token is still valid, but let's verify it with the server
-  try {
-    await authManager.refreshToken()
-    return { isValid: true, shouldRedirect: false }
-  } catch (error) {
-    console.error('Token verification failed:', error)
-    return { isValid: false, shouldRedirect: true }
-  }
+  // Token is still valid, no need to make API call
+  console.log('Token is still valid, no refresh needed')
+  return { isValid: true, shouldRedirect: false }
 }
 
 export default authManager

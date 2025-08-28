@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from './_components/Sidebar'
 import Header from './_components/Header'
@@ -13,10 +13,11 @@ const ProtectedRoutes = ({ children }) => {
   const router = useRouter()
   const { user, _hasHydrated, clearUser } = useStore()
   const [isValidating, setIsValidating] = useState(true)
+  const hasValidated = useRef(false)
 
   useEffect(() => {
     const validateAndSetup = async () => {
-      if (!_hasHydrated) return
+      if (!_hasHydrated || hasValidated.current) return
 
       if (!user) {
         router.push('/admin/login')
@@ -30,8 +31,10 @@ const ProtectedRoutes = ({ children }) => {
         return
       }
 
-      // Validate token on load
+      // Validate token on load (only once when layout renders)
       try {
+        hasValidated.current = true
+        console.log('Validating token on layout render...')
         const { isValid, shouldRedirect } = await validateTokenOnLoad()
         
         if (!isValid && shouldRedirect) {
@@ -39,6 +42,7 @@ const ProtectedRoutes = ({ children }) => {
           router.push('/admin/login')
           return
         }
+        console.log('Token validation completed successfully')
       } catch (error) {
         console.error('Token validation error:', error)
         clearUser()
@@ -50,7 +54,7 @@ const ProtectedRoutes = ({ children }) => {
     }
 
     validateAndSetup()
-  }, [_hasHydrated, user, router, clearUser])
+  }, [_hasHydrated, user?.token]) // Run when hydrated and when user token changes
 
   if (!_hasHydrated || isValidating) {
     return (
