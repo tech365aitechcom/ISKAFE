@@ -69,6 +69,350 @@ export default function DashboardTables({ dashboardData, onRefresh }) {
     setShowTicketModal(true)
   }
 
+  const handleExportTicketPDF = async (ticket) => {
+    try {
+      const { jsPDF } = await import('jspdf')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+
+      const colors = {
+        primary: '#020617',
+        secondary: '#0f172a',
+        accent: '#1e293b',
+        border: '#334155',
+        text: '#94a3b8',
+        white: '#ffffff',
+        blue: '#3b82f6',
+      }
+
+      // Add header
+      pdf.setFillColor(colors.primary)
+      pdf.rect(0, 0, 210, 40, 'F')
+
+      pdf.setTextColor(colors.white)
+      pdf.setFontSize(20)
+      pdf.text('ISKA Spectator Ticket Report', 20, 25)
+
+      pdf.setFontSize(10)
+      pdf.text(
+        `Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+        20,
+        32
+      )
+
+      let yPos = 55
+
+      // Ticket Information Section
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(16)
+      pdf.text('Ticket Information', 20, yPos)
+      yPos += 15
+
+      // Render sections like in TicketDetailsModal
+
+      // Ticket Information Section
+      const ticketSectionData = [
+        ['Ticket Type:', ticket.tier || 'N/A'],
+        ['Quantity:', ticket.quantity || 0],
+        [
+          'Unit Price:',
+          ticket.unitPrice
+            ? `$${ticket.unitPrice}`
+            : ticket.totalAmount && ticket.quantity
+            ? `$${(ticket.totalAmount / ticket.quantity).toFixed(2)}`
+            : 'N/A',
+        ],
+        ['Total Amount:', `$${ticket.totalAmount || 0}`],
+        ['Transaction ID:', ticket._id || ticket.id || 'N/A'],
+        [
+          'Purchase Date:',
+          formatDateTime(ticket.createdAt || ticket.purchaseDate),
+        ],
+      ]
+
+      ticketSectionData.forEach(([label, value]) => {
+        if (yPos > 270) {
+          pdf.addPage()
+          yPos = 30
+        }
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(10)
+        pdf.text(label, 20, yPos)
+        pdf.setTextColor('#000000')
+        pdf.setFontSize(10)
+        pdf.text(String(value), 90, yPos)
+        yPos += 8
+      })
+
+      // Event Information Section
+      if (ticket.event) {
+        yPos += 5
+        if (yPos > 260) {
+          pdf.addPage()
+          yPos = 30
+        }
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(12)
+        pdf.text('Event Information', 20, yPos)
+        yPos += 10
+
+        const eventData = [
+          ['Event Name:', ticket.event.name || 'N/A'],
+          [
+            'Event Date:',
+            ticket.event.startDate ? formatDate(ticket.event.startDate) : 'N/A',
+          ],
+          [
+            'Event Time:',
+            ticket.event.startDate
+              ? new Date(ticket.event.startDate).toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                })
+              : 'N/A',
+          ],
+          [
+            'Venue:',
+            ticket.event.venueName ||
+              ticket.event.venue?.name ||
+              ticket.event.venue ||
+              'N/A',
+          ],
+        ]
+
+        eventData.forEach(([label, value]) => {
+          if (yPos > 270) {
+            pdf.addPage()
+            yPos = 30
+          }
+          pdf.setTextColor(colors.text)
+          pdf.setFontSize(10)
+          pdf.text(label, 20, yPos)
+          pdf.setTextColor('#000000')
+          pdf.setFontSize(10)
+          pdf.text(String(value), 90, yPos)
+          yPos += 8
+        })
+      }
+
+      // Purchaser Information Section
+      if (
+        ticket.purchaserName ||
+        ticket.purchaserEmail ||
+        ticket.customerInfo
+      ) {
+        yPos += 5
+        if (yPos > 260) {
+          pdf.addPage()
+          yPos = 30
+        }
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(12)
+        pdf.text('Purchaser Information', 20, yPos)
+        yPos += 10
+
+        const purchaserData = []
+        const purchaserName =
+          ticket.purchaserName ||
+          ticket.customerInfo?.name ||
+          `${ticket.customerInfo?.firstName || ''} ${
+            ticket.customerInfo?.lastName || ''
+          }`.trim() ||
+          'N/A'
+        purchaserData.push(['Name:', purchaserName])
+        purchaserData.push([
+          'Email:',
+          ticket.purchaserEmail || ticket.customerInfo?.email || 'N/A',
+        ])
+        if (ticket.customerInfo?.phone) {
+          purchaserData.push(['Phone:', ticket.customerInfo.phone])
+        }
+        if (ticket.customerInfo?.address) {
+          purchaserData.push(['Address:', ticket.customerInfo.address])
+        }
+
+        purchaserData.forEach(([label, value]) => {
+          if (yPos > 270) {
+            pdf.addPage()
+            yPos = 30
+          }
+          pdf.setTextColor(colors.text)
+          pdf.setFontSize(10)
+          pdf.text(label, 20, yPos)
+          pdf.setTextColor('#000000')
+          pdf.setFontSize(10)
+          pdf.text(String(value), 90, yPos)
+          yPos += 8
+        })
+      }
+
+      // Payment Information Section
+      yPos += 5
+      if (yPos > 260) {
+        pdf.addPage()
+        yPos = 30
+      }
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(12)
+      pdf.text('Payment Information', 20, yPos)
+      yPos += 10
+
+      const paymentStatus =
+        ticket.paymentStatus === 'completed' || ticket.status === 'paid'
+          ? 'Completed'
+          : ticket.paymentStatus === 'pending'
+          ? 'Pending'
+          : ticket.paymentStatus || ticket.status || 'N/A'
+      const paymentData = [
+        ['Payment Status:', paymentStatus],
+        ['Payment Method:', ticket.paymentMethod || 'N/A'],
+        [
+          'Transaction Reference:',
+          ticket.transactionRef || ticket.paymentId || 'N/A',
+        ],
+        ['Currency:', ticket.currency || 'USD'],
+        ['Processing Fee:', `$${ticket.processingFee || '0.00'}`],
+        [
+          'Net Amount:',
+          `$${((ticket.totalAmount || 0) - (ticket.processingFee || 0)).toFixed(
+            2
+          )}`,
+        ],
+      ]
+
+      paymentData.forEach(([label, value]) => {
+        if (yPos > 270) {
+          pdf.addPage()
+          yPos = 30
+        }
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(10)
+        pdf.text(label, 20, yPos)
+        pdf.setTextColor('#000000')
+        pdf.setFontSize(10)
+        pdf.text(String(value), 90, yPos)
+        yPos += 8
+      })
+
+      // Additional Details Section
+      yPos += 5
+      if (yPos > 260) {
+        pdf.addPage()
+        yPos = 30
+      }
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(12)
+      pdf.text('Additional Details', 20, yPos)
+      yPos += 10
+
+      const ticketStatus =
+        ticket.ticketStatus === 'valid' || ticket.ticketStatus === 'active'
+          ? 'Active'
+          : ticket.ticketStatus === 'used' || ticket.ticketStatus === 'redeemed'
+          ? 'Used'
+          : ticket.ticketStatus === 'cancelled' ||
+            ticket.ticketStatus === 'refunded'
+          ? 'Cancelled'
+          : ticket.ticketStatus || 'Active'
+      const additionalData = [
+        ['Ticket Status:', ticketStatus],
+        ['Source:', ticket.source || 'Online'],
+        [
+          'Discount Applied:',
+          ticket.discountAmount ? `$${ticket.discountAmount}` : 'None',
+        ],
+        ['Notes:', ticket.notes || 'None'],
+      ]
+
+      additionalData.forEach(([label, value]) => {
+        if (yPos > 270) {
+          pdf.addPage()
+          yPos = 30
+        }
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(10)
+        pdf.text(label, 20, yPos)
+        pdf.setTextColor('#000000')
+        pdf.setFontSize(10)
+        pdf.text(String(value), 90, yPos)
+        yPos += 8
+      })
+
+      yPos += 10
+
+      // QR Code or Ticket Code section
+      if (ticket.ticketCode || ticket.qrCode) {
+        if (yPos > 240) {
+          pdf.addPage()
+          yPos = 30
+        }
+
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(14)
+        pdf.text('Ticket Code', 20, yPos)
+        yPos += 12
+
+        pdf.setFillColor(colors.secondary)
+        pdf.rect(20, yPos, 170, 20, 'F')
+
+        pdf.setTextColor('#FFFF00') // Yellow color for the code
+        pdf.setFontSize(16)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(ticket.ticketCode || ticket.qrCode, 25, yPos + 12)
+
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(8)
+        pdf.text('Present this code at the event entrance', 25, yPos + 16)
+
+        yPos += 30
+      }
+
+      // Event description if available
+      if (ticket.event && ticket.event.description) {
+        if (yPos > 240) {
+          pdf.addPage()
+          yPos = 20
+        }
+
+        pdf.setTextColor(colors.text)
+        pdf.setFontSize(12)
+        pdf.text('Event Description', 20, yPos)
+        yPos += 8
+
+        pdf.setTextColor('#000000') // Black text for visibility
+        pdf.setFontSize(9)
+        const description = ticket.event.description
+        const lines = pdf.splitTextToSize(description, 170)
+        pdf.text(lines, 20, yPos)
+        yPos += lines.length * 4
+      }
+
+      // Footer
+      yPos = Math.max(yPos + 40, 270)
+      pdf.setTextColor(colors.text)
+      pdf.setFontSize(8)
+      pdf.text(
+        'Generated by ISKA Admin Dashboard System - Spectator Ticket Report',
+        20,
+        yPos
+      )
+
+      const fileName = `spectator-ticket-${
+        ticket.event?.name
+          ? ticket.event.name.replace(/[^a-zA-Z0-9]/g, '-') + '-'
+          : ''
+      }${ticket._id || ticket.id || 'unknown'}-${
+        new Date().toISOString().split('T')[0]
+      }.pdf`
+
+      pdf.save(fileName)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('PDF generation failed. Please try again.')
+    }
+  }
+
   // Use API data or show loading state
   if (!dashboardData) {
     return (
@@ -883,12 +1227,22 @@ export default function DashboardTables({ dashboardData, onRefresh }) {
                       {formatDateTime(ticket.event?.startDate)}
                     </td>
                     <td className='px-4 py-3'>
-                      <button
-                        onClick={() => handleViewDetails(ticket)}
-                        className='text-blue-500 hover:text-blue-400 text-sm'
-                      >
-                        Details
-                      </button>
+                      <div className='flex gap-2'>
+                        <button
+                          onClick={() => handleViewDetails(ticket)}
+                          className='text-blue-500 hover:text-blue-400 text-sm'
+                        >
+                          Details
+                        </button>
+                        <button
+                          onClick={() => handleExportTicketPDF(ticket)}
+                          className='text-green-500 hover:text-green-400 text-sm flex items-center gap-1'
+                          title='Download PDF report for this ticket'
+                        >
+                          <Download size={12} />
+                          Export
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

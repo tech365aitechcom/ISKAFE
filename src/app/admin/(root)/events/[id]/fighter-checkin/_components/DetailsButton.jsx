@@ -4,63 +4,95 @@ import axios from 'axios'
 import { enqueueSnackbar } from 'notistack'
 import React, { useState } from 'react'
 import useStore from '../../../../../../../stores/useStore'
+import { uploadToS3 } from '../../../../../../../utils/uploadToS3'
 
 function DetailsButton({ fighter, onSuccess }) {
   const user = useStore((state) => state.user)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [validationErrors, setValidationErrors] = useState({})  
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [validationErrors, setValidationErrors] = useState({})
+  const [selectedFileName, setSelectedFileName] = useState('')
+  const [imagePreview, setImagePreview] = useState('')
   const [formData, setFormData] = useState({
     // Profile Info - auto-loaded from fighter profile
     competitor: `${fighter.firstName || ''} ${fighter.lastName || ''}`,
-    dateAdded: fighter.createdAt ? new Date(fighter.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    dateAdded: fighter.createdAt
+      ? new Date(fighter.createdAt).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0],
     gender: fighter.gender || '',
-    
+
     // Weigh-In Info
     weight: fighter.walkAroundWeight || fighter.weight || '',
     isOfficialWeight: fighter.isOfficialWeight || false,
-    
+
     // Physical Attributes
     height: fighter.height || '',
-    
+
     // Fight Record - auto-calculated/editable
-    record: fighter.systemRecord || '0-0-0',
-    
+    systemRecord: fighter.systemRecord || '0-0-0',
+
     // Training Info
     gymName: fighter.gymName || '',
-    
+
     // Medical/Payments
     paymentStatus: fighter.paymentStatus || 'Pending',
     missingPaymentsNotes: fighter.missingPaymentsNotes || '',
     medicalExamDone: fighter.medicalExamDone || false,
-    
+
     // Licensing Compliance
-    physicalRenewalDate: fighter.physicalRenewalDate ? new Date(fighter.physicalRenewalDate).toISOString().split('T')[0] : '',
-    licenseRenewalDate: fighter.licenseRenewalDate ? new Date(fighter.licenseRenewalDate).toISOString().split('T')[0] : '',
+    physicalRenewalDate: fighter.physicalRenewalDate
+      ? new Date(fighter.physicalRenewalDate).toISOString().split('T')[0]
+      : '',
+    licenseRenewalDate: fighter.licenseRenewalDate
+      ? new Date(fighter.licenseRenewalDate).toISOString().split('T')[0]
+      : '',
     hotelConfirmationNumber: fighter.hotelConfirmationNumber || '',
     suspensions: fighter.suspensions || 'None', // readonly from platform
-    
+
     // Safety & Emergency (NEW)
     emergencyContactName: fighter.emergencyContactName || '',
     emergencyContactPhone: fighter.emergencyContactPhone || '',
-    
+
     // Regulatory (NEW)
     countryOfOrigin: fighter.countryOfOrigin || fighter.country || 'USA',
-    
+
     // Experience (NEW)
     lastEvent: fighter.lastEvent || '',
     skillRank: fighter.skillRank || fighter.skillLevel || '',
-    
+
     // Legal (NEW)
-    parentalConsentUploaded: false
+    parentalConsentUploaded: false,
+
+    // Media (NEW)
+    profilePhoto: fighter.profilePhoto || null,
   })
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }))
+    const { name, value, type, checked, files } = e.target
+
+    if (type === 'file') {
+      if (files && files.length > 0) {
+        const file = files[0]
+        setFormData((prev) => ({
+          ...prev,
+          [name]: file,
+        }))
+        setSelectedFileName(file.name)
+
+        // Create image preview
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          setImagePreview(event.target.result)
+        }
+        reader.readAsDataURL(file)
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      }))
+    }
 
     // Clear validation error when user starts typing
     if (validationErrors[name]) {
@@ -73,63 +105,88 @@ function DetailsButton({ fighter, onSuccess }) {
 
   const validateForm = () => {
     const errors = {}
-    const fighterAge = fighter.dateOfBirth ? 
-      new Date().getFullYear() - new Date(fighter.dateOfBirth).getFullYear() : null
+    const fighterAge = fighter.dateOfBirth
+      ? new Date().getFullYear() - new Date(fighter.dateOfBirth).getFullYear()
+      : null
 
     // Required field validations
     if (!formData.weight || formData.weight <= 0) {
       errors.weight = 'Weight is required and must be greater than 0'
     }
-    
+
     if (!formData.gymName?.trim()) {
       errors.gymName = 'Training facility is required'
     }
-    
+
     if (!formData.paymentStatus) {
       errors.paymentStatus = 'Payment status is required'
     }
-    
+
     if (!formData.emergencyContactName?.trim()) {
-      errors.emergencyContactName = 'Emergency contact name is required (alphabetic only)'
+      errors.emergencyContactName =
+        'Emergency contact name is required (alphabetic only)'
     } else if (!/^[a-zA-Z\s]+$/.test(formData.emergencyContactName)) {
-      errors.emergencyContactName = 'Emergency contact name must contain only letters and spaces'
+      errors.emergencyContactName =
+        'Emergency contact name must contain only letters and spaces'
     }
-    
+
     if (!formData.emergencyContactPhone?.trim()) {
       errors.emergencyContactPhone = 'Emergency contact phone is required'
-    } else if (!/^[+]?[1-9]\d{1,14}$/.test(formData.emergencyContactPhone.replace(/[\s-]/g, ''))) {
-      errors.emergencyContactPhone = 'Must be a valid phone number (e.g., +1-555-123-4567)'
+    } else if (
+      !/^[+]?[1-9]\d{1,14}$/.test(
+        formData.emergencyContactPhone.replace(/[\s-]/g, '')
+      )
+    ) {
+      errors.emergencyContactPhone =
+        'Must be a valid phone number (e.g., +1-555-123-4567)'
     }
-    
+
     if (!formData.countryOfOrigin?.trim()) {
       errors.countryOfOrigin = 'Country of origin is required'
+    } else if (!/^[a-zA-Z\s,.-]+$/.test(formData.countryOfOrigin)) {
+      errors.countryOfOrigin =
+        'Country must contain only letters, spaces, commas, periods, and hyphens'
     }
-    
+
+    // Record field validation - enforce W-L-D format
+    if (!formData.systemRecord?.trim()) {
+      errors.systemRecord = 'Fight record is required'
+    } else if (!/^\d+-\d+-\d+$/.test(formData.systemRecord.trim())) {
+      errors.systemRecord = 'Record must be in W-L-D format (e.g., 5-2-1)'
+    }
+
+    // Medical Clearance validation
+    if (!formData.medicalExamDone) {
+      errors.medicalExamDone = 'Medical clearance is required before check-in'
+    }
+
     // Conditional validation for minors (under 18)
     if (fighterAge && fighterAge < 18) {
       if (!formData.parentalConsentUploaded) {
-        errors.parentalConsentUploaded = 'Parental consent is required for minors under 18'
+        errors.parentalConsentUploaded =
+          'Parental consent is required for minors under 18'
       }
     }
-    
+
     // Enhanced validations
     if (formData.weight && (formData.weight < 50 || formData.weight > 500)) {
       errors.weight = 'Weight must be between 50 and 500 lbs'
     }
-    
+
     if (formData.height && (formData.height < 36 || formData.height > 96)) {
       errors.height = 'Height must be between 36 and 96 inches'
     }
-    
+
     // Date validations
     if (formData.physicalRenewalDate) {
       const renewalDate = new Date(formData.physicalRenewalDate)
       const today = new Date()
       if (renewalDate <= today) {
-        errors.physicalRenewalDate = 'Physical renewal date must be in the future'
+        errors.physicalRenewalDate =
+          'Physical renewal date must be in the future'
       }
     }
-    
+
     if (formData.licenseRenewalDate) {
       const licenseDate = new Date(formData.licenseRenewalDate)
       const today = new Date()
@@ -143,13 +200,13 @@ function DetailsButton({ fighter, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     // Clear previous errors
     setValidationErrors({})
-    
+
     // Validate form
     const errors = validateForm()
-    
+
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors)
       enqueueSnackbar('Please fix the validation errors before submitting', {
@@ -157,18 +214,28 @@ function DetailsButton({ fighter, onSuccess }) {
       })
       return
     }
-    
+
     setIsSubmitting(true)
-    
+
     try {
+      // Handle file upload for profile photo
+      const updateData = { ...formData }
+
+      if (
+        updateData.profilePhoto &&
+        typeof updateData.profilePhoto !== 'string'
+      ) {
+        updateData.profilePhoto = await uploadToS3(updateData.profilePhoto)
+      }
+
       const response = await axios.put(
         `${API_BASE_URL}/registrations/${fighter._id}`,
         {
-          ...formData,
+          ...updateData,
           // Convert weight to number
-          walkAroundWeight: parseFloat(formData.weight),
-          weight: parseFloat(formData.weight),
-          height: formData.height ? parseFloat(formData.height) : undefined,
+          walkAroundWeight: parseFloat(updateData.weight),
+          weight: parseFloat(updateData.weight),
+          height: updateData.height ? parseFloat(updateData.height) : undefined,
         },
         {
           headers: {
@@ -177,12 +244,15 @@ function DetailsButton({ fighter, onSuccess }) {
           },
         }
       )
-      
+
       if (response.status === apiConstants.success || response.data.success) {
         enqueueSnackbar('Fighter details updated successfully', {
           variant: 'success',
         })
-        setIsModalOpen(false)
+        setIsSubmitted(true)
+        setTimeout(() => {
+          setIsModalOpen(false)
+        }, 1500) // Show success state briefly before closing
         if (onSuccess) {
           onSuccess()
         }
@@ -192,7 +262,9 @@ function DetailsButton({ fighter, onSuccess }) {
     } catch (error) {
       console.error('Update error:', error)
       enqueueSnackbar(
-        error.response?.data?.message || error.message || 'An error occurred during update',
+        error.response?.data?.message ||
+          error.message ||
+          'An error occurred during update',
         { variant: 'error' }
       )
     } finally {
@@ -203,6 +275,9 @@ function DetailsButton({ fighter, onSuccess }) {
   const handleOpenModal = () => {
     setValidationErrors({})
     setIsSubmitting(false)
+    setIsSubmitted(false)
+    setSelectedFileName(fighter.profilePhoto ? 'Current photo uploaded' : '')
+    setImagePreview(fighter.profilePhoto || '')
     setIsModalOpen(true)
   }
 
@@ -253,7 +328,6 @@ function DetailsButton({ fighter, onSuccess }) {
             </div>
 
             <form onSubmit={handleSubmit} className='space-y-6'>
-
               {/* Profile Info (Readonly) */}
               <div>
                 <h3 className='font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2'>
@@ -261,7 +335,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1 text-gray-400'>Competitor <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1 text-gray-400'>
+                      Competitor <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='text'
                       value={formData.competitor}
@@ -270,7 +346,9 @@ function DetailsButton({ fighter, onSuccess }) {
                     />
                   </div>
                   <div>
-                    <label className='block text-sm mb-1 text-gray-400'>Date Added <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1 text-gray-400'>
+                      Date Added <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='date'
                       value={formData.dateAdded}
@@ -279,7 +357,9 @@ function DetailsButton({ fighter, onSuccess }) {
                     />
                   </div>
                   <div>
-                    <label className='block text-sm mb-1 text-gray-400'>Gender <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1 text-gray-400'>
+                      Gender <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='text'
                       value={formData.gender}
@@ -288,17 +368,87 @@ function DetailsButton({ fighter, onSuccess }) {
                     />
                   </div>
                   <div>
-                    <label className='block text-sm mb-1 text-gray-400'>Age</label>
+                    <label className='block text-sm mb-1 text-gray-400'>
+                      Age
+                    </label>
                     <input
                       type='text'
                       value={
                         fighter.dateOfBirth
-                          ? new Date().getFullYear() - new Date(fighter.dateOfBirth).getFullYear()
+                          ? new Date().getFullYear() -
+                            new Date(fighter.dateOfBirth).getFullYear()
                           : 'N/A'
                       }
                       className='w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-gray-300'
                       readOnly
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Profile Photo */}
+              <div>
+                <h3 className='font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2'>
+                  Profile Photo
+                </h3>
+                <div className='grid grid-cols-1 gap-4'>
+                  <div>
+                    <label className='block text-sm mb-1'>Profile Photo</label>
+
+                    {/* Image Preview */}
+                    {imagePreview && (
+                      <div className='mb-4'>
+                        <img
+                          src={imagePreview}
+                          alt='Profile Preview'
+                          className='w-32 h-32 object-cover rounded-lg border-2 border-blue-400 shadow-lg'
+                        />
+                        <p className='text-sm text-blue-400 mt-2'>
+                          {selectedFileName || 'Current profile photo'}
+                        </p>
+                      </div>
+                    )}
+
+                    <input
+                      type='file'
+                      name='profilePhoto'
+                      onChange={handleChange}
+                      accept='image/jpeg,image/jpg,image/png'
+                      className='w-full bg-[#07091D] border border-[#343B4F] rounded px-3 py-2 focus:border-blue-500 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700'
+                      disabled={isSubmitted}
+                    />
+
+                    {selectedFileName && !imagePreview && (
+                      <p className='text-sm text-green-400 mt-1'>
+                        Selected: {selectedFileName}
+                      </p>
+                    )}
+
+                    {!imagePreview && !selectedFileName && (
+                      <div className='mt-2 p-4 bg-gray-800 border-2 border-dashed border-gray-600 rounded-lg text-center'>
+                        <div className='text-gray-400 text-sm'>
+                          <svg
+                            className='mx-auto h-8 w-8 text-gray-500 mb-2'
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth={2}
+                              d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+                            />
+                          </svg>
+                          No profile photo selected
+                        </div>
+                      </div>
+                    )}
+
+                    <p className='text-gray-400 text-xs mt-1'>
+                      Optional: Upload fighter profile photo (JPEG, JPG, PNG
+                      formats only)
+                    </p>
                   </div>
                 </div>
               </div>
@@ -310,7 +460,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Weight (lbs) <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Weight (lbs) <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='number'
                       name='weight'
@@ -320,14 +472,17 @@ function DetailsButton({ fighter, onSuccess }) {
                         validationErrors.weight
                           ? 'border-red-500 focus:border-red-500'
                           : 'border-[#343B4F] focus:border-blue-500'
-                      }`}
+                      } ${isSubmitted ? 'opacity-50' : ''}`}
                       placeholder='e.g., 170'
                       required
                       min='1'
                       step='0.1'
+                      disabled={isSubmitted}
                     />
                     {validationErrors.weight && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.weight}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.weight}
+                      </p>
                     )}
                   </div>
                   <div className='flex items-center'>
@@ -338,6 +493,7 @@ function DetailsButton({ fighter, onSuccess }) {
                         checked={formData.isOfficialWeight}
                         onChange={handleChange}
                         className='mr-2'
+                        disabled={isSubmitted}
                       />
                       Official Weight Checkbox
                     </label>
@@ -352,7 +508,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-1 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Height (inches)</label>
+                    <label className='block text-sm mb-1'>
+                      Height (inches)
+                    </label>
                     <input
                       type='number'
                       name='height'
@@ -368,7 +526,9 @@ function DetailsButton({ fighter, onSuccess }) {
                       max='96'
                     />
                     {validationErrors.height && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.height}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.height}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -381,15 +541,28 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Record <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Record <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='text'
-                      name='record'
-                      value={formData.record}
+                      name='systemRecord'
+                      value={formData.systemRecord}
                       onChange={handleChange}
-                      className='w-full bg-[#07091D] border border-[#343B4F] rounded px-3 py-2 focus:border-blue-500'
-                      placeholder='e.g., 0-0-0'
+                      className={`w-full bg-[#07091D] border rounded px-3 py-2 ${
+                        validationErrors.systemRecord
+                          ? 'border-red-500 focus:border-red-500'
+                          : 'border-[#343B4F] focus:border-blue-500'
+                      } ${isSubmitted ? 'opacity-50' : ''}`}
+                      placeholder='e.g., 5-2-1 (Wins-Losses-Draws)'
+                      required
+                      disabled={isSubmitted}
                     />
+                    {validationErrors.systemRecord && (
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.systemRecord}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -401,7 +574,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Training Facility <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Training Facility <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='text'
                       name='gymName'
@@ -416,7 +591,9 @@ function DetailsButton({ fighter, onSuccess }) {
                       required
                     />
                     {validationErrors.gymName && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.gymName}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.gymName}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -429,7 +606,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Payment Status <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Payment Status <span className='text-red-400'>*</span>
+                    </label>
                     <select
                       name='paymentStatus'
                       value={formData.paymentStatus}
@@ -447,10 +626,12 @@ function DetailsButton({ fighter, onSuccess }) {
                       <option value='Failed'>Failed</option>
                     </select>
                     {validationErrors.paymentStatus && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.paymentStatus}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.paymentStatus}
+                      </p>
                     )}
                   </div>
-                  <div className='flex items-center'>
+                  <div>
                     <label className='flex items-center'>
                       <input
                         type='checkbox'
@@ -458,12 +639,22 @@ function DetailsButton({ fighter, onSuccess }) {
                         checked={formData.medicalExamDone}
                         onChange={handleChange}
                         className='mr-2'
+                        required
+                        disabled={isSubmitted}
                       />
-                      Medical Exams Done <span className='text-red-400'>*</span>
+                      Medical Clearance (Required){' '}
+                      <span className='text-red-400'>*</span>
                     </label>
+                    {validationErrors.medicalExamDone && (
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.medicalExamDone}
+                      </p>
+                    )}
                   </div>
                   <div className='md:col-span-2'>
-                    <label className='block text-sm mb-1'>Missing Payments & Notes</label>
+                    <label className='block text-sm mb-1'>
+                      Missing Payments & Notes
+                    </label>
                     <textarea
                       name='missingPaymentsNotes'
                       value={formData.missingPaymentsNotes}
@@ -483,7 +674,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Fighter Physical Renewal Date</label>
+                    <label className='block text-sm mb-1'>
+                      Fighter Physical Renewal Date
+                    </label>
                     <input
                       type='date'
                       name='physicalRenewalDate'
@@ -496,11 +689,15 @@ function DetailsButton({ fighter, onSuccess }) {
                       }`}
                     />
                     {validationErrors.physicalRenewalDate && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.physicalRenewalDate}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.physicalRenewalDate}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <label className='block text-sm mb-1'>Fighter License Renewal Date</label>
+                    <label className='block text-sm mb-1'>
+                      Fighter License Renewal Date
+                    </label>
                     <input
                       type='date'
                       name='licenseRenewalDate'
@@ -513,11 +710,15 @@ function DetailsButton({ fighter, onSuccess }) {
                       }`}
                     />
                     {validationErrors.licenseRenewalDate && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.licenseRenewalDate}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.licenseRenewalDate}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <label className='block text-sm mb-1'>Hotel Confirmation #</label>
+                    <label className='block text-sm mb-1'>
+                      Hotel Confirmation #
+                    </label>
                     <input
                       type='text'
                       name='hotelConfirmationNumber'
@@ -528,7 +729,9 @@ function DetailsButton({ fighter, onSuccess }) {
                     />
                   </div>
                   <div>
-                    <label className='block text-sm mb-1'>Suspensions <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Suspensions <span className='text-red-400'>*</span>
+                    </label>
                     <select
                       name='suspensions'
                       value={formData.suspensions}
@@ -550,7 +753,10 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Emergency Contact Name <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Emergency Contact Name{' '}
+                      <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='text'
                       name='emergencyContactName'
@@ -565,11 +771,16 @@ function DetailsButton({ fighter, onSuccess }) {
                       required
                     />
                     {validationErrors.emergencyContactName && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.emergencyContactName}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.emergencyContactName}
+                      </p>
                     )}
                   </div>
                   <div>
-                    <label className='block text-sm mb-1'>Emergency Contact Phone <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Emergency Contact Phone{' '}
+                      <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='tel'
                       name='emergencyContactPhone'
@@ -584,7 +795,9 @@ function DetailsButton({ fighter, onSuccess }) {
                       required
                     />
                     {validationErrors.emergencyContactPhone && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.emergencyContactPhone}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.emergencyContactPhone}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -597,7 +810,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Country of Origin <span className='text-red-400'>*</span></label>
+                    <label className='block text-sm mb-1'>
+                      Country of Origin <span className='text-red-400'>*</span>
+                    </label>
                     <input
                       type='text'
                       name='countryOfOrigin'
@@ -607,12 +822,15 @@ function DetailsButton({ fighter, onSuccess }) {
                         validationErrors.countryOfOrigin
                           ? 'border-red-500 focus:border-red-500'
                           : 'border-[#343B4F] focus:border-blue-500'
-                      }`}
+                      } ${isSubmitted ? 'opacity-50' : ''}`}
                       placeholder='e.g., USA, Canada'
                       required
+                      disabled={isSubmitted}
                     />
                     {validationErrors.countryOfOrigin && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.countryOfOrigin}</p>
+                      <p className='text-red-500 text-xs mt-1'>
+                        {validationErrors.countryOfOrigin}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -625,7 +843,9 @@ function DetailsButton({ fighter, onSuccess }) {
                 </h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm mb-1'>Last Event Participated In</label>
+                    <label className='block text-sm mb-1'>
+                      Last Event Participated In
+                    </label>
                     <input
                       type='text'
                       name='lastEvent'
@@ -636,7 +856,9 @@ function DetailsButton({ fighter, onSuccess }) {
                     />
                   </div>
                   <div>
-                    <label className='block text-sm mb-1'>Skill Rank / Belt Level</label>
+                    <label className='block text-sm mb-1'>
+                      Skill Rank / Belt Level
+                    </label>
                     <input
                       type='text'
                       name='skillRank'
@@ -650,31 +872,36 @@ function DetailsButton({ fighter, onSuccess }) {
               </div>
 
               {/* Legal */}
-              {fighter.dateOfBirth && 
-                new Date().getFullYear() - new Date(fighter.dateOfBirth).getFullYear() < 18 && (
-                <div>
-                  <h3 className='font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2'>
-                    Legal (Required for Minors)
-                  </h3>
-                  <div className='grid grid-cols-1 gap-4'>
-                    <div className='flex items-center'>
-                      <label className='flex items-center'>
-                        <input
-                          type='checkbox'
-                          name='parentalConsentUploaded'
-                          checked={formData.parentalConsentUploaded}
-                          onChange={handleChange}
-                          className='mr-2'
-                        />
-                        Parental Consent Uploaded <span className='text-red-400'>*</span>
-                      </label>
+              {fighter.dateOfBirth &&
+                new Date().getFullYear() -
+                  new Date(fighter.dateOfBirth).getFullYear() <
+                  18 && (
+                  <div>
+                    <h3 className='font-bold mb-3 text-blue-400 border-b border-gray-600 pb-2'>
+                      Legal (Required for Minors)
+                    </h3>
+                    <div className='grid grid-cols-1 gap-4'>
+                      <div className='flex items-center'>
+                        <label className='flex items-center'>
+                          <input
+                            type='checkbox'
+                            name='parentalConsentUploaded'
+                            checked={formData.parentalConsentUploaded}
+                            onChange={handleChange}
+                            className='mr-2'
+                          />
+                          Parental Consent{' '}
+                          <span className='text-red-400'>*</span>
+                        </label>
+                      </div>
+                      {validationErrors.parentalConsentUploaded && (
+                        <p className='text-red-500 text-xs mt-1'>
+                          {validationErrors.parentalConsentUploaded}
+                        </p>
+                      )}
                     </div>
-                    {validationErrors.parentalConsentUploaded && (
-                      <p className='text-red-500 text-xs mt-1'>{validationErrors.parentalConsentUploaded}</p>
-                    )}
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Form Status */}
               {Object.keys(validationErrors).length > 0 && (
@@ -693,7 +920,8 @@ function DetailsButton({ fighter, onSuccess }) {
               {/* Required Fields Notice */}
               <div className='bg-blue-900 bg-opacity-30 border border-blue-500 rounded-lg p-3'>
                 <p className='text-blue-300 text-sm'>
-                  <span className='text-red-400'>*</span> Required fields must be completed
+                  <span className='text-red-400'>*</span> Required fields must
+                  be completed
                 </p>
               </div>
 
@@ -720,16 +948,25 @@ function DetailsButton({ fighter, onSuccess }) {
                   <button
                     type='submit'
                     className={`px-4 py-2 rounded font-medium flex items-center gap-2 ${
-                      isSubmitting
+                      isSubmitting || isSubmitted
                         ? 'bg-gray-600 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700'
                     }`}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSubmitted}
                   >
                     {isSubmitting && (
                       <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
                     )}
-                    {isSubmitting ? 'Updating...' : 'Update Details'}
+                    {isSubmitted ? (
+                      <>
+                        <div className='w-4 h-4 text-green-400'>✓</div>
+                        Form Submitted
+                      </>
+                    ) : isSubmitting ? (
+                      'Updating...'
+                    ) : (
+                      'Update Details'
+                    )}
                   </button>
                 </div>
               </div>
