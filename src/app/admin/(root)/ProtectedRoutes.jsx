@@ -14,10 +14,20 @@ const ProtectedRoutes = ({ children }) => {
   const { user, _hasHydrated, clearUser } = useStore()
   const [isValidating, setIsValidating] = useState(true)
   const hasValidated = useRef(false)
+  const currentToken = useRef(null)
 
   useEffect(() => {
     const validateAndSetup = async () => {
-      if (!_hasHydrated || hasValidated.current) return
+      if (!_hasHydrated) return
+
+      // Reset validation flag if token has changed (new login or token refresh)
+      if (currentToken.current !== user?.token) {
+        hasValidated.current = false
+        currentToken.current = user?.token
+      }
+
+      // Skip if already validated for this token
+      if (hasValidated.current) return
 
       if (!user) {
         router.push('/admin/login')
@@ -31,10 +41,10 @@ const ProtectedRoutes = ({ children }) => {
         return
       }
 
-      // Validate token on load (only once when layout renders)
+      // Validate token on load (once per token/page load)
       try {
         hasValidated.current = true
-        console.log('Validating token on layout render...')
+        console.log('🔄 Validating token on page load...')
         const { isValid, shouldRedirect } = await validateTokenOnLoad()
         
         if (!isValid && shouldRedirect) {
@@ -42,9 +52,9 @@ const ProtectedRoutes = ({ children }) => {
           router.push('/admin/login')
           return
         }
-        console.log('Token validation completed successfully')
+        console.log('✅ Token validation completed successfully')
       } catch (error) {
-        console.error('Token validation error:', error)
+        console.error('❌ Token validation error:', error)
         clearUser()
         router.push('/admin/login')
         return
