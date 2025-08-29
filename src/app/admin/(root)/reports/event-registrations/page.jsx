@@ -36,12 +36,13 @@ export default function EventRegistrationListing() {
   const [sortField, setSortField] = useState('regDate')
   const [sortDirection, setSortDirection] = useState('desc')
   const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [registrationsLoading, setRegistrationsLoading] = useState(false)
+  const [eventsLoading, setEventsLoading] = useState(false)
   const [registrations, setRegistrations] = useState([])
 
   // Function to fetch all registrations with filters
   const getAllRegistrations = async () => {
-    setLoading(true)
+    setRegistrationsLoading(true)
     try {
       // Construct query parameters
       const params = new URLSearchParams({
@@ -56,7 +57,7 @@ export default function EventRegistrationListing() {
       if (selectedRegistrationType) params.append('registrationType', selectedRegistrationType)
       if (regStartDate) params.append('regStartDate', regStartDate)
       if (regEndDate) params.append('regEndDate', regEndDate)
-      if (selectedEvent) params.append('eventId', selectedEvent)
+      if (selectedEvent) params.append('selectedEvent', selectedEvent)
       if (eventDate) params.append('eventDate', eventDate)
 
       const response = await axios.get(
@@ -70,13 +71,13 @@ export default function EventRegistrationListing() {
       console.error('Error fetching registrations:', error)
       enqueueSnackbar('Failed to load registrations', { variant: 'error' })
     } finally {
-      setLoading(false)
+      setRegistrationsLoading(false)
     }
   }
 
   // Fetch events on component mount
   const getEvents = async () => {
-    setLoading(true)
+    setEventsLoading(true)
     try {
       const response = await axios.get(`${API_BASE_URL}/events?page=1&limit=500`)
       setEvents(response.data.data.items)
@@ -84,7 +85,7 @@ export default function EventRegistrationListing() {
       console.error('Error fetching events:', error)
       enqueueSnackbar('Failed to load events', { variant: 'error' })
     } finally {
-      setLoading(false)
+      setEventsLoading(false)
     }
   }
 
@@ -96,8 +97,12 @@ export default function EventRegistrationListing() {
     limit, 
     sortField, 
     sortDirection,
-    // Note: We're not including filter states here to prevent
-    // automatic refetches on every filter change
+    searchQuery,
+    selectedRegistrationType,
+    regStartDate,
+    regEndDate,
+    eventDate,
+    selectedEvent
   ])
 
   // Fetch events on component mount
@@ -105,11 +110,10 @@ export default function EventRegistrationListing() {
     getEvents()
   }, [])
 
-  // Handler for applying filters
+  // Handler for applying filters (now just resets to first page)
   const handleGetForms = () => {
     // Reset to first page when applying new filters
     setCurrentPage(1)
-    getAllRegistrations()
   }
 
   // Handler for resetting filters
@@ -187,7 +191,6 @@ export default function EventRegistrationListing() {
     }
   }
 
-  if (loading) return <Loader />
 
   return (
     <div className='text-white p-8 flex justify-center relative overflow-hidden'>
@@ -346,7 +349,15 @@ export default function EventRegistrationListing() {
               </thead>
               
               <tbody>
-                {registrations.length > 0 ? (
+                {registrationsLoading ? (
+                  <tr className='text-center bg-[#0A1330]'>
+                    <td colSpan='12' className='px-4 py-8'>
+                      <div className='flex justify-center'>
+                        <Loader />
+                      </div>
+                    </td>
+                  </tr>
+                ) : registrations.length > 0 ? (
                   registrations.map((registration, index) => (
                     <tr
                       key={registration._id}
