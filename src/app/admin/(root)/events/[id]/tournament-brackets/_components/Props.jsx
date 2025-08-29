@@ -424,7 +424,7 @@ export default function Props({
     }
 
     // Group validation (optional but must be positive if provided)
-    if (group && String(group).trim() !== '') {
+    if (group && String(group)?.trim() !== '') {
       const groupStr = String(group).trim()
       if (!/^\d+$/.test(groupStr) || parseInt(groupStr) <= 0) {
         errors.group = 'Group must be a positive number'
@@ -440,14 +440,14 @@ export default function Props({
     try {
       const updateData = {
         startDayNumber:
-          startDayNumber && startDayNumber.trim() !== ''
-            ? parseInt(startDayNumber)
+          startDayNumber && String(startDayNumber).trim() !== ''
+            ? parseInt(String(startDayNumber).trim())
             : null,
-        group: group && group.trim() !== '' ? group : null,
-        ring: ringNumber && ringNumber.trim() !== '' ? ringNumber : null,
+        group: group && String(group).trim() !== '' ? parseInt(String(group).trim()) : null,
+        ring: ringNumber && String(ringNumber).trim() !== '' ? parseInt(String(ringNumber).trim()) : null,
         sequenceNumber:
-          bracketSequence && bracketSequence.trim() !== ''
-            ? parseInt(bracketSequence)
+          bracketSequence && String(bracketSequence).trim() !== ''
+            ? parseInt(String(bracketSequence).trim())
             : null,
         boutRound: parseInt(boutRound),
         maxCompetitors: parseInt(maxCompetitors),
@@ -467,15 +467,9 @@ export default function Props({
         onUpdate()
         setHasUnsavedSettingsChanges(false)
         setValidationErrors({}) // Clear any validation errors
-      } else {
-        enqueueSnackbar(
-          'Error saving settings: ' + (result.error || 'Unknown error'),
-          {
-            variant: 'error',
-          }
-        )
       }
     } catch (error) {
+      console.log('Save settings error:', error)
       enqueueSnackbar(error?.response?.data?.message, {
         variant: 'error',
       })
