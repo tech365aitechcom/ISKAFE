@@ -161,6 +161,8 @@ export default function TournamentResultsPage({ params }) {
                   </th>
                   <th className='px-4 py-3 whitespace-nowrap'>Match IDs</th>
                   <th className='px-4 py-3 whitespace-nowrap'>Round Info</th>
+                  <th className='px-4 py-3 whitespace-nowrap'>Start Time</th>
+                  <th className='px-4 py-3 whitespace-nowrap'>End Time</th>
                   <th className='px-4 py-3 whitespace-nowrap'>
                     Classification
                   </th>
@@ -217,6 +219,12 @@ export default function TournamentResultsPage({ params }) {
                       : '-'
                     const ruleStyle = res.bracket?.ruleStyle || '-'
                     const ruleFormat = res.event?.format || '-'
+                    const startTime = res.bout?.startDate
+                      ? new Date(res.bout.startDate).toLocaleString()
+                      : 'N/A'
+                    const endTime = res.createdAt
+                      ? new Date(res.createdAt).toLocaleString()
+                      : 'N/A'
 
                     return (
                       <tr
@@ -231,6 +239,12 @@ export default function TournamentResultsPage({ params }) {
                         </td>
                         <td className='px-4 py-3 whitespace-nowrap'>
                           {roundInfo}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap'>
+                          {startTime}
+                        </td>
+                        <td className='px-4 py-3 whitespace-nowrap'>
+                          {endTime}
                         </td>
                         <td className='px-4 py-3 whitespace-nowrap'>
                           {classification}

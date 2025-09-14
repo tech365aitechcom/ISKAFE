@@ -71,7 +71,7 @@ export function PeopleTable({
     if (isSelected) {
       setSelectedEmails([...selectedEmails, email])
     } else {
-      setSelectedEmails(selectedEmails.filter(e => e !== email))
+      setSelectedEmails(selectedEmails.filter((e) => e !== email))
     }
   }
 
@@ -80,8 +80,8 @@ export function PeopleTable({
     setSelectAll(isSelected)
     if (isSelected) {
       const allEmails = people
-        .filter(person => person.email)
-        .map(person => person.email)
+        .filter((person) => person.email)
+        .map((person) => person.email)
       setSelectedEmails(allEmails)
     } else {
       setSelectedEmails([])
@@ -91,11 +91,13 @@ export function PeopleTable({
   // Open email client with selected emails
   const openEmailClient = () => {
     if (selectedEmails.length === 0) {
-      enqueueSnackbar('Please select at least one email', { variant: 'warning' })
+      enqueueSnackbar('Please select at least one email', {
+        variant: 'warning',
+      })
       return
     }
 
-    const mailtoLink = `mailto:?bcc=${selectedEmails.join(',')}`
+    const mailtoLink = `mailto:?to=${selectedEmails.join(',')}`
     window.open(mailtoLink, '_blank')
   }
 
@@ -264,7 +266,7 @@ export function PeopleTable({
                     <td className='p-4'>
                       <Checkbox
                         checked={selectedEmails.includes(person.email)}
-                        onChange={(e) => 
+                        onChange={(e) =>
                           handleEmailSelect(person.email, e.target.checked)
                         }
                         disabled={!person.email}

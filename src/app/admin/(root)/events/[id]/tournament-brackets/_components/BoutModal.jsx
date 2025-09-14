@@ -13,7 +13,12 @@ import {
   getDisciplines,
 } from './bracketUtils'
 
-export default function BoutModal({ bracket, onClose, onCreate, editBout = null }) {
+export default function BoutModal({
+  bracket,
+  onClose,
+  onCreate,
+  editBout = null,
+}) {
   const [step, setStep] = useState(1)
   const [fighters, setFighters] = useState([])
   const [formData, setFormData] = useState({
@@ -60,11 +65,11 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
         `${API_BASE_URL}/brackets/${bracket._id}`
       )
       console.log('Fetched fighters:', response.data.data)
-      
+
       const bracketFighters = response.data.data.fighters || []
-      
+
       // Handle new structure where fighters are {fighter: {...}, seed: number}
-      const fightersList = bracketFighters.map(f => {
+      const fightersList = bracketFighters.map((f) => {
         if (f.fighter && typeof f.fighter === 'object') {
           // New format - extract fighter object and add seed
           return { ...f.fighter, seed: f.seed }
@@ -73,7 +78,7 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
           return f
         }
       })
-      
+
       setFighters(fightersList)
     } catch (err) {
       console.error('Error fetching fighters:', err)
@@ -84,17 +89,18 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
     // Get title and proClass from bracket if not directly available
     const title = bout.title || bout.bracket?.title || ''
     const proClass = bout.proClass || bout.bracket?.proClass || ''
-    
+
     // Find matching weight class from the available options
     let weightClassValue = ''
     if (bout.weightClass && bout.ageClass) {
       const weightClasses = getWeightClasses(bout.ageClass)
-      const matchingClass = weightClasses.find(wc => 
-        wc.min === bout.weightClass.min && wc.max === bout.weightClass.max
+      const matchingClass = weightClasses.find(
+        (wc) =>
+          wc.min === bout.weightClass.min && wc.max === bout.weightClass.max
       )
       weightClassValue = matchingClass ? matchingClass.value : ''
     }
-    
+
     setFormData({
       title: title,
       proClass: proClass,
@@ -135,6 +141,7 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
       },
     })
   }
+  console.log('Form Data:', redFighter)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -169,19 +176,20 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
   ) => {
     // Validate numeric input for weight and height fields
     let processedValue = value
-    
+
     if (field === 'weight' || (field === 'height' && subField)) {
       // Only allow positive numbers and decimal points
       processedValue = value.replace(/[^0-9.]/g, '')
-      
+
       // Prevent multiple decimal points
       const decimalCount = (processedValue.match(/\./g) || []).length
       if (decimalCount > 1) {
         const firstDecimalIndex = processedValue.indexOf('.')
-        processedValue = processedValue.substring(0, firstDecimalIndex + 1) + 
-                        processedValue.substring(firstDecimalIndex + 1).replace(/\./g, '')
+        processedValue =
+          processedValue.substring(0, firstDecimalIndex + 1) +
+          processedValue.substring(firstDecimalIndex + 1).replace(/\./g, '')
       }
-      
+
       // For height in feet/inches, ensure reasonable limits
       if (field === 'height') {
         const numValue = parseFloat(processedValue)
@@ -191,7 +199,7 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
           processedValue = '11' // Max 11 inches
         }
       }
-      
+
       // For weight, ensure reasonable limits (0-1000 lbs)
       if (field === 'weight') {
         const numValue = parseFloat(processedValue)
@@ -200,7 +208,7 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
         }
       }
     }
-    
+
     setFighterDetails((prev) => ({
       ...prev,
       [corner]: {
@@ -252,70 +260,106 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault()
-    
+
     // Validate required fighter details
     const errors = []
-    
+
     if (!redFighter || !blueFighter) {
       errors.push('Both Red Corner and Blue Corner fighters must be selected')
     }
-    
+
     // Validate weight fields (required)
-    if (!fighterDetails.redCornerDetails.weight || fighterDetails.redCornerDetails.weight.trim() === '') {
+    if (
+      !fighterDetails.redCornerDetails.weight ||
+      fighterDetails.redCornerDetails.weight.trim() === ''
+    ) {
       errors.push('Red Corner fighter weight is required')
     }
-    
-    if (!fighterDetails.blueCornerDetails.weight || fighterDetails.blueCornerDetails.weight.trim() === '') {
+
+    if (
+      !fighterDetails.blueCornerDetails.weight ||
+      fighterDetails.blueCornerDetails.weight.trim() === ''
+    ) {
       errors.push('Blue Corner fighter weight is required')
     }
-    
+
     // Validate height fields (required)
-    if (!fighterDetails.redCornerDetails.height.feet || fighterDetails.redCornerDetails.height.feet.trim() === '') {
+    if (
+      !fighterDetails.redCornerDetails.height.feet ||
+      fighterDetails.redCornerDetails.height.feet.trim() === ''
+    ) {
       errors.push('Red Corner fighter height (feet) is required')
     }
-    
-    if (!fighterDetails.redCornerDetails.height.inches || fighterDetails.redCornerDetails.height.inches.trim() === '') {
+
+    if (
+      !fighterDetails.redCornerDetails.height.inches ||
+      fighterDetails.redCornerDetails.height.inches.trim() === ''
+    ) {
       errors.push('Red Corner fighter height (inches) is required')
     }
-    
-    if (!fighterDetails.blueCornerDetails.height.feet || fighterDetails.blueCornerDetails.height.feet.trim() === '') {
+
+    if (
+      !fighterDetails.blueCornerDetails.height.feet ||
+      fighterDetails.blueCornerDetails.height.feet.trim() === ''
+    ) {
       errors.push('Blue Corner fighter height (feet) is required')
     }
-    
-    if (!fighterDetails.blueCornerDetails.height.inches || fighterDetails.blueCornerDetails.height.inches.trim() === '') {
+
+    if (
+      !fighterDetails.blueCornerDetails.height.inches ||
+      fighterDetails.blueCornerDetails.height.inches.trim() === ''
+    ) {
       errors.push('Blue Corner fighter height (inches) is required')
     }
-    
+
     // Validate numeric values
-    if (fighterDetails.redCornerDetails.weight && isNaN(parseFloat(fighterDetails.redCornerDetails.weight))) {
+    if (
+      fighterDetails.redCornerDetails.weight &&
+      isNaN(parseFloat(fighterDetails.redCornerDetails.weight))
+    ) {
       errors.push('Red Corner fighter weight must be a valid number')
     }
-    
-    if (fighterDetails.blueCornerDetails.weight && isNaN(parseFloat(fighterDetails.blueCornerDetails.weight))) {
+
+    if (
+      fighterDetails.blueCornerDetails.weight &&
+      isNaN(parseFloat(fighterDetails.blueCornerDetails.weight))
+    ) {
       errors.push('Blue Corner fighter weight must be a valid number')
     }
-    
-    if (fighterDetails.redCornerDetails.height.feet && isNaN(parseInt(fighterDetails.redCornerDetails.height.feet))) {
+
+    if (
+      fighterDetails.redCornerDetails.height.feet &&
+      isNaN(parseInt(fighterDetails.redCornerDetails.height.feet))
+    ) {
       errors.push('Red Corner fighter height (feet) must be a valid number')
     }
-    
-    if (fighterDetails.redCornerDetails.height.inches && isNaN(parseInt(fighterDetails.redCornerDetails.height.inches))) {
+
+    if (
+      fighterDetails.redCornerDetails.height.inches &&
+      isNaN(parseInt(fighterDetails.redCornerDetails.height.inches))
+    ) {
       errors.push('Red Corner fighter height (inches) must be a valid number')
     }
-    
-    if (fighterDetails.blueCornerDetails.height.feet && isNaN(parseInt(fighterDetails.blueCornerDetails.height.feet))) {
+
+    if (
+      fighterDetails.blueCornerDetails.height.feet &&
+      isNaN(parseInt(fighterDetails.blueCornerDetails.height.feet))
+    ) {
       errors.push('Blue Corner fighter height (feet) must be a valid number')
     }
-    
-    if (fighterDetails.blueCornerDetails.height.inches && isNaN(parseInt(fighterDetails.blueCornerDetails.height.inches))) {
+
+    if (
+      fighterDetails.blueCornerDetails.height.inches &&
+      isNaN(parseInt(fighterDetails.blueCornerDetails.height.inches))
+    ) {
       errors.push('Blue Corner fighter height (inches) must be a valid number')
     }
-    
+
     if (errors.length > 0) {
       alert('Please fix the following errors:\n• ' + errors.join('\n• '))
       return
     }
-    
+
     setLoading(true)
 
     // Get weight class details
@@ -373,32 +417,37 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
   }
 
   const selectFighter = (fighter, corner) => {
+    // Convert height from inches to feet and inches
+    const convertHeightFromInches = (totalInches) => {
+      if (!totalInches) return { feet: '', inches: '' }
+      const feet = Math.floor(totalInches / 12)
+      const inches = totalInches % 12
+      return { feet: feet.toString(), inches: inches.toString() }
+    }
+
+    const heightData = convertHeightFromInches(fighter.height)
+    const weightData = fighter.walkAroundWeight || fighter.weight || ''
+
     if (corner === 'red') {
       setRedFighter(fighter)
       setFormData((prev) => ({ ...prev, redCorner: fighter._id }))
-      // Pre-populate fighter details
+      // Pre-populate fighter details with new data structure
       setFighterDetails((prev) => ({
         ...prev,
         redCornerDetails: {
-          weight: fighter.weight || '',
-          height: {
-            feet: fighter.heightFeet || '',
-            inches: fighter.heightInches || '',
-          },
+          weight: weightData.toString(),
+          height: heightData,
         },
       }))
     } else {
       setBlueFighter(fighter)
       setFormData((prev) => ({ ...prev, blueCorner: fighter._id }))
-      // Pre-populate fighter details
+      // Pre-populate fighter details with new data structure
       setFighterDetails((prev) => ({
         ...prev,
         blueCornerDetails: {
-          weight: fighter.weight || '',
-          height: {
-            feet: fighter.heightFeet || '',
-            inches: fighter.heightInches || '',
-          },
+          weight: weightData.toString(),
+          height: heightData,
         },
       }))
     }
@@ -779,7 +828,7 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                     {fighter.firstName} {fighter.lastName}
                   </div>
                   <div className='text-sm text-gray-300'>
-                    Weight: {fighter.weight || 'N/A'}{' '}
+                    Weight: {fighter.walkAroundWeight || fighter.weight || 'N/A'}{' '}
                     {fighter.weightUnit || 'lbs'} • Age:{' '}
                     {fighter.dateOfBirth
                       ? new Date().getFullYear() -
@@ -923,7 +972,7 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
                     {fighter.firstName} {fighter.lastName}
                   </div>
                   <div className='text-sm text-gray-300'>
-                    Weight: {fighter.weight || 'N/A'}{' '}
+                    Weight: {fighter.walkAroundWeight || fighter.weight || 'N/A'}{' '}
                     {fighter.weightUnit || 'lbs'} • Age:{' '}
                     {fighter.dateOfBirth
                       ? new Date().getFullYear() -
@@ -951,7 +1000,13 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
           className='px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50'
           disabled={loading || !redFighter || !blueFighter}
         >
-          {loading ? (editBout ? 'Updating...' : 'Creating...') : (editBout ? 'Update Bout' : 'Create Bout')}
+          {loading
+            ? editBout
+              ? 'Updating...'
+              : 'Creating...'
+            : editBout
+            ? 'Update Bout'
+            : 'Create Bout'}
         </button>
       </div>
     </div>
@@ -963,8 +1018,12 @@ export default function BoutModal({ bracket, onClose, onCreate, editBout = null 
         <div className='flex justify-between items-center mb-6'>
           <h2 className='text-xl font-bold text-white'>
             {step === 1
-              ? `${editBout ? 'Edit' : 'Create New'} Bout - Step 1: Bout Details`
-              : `${editBout ? 'Edit' : 'Create New'} Bout - Step 2: Assign Fighters`}
+              ? `${
+                  editBout ? 'Edit' : 'Create New'
+                } Bout - Step 1: Bout Details`
+              : `${
+                  editBout ? 'Edit' : 'Create New'
+                } Bout - Step 2: Assign Fighters`}
           </h2>
           <button onClick={onClose} className='text-gray-400 hover:text-white'>
             <X size={24} />

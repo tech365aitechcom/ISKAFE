@@ -174,6 +174,7 @@ export default function BoutsAndResults({ bracket, eventId }) {
         `${API_BASE_URL}/bouts/${bout._id}`,
         {
           ...bout,
+          startDate: new Date().toISOString(),
           isStarted: !bout.isStarted,
         },
         {
