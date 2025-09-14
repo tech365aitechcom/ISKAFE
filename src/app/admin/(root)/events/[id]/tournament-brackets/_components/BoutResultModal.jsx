@@ -122,7 +122,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   }
 
   const hasActiveSuspensions = (fighter) => {
-    if (!fighter || !fighter.suspensions || fighter.suspensions.length === 0) return false
+    if (!fighter || !fighter.suspensions || !Array.isArray(fighter.suspensions) || fighter.suspensions.length === 0) return false
     return fighter.suspensions.some(s => getSuspensionStatus(s) === 'Active')
   }
 
@@ -480,7 +480,7 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   )
 
   const renderSuspensionDisplay = (fighter, corner) => {
-    if (!fighter || !fighter.suspensions || fighter.suspensions.length === 0) {
+    if (!fighter || !fighter.suspensions || !Array.isArray(fighter.suspensions) || fighter.suspensions.length === 0) {
       return null
     }
 

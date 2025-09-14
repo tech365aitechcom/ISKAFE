@@ -28,6 +28,7 @@ import {
 
 export default function Props({
   expandedBracket,
+  totalItems,
   handleClose,
   onUpdate,
   eventId,
@@ -443,8 +444,14 @@ export default function Props({
           startDayNumber && String(startDayNumber).trim() !== ''
             ? parseInt(String(startDayNumber).trim())
             : null,
-        group: group && String(group).trim() !== '' ? parseInt(String(group).trim()) : null,
-        ring: ringNumber && String(ringNumber).trim() !== '' ? parseInt(String(ringNumber).trim()) : null,
+        group:
+          group && String(group).trim() !== ''
+            ? parseInt(String(group).trim())
+            : null,
+        ring:
+          ringNumber && String(ringNumber).trim() !== ''
+            ? parseInt(String(ringNumber).trim())
+            : null,
         sequenceNumber:
           bracketSequence && String(bracketSequence).trim() !== ''
             ? parseInt(String(bracketSequence).trim())
@@ -485,7 +492,7 @@ export default function Props({
     try {
       // Create a copy of the bracket data with proper validation
       const duplicateData = {
-        bracketNumber: (expandedBracket.bracketNumber || 0) + 1,
+        bracketNumber: totalItems + 1,
         title: `${expandedBracket.title || 'Bracket'}`,
         divisionTitle: `${expandedBracket.divisionTitle || ''} (Copy)`,
         sport: expandedBracket.sport || '',

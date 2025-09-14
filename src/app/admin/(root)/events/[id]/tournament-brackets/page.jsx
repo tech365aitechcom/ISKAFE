@@ -31,6 +31,10 @@ export default function TournamentBrackets() {
   const [brackets, setBrackets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [limit, setLimit] = useState(10)
   const [mode, setMode] = useState('view') // view, edit, move, reorder, delete
   const [showActionsDropdown, setShowActionsDropdown] = useState(false)
   const [showNewBracketModal, setShowNewBracketModal] = useState(false)
@@ -59,7 +63,7 @@ export default function TournamentBrackets() {
       fetchEvent(params.id)
       fetchBrackets(params.id)
     }
-  }, [params?.id])
+  }, [params?.id, currentPage, limit])
 
   const fetchEvent = async (id) => {
     try {
@@ -83,16 +87,21 @@ export default function TournamentBrackets() {
   const fetchBrackets = async (id) => {
     try {
       setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/brackets?eventId=${id}`, {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      })
+      const response = await fetch(
+        `${API_BASE_URL}/brackets?eventId=${id}&page=${currentPage}&limit=${limit}`,
+        {
+          headers: {
+            Authorization: `Bearer ${user?.token}`,
+          },
+        }
+      )
 
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
           setBrackets(data.data || [])
+          setTotalPages(data.pagination.totalPages)
+          setTotalItems(data.pagination.totalItems)
         } else {
           setBrackets([])
         }
@@ -642,6 +651,10 @@ export default function TournamentBrackets() {
           brackets={filteredBrackets}
           eventId={eventId}
           mode={mode}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
           onRefresh={() => fetchBrackets(eventId)}
           onDelete={handleDeleteBracket}
           onUpdate={() => fetchBrackets(eventId)}

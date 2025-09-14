@@ -15,11 +15,16 @@ import BoutsAndResults from './Bouts&Results'
 import EditBracketModal from './EditBracketModal'
 import { API_BASE_URL } from '../../../../../../../constants'
 import useStore from '../../../../../../../stores/useStore'
+import Pagination from '../../../../../../_components/Pagination'
 
 export default function BracketList({
   brackets,
   eventId,
   mode,
+  currentPage,
+  setCurrentPage,
+  totalPages,
+  totalItems,
   onRefresh,
   onDelete,
   onUpdate,
@@ -132,143 +137,142 @@ export default function BracketList({
 
   return (
     <div className='space-y-4'>
-      {!brackets || brackets.length === 0 ? (
-        <div className='text-center py-8'>
-          <p className='text-gray-400 text-lg'>No brackets available</p>
-        </div>
-      ) : (
-        brackets
-          .sort((a, b) => {
-            const seqA = a.sequenceNumber || 999
-            const seqB = b.sequenceNumber || 999
-            return seqA - seqB
-          })
-          .map((bracket, index) => (
-            <div
-              key={bracket._id || index}
-              className='border border-[#C5C5C5] rounded-xl overflow-hidden'
-            >
-              <div className='p-8 border-b border-white'>
-                <div className='flex justify-between items-center'>
-                  <div>
-                    <div className='flex items-center gap-3 mb-2'>
-                      <span className='text-sm text-gray-400'>
-                        #{bracket.bracketNumber || index + 1}
-                      </span>
-                      <h2 className='font-medium text-xl'>
-                        {bracket.divisionTitle || bracket.title}
-                      </h2>
-                    </div>
-                    <p className='text-gray-300'>
-                      {bracket.ageClass} • {bracket.sport} • {bracket.ruleStyle}
-                      {bracket.weightClass && (
-                        <>
-                          {' '}
-                          • {bracket.weightClass.min}-{bracket.weightClass.max}{' '}
-                          {bracket.weightClass.unit || 'lbs'}
-                        </>
-                      )}
-                    </p>
-                    <div className='flex items-center gap-4 mt-1 text-sm text-gray-400'>
-                      {bracket.ring && <span>Ring: {bracket.ring}</span>}
-                      {bracket.fighters && bracket.fighters.length > 0 && (
-                        <span>
-                          Fighters: {bracket.fighters.length}
-                          {bracket.maxCompetitors &&
-                            ` / ${bracket.maxCompetitors} max`}
-                        </span>
-                      )}
-                      {bracket.bouts && bracket.bouts.length > 0 && (
-                        <span>Bouts: {bracket.bouts.length}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className='flex items-center gap-3'>
-                    <span
-                      className={`text-sm px-2 py-1 rounded ${getStatusColor(
-                        bracket.status
-                      )}`}
-                    >
-                      {bracket.status}
+      {brackets
+        .sort((a, b) => {
+          const bracketA = a.bracketNumber || 999
+          const bracketB = b.bracketNumber || 999
+          return bracketA - bracketB
+        })
+        .map((bracket, index) => (
+          <div
+            key={bracket._id || index}
+            className='border border-[#C5C5C5] rounded-xl overflow-hidden'
+          >
+            <div className='p-8 border-b border-white'>
+              <div className='flex justify-between items-center'>
+                <div>
+                  <div className='flex items-center gap-3 mb-2'>
+                    <span className='text-sm text-gray-400'>
+                      #{bracket.bracketNumber || index + 1}
                     </span>
-                    {mode !== 'view' && renderModeActions(bracket)}
+                    <h2 className='font-medium text-xl'>
+                      {bracket.divisionTitle || bracket.title}
+                    </h2>
+                  </div>
+                  <p className='text-gray-300'>
+                    {bracket.ageClass} • {bracket.sport} • {bracket.ruleStyle}
+                    {bracket.weightClass && (
+                      <>
+                        {' '}
+                        • {bracket.weightClass.min}-{bracket.weightClass.max}{' '}
+                        {bracket.weightClass.unit || 'lbs'}
+                      </>
+                    )}
+                  </p>
+                  <div className='flex items-center gap-4 mt-1 text-sm text-gray-400'>
+                    {bracket.ring && <span>Ring: {bracket.ring}</span>}
+                    {bracket.fighters && bracket.fighters.length > 0 && (
+                      <span>
+                        Fighters: {bracket.fighters.length}
+                        {bracket.maxCompetitors &&
+                          ` / ${bracket.maxCompetitors} max`}
+                      </span>
+                    )}
+                    {bracket.bouts && bracket.bouts.length > 0 && (
+                      <span>Bouts: {bracket.bouts.length}</span>
+                    )}
                   </div>
                 </div>
-              </div>
-              <div className='px-8 py-5'>
-                <button
-                  className='text-lg flex items-center'
-                  onClick={() => {
-                    setExpandedBracket(
-                      expandedBracket?._id === bracket._id ? null : bracket
-                    )
-                    setActiveTab('props')
-                  }}
-                >
-                  <span>Check Details</span>
-                  {expandedBracket?._id === bracket._id ? (
-                    <ChevronDown />
-                  ) : (
-                    <ChevronRight />
-                  )}
-                </button>
-
-                {expandedBracket?._id === bracket._id && (
-                  <>
-                    {/* Tabs */}
-                    <div className='flex border border-[#797979] px-2 py-1 rounded-md w-fit my-5'>
-                      {['props', 'fighters', 'bouts&results'].map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => handleToggle(tab)}
-                          className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
-                            activeTab === tab ? 'bg-[#2E3094] shadow-md' : ''
-                          }`}
-                        >
-                          {tab === 'props' && 'Props'}
-                          {tab === 'fighters' && 'Fighters'}
-                          {tab === 'bouts&results' && 'Bouts & Results'}
-                        </button>
-                      ))}
-                    </div>
-
-                    {activeTab === 'props' ? (
-                      <Props
-                        expandedBracket={expandedBracket}
-                        handleClose={handleClose}
-                        onUpdate={onUpdate}
-                        eventId={eventId}
-                      />
-                    ) : activeTab === 'fighters' ? (
-                      <Fighters
-                        expandedBracket={expandedBracket}
-                        eventId={eventId}
-                        onUpdate={async () => {
-                          // First refresh the expanded bracket to get latest data
-                          await refreshExpandedBracket()
-                          // Then refresh the main bracket list
-                          if (onRefresh) {
-                            await onRefresh()
-                          }
-                          // Finally call parent update
-                          if (onUpdate) {
-                            onUpdate()
-                          }
-                        }}
-                      />
-                    ) : (
-                      <BoutsAndResults
-                        bracket={expandedBracket}
-                        eventId={eventId}
-                      />
-                    )}
-                  </>
-                )}
+                <div className='flex items-center gap-3'>
+                  <span
+                    className={`text-sm px-2 py-1 rounded ${getStatusColor(
+                      bracket.status
+                    )}`}
+                  >
+                    {bracket.status}
+                  </span>
+                  {mode !== 'view' && renderModeActions(bracket)}
+                </div>
               </div>
             </div>
-          ))
-      )}
+            <div className='px-8 py-5'>
+              <button
+                className='text-lg flex items-center'
+                onClick={() => {
+                  setExpandedBracket(
+                    expandedBracket?._id === bracket._id ? null : bracket
+                  )
+                  setActiveTab('props')
+                }}
+              >
+                <span>Check Details</span>
+                {expandedBracket?._id === bracket._id ? (
+                  <ChevronDown />
+                ) : (
+                  <ChevronRight />
+                )}
+              </button>
 
+              {expandedBracket?._id === bracket._id && (
+                <>
+                  {/* Tabs */}
+                  <div className='flex border border-[#797979] px-2 py-1 rounded-md w-fit my-5'>
+                    {['props', 'fighters', 'bouts&results'].map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => handleToggle(tab)}
+                        className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors ${
+                          activeTab === tab ? 'bg-[#2E3094] shadow-md' : ''
+                        }`}
+                      >
+                        {tab === 'props' && 'Props'}
+                        {tab === 'fighters' && 'Fighters'}
+                        {tab === 'bouts&results' && 'Bouts & Results'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeTab === 'props' ? (
+                    <Props
+                      expandedBracket={expandedBracket}
+                      totalItems={totalItems}
+                      handleClose={handleClose}
+                      onUpdate={onUpdate}
+                      eventId={eventId}
+                    />
+                  ) : activeTab === 'fighters' ? (
+                    <Fighters
+                      expandedBracket={expandedBracket}
+                      eventId={eventId}
+                      onUpdate={async () => {
+                        // First refresh the expanded bracket to get latest data
+                        await refreshExpandedBracket()
+                        // Then refresh the main bracket list
+                        if (onRefresh) {
+                          await onRefresh()
+                        }
+                        // Finally call parent update
+                        if (onUpdate) {
+                          onUpdate()
+                        }
+                      }}
+                    />
+                  ) : (
+                    <BoutsAndResults
+                      bracket={expandedBracket}
+                      eventId={eventId}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
       {/* Edit Bracket Modal */}
       {editingBracket && (
         <EditBracketModal

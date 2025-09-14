@@ -166,8 +166,8 @@ export const HomeSettingsForm = () => {
       return
     }
 
-    if (name === 'tagline' && value.length > 100) {
-      enqueueSnackbar('Tagline cannot exceed 100 characters', {
+    if (name === 'tagline' && value.length > 400) {
+      enqueueSnackbar('Tagline cannot exceed 400 characters', {
         variant: 'error',
       })
       return
@@ -772,7 +772,7 @@ export const HomeSettingsForm = () => {
               <label className='block font-medium mb-2'>
                 Tagline<span className='text-red-500'>*</span>
                 <span className='text-xs text-gray-400 ml-2'>
-                  (Max 100 characters)
+                  (Max 400 characters)
                 </span>
               </label>
               <input
@@ -782,10 +782,10 @@ export const HomeSettingsForm = () => {
                 onChange={handleChange}
                 className='w-full outline-none bg-transparent disabled:cursor-not-allowed'
                 required
-                maxLength={100}
+                maxLength={400}
               />
               <p className='text-xs text-right text-gray-400 p-2'>
-                {formData.tagline.length}/100 characters
+                {formData.tagline.length}/400 characters
               </p>
             </div>
 

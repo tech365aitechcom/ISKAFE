@@ -74,6 +74,8 @@ const FighterRegistrationPage = ({ params }) => {
     // Physical Info
     heightUnit: 'inches',
     height: '',
+    heightFeet: '',
+    heightInches: '',
     walkAroundWeight: '',
     weightUnit: 'LBS',
 
@@ -411,10 +413,18 @@ const FighterRegistrationPage = ({ params }) => {
         newValue = value
       }
 
-      setFormData((prev) => ({
-        ...prev,
-        [name]: newValue,
-      }))
+      setFormData((prev) => {
+        const updated = { ...prev, [name]: newValue }
+
+        // Clear height fields when height unit changes
+        if (name === 'heightUnit') {
+          updated.height = ''
+          updated.heightFeet = ''
+          updated.heightInches = ''
+        }
+
+        return updated
+      })
     }
 
     // Clear error when user starts typing
@@ -508,16 +518,52 @@ const FighterRegistrationPage = ({ params }) => {
         break
 
       case 2: // Physical Info
-        if (!formData.height) {
-          newErrors.height = 'Height is required'
+        if (formData.heightUnit === 'feet') {
+          // Validate feet and inches separately
+          if (!formData.heightFeet) {
+            newErrors.heightFeet = 'Feet is required'
+          } else {
+            const feetValue = parseFloat(formData.heightFeet)
+            if (isNaN(feetValue) || feetValue < 3) {
+              newErrors.heightFeet = 'Height must be at least 3 feet'
+            } else if (feetValue > 8) {
+              newErrors.heightFeet = 'Height cannot exceed 8 feet'
+            }
+          }
+
+          if (!formData.heightInches) {
+            newErrors.heightInches = 'Inches is required'
+          } else {
+            const inchesValue = parseFloat(formData.heightInches)
+            if (isNaN(inchesValue) || inchesValue < 0) {
+              newErrors.heightInches = 'Inches must be 0 or greater'
+            } else if (inchesValue >= 12) {
+              newErrors.heightInches = 'Inches must be less than 12'
+            }
+          }
+
+          // Overall height validation (feet + inches combined)
+          if (formData.heightFeet && formData.heightInches) {
+            const totalInches =
+              parseFloat(formData.heightFeet) * 12 +
+              parseFloat(formData.heightInches)
+            if (totalInches < 38) {
+              newErrors.heightFeet = 'Total height must be at least 3\'2"'
+            }
+          }
         } else {
-          const heightValue = parseFloat(formData.height)
-          if (isNaN(heightValue)) {
-            newErrors.height = 'Height must be a valid number'
-          } else if (formData.heightUnit === 'inches' && heightValue < 38) {
-            newErrors.height = 'Height must be at least 38 inches (3\'2")'
-          } else if (formData.heightUnit === 'cm' && heightValue < 97) {
-            newErrors.height = 'Height must be at least 97 cm (3\'2")'
+          // Original validation for inches and cm
+          if (!formData.height) {
+            newErrors.height = 'Height is required'
+          } else {
+            const heightValue = parseFloat(formData.height)
+            if (isNaN(heightValue)) {
+              newErrors.height = 'Height must be a valid number'
+            } else if (formData.heightUnit === 'inches' && heightValue < 38) {
+              newErrors.height = 'Height must be at least 38 inches (3\'2")'
+            } else if (formData.heightUnit === 'cm' && heightValue < 97) {
+              newErrors.height = 'Height must be at least 97 cm (3\'2")'
+            }
           }
         }
 
@@ -734,6 +780,17 @@ const FighterRegistrationPage = ({ params }) => {
     setProcessing(true)
 
     try {
+      let heightInInches
+      if (formData.heightUnit === 'feet') {
+        heightInInches =
+          parseFloat(formData.heightFeet) * 12 +
+          parseFloat(formData.heightInches)
+      } else if (formData.heightUnit === 'cm') {
+        heightInInches = parseFloat(formData.height) / 2.54
+      } else {
+        heightInInches = parseFloat(formData.height)
+      }
+
       let payload = {
         registrationType: 'fighter',
         firstName: formData.firstName,
@@ -748,8 +805,8 @@ const FighterRegistrationPage = ({ params }) => {
         street1: formData.street1,
         street2: formData.street2,
         postalCode: formData.postalCode,
-        heightUnit: formData.heightUnit,
-        height: formData.height,
+        heightUnit: 'inches',
+        height: heightInInches.toString(),
         weightUnit: formData.weightUnit,
         walkAroundWeight: formData.walkAroundWeight,
         proFighter: formData.proFighter,
@@ -1116,7 +1173,7 @@ const FighterRegistrationPage = ({ params }) => {
         Physical Information
       </h3>
 
-      <div className='grid grid-cols-2 gap-4'>
+      <div className='space-y-4'>
         <div className='bg-[#00000061] p-2 rounded'>
           <label className='block font-medium mb-1'>
             Height Unit <span className='text-red-500'>*</span>
@@ -1127,6 +1184,9 @@ const FighterRegistrationPage = ({ params }) => {
             onChange={handleChange}
             className='w-full outline-none bg-transparent text-white'
           >
+            <option value='feet' className='text-black'>
+              Feet & Inches
+            </option>
             <option value='inches' className='text-black'>
               Inches
             </option>
@@ -1136,22 +1196,69 @@ const FighterRegistrationPage = ({ params }) => {
           </select>
         </div>
 
-        <div className='bg-[#00000061] p-2 rounded'>
-          <label className='block font-medium mb-1'>
-            Height <span className='text-red-500'>*</span>
-          </label>
-          <input
-            type='number'
-            name='height'
-            value={formData.height}
-            onChange={handleChange}
-            placeholder='eg: 180'
-            className='w-full outline-none bg-transparent text-white'
-          />
-          {errors.height && (
-            <p className='text-red-400 text-sm mt-1'>{errors.height}</p>
-          )}
-        </div>
+        {formData.heightUnit === 'feet' ? (
+          <div className='grid grid-cols-2 gap-4'>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                Feet <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='number'
+                name='heightFeet'
+                value={formData.heightFeet}
+                onChange={handleChange}
+                placeholder='e.g., 5'
+                min='3'
+                max='8'
+                className='w-full outline-none bg-transparent text-white'
+              />
+            </div>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                Inches <span className='text-red-500'>*</span>
+              </label>
+              <input
+                type='number'
+                name='heightInches'
+                value={formData.heightInches}
+                onChange={handleChange}
+                placeholder='e.g., 8'
+                min='0'
+                max='11'
+                className='w-full outline-none bg-transparent text-white'
+              />
+            </div>
+            {(errors.heightFeet || errors.heightInches) && (
+              <div className='col-span-2'>
+                {errors.heightFeet && (
+                  <p className='text-red-400 text-sm'>{errors.heightFeet}</p>
+                )}
+                {errors.heightInches && (
+                  <p className='text-red-400 text-sm'>{errors.heightInches}</p>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className='bg-[#00000061] p-2 rounded'>
+            <label className='block font-medium mb-1'>
+              Height <span className='text-red-500'>*</span>
+            </label>
+            <input
+              type='number'
+              name='height'
+              value={formData.height}
+              onChange={handleChange}
+              placeholder={
+                formData.heightUnit === 'cm' ? 'e.g., 180' : 'e.g., 68'
+              }
+              className='w-full outline-none bg-transparent text-white'
+            />
+            {errors.height && (
+              <p className='text-red-400 text-sm mt-1'>{errors.height}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className='grid grid-cols-2 gap-4'>
