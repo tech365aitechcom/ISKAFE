@@ -4,14 +4,11 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import {
   sportsData,
-  disciplineData,
   titleData,
   bracketRuleData,
   bracketStatusData,
   proClassData,
   bracketCriteriaData,
-  youthWeightClasses,
-  adultWeightClasses,
   getAgeClasses,
   getWeightClasses,
   getDisciplines,
@@ -144,7 +141,7 @@ export default function NewBracketModal({ onClose, onCreate }) {
       console.log('Bracket data being sent:', bracketData)
 
       await onCreate(bracketData)
-      
+
       // Only show success and close modal if onCreate succeeded
       setLoading(false)
       setIsCreated(true)
@@ -208,7 +205,9 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 disabled={loading || isCreated}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.title ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <option value=''>Select Title</option>
                 {titleData.map((option) => (
@@ -233,11 +232,13 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 disabled={loading || isCreated}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.bracketRule ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <option value=''>Select Bracket Rule</option>
                 {bracketRuleData.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.label}>
                     {option.label}
                   </option>
                 ))}
@@ -260,7 +261,9 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 disabled={loading || isCreated}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.bracketStatus ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 {bracketStatusData.map((option) => (
                   <option key={option.value} value={option.label}>
@@ -286,7 +289,9 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 disabled={loading || isCreated}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.proClass ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <option value=''>Select Pro Class</option>
                 {proClassData.map((option) => (
@@ -314,11 +319,13 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 disabled={loading || isCreated}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.sport ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <option value=''>Select Sport</option>
                 {sportsData.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.label}>
                     {option.label}
                   </option>
                 ))}
@@ -341,8 +348,14 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 onChange={handleChange}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.discipline ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated || !formData.sport.includes('bjj') ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={loading || isCreated || !formData.sport.includes('bjj')}
+                } ${
+                  loading || isCreated || !formData.sport.includes('bjj')
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                }`}
+                disabled={
+                  loading || isCreated || !formData.sport.includes('bjj')
+                }
               >
                 <option value=''>Select Discipline</option>
                 {getDisciplines(formData.sport).map((option) => (
@@ -366,7 +379,11 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 onChange={handleChange}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.ageClass ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated || !formData.sport ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated || !formData.sport
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                }`}
                 disabled={loading || isCreated || !formData.sport}
               >
                 <option value=''>Select Age Class</option>
@@ -391,7 +408,11 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 onChange={handleChange}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.weightClass ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated || !formData.ageClass ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated || !formData.ageClass
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                }`}
                 disabled={loading || isCreated || !formData.ageClass}
               >
                 <option value=''>Select Weight Class</option>
@@ -422,7 +443,9 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 disabled={loading || isCreated}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.bracketCriteria ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 {bracketCriteriaData.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -451,7 +474,9 @@ export default function NewBracketModal({ onClose, onCreate }) {
                 disabled={loading || isCreated}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white placeholder-gray-400 ${
                   errors.bracketNumber ? 'border-red-500' : 'border-gray-600'
-                } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               />
               {errors.bracketNumber && (
                 <p className='text-red-500 text-xs mt-1'>
@@ -477,7 +502,9 @@ export default function NewBracketModal({ onClose, onCreate }) {
                   disabled={loading || isCreated}
                   className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white placeholder-gray-400 ${
                     errors.bracketName ? 'border-red-500' : 'border-gray-600'
-                  } ${loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  } ${
+                    loading || isCreated ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 />
                 {errors.bracketName && (
                   <p className='text-red-500 text-xs mt-1'>

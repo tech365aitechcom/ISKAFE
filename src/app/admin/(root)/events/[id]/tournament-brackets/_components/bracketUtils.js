@@ -373,8 +373,8 @@ export const allWeightClasses = [...youthWeightClasses, ...adultWeightClasses]
 export const getAgeClasses = (sport) => {
   if (!sport) return []
 
-  const isMale = sport.includes('male') && !sport.includes('female')
-  const isFemale = sport.includes('female')
+  const isMale = sport.includes('Male') && !sport.includes('Female')
+  const isFemale = sport.includes('Female')
 
   if (isMale) {
     return [
@@ -526,7 +526,7 @@ export const generateBracketName = (
   if (ageClass) {
     const ageLabel =
       ageClassOptions.find((a) => a.value === ageClass)?.label || ''
-    parts.push(ageLabel + "'")
+    parts.push(ageLabel)
   }
 
   // 2. Bracket Criteria
