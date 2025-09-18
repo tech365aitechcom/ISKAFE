@@ -116,7 +116,7 @@ const TrainingFacilitiesDetailsPage = ({ params }) => {
                 <div className='absolute bottom-0 bg-[#050310B2] opacity-75 w-56 p-2'>
                   <div className='flex items-center gap-2 text-white px-2'>
                     <Flag
-                      code={user.country}
+                      code={user?.country}
                       style={{ width: '24px', height: '14px' }}
                     />
                     <span>{user?.country || 'Unknown'}</span>
@@ -154,7 +154,7 @@ const TrainingFacilitiesDetailsPage = ({ params }) => {
                 <div className='absolute bottom-0 bg-[#050310B2] opacity-75 w-56 p-2'>
                   <div className='flex items-center gap-2 text-white px-2'>
                     <Flag
-                      code={user.country}
+                      code={user?.country || 'US'}
                       style={{ width: '24px', height: '14px' }}
                     />
                     <span>{user?.country || 'Unknown'}</span>

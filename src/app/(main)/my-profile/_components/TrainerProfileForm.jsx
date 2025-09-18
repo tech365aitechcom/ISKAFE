@@ -84,6 +84,10 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     submit: false,
     publish: false
   });
+  const [originalFormData, setOriginalFormData] = useState({}); // Store original data for comparison
+
+  // Check if any submission is in progress
+  const isFormDisabled = Object.values(buttonStates).some(state => state);
 
   const validatePhoneNumber = (number) => {
     if (!number) return false;
@@ -156,8 +160,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
               .format("YYYY-MM-DD")
           : "";
 
-      setFormData((prev) => ({
-        ...prev,
+      const updatedFormData = {
+        ...formData,
         ...rest,
         ...trainerProfile,
         dateOfBirth: formattedDOB,
@@ -168,7 +172,10 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
         suspensionEndDate,
         suspensionNotes: suspension?.description || "",
         suspensionType: suspension?.type || "",
-      }));
+      };
+
+      setFormData(updatedFormData);
+      setOriginalFormData(updatedFormData); // Store original data for comparison
     }
   }, [userDetails]);
 
@@ -462,11 +469,74 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     return true;
   };
 
+  // Function to check if any changes have been made
+  const hasFormChanged = () => {
+    // Check if original data exists
+    if (!originalFormData || Object.keys(originalFormData).length === 0) {
+      return true; // If no original data, allow save (first time save)
+    }
+
+    // Compare form fields (excluding file fields which are handled separately)
+    const fieldsToCompare = [
+      'firstName', 'lastName', 'email', 'phoneNumber', 'country', 'dateOfBirth',
+      'age', 'gender', 'height', 'weight', 'gymName', 'gymLocation',
+      'yearsOfExperience', 'trainerType', 'bio', 'instagram', 'facebook', 'youtube',
+      'emergencyContactName', 'emergencyContactNumber', 'accreditationType',
+      'isSuspended', 'suspensionType', 'suspensionNotes', 'suspensionStartDate',
+      'suspensionEndDate', 'medicalClearance'
+    ];
+
+    for (const field of fieldsToCompare) {
+      const originalValue = originalFormData[field] || '';
+      const currentValue = formData[field] || '';
+      if (originalValue !== currentValue) {
+        return true;
+      }
+    }
+
+    // Check array fields separately
+    const originalPreferredRuleSets = originalFormData.preferredRuleSets || [];
+    const currentPreferredRuleSets = formData.preferredRuleSets || [];
+    if (JSON.stringify(originalPreferredRuleSets.sort()) !== JSON.stringify(currentPreferredRuleSets.sort())) {
+      return true;
+    }
+
+    // Check affiliated fighters
+    const originalFighters = originalFormData.affiliatedFighters || [];
+    const currentFighters = formData.affiliatedFighters || [];
+    if (JSON.stringify(originalFighters) !== JSON.stringify(currentFighters)) {
+      return true;
+    }
+
+    // Check associated events
+    const originalEvents = originalFormData.associatedEvents || [];
+    const currentEvents = formData.associatedEvents || [];
+    if (JSON.stringify(originalEvents) !== JSON.stringify(currentEvents)) {
+      return true;
+    }
+
+    // Check if new files have been selected (File objects indicate new uploads)
+    if (formData.profilePhoto instanceof File) return true;
+    if (formData.certification instanceof File) return true;
+    if (formData.medicalDocument instanceof File) return true;
+
+    return false;
+  };
+
   const handleSubmit = async (e, action) => {
     e.preventDefault();
-    
+
     // Set loading state for specific button
     setButtonStates(prev => ({ ...prev, [action]: true }));
+
+    // Check if any changes have been made
+    if (!hasFormChanged()) {
+      enqueueSnackbar('No changes detected. Please make changes before saving.', {
+        variant: 'info',
+      });
+      setButtonStates(prev => ({ ...prev, [action]: false }));
+      return;
+    }
 
     if (!validateForm()) {
       setButtonStates(prev => ({ ...prev, [action]: false }));
@@ -592,6 +662,10 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
         }
 
         enqueueSnackbar(message, { variant: "success" });
+
+        // Update original form data to current form data after successful save
+        setOriginalFormData({ ...formData });
+
         onSuccess();
       }
     } catch (error) {
@@ -689,7 +763,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="profilePhoto"
                 onChange={handleFileChange}
                 accept="image/jpeg,image/jpg,image/png"
-                className="w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               />
 
               <p className="text-xs text-gray-400 mt-1">
@@ -748,8 +823,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                   placeholder={
                     field.placeholder || `Enter ${field.label.toLowerCase()}`
                   }
-                  disabled={field.disabled}
-                  className="w-full outline-none bg-transparent text-white disabled:text-gray-400"
+                  disabled={field.disabled || isFormDisabled}
+                  className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                   required={field.required}
                 />
               </div>
@@ -764,7 +839,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="country"
                 value={formData.country}
                 onChange={handleInputChange}
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                 required
               >
                 <option value="" className="text-black">
@@ -789,7 +865,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="gender"
                 value={formData.gender}
                 onChange={handleInputChange}
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
               >
                 <option value="" className="text-black">
                   Select Gender
@@ -820,7 +897,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.gymName}
                 onChange={handleInputChange}
                 placeholder="e.g., Elite Training Center"
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -830,7 +908,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="gymLocation"
                 value={formData.gymLocation}
                 onChange={handleInputChange}
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
               >
                 <option value="" className="text-black">
                   Select Location
@@ -855,7 +934,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="yearsOfExperience"
                 value={formData.yearsOfExperience}
                 onChange={handleInputChange}
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                 required
               >
                 <option value="" className="text-black">
@@ -887,7 +967,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="trainerType"
                 value={formData.trainerType}
                 onChange={handleInputChange}
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                 required
               >
                 <option value="" className="text-black">
@@ -921,7 +1002,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                       style.toLowerCase().replace(" ", "-")
                     )}
                     onChange={handleInputChange}
-                    className="rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400"
+                    disabled={isFormDisabled}
+                    className="rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <label>{style}</label>
                 </div>
@@ -941,7 +1023,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="certification"
                 onChange={handleFileChange}
                 accept=".pdf,image/jpeg,image/jpg"
-                className="w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-400 mt-2">PDF/JPG, Max 5MB</p>
               {formData.certification && (
@@ -967,7 +1050,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder="Describe experience..."
                 rows="4"
-                className="w-full outline-none bg-transparent text-white resize-none"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white resize-none disabled:text-gray-400 disabled:cursor-not-allowed"
                 maxLength={1000}
               />
               <p className="text-xs text-gray-400 mt-1">
@@ -989,7 +1073,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.instagram}
                 onChange={handleInputChange}
                 placeholder="https://instagram.com/username"
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -1001,7 +1086,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.facebook}
                 onChange={handleInputChange}
                 placeholder="https://facebook.com/username"
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -1013,7 +1099,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.youtube}
                 onChange={handleInputChange}
                 placeholder="https://youtube.com/channel"
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -1042,6 +1129,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 key: fighter._id,
               }))}
               placeholder="Search fighter name"
+              disabled={isFormDisabled}
             />
           </div>
           {/* Emergency Contact */}
@@ -1060,7 +1148,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.emergencyContactName}
                 onChange={handleInputChange}
                 placeholder="Full Name"
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -1075,7 +1164,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 value={formData.emergencyContactNumber}
                 onChange={handleInputChange}
                 placeholder="+1 555-123-4567"
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -1101,6 +1191,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 })),
               ]}
               placeholder="Search event name"
+              disabled={isFormDisabled}
             />
 
             <div className="bg-[#00000061] p-2 rounded">
@@ -1111,7 +1202,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="accreditationType"
                 value={formData.accreditationType}
                 onChange={handleInputChange}
-                className="w-full outline-none bg-transparent text-white"
+                disabled={isFormDisabled}
+                className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
               >
                 <option value="" className="text-black">
                   Select Role
@@ -1142,7 +1234,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 name="isSuspended"
                 checked={formData.isSuspended}
                 onChange={handleInputChange}
-                className="rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400"
+                disabled={isFormDisabled}
+                className="rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <label>Is Suspended?</label>
             </div>
@@ -1152,12 +1245,14 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 <div className="bg-[#00000030] p-2 rounded">
                   <label className="block font-medium mb-1">
                     Suspension Type
+                    <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="suspensionType"
                     value={formData.suspensionType}
                     onChange={handleInputChange}
-                    className="w-full outline-none bg-transparent text-white"
+                    disabled={isFormDisabled}
+                    className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                     required={formData.isSuspended}
                   >
                     <option value="" className="text-black">
@@ -1185,7 +1280,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                     name="suspensionStartDate"
                     value={formData.suspensionStartDate}
                     onChange={handleInputChange}
-                    className="w-full outline-none bg-transparent text-white"
+                    disabled={isFormDisabled}
+                    className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                     required={formData.isSuspended}
                   />
                 </div>
@@ -1199,7 +1295,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                     name="suspensionEndDate"
                     value={formData.suspensionEndDate}
                     onChange={handleInputChange}
-                    className="w-full outline-none bg-transparent text-white"
+                    disabled={isFormDisabled}
+                    className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
                     required={formData.isSuspended}
                   />
                 </div>
@@ -1214,7 +1311,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                     onChange={handleInputChange}
                     placeholder="Enter Reason or note (Optional)"
                     rows="3"
-                    className="w-full outline-none bg-transparent text-white resize-none"
+                    disabled={isFormDisabled}
+                    className="w-full outline-none bg-transparent text-white resize-none disabled:text-gray-400 disabled:cursor-not-allowed"
                     maxLength={500}
                   />
                   <p className="text-xs text-gray-400 mt-1">
@@ -1228,7 +1326,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                     name="medicalClearance"
                     checked={formData.medicalClearance}
                     onChange={handleInputChange}
-                    className="rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400"
+                    disabled={isFormDisabled}
+                    className="rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <label>Medical Clearance Required</label>
                 </div>
@@ -1243,7 +1342,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                       name="medicalDocument"
                       onChange={handleFileChange}
                       accept=".pdf,image/jpeg,image/jpg"
-                      className="w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
+                      disabled={isFormDisabled}
+                      className="w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <p className="text-xs text-gray-400 mt-1">
                       PDF/JPG, Max 5MB
@@ -1259,7 +1359,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
               type="button"
               className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105 disabled:opacity-50"
               onClick={(e) => handleSubmit(e, "draft")}
-              disabled={buttonStates.draft || buttonStates.submit || buttonStates.publish}
+              disabled={buttonStates.draft}
             >
               {buttonStates.draft ? "Saving..." : "Save as Draft"}
             </button>
@@ -1268,7 +1368,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
               type="button"
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105 disabled:opacity-50"
               onClick={(e) => handleSubmit(e, "submit")}
-              disabled={buttonStates.draft || buttonStates.submit || buttonStates.publish}
+              disabled={buttonStates.submit}
             >
               {buttonStates.submit ? "Submitting..." : "Submit Profile"}
             </button>
@@ -1278,9 +1378,9 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 type="button"
                 className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105 disabled:opacity-50"
                 onClick={(e) => handleSubmit(e, "publish")}
-                disabled={buttonStates.draft || buttonStates.submit || buttonStates.publish}
+                disabled={buttonStates.publish}
               >
-                {buttonStates.publish ? "Updating..." : "Update Profile"}
+                {buttonStates.publish ? "Editing..." : "Edit Profile"}
               </button>
             )}
           </div>

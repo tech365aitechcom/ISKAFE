@@ -334,7 +334,7 @@ export const AboutForm = () => {
     <div className='min-h-screen text-white bg-dark-blue-900'>
       <div className='w-full'>
         <div className='flex items-center gap-4 mb-6'>
-          <h1 className='text-2xl font-bold'>Manage About Page</h1>
+          <h1 className='text-2xl font-bold'>Manage About Us Page</h1>
         </div>
 
         <form>

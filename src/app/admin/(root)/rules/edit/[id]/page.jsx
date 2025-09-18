@@ -75,10 +75,22 @@ export default function EditRulePage({ params }) {
     switch (name) {
       case 'category':
       case 'subTab':
-      case 'ruleTitle':
       case 'status':
         const strValue = String(value).trim()
         return strValue === '' ? `${name} is required` : ''
+
+      case 'ruleTitle':
+        const titleValue = String(value).trim()
+        if (titleValue === '') {
+          return 'Rule title is required'
+        }
+        if (titleValue.length > 100) {
+          return 'Maximum 100 characters allowed'
+        }
+        if (!/^[A-Za-z\s]+$/.test(titleValue)) {
+          return 'Rule title can only contain letters and spaces'
+        }
+        return ''
 
       case 'subTabRuleDescription':
         const descValue = String(value).trim()
@@ -132,7 +144,12 @@ export default function EditRulePage({ params }) {
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target
-    const newValue = type === 'file' ? files[0] || null : value
+    let newValue = type === 'file' ? files[0] || null : value
+
+    // For rule title, filter out invalid characters as user types
+    if (name === 'ruleTitle' && typeof newValue === 'string') {
+      newValue = newValue.replace(/[^A-Za-z\s]/g, '')
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -422,6 +439,8 @@ export default function EditRulePage({ params }) {
                 onChange={handleChange}
                 placeholder='Enter rule title'
                 maxLength={100}
+                pattern='[A-Za-z\s]+'
+                title='Rule title can only contain letters and spaces'
                 className='w-full bg-transparent outline-none'
                 required
               />
@@ -467,13 +486,56 @@ export default function EditRulePage({ params }) {
               <label className='block text-sm font-medium mb-1'>
                 Upload PDF (Optional)
               </label>
-              <input
-                type='file'
-                name='rule'
-                onChange={handleChange}
-                accept='.pdf'
-                className='w-full bg-transparent outline-none'
-              />
+              <div className='flex items-center flex-wrap gap-2'>
+                <label
+                  htmlFor='pdf-edit-input'
+                  className='cursor-pointer inline-block py-2 px-4 rounded-full border-0 text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors'
+                >
+                  Choose File
+                </label>
+                <input
+                  id='pdf-edit-input'
+                  type='file'
+                  name='rule'
+                  onChange={handleChange}
+                  accept='.pdf'
+                  className='hidden'
+                />
+                <div className='flex items-center gap-2'>
+                  {formData.rule instanceof File ? (
+                    <span className='text-sm text-green-400 font-medium'>
+                      {formData.rule.name}
+                    </span>
+                  ) : formData.rule && typeof formData.rule === 'string' ? (
+                    <div className='flex items-center gap-2'>
+                      <a
+                        href={formData.rule}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='text-sm text-blue-400 underline hover:text-blue-300'
+                      >
+                        View Current PDF
+                      </a>
+                    </div>
+                  ) : (
+                    <span className='text-sm text-gray-300'>No file selected</span>
+                  )}
+                  {formData.rule && (
+                    <button
+                      type='button'
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          rule: null,
+                        }))
+                      }
+                      className='text-red-400 text-sm underline hover:text-red-300 transition-colors'
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
               <p className='text-xs text-gray-400 mt-1'>
                 Only PDF files are allowed
               </p>
@@ -482,34 +544,6 @@ export default function EditRulePage({ params }) {
               )}
             </div>
 
-            {/* PDF Preview */}
-            {formData.rule && typeof formData.rule === 'string' && (
-              <div className='my-4'>
-                <h4 className='text-sm text-gray-300 my-4'>Uploaded PDF :</h4>
-                <div className='flex items-center justify-between p-2 border border-gray-700 rounded'>
-                  <a
-                    href={formData.rule}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-blue-400 underline break-all'
-                  >
-                    {formData.rule}
-                  </a>
-                  <button
-                    type='button'
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        rule: null,
-                      }))
-                    }
-                    className='text-red-400 text-sm hover:text-red-300 ml-4'
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Video Link */}
             <div className='bg-[#00000061] p-2 rounded'>
