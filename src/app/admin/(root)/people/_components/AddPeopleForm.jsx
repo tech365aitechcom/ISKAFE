@@ -76,13 +76,18 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const validPostalCode = (postalCode) => {
     if (!postalCode || postalCode.trim() === '') return false;
-    // More flexible postal code validation - allows letters, numbers, spaces, dashes
-    // Covers US ZIP codes, Canadian postal codes, UK postcodes, etc.
-    return /^[A-Za-z0-9\s\-]{3,10}$/.test(postalCode.trim());
+    // Restrict to maximum 6 digits for pincode/ZIP code
+    return /^\d{1,6}$/.test(postalCode.trim());
   }
   const validPassword = (password) =>
     /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
   const validateSuffix = (suffix) => /^[A-Za-z]+$/.test(suffix)
+  const validateStreet = (street) => {
+    if (!street || street.trim() === '') return false;
+    // Must contain at least one letter and can include numbers, spaces, and common address punctuation
+    // Prevents purely numeric addresses like "87878787"
+    return /^(?=.*[A-Za-z])[A-Za-z0-9\s\-\#\.\,\'\/]{2,100}$/.test(street.trim());
+  }
 
   const getAge = (dob) => {
     const birthDate = new Date(dob)
@@ -158,7 +163,21 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
       return
     }
     if (!validPostalCode(formData.postalCode)) {
-      enqueueSnackbar('Please enter a valid postal/zip code (3-10 characters, letters and numbers allowed).', {
+      enqueueSnackbar('Please enter a valid pincode/ZIP code (1-6 digits only).', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (!validateStreet(formData.street1)) {
+      enqueueSnackbar('Street 1 must contain at least one letter and cannot be purely numeric (e.g., "123 Main St").', {
+        variant: 'warning',
+      })
+      setIsSubmitting(false)
+      return
+    }
+    if (formData.street2 && !validateStreet(formData.street2)) {
+      enqueueSnackbar('Street 2 must contain at least one letter and cannot be purely numeric (e.g., "Apt 4B").', {
         variant: 'warning',
       })
       setIsSubmitting(false)
@@ -720,6 +739,9 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 onChange={handleChange}
                 placeholder='Enter ZIP Code'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                maxLength={6}
+                pattern='\d{1,6}'
+                title='Please enter 1-6 digits only'
                 required
               />
             </div>
@@ -737,7 +759,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 value={formData.street1}
                 onChange={handleChange}
                 className='w-full outline-none'
-                placeholder='Enter Street 1'
+                placeholder='e.g., 123 Main St'
                 required
               />
             </div>
@@ -751,7 +773,7 @@ export const AddPeopleForm = ({ setShowAddPeopleForm }) => {
                 value={formData.street2}
                 onChange={handleChange}
                 className='w-full outline-none'
-                placeholder='Enter Street 2'
+                placeholder='e.g., Apt 4B, Suite 200'
               />
             </div>
           </div>

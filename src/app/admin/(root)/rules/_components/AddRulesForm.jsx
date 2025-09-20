@@ -35,11 +35,16 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
           ? 'Maximum 1500 characters allowed'
           : ''
       case 'ruleTitle':
-        return value.trim() === ''
-          ? 'Rule title is required'
-          : value.length > 100
-          ? 'Maximum 100 characters allowed'
-          : ''
+        if (value.trim() === '') {
+          return 'Rule title is required'
+        }
+        if (value.length > 100) {
+          return 'Maximum 100 characters allowed'
+        }
+        if (!/^[A-Za-z\s]+$/.test(value)) {
+          return 'Rule title can only contain letters and spaces'
+        }
+        return ''
       case 'ruleDescription':
         return value.trim() === ''
           ? 'Rule description is required'
@@ -77,8 +82,13 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
-    const newValue =
+    let newValue =
       type === 'checkbox' ? checked : type === 'file' ? files[0] || null : value
+
+    // For rule title, filter out invalid characters as user types
+    if (name === 'ruleTitle' && typeof newValue === 'string') {
+      newValue = newValue.replace(/[^A-Za-z\s]/g, '')
+    }
 
     setFormData((prevState) => ({
       ...prevState,
@@ -346,6 +356,8 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
                 onChange={handleChange}
                 placeholder='Enter rule title'
                 maxLength={100}
+                pattern='[A-Za-z\s]+'
+                title='Rule title can only contain letters and spaces'
                 className='w-full bg-transparent outline-none'
                 required
               />
@@ -391,33 +403,42 @@ export const AddRulesForm = ({ setShowAddRuleForm }) => {
               <label className='block text-sm font-medium mb-1'>
                 Upload PDF (Optional)
               </label>
-              <input
-                type='file'
-                name='rule'
-                onChange={handleChange}
-                accept='.pdf'
-                className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
-              />
-
-              {formData.rule && (
-                <div className='mt-2 flex items-center justify-between'>
-                  <span className='text-sm text-gray-300'>
-                    Selected file: {formData.rule.name}
+              <div className='flex items-center flex-wrap gap-2'>
+                <label
+                  htmlFor='pdf-upload-input'
+                  className='cursor-pointer inline-block py-2 px-4 rounded-full border-0 text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-colors'
+                >
+                  Choose File
+                </label>
+                <input
+                  id='pdf-upload-input'
+                  type='file'
+                  name='rule'
+                  onChange={handleChange}
+                  accept='.pdf'
+                  className='hidden'
+                />
+                <div className='flex items-center gap-2'>
+                  <span className={`text-sm ${formData.rule ? 'text-green-400 font-medium' : 'text-gray-300'}`}>
+                    {formData.rule ? formData.rule.name : 'No file selected'}
                   </span>
-                  <button
-                    type='button'
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        rule: null,
-                      }))
-                    }
-                    className='text-red-400 text-sm underline hover:text-red-500 ml-4'
-                  >
-                    Remove File
-                  </button>
+                  {formData.rule && (
+                    <button
+                      type='button'
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          rule: null,
+                        }))
+                      }
+                      className='text-red-400 text-sm underline hover:text-red-300 transition-colors'
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
+
 
               <p className='text-xs text-gray-400 mt-1'>
                 Only PDF files are allowed

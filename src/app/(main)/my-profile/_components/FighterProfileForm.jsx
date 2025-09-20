@@ -64,6 +64,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaved, setIsSaved] = useState(false) // New state for save confirmation
+  const [originalFormData, setOriginalFormData] = useState({}) // Store original data for comparison
   const [uploadedFiles, setUploadedFiles] = useState({
     medicalCertificate: null,
     licenseDocument: null,
@@ -137,6 +138,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       }
 
       setFormData(updatedFormData)
+      setOriginalFormData(updatedFormData) // Store original data for comparison
       setUploadedFiles({
         medicalCertificate: fighterProfile.medicalCertificate || null,
         licenseDocument: fighterProfile.licenseDocument || null,
@@ -147,8 +149,8 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
         profilePhoto: fighterProfile.profilePhoto ? 'Profile photo uploaded' : '',
         medicalCertificate: fighterProfile.medicalCertificate ? 'Medical certificate uploaded' : '',
         licenseDocument: fighterProfile.licenseDocument ? 'License document uploaded' : '',
-        imageGallery: fighterProfile.imageGallery?.length > 0 
-          ? Array(fighterProfile.imageGallery.length).fill('Image uploaded') 
+        imageGallery: fighterProfile.imageGallery?.length > 0
+          ? Array(fighterProfile.imageGallery.length).fill('Image uploaded')
           : [],
       })
     }
@@ -205,10 +207,53 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       String(value).trim()
     )
 
+  // Function to check if any changes have been made
+  const hasFormChanged = () => {
+    // Check if original data exists
+    if (!originalFormData || Object.keys(originalFormData).length === 0) {
+      return true // If no original data, allow save (first time save)
+    }
+
+    // Compare form fields (excluding file fields which are handled separately)
+    const fieldsToCompare = [
+      'firstName', 'lastName', 'nickName', 'gender', 'dateOfBirth', 'height',
+      'weight', 'weightUnit', 'weightClass', 'country', 'state', 'city',
+      'phoneNumber', 'email', 'instagram', 'youtube', 'facebook', 'bio',
+      'primaryGym', 'coachName', 'affiliations', 'trainingExperience',
+      'trainingStyle', 'credentials', 'nationalRank', 'globalRank',
+      'achievements', 'recordHighlight', 'videoHighlight'
+    ]
+
+    for (const field of fieldsToCompare) {
+      const originalValue = originalFormData[field] || ''
+      const currentValue = formData[field] || ''
+      if (originalValue !== currentValue) {
+        return true
+      }
+    }
+
+    // Check if new files have been selected (File objects indicate new uploads)
+    if (formData.profilePhoto instanceof File) return true
+    if (formData.medicalCertificate instanceof File) return true
+    if (formData.licenseDocument instanceof File) return true
+    if (formData.imageGallery?.some(file => file instanceof File)) return true
+
+    return false
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
     setIsSaved(false)
+
+    // Check if any changes have been made
+    if (!hasFormChanged()) {
+      enqueueSnackbar('No changes detected. Please make changes before saving.', {
+        variant: 'info',
+      })
+      setIsSubmitting(false)
+      return
+    }
 
     // Basic validations
     if (!formData.firstName.trim()) {
@@ -460,6 +505,10 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       if (response.status === apiConstants.success) {
         enqueueSnackbar(response.data.message, { variant: 'success' })
         setIsSaved(true)
+
+        // Update original form data to current form data after successful save
+        setOriginalFormData({ ...formData })
+
         onSuccess()
       }
     } catch (error) {
@@ -539,8 +588,15 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                   name='profilePhoto'
                   onChange={handleFileChange}
                   accept='image/jpeg,image/jpg,image/png'
-                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  className='hidden'
+                  id='profilePhoto'
                 />
+                <label
+                  htmlFor='profilePhoto'
+                  className='inline-block cursor-pointer bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-full transition duration-300 w-fit'
+                >
+                  Choose File
+                </label>
                 {selectedFileNames.profilePhoto && (
                   <p className="text-sm text-gray-300 mt-1">
                     Selected: {selectedFileNames.profilePhoto}
@@ -1138,9 +1194,20 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                   onChange={handleFileChange}
                   accept='image/*'
                   multiple
-                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  className='hidden'
+                  id='imageGallery'
                   disabled={isSubmitting}
                 />
+                <label
+                  htmlFor='imageGallery'
+                  className={`inline-block cursor-pointer text-white text-sm font-semibold py-2 px-4 rounded-full transition duration-300 w-fit ${
+                    isSubmitting
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  }`}
+                >
+                  Choose Files
+                </label>
                 {selectedFileNames.imageGallery.length > 0 && (
                   <div className="mt-2">
                     <p className="text-sm text-gray-300">Selected files:</p>
@@ -1222,10 +1289,21 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                   name='medicalCertificate'
                   onChange={handleFileChange}
                   accept='.pdf,.jpg,.jpeg,.png'
-                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  className='hidden'
+                  id='medicalCertificate'
                   required
                   disabled={isSubmitting}
                 />
+                <label
+                  htmlFor='medicalCertificate'
+                  className={`inline-block cursor-pointer text-white text-sm font-semibold py-2 px-4 rounded-full transition duration-300 w-fit ${
+                    isSubmitting
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  }`}
+                >
+                  Choose File
+                </label>
                 {selectedFileNames.medicalCertificate && (
                   <p className="text-sm text-gray-300 mt-1">
                     Selected: {selectedFileNames.medicalCertificate}
@@ -1268,10 +1346,21 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                   name='licenseDocument'
                   onChange={handleFileChange}
                   accept='.pdf,.jpg,.jpeg,.png'
-                  className='w-full outline-none bg-transparent text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700'
+                  className='hidden'
+                  id='licenseDocument'
                   required
                   disabled={isSubmitting}
                 />
+                <label
+                  htmlFor='licenseDocument'
+                  className={`inline-block cursor-pointer text-white text-sm font-semibold py-2 px-4 rounded-full transition duration-300 w-fit ${
+                    isSubmitting
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  }`}
+                >
+                  Choose File
+                </label>
                 {selectedFileNames.licenseDocument && (
                   <p className="text-sm text-gray-300 mt-1">
                     Selected: {selectedFileNames.licenseDocument}

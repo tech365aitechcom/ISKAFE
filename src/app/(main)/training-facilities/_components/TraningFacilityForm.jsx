@@ -17,6 +17,7 @@ const TrainingFacilityForm = () => {
   const [isOpen, setIsOpen] = useState(true)
   const [errors, setErrors] = useState({})
   const [fighterErrors, setFighterErrors] = useState({})
+
   const [formData, setFormData] = useState({
     // Basic Info
     facilityName: '',
@@ -90,45 +91,143 @@ const TrainingFacilityForm = () => {
   ]
 
   // Validation functions
-  const isValidYouTubeURL = (url) => {
-    if (!url) return true // Allow empty
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/)[\w-]+/
-    return youtubeRegex.test(url)
-  }
+  const validateURL = (url) => {
+    if (!url || url.trim().length === 0) {
+      return null // Empty URLs are optional
+    }
 
-  const isValidWebsiteURL = (url) => {
-    if (!url) return true // Allow empty
+    const trimmedUrl = url.trim()
+
+    // Must start with http:// or https://
+    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+      return 'URL must start with http:// or https://'
+    }
+
+    // More comprehensive URL validation
     try {
-      const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`)
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:'
-    } catch {
-      return false
+      const urlObj = new URL(trimmedUrl)
+
+      // Check if it has a valid hostname (not just localhost or IP)
+      if (!urlObj.hostname || urlObj.hostname.length < 3) {
+        return 'Please enter a valid URL with a proper domain'
+      }
+
+      // Must have at least one dot in hostname (for domain.tld format)
+      if (!urlObj.hostname.includes('.')) {
+        return 'Please enter a valid URL with a proper domain (e.g., https://example.com)'
+      }
+
+      // Check for valid TLD (at least 2 characters after last dot)
+      const parts = urlObj.hostname.split('.')
+      const tld = parts[parts.length - 1]
+      if (tld.length < 2) {
+        return 'Please enter a valid URL with a proper domain extension'
+      }
+
+      return null
+    } catch (error) {
+      return 'Please enter a valid URL starting with http:// or https://'
     }
   }
+
+  const validateAboutFacility = (text) => {
+    if (!text || text.trim().length === 0) {
+      return 'About the facility is required'
+    }
+
+    const trimmedText = text.trim()
+
+    // Minimum length requirement
+    if (trimmedText.length < 20) {
+      return 'Please provide at least 20 characters describing your facility'
+    }
+
+    // Check for meaningful content - must contain at least 3 words
+    const words = trimmedText.split(/\s+/).filter(word => word.length > 0)
+    if (words.length < 3) {
+      return 'Please provide a meaningful description with at least 3 words'
+    }
+
+    // Check for nonsensical patterns (repetitive characters)
+    const hasRepeatingChars = /(.)\1{4,}/.test(trimmedText) // 5 or more same characters in a row
+    if (hasRepeatingChars) {
+      return 'Please provide a meaningful description about your facility'
+    }
+
+    // Check for random character strings (basic check for mostly consonants without vowels)
+    const wordsWith2PlusChars = words.filter(word => word.length >= 2)
+    const wordsWithoutVowels = wordsWith2PlusChars.filter(word =>
+      !/[aeiouAEIOU]/.test(word) && word.length >= 4
+    )
+
+    // If more than half of meaningful words have no vowels, likely nonsensical
+    if (wordsWith2PlusChars.length > 0 && (wordsWithoutVowels.length / wordsWith2PlusChars.length) > 0.5) {
+      return 'Please provide a meaningful description about your facility'
+    }
+
+    return null
+  }
+
+
 
   const validateFighterAge = (age) => {
-    if (!age || age.trim() === '') {
+    // Convert to string for consistent handling
+    const ageStr = String(age).trim()
+
+    if (!ageStr || ageStr === '') {
       return 'Age is required'
     }
-    if (!/^\d+$/.test(age.trim())) {
-      return 'Age must be a valid number'
+
+    // Check if it's a valid number (allows for decimal but we'll validate range)
+    if (!/^\d+\.?\d*$/.test(ageStr)) {
+      return 'Only numeric values are allowed'
     }
-    const ageNum = parseInt(age)
+
+    const ageNum = parseInt(ageStr, 10)
+
+    // Check if parsing resulted in a valid number
+    if (isNaN(ageNum)) {
+      return 'Only numeric values are allowed'
+    }
+
     if (ageNum < 18) {
-      return 'Fighter must be at least 18 years old'
+      return 'Minimum age required is 18 years'
     }
+
     if (ageNum > 100) {
-      return 'Please enter a valid age'
+      return 'Please enter a valid age (maximum 100 years)'
     }
+
     return null
   }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
+    const newValue = type === 'checkbox' ? checked : value
+
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: newValue,
     }))
+
+    // Real-time validation
+    if (name === 'aboutFacility') {
+      const validationError = validateAboutFacility(newValue)
+      setErrors(prev => ({ ...prev, aboutFacility: validationError }))
+    }
+
+    if (name === 'externalWebsite') {
+      const validationError = validateURL(newValue)
+      setErrors(prev => ({ ...prev, externalWebsite: validationError }))
+    }
+
+    if (name === 'videoIntroduction') {
+      const validationError = validateURL(newValue)
+      setErrors(prev => ({ ...prev, videoIntroduction: validationError }))
+    }
+
+
   }
 
   const handleMartialArtsChange = (art) => {
@@ -238,6 +337,8 @@ const TrainingFacilityForm = () => {
 
   const handleSubmit = (e, action) => {
     e.preventDefault()
+
+
     console.log('Form submitted with action:', action)
     console.log('Form data:', formData)
     // Handle different submission types (draft, review, etc.)
@@ -245,16 +346,30 @@ const TrainingFacilityForm = () => {
 
   const validateStep2 = () => {
     const newErrors = {}
-    
-    if (formData.externalWebsite && !isValidWebsiteURL(formData.externalWebsite)) {
-      newErrors.externalWebsite = 'Please enter a valid website URL (e.g., https://yourgym.com)'
+
+    // Validate about facility field
+    const aboutFacilityError = validateAboutFacility(formData.aboutFacility)
+    if (aboutFacilityError) {
+      newErrors.aboutFacility = aboutFacilityError
     }
-    
-    if (formData.videoIntroduction && !isValidYouTubeURL(formData.videoIntroduction)) {
-      newErrors.videoIntroduction = 'Introduction video URL must be a valid YouTube link'
+
+    // Validate external website URL
+    const externalWebsiteError = validateURL(formData.externalWebsite)
+    if (externalWebsiteError) {
+      newErrors.externalWebsite = externalWebsiteError
     }
-    
-    setErrors(newErrors)
+
+    // Validate video introduction URL
+    const videoIntroductionError = validateURL(formData.videoIntroduction)
+    if (videoIntroductionError) {
+      newErrors.videoIntroduction = videoIntroductionError
+    }
+
+
+    // Update errors state
+    setErrors(prevErrors => ({ ...prevErrors, ...newErrors }))
+
+    // Return false if there are any validation errors
     return Object.keys(newErrors).length === 0
   }
 
@@ -264,10 +379,10 @@ const TrainingFacilityForm = () => {
         return // Don't proceed if validation fails
       }
     }
-    
+
     if (currentStep < 4) {
       setCurrentStep(currentStep + 1)
-      setErrors({}) // Clear errors when moving to next step
+      // Only clear errors if validation passed - don't clear them blindly
     }
   }
 
@@ -288,7 +403,29 @@ const TrainingFacilityForm = () => {
   }
 
   const isStep2Valid = () => {
-    return formData.aboutFacility.length > 0
+    // Check about facility validation
+    const aboutFacilityError = validateAboutFacility(formData.aboutFacility)
+    if (aboutFacilityError) {
+      return false
+    }
+
+    // Check URL validations directly
+    const externalWebsiteError = validateURL(formData.externalWebsite)
+    if (externalWebsiteError) {
+      return false
+    }
+
+    const videoIntroductionError = validateURL(formData.videoIntroduction)
+    if (videoIntroductionError) {
+      return false
+    }
+
+    // Check if there are any current errors in state
+    if (errors.aboutFacility || errors.externalWebsite || errors.videoIntroduction) {
+      return false
+    }
+
+    return true
   }
 
   if (!isOpen) return null
@@ -532,13 +669,21 @@ const TrainingFacilityForm = () => {
                       value={formData.aboutFacility}
                       onChange={handleChange}
                       placeholder="Share your gym's journey, mission, and values..."
-                      className='w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border border-gray-600 focus:border-yellow-500 focus:outline-none h-32'
+                      className={`w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border focus:outline-none h-32 ${
+                        errors.aboutFacility
+                          ? 'border-red-500 focus:border-red-500'
+                          : 'border-gray-600 focus:border-yellow-500'
+                      }`}
                       required
                       maxLength={1000}
                     />
-                    <span className='text-xs text-gray-400'>
-                      {formData.aboutFacility.length}/1000 characters
-                    </span>
+                    {errors.aboutFacility ? (
+                      <p className='text-red-400 text-sm mt-1'>{errors.aboutFacility}</p>
+                    ) : (
+                      <span className='text-xs text-gray-400'>
+                        {formData.aboutFacility.length}/1000 characters
+                      </span>
+                    )}
                   </div>
 
                   <div>
@@ -552,8 +697,8 @@ const TrainingFacilityForm = () => {
                       onChange={handleChange}
                       placeholder='https://yourgym.com'
                       className={`w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border focus:outline-none ${
-                        errors.externalWebsite 
-                          ? 'border-red-500 focus:border-red-500' 
+                        errors.externalWebsite
+                          ? 'border-red-500 focus:border-red-500'
                           : 'border-gray-600 focus:border-yellow-500'
                       }`}
                     />
@@ -616,8 +761,8 @@ const TrainingFacilityForm = () => {
                       onChange={handleChange}
                       placeholder='https://youtube.com/...'
                       className={`w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border focus:outline-none ${
-                        errors.videoIntroduction 
-                          ? 'border-red-500 focus:border-red-500' 
+                        errors.videoIntroduction
+                          ? 'border-red-500 focus:border-red-500'
                           : 'border-gray-600 focus:border-yellow-500'
                       }`}
                     />
@@ -972,23 +1117,34 @@ const TrainingFacilityForm = () => {
                         <div>
                           <label className='text-white font-medium'>Age</label>
                           <input
-                            type='number'
+                            type='text'
                             value={currentFighter.age}
                             onChange={(e) => {
+                              let value = e.target.value
+
+                              // Filter out non-numeric characters as user types
+                              value = value.replace(/[^0-9]/g, '')
+
                               setCurrentFighter((prev) => ({
                                 ...prev,
-                                age: e.target.value,
+                                age: value,
                               }))
-                              // Clear age error when user starts typing
-                              if (fighterErrors.age) {
+
+                              // Real-time validation feedback
+                              if (value) {
+                                const ageError = validateFighterAge(value)
+                                setFighterErrors(prev => ({ ...prev, age: ageError }))
+                              } else {
+                                // Clear error when field is empty (user is typing)
                                 setFighterErrors(prev => ({ ...prev, age: undefined }))
                               }
                             }}
                             placeholder='e.g., 23'
-                            min='18'
+                            pattern='[0-9]*'
+                            inputMode='numeric'
                             className={`w-full mt-1 p-2 rounded bg-[#1b0c2e] text-white border focus:outline-none ${
-                              fighterErrors.age 
-                                ? 'border-red-500 focus:border-red-500' 
+                              fighterErrors.age
+                                ? 'border-red-500 focus:border-red-500'
                                 : 'border-gray-600 focus:border-yellow-500'
                             }`}
                           />

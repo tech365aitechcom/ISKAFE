@@ -73,6 +73,8 @@ export default function EditPeoplePage({ params }) {
         gender: data.gender || '',
         dateOfBirth: formattedDOB || '',
         role: data.role || '',
+        password: '',
+        confirmPassword: '',
         about: data.about || '',
         isPremium: data.isPremium || false,
         adminNotes: data.adminNotes || '',
@@ -118,10 +120,20 @@ export default function EditPeoplePage({ params }) {
   const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name)
   const validatePhoneNumber = (number) => /^\+?[0-9]{10,15}$/.test(number)
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const validPostalCode = (postalCode) => /^\d+$/.test(postalCode)
+  const validPostalCode = (postalCode) => {
+    if (!postalCode || postalCode.trim() === '') return false;
+    // Restrict to maximum 6 digits for pincode/ZIP code
+    return /^\d{1,6}$/.test(postalCode.trim());
+  }
   const validPassword = (password) =>
     /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/.test(password)
   const validateSuffix = (suffix) => /^[A-Za-z]+$/.test(suffix)
+  const validateStreet = (street) => {
+    if (!street || street.trim() === '') return false;
+    // Must contain at least one letter and can include numbers, spaces, and common address punctuation
+    // Prevents purely numeric addresses like "87878787"
+    return /^(?=.*[A-Za-z])[A-Za-z0-9\s\-\#\.\,\'\/]{2,100}$/.test(street.trim());
+  }
 
   const getAge = (dob) => {
     const birthDate = new Date(dob)
@@ -198,7 +210,21 @@ export default function EditPeoplePage({ params }) {
       return
     }
     if (!validPostalCode(people.postalCode)) {
-      enqueueSnackbar('Please enter a valid postal code.', {
+      enqueueSnackbar('Please enter a valid pincode/ZIP code (1-6 digits only).', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (people.street1 && !validateStreet(people.street1)) {
+      enqueueSnackbar('Street 1 must contain at least one letter and cannot be purely numeric (e.g., "123 Main St").', {
+        variant: 'warning',
+      })
+      setSubmitting(false)
+      return
+    }
+    if (people.street2 && !validateStreet(people.street2)) {
+      enqueueSnackbar('Street 2 must contain at least one letter and cannot be purely numeric (e.g., "Apt 4B").', {
         variant: 'warning',
       })
       setSubmitting(false)
@@ -300,7 +326,7 @@ export default function EditPeoplePage({ params }) {
                 <button
                   type='button'
                   onClick={() =>
-                    setFormData((prev) => ({ ...prev, profilePhoto: null }))
+                    setPeople((prev) => ({ ...prev, profilePhoto: null }))
                   }
                   className='absolute top-2 right-2 bg-[#14255D] p-1 rounded text-[#AEB9E1] shadow-md z-20'
                 >
@@ -751,6 +777,9 @@ export default function EditPeoplePage({ params }) {
                 onChange={handleChange}
                 placeholder='Enter ZIP Code'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                maxLength={6}
+                pattern='\d{1,6}'
+                title='Please enter 1-6 digits only'
               />
             </div>
           </div>
@@ -765,6 +794,7 @@ export default function EditPeoplePage({ params }) {
                 value={people.street1}
                 onChange={handleChange}
                 className='w-full outline-none'
+                placeholder='e.g., 123 Main St'
               />
             </div>
 
@@ -777,6 +807,7 @@ export default function EditPeoplePage({ params }) {
                 value={people.street2}
                 onChange={handleChange}
                 className='w-full outline-none'
+                placeholder='e.g., Apt 4B, Suite 200'
               />
             </div>
           </div>

@@ -719,7 +719,8 @@ export const HomeSettingsForm = () => {
         <form onSubmit={handleSubmit} className='space-y-8'>
           {/* Logo Section */}
           <div className='bg-dark-blue-800 rounded-xl'>
-            <label className='block font-medium mb-4 text-lg'>Logo</label>
+            <label className='block font-medium mb-4 text-lg'>Logo<span className='text-red-500'>*</span></label>
+
             <div className=''>
               <div className=''>
                 {previews.logo ? (

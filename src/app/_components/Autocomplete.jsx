@@ -10,6 +10,7 @@ const Autocomplete = ({
   required = false,
   placeholder = 'Search...',
   readOnly = false,
+  disabled = false,
 }) => {
   const [inputValue, setInputValue] = useState('')
   const [isFocused, setIsFocused] = useState(false)
@@ -40,8 +41,8 @@ const Autocomplete = ({
   }
 
   const handleSelect = (option) => {
-    if (!option || !('value' in option)) return;
-    
+    if (!option || !('value' in option) || disabled) return;
+
     if (multiple) {
       if (!selectedValues.find((item) => item.value === option.value)) {
         onChange([...selectedValues, option])
@@ -56,8 +57,8 @@ const Autocomplete = ({
   }
 
   const handleRemove = (option) => {
-    if (!option || !('value' in option)) return;
-    
+    if (!option || !('value' in option) || disabled) return;
+
     if (multiple) {
       onChange(selectedValues.filter((item) => item.value !== option.value))
     } else {
@@ -97,10 +98,14 @@ const Autocomplete = ({
         <label className='block font-medium mb-1 text-white'>{label}</label>
       )}
       <div
-        className='flex flex-wrap items-center gap-2 px-3 py-2 rounded cursor-text min-h-[50px]'
+        className={`flex flex-wrap items-center gap-2 px-3 py-2 rounded min-h-[50px] ${
+          disabled ? 'cursor-not-allowed opacity-50' : 'cursor-text'
+        }`}
         onClick={() => {
-          inputRef.current?.focus()
-          setIsFocused(true)
+          if (!disabled) {
+            inputRef.current?.focus()
+            setIsFocused(true)
+          }
         }}
       >
         {multiple &&
@@ -116,7 +121,10 @@ const Autocomplete = ({
                   handleRemove(item)
                 }}
                 onMouseDown={(e) => e.preventDefault()}
-                className='ml-1 text-white hover:text-red-500'
+                disabled={disabled}
+                className={`ml-1 text-white ${
+                  disabled ? 'cursor-not-allowed' : 'hover:text-red-500'
+                }`}
               >
                 <X size={12} />
               </button>
@@ -136,8 +144,9 @@ const Autocomplete = ({
             }
             onChange={handleInputChange}
             placeholder={placeholder}
-            onFocus={() => setIsFocused(true)}
-            className='flex-1 text-sm text-white placeholder-gray-400 outline-none bg-transparent'
+            onFocus={() => !disabled && setIsFocused(true)}
+            disabled={disabled}
+            className='flex-1 text-sm text-white placeholder-gray-400 outline-none bg-transparent disabled:text-gray-400 disabled:cursor-not-allowed'
             required={required}
             readOnly={readOnly}
           />
@@ -148,7 +157,10 @@ const Autocomplete = ({
                 handleRemove(selected)
               }}
               onMouseDown={(e) => e.preventDefault()}
-              className='ml-2 text-red-500 cursor-pointer'
+              disabled={disabled}
+              className={`ml-2 text-red-500 ${
+                disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+              }`}
             >
               <X size={14} />
             </button>
@@ -156,7 +168,7 @@ const Autocomplete = ({
         </div>
       </div>
 
-      {isFocused && filteredOptions.length > 0 && (
+      {isFocused && !disabled && filteredOptions.length > 0 && (
         <div className='absolute z-10 min-w-[100px] mt-1 bg-white border border-gray-300 rounded shadow max-h-48 overflow-y-auto'>
           {filteredOptions.map((option) => (
             <div

@@ -86,7 +86,7 @@ export default function RegistrationSection({
         <div className='mt-6 w-full'>
           <Link href={`/events/fighter-registration/${eventId}`}>
             <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl font-semibold'>
-              Register as Fighter
+              Register As Fighter
             </Button>
           </Link>
           <p className='mt-2 text-base text-gray-400 text-center'>
