@@ -408,82 +408,82 @@ export const boutsAndResults = [
 export const cashPaymentAndCodesEvents = [
   {
     id: 1,
-    name: "IKF Fight Night LA (05/10/2025)",
-    date: "2025-05-10",
+    name: 'IKF Fight Night LA (05/10/2025)',
+    date: '2025-05-10',
     users: [
       {
         id: 1,
-        date: "05/01/2025 14:12",
-        name: "David Smith",
-        email: "david@example.com",
-        code: "4X8J1",
+        date: '05/01/2025 14:12',
+        name: 'David Smith',
+        email: 'david@example.com',
+        code: '4X8J1',
         amount: 35,
-        paymentType: "Cash",
-        issuedAt: "05/01/2025 14:12",
-        issuedBy: "Admin_Ravi",
+        paymentType: 'Cash',
+        issuedAt: '05/01/2025 14:12',
+        issuedBy: 'Admin_Ravi',
         redeemed: true,
-        redeemedAt: "05/10/2025 09:59 AM",
-        notes: "Paid at the door"
+        redeemedAt: '05/10/2025 09:59 AM',
+        notes: 'Paid at the door',
       },
       {
         id: 2,
-        date: "05/02/2025 11:30",
-        name: "Vendor Guest",
-        email: "vendor@example.com",
-        code: "9K2P4",
+        date: '05/02/2025 11:30',
+        name: 'Vendor Guest',
+        email: 'vendor@example.com',
+        code: '9K2P4',
         amount: 0,
-        paymentType: "Comp",
-        issuedAt: "05/02/2025 11:30",
-        issuedBy: "Admin_Tina",
+        paymentType: 'Comp',
+        issuedAt: '05/02/2025 11:30',
+        issuedBy: 'Admin_Tina',
         redeemed: false,
-        redeemedAt: "",
-        notes: "VIP complimentary ticket"
+        redeemedAt: '',
+        notes: 'VIP complimentary ticket',
       },
       {
         id: 3,
-        date: "04/26/2025 09:02",
-        name: "Walk-In A1",
-        email: "walkin@example.com",
-        code: "2L9D3",
+        date: '04/26/2025 09:02',
+        name: 'Walk-In A1',
+        email: 'walkin@example.com',
+        code: '2L9D3',
         amount: 35,
-        paymentType: "Manual",
-        issuedAt: "04/26/2025 09:02",
-        issuedBy: "Gate_Staff_1",
+        paymentType: 'Manual',
+        issuedAt: '04/26/2025 09:02',
+        issuedBy: 'Gate_Staff_1',
         redeemed: true,
-        redeemedAt: "04/26/2025 10:10 AM",
-        notes: "Cash payment at gate"
+        redeemedAt: '04/26/2025 10:10 AM',
+        notes: 'Cash payment at gate',
       },
       {
         id: 4,
-        date: "04/11/2025 18:50",
-        name: "Reserved - Coach",
-        email: "coach@example.com",
-        code: "7B9K8",
+        date: '04/11/2025 18:50',
+        name: 'Reserved - Coach',
+        email: 'coach@example.com',
+        code: '7B9K8',
         amount: 20,
-        paymentType: "Cash",
-        issuedAt: "04/11/2025 18:50",
-        issuedBy: "Admin_Ayesha",
+        paymentType: 'Cash',
+        issuedAt: '04/11/2025 18:50',
+        issuedBy: 'Admin_Ayesha',
         redeemed: false,
-        redeemedAt: "",
-        notes: "Coach discount applied"
-      }
-    ]
+        redeemedAt: '',
+        notes: 'Coach discount applied',
+      },
+    ],
   },
   {
     id: 2,
-    name: "Fusion PKB Tournament (04/26/2025)",
-    date: "2025-04-26",
-    users: []
+    name: 'Fusion PKB Tournament (04/26/2025)',
+    date: '2025-04-26',
+    users: [],
   },
   {
     id: 3,
-    name: "PBSC EVO Sport Expo (04/12/2025)",
-    date: "2025-04-12",
-    users: []
-  }
-];
+    name: 'PBSC EVO Sport Expo (04/12/2025)',
+    date: '2025-04-12',
+    users: [],
+  },
+]
 
-export const paymentTypes = ["Cash", "Comp", "Manual", "Other"];
+export const paymentTypes = ['Cash', 'Comp', 'Manual', 'Other']
 
 export const rankings = [
   {
@@ -852,40 +852,40 @@ export const ageCategories = [
 
 export const weightClasses = [
   {
-    _id: 'Junior Junior Atomweight (50.1–55)',
-    fullName: 'Junior Junior Atomweight (50.1–55)',
+    _id: 'Junior Atomweight (50.1–55)',
+    fullName: 'Junior Atomweight (50.1–55)',
   },
   {
-    _id: 'Junior Junior Flyweight (55.1–60)',
-    fullName: 'Junior Junior Flyweight (55.1–60)',
+    _id: 'Junior Flyweight (55.1–60)',
+    fullName: 'Junior Flyweight (55.1–60)',
   },
   {
-    _id: 'Junior Junior Bantamweight (60.1–65)',
-    fullName: 'Junior Junior Bantamweight (60.1–65)',
+    _id: 'Junior Bantamweight (60.1–65)',
+    fullName: 'Junior Bantamweight (60.1–65)',
   },
   {
-    _id: 'Junior Junior Featherweight (65.1–70)',
-    fullName: 'Junior Junior Featherweight (65.1–70)',
+    _id: 'Junior Featherweight (65.1–70)',
+    fullName: 'Junior Featherweight (65.1–70)',
   },
   {
-    _id: 'Junior Junior Lightweight (70.1–75)',
-    fullName: 'Junior Junior Lightweight (70.1–75)',
+    _id: 'Junior Lightweight (70.1–75)',
+    fullName: 'Junior Lightweight (70.1–75)',
   },
   {
-    _id: 'Junior Junior Welterweight (75.1–80)',
-    fullName: 'Junior Junior Welterweight (75.1–80)',
+    _id: 'Junior Welterweight (75.1–80)',
+    fullName: 'Junior Welterweight (75.1–80)',
   },
   {
-    _id: 'Junior Junior Middleweight (80.1–85)',
-    fullName: 'Junior Junior Middleweight (80.1–85)',
+    _id: 'Junior Middleweight (80.1–85)',
+    fullName: 'Junior Middleweight (80.1–85)',
   },
   {
-    _id: 'Junior Junior Cruiserweight (90.1–95)',
-    fullName: 'Junior Junior Cruiserweight (90.1–95)',
+    _id: 'Junior Cruiserweight (90.1–95)',
+    fullName: 'Junior Cruiserweight (90.1–95)',
   },
   {
-    _id: 'Junior Junior Heavyweight (95.1–100)',
-    fullName: 'Junior Junior Heavyweight (95.1–100)',
+    _id: 'Junior Heavyweight (95.1–100)',
+    fullName: 'Junior Heavyweight (95.1–100)',
   },
   {
     _id: 'Junior Strawweight (104.1–108)',
@@ -1052,5 +1052,3 @@ export const subtopicsByTopic = [
     subtopics: [],
   },
 ]
-
-

@@ -9,14 +9,12 @@ import useStore from '../../../../../../../stores/useStore'
 import { enqueueSnackbar } from 'notistack'
 import axios from 'axios'
 import {
-  allWeightClasses,
   mapWeightClassToDisplay,
   mapAgeClassFromOld,
   getWeightClassObject,
   proClassData,
   titleData,
   sportsData,
-  disciplineData,
   bracketCriteriaData,
   bracketRuleData,
   bracketStatusData,
@@ -34,6 +32,7 @@ export default function Props({
   eventId,
 }) {
   const user = useStore((state) => state.user)
+  const [bracketData, setBracketData] = useState(bracketData)
   const [bracketName, setBracketName] = useState('')
   const [loading, setLoading] = useState(false)
   const [startDayNumber, setStartDayNumber] = useState('')
@@ -63,28 +62,28 @@ export default function Props({
   const [group, setGroup] = useState('')
 
   useEffect(() => {
-    if (expandedBracket) {
+    if (bracketData) {
       const initialData = {
-        bracketName: expandedBracket.divisionTitle || '',
-        startDayNumber: expandedBracket.startDayNumber?.toString() || '',
-        ringNumber: expandedBracket.ring || '',
-        bracketSequence: expandedBracket.sequenceNumber?.toString() || '',
-        boutRound: expandedBracket.boutRound?.toString() || '',
+        bracketName: bracketData.divisionTitle || '',
+        startDayNumber: bracketData.startDayNumber?.toString() || '',
+        ringNumber: bracketData.ring || '',
+        bracketSequence: bracketData.sequenceNumber?.toString() || '',
+        boutRound: bracketData.boutRound?.toString() || '',
         maxCompetitors:
-          expandedBracket.maxCompetitors?.toString() ||
-          expandedBracket.fighters?.length?.toString() ||
+          bracketData.maxCompetitors?.toString() ||
+          bracketData.fighters?.length?.toString() ||
           '',
-        proClass: expandedBracket.proClass || '',
-        ruleStyle: expandedBracket.ruleStyle || '',
-        weightClass: mapWeightClassToDisplay(null, expandedBracket.weightClass),
-        ageClass: mapAgeClassFromOld(expandedBracket.ageClass),
-        title: expandedBracket.title || '',
-        sport: expandedBracket.sport || '',
-        discipline: expandedBracket.discipline || '',
-        bracketCriteria: expandedBracket.bracketCriteria || '',
-        bracketStatus: expandedBracket.status || '',
-        bracketNumber: expandedBracket.bracketNumber?.toString() || '',
-        group: expandedBracket.group || '',
+        proClass: bracketData.proClass || '',
+        ruleStyle: bracketData.ruleStyle || '',
+        weightClass: bracketData.weightClassGroup || '',
+        ageClass: mapAgeClassFromOld(bracketData.ageClass),
+        title: bracketData.title || '',
+        sport: bracketData.sport || '',
+        discipline: bracketData.discipline || '',
+        bracketCriteria: bracketData.bracketCriteria || '',
+        bracketStatus: bracketData.status || '',
+        bracketNumber: bracketData.bracketNumber?.toString() || '',
+        group: bracketData.group || '',
       }
 
       // Store original data for comparison
@@ -111,19 +110,7 @@ export default function Props({
         setGroup(initialData.group)
       }
     }
-  }, [expandedBracket, hasUnsavedChanges])
-
-  // Auto-generate bracket name when title components change
-  useEffect(() => {
-    if (proClass || ruleStyle || weightClass || ageClass) {
-      const nameParts = [proClass, ageClass, ruleStyle, weightClass]
-        .filter((part) => part && part.trim() && part !== 'undefined')
-        .map((part) => part.toString().trim().replace(' undefined', ' lbs'))
-      if (nameParts.length > 0) {
-        setBracketName(nameParts.join(' '))
-      }
-    }
-  }, [proClass, ruleStyle, weightClass, ageClass])
+  }, [bracketData, hasUnsavedChanges])
 
   // Generate bracket name functionality
   const handleGenerateName = () => {
@@ -239,7 +226,7 @@ export default function Props({
   }, [hasUnsavedChanges])
 
   const handleSaveProperties = async () => {
-    if (!onUpdate || !expandedBracket) return
+    if (!onUpdate || !bracketData) return
 
     // Clear previous validation errors
     setValidationErrors({})
@@ -319,30 +306,29 @@ export default function Props({
       const weightClassObj = getWeightClassObject(weightClass)
 
       const updateData = {
-        title: title || expandedBracket.title || '',
+        title: title || bracketData.title || '',
         divisionTitle: bracketName.trim(), // Store actual name in divisionTitle
         ringNumber: ringNumber || '',
         sequenceNumber: parseInt(bracketSequence),
         // Include title component fields
         proClass: proClass || '',
-        ruleStyle: ruleStyle || expandedBracket.ruleStyle || '',
+        ruleStyle: ruleStyle || bracketData.ruleStyle || '',
         // Convert weight class value back to object structure for API
-        weightClass: weightClassObj || expandedBracket.weightClass,
-        ageClass: ageClass || expandedBracket.ageClass || '',
+        weightClass: weightClassObj || bracketData.weightClass,
+        ageClass: ageClass || bracketData.ageClass || '',
         // Include new dropdown fields
-        sport: sport || expandedBracket.sport || '',
-        discipline: discipline || expandedBracket.discipline || '',
-        bracketCriteria:
-          bracketCriteria || expandedBracket.bracketCriteria || '',
-        status: bracketStatus || expandedBracket.status || '',
+        sport: sport || bracketData.sport || '',
+        discipline: discipline || bracketData.discipline || '',
+        bracketCriteria: bracketCriteria || bracketData.bracketCriteria || '',
+        status: bracketStatus || bracketData.status || '',
         bracketNumber:
-          parseInt(bracketNumber) || expandedBracket.bracketNumber || 1,
-        group: group || expandedBracket.group || '',
+          parseInt(bracketNumber) || bracketData.bracketNumber || 1,
+        group: group || bracketData.group || '',
       }
 
       console.log('Updating bracket properties with data:', updateData)
       const result = await axios.put(
-        `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+        `${API_BASE_URL}/brackets/${bracketData._id}`,
         updateData
       )
       if (result.status === apiConstants.success) {
@@ -351,6 +337,7 @@ export default function Props({
         })
 
         setHasUnsavedPropertiesChanges(false)
+        setBracketData(result.data)
         setValidationErrors({}) // Clear any validation errors
       } else {
         enqueueSnackbar(
@@ -371,7 +358,7 @@ export default function Props({
   }
 
   const handleSaveSettings = async () => {
-    if (!onUpdate || !expandedBracket) return
+    if (!onUpdate || !bracketData) return
 
     // Clear previous validation errors
     setValidationErrors({})
@@ -463,7 +450,7 @@ export default function Props({
       console.log('Updating bracket settings with data:', updateData)
 
       const result = await axios.put(
-        `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+        `${API_BASE_URL}/brackets/${bracketData._id}`,
         updateData
       )
       if (result.status === apiConstants.success) {
@@ -486,24 +473,31 @@ export default function Props({
   }
 
   const handleDuplicate = async () => {
-    if (!expandedBracket) return
-
+    if (!bracketData) return
+    console.log('Duplicate bracket data:', bracketData)
+    if (!bracketData.title) {
+      enqueueSnackbar(
+        'Cannot duplicate bracket without a Title,Please add title first!!',
+        { variant: 'warning' }
+      )
+      return
+    }
     setLoading(true)
     try {
       // Create a copy of the bracket data with proper validation
       const duplicateData = {
         bracketNumber: totalItems + 1,
-        title: `${expandedBracket.title || 'Bracket'}`,
-        divisionTitle: `${expandedBracket.divisionTitle || ''} (Copy)`,
-        sport: expandedBracket.sport || '',
-        ruleStyle: expandedBracket.ruleStyle || '',
-        ageClass: expandedBracket.ageClass || '',
-        weightClass: expandedBracket.weightClass,
-        ringNumber: expandedBracket.ring || '',
+        title: `${bracketData.title}`,
+        divisionTitle: `${bracketData.divisionTitle || ''} (Copy)`,
+        sport: bracketData.sport || '',
+        ruleStyle: bracketData.ruleStyle || '',
+        ageClass: bracketData.ageClass || '',
+        weightClass: bracketData.weightClass,
+        ringNumber: bracketData.ring || '',
         boutRound: 0,
         maxCompetitors: 0,
         fighters: [],
-        event: expandedBracket.event?._id || '',
+        event: bracketData.event?._id || '',
       }
 
       console.log('Duplicating bracket with data:', duplicateData)
@@ -543,12 +537,12 @@ export default function Props({
   }
 
   const handleUpdateBracketStatus = async () => {
-    if (!expandedBracket) return
+    if (!bracketData) return
 
     setLoading(true)
     try {
       const response = await fetch(
-        `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+        `${API_BASE_URL}/brackets/${bracketData._id}`,
         {
           method: 'PUT',
           headers: {
@@ -583,11 +577,11 @@ export default function Props({
   }
 
   const handleReset = async () => {
-    if (!expandedBracket) return
+    if (!bracketData) return
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/brackets/${expandedBracket._id}/reset`,
+        `${API_BASE_URL}/brackets/${bracketData._id}/reset`,
         {
           method: 'PUT',
           headers: {
@@ -613,7 +607,7 @@ export default function Props({
   }
 
   const handleDelete = async () => {
-    if (!expandedBracket) return
+    if (!bracketData) return
 
     if (
       confirm(
@@ -623,7 +617,7 @@ export default function Props({
       setLoading(true)
       try {
         const response = await fetch(
-          `${API_BASE_URL}/brackets/${expandedBracket._id}`,
+          `${API_BASE_URL}/brackets/${bracketData._id}`,
           {
             method: 'DELETE',
             headers: {
@@ -718,7 +712,7 @@ export default function Props({
               >
                 <option value=''>Select Bracket Rule</option>
                 {bracketRuleData.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.label}>
                     {option.label}
                   </option>
                 ))}
@@ -823,7 +817,7 @@ export default function Props({
               >
                 <option value=''>Select Sport</option>
                 {sportsData.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.label}>
                     {option.label}
                   </option>
                 ))}
@@ -928,12 +922,24 @@ export default function Props({
                 disabled={!ageClass}
               >
                 <option value=''>Select Weight Class</option>
+
+                {/* If the current value isn't in the options, show it */}
+                {weightClass &&
+                  !getWeightClasses(ageClass).some(
+                    (option) => option.value === weightClass
+                  ) && (
+                    <option value={weightClass}>
+                      {weightClass} (Unavailable)
+                    </option>
+                  )}
+
                 {getWeightClasses(ageClass).map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
+
               {validationErrors.weightClass && (
                 <div className='text-red-400 text-xs mt-1'>
                   ⚠ {validationErrors.weightClass}
@@ -965,7 +971,7 @@ export default function Props({
               >
                 <option value=''>Select Bracket Criteria</option>
                 {bracketCriteriaData.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.label}>
                     {option.label}
                   </option>
                 ))}
@@ -1405,8 +1411,8 @@ export default function Props({
         {/* Action Buttons with Descriptions */}
         <div className='my-8'>
           {/* Start Bracket - Only show if status is Open */}
-          {(expandedBracket?.status === 'Open' ||
-            expandedBracket?.status !== 'Started') && (
+          {(bracketData?.status === 'Open' ||
+            bracketData?.status !== 'Started') && (
             <div className='text-center mb-8'>
               <p className='text-white text-sm mb-4'>
                 Start the bracket to begin tournament matches.

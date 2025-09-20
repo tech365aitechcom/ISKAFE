@@ -334,7 +334,7 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
               >
                 <option value=''>Select Sport</option>
                 {sportsData.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <option key={option.value} value={option.label}>
                     {option.label}
                   </option>
                 ))}
@@ -358,7 +358,11 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 disabled={loading || !formData.sport.includes('bjj')}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.discipline ? 'border-red-500' : 'border-gray-600'
-                } ${loading || !formData.sport.includes('bjj') ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || !formData.sport.includes('bjj')
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                }`}
               >
                 <option value=''>Select Discipline</option>
                 {getDisciplines(formData.sport).map((option) => (
@@ -383,7 +387,11 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 disabled={loading || !formData.sport}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.ageClass ? 'border-red-500' : 'border-gray-600'
-                } ${loading || !formData.sport ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || !formData.sport
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                }`}
               >
                 <option value=''>Select Age Class</option>
                 {getAgeClasses(formData.sport).map((option) => (
@@ -408,7 +416,11 @@ export default function EditBracketModal({ bracket, onClose, onUpdate }) {
                 disabled={loading || !formData.ageClass}
                 className={`w-full bg-[#07091D] border rounded px-3 py-2 text-white ${
                   errors.weightClass ? 'border-red-500' : 'border-gray-600'
-                } ${loading || !formData.ageClass ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${
+                  loading || !formData.ageClass
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+                }`}
               >
                 <option value=''>Select Weight Class</option>
                 {getWeightClasses(formData.ageClass).map((option) => (

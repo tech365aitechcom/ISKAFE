@@ -508,7 +508,7 @@ export default function BoutModal({
           >
             <option value=''>Select Sport</option>
             {sportsData.map((option) => (
-              <option key={option.value} value={option.value}>
+              <option key={option.value} value={option.label}>
                 {option.label}
               </option>
             ))}
@@ -828,7 +828,8 @@ export default function BoutModal({
                     {fighter.firstName} {fighter.lastName}
                   </div>
                   <div className='text-sm text-gray-300'>
-                    Weight: {fighter.walkAroundWeight || fighter.weight || 'N/A'}{' '}
+                    Weight:{' '}
+                    {fighter.walkAroundWeight || fighter.weight || 'N/A'}{' '}
                     {fighter.weightUnit || 'lbs'} • Age:{' '}
                     {fighter.dateOfBirth
                       ? new Date().getFullYear() -
@@ -972,7 +973,8 @@ export default function BoutModal({
                     {fighter.firstName} {fighter.lastName}
                   </div>
                   <div className='text-sm text-gray-300'>
-                    Weight: {fighter.walkAroundWeight || fighter.weight || 'N/A'}{' '}
+                    Weight:{' '}
+                    {fighter.walkAroundWeight || fighter.weight || 'N/A'}{' '}
                     {fighter.weightUnit || 'lbs'} • Age:{' '}
                     {fighter.dateOfBirth
                       ? new Date().getFullYear() -

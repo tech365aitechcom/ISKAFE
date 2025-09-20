@@ -507,16 +507,17 @@ export default function RequestCode({
                 placeholder={`Start typing ${activeButton} name or enter manually`}
                 className={`w-full outline-none bg-transparent pr-8 disabled:cursor-not-allowed ${
                   fieldErrors.name ? 'text-red-400' : 'text-white'
-                }`}
+                } ${selectedUser ? 'cursor-not-allowed opacity-75' : ''}`}
                 value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
+                onChange={(e) => !selectedUser && handleNameChange(e.target.value)}
                 onFocus={() => {
                   if (searchQuery.trim() && filteredUsers?.length > 0) {
                     setShowUserDropdown(true)
                   }
                 }}
-                disabled={isSubmitting}
+                disabled={isSubmitting || selectedUser}
                 maxLength={50}
+                readOnly={selectedUser}
               />
               {name && (
                 <button
@@ -575,10 +576,11 @@ export default function RequestCode({
             placeholder='Enter email address'
             className={`w-full outline-none bg-transparent disabled:cursor-not-allowed ${
               fieldErrors.email ? 'text-red-400' : 'text-white'
-            }`}
+            } ${selectedUser ? 'cursor-not-allowed opacity-75' : ''}`}
             value={email}
-            onChange={(e) => handleFieldChange('email', e.target.value)}
-            disabled={isSubmitting}
+            onChange={(e) => !selectedUser && handleFieldChange('email', e.target.value)}
+            disabled={isSubmitting || selectedUser}
+            readOnly={selectedUser}
           />
         </div>
         {fieldErrors.email && (
@@ -595,10 +597,11 @@ export default function RequestCode({
             placeholder='Enter mobile number'
             className={`w-full outline-none bg-transparent disabled:cursor-not-allowed ${
               fieldErrors.mobile ? 'text-red-400' : 'text-white'
-            }`}
+            } ${selectedUser ? 'cursor-not-allowed opacity-75' : ''}`}
             value={mobile}
-            onChange={(e) => handleFieldChange('mobile', e.target.value)}
-            disabled={isSubmitting}
+            onChange={(e) => !selectedUser && handleFieldChange('mobile', e.target.value)}
+            disabled={isSubmitting || selectedUser}
+            readOnly={selectedUser}
           />
         </div>
         {fieldErrors.mobile && (

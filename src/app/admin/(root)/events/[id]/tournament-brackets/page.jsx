@@ -494,7 +494,7 @@ export default function TournamentBrackets() {
             >
               <option value=''>All Sports</option>
               {sportsData.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.label}>
                   {option.label}
                 </option>
               ))}

@@ -15,7 +15,8 @@ const EventCard = ({
   description,
   className,
   status,
-  registrationDeadline, // <-- Optional: fallback to eventDate if not provided
+  registrationDeadline,
+  tournamentSettings,
 }) => {
   const statusColors = {
     live: 'bg-green-500',
@@ -43,6 +44,14 @@ const EventCard = ({
   function isRegistrationOpen() {
     const deadline = registrationDeadline || eventDate
     return moment().isBefore(moment(deadline))
+  }
+
+  function isFighterRegistrationDisabled() {
+    return (tournamentSettings?.simpleFees?.fighterFee || 0) <= 0
+  }
+
+  function isTrainerRegistrationDisabled() {
+    return (tournamentSettings?.simpleFees?.trainerFee || 0) <= 0
   }
 
   const badgeColor = statusColors[status?.toLowerCase()] || 'bg-gray-500'
@@ -97,16 +106,24 @@ const EventCard = ({
 
             {isRegistrationOpen() && (
               <>
-                <Link href={`/events/fighter-registration/${id}`}>
-                  <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
-                    Register To Compete
-                  </button>
-                </Link>
-                <Link href={`/events/trainer-registration/${id}`}>
-                  <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
-                    Register As Trainer
-                  </button>
-                </Link>
+                {isFighterRegistrationDisabled() ? (
+                  <></>
+                ) : (
+                  <Link href={`/events/fighter-registration/${id}`}>
+                    <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
+                      Register To Compete
+                    </button>
+                  </Link>
+                )}
+                {isTrainerRegistrationDisabled() ? (
+                  <></>
+                ) : (
+                  <Link href={`/events/trainer-registration/${id}`}>
+                    <button className='bg-transparent hover:bg-gray-800 border border-gray-600 text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors'>
+                      Register As Trainer
+                    </button>
+                  </Link>
+                )}
               </>
             )}
           </div>

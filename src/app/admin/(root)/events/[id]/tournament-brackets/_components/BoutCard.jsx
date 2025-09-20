@@ -22,7 +22,7 @@ export default function BoutCard({
   }
 
   const getSportLabel = (sportValue) => {
-    const sport = sportsData.find((s) => s.value === sportValue)
+    const sport = sportsData.find((s) => s.label === sportValue)
     return sport ? sport.label : sportValue
   }
 

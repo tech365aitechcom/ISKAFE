@@ -72,6 +72,14 @@ export default function RegistrationSection({
     return now.isBefore(deadline)
   }
 
+  const isFighterRegistrationDisabled = () => {
+    return (tournamentSettings?.simpleFees?.fighterFee || 0) <= 0
+  }
+
+  const isTrainerRegistrationDisabled = () => {
+    return (tournamentSettings?.simpleFees?.trainerFee || 0) <= 0
+  }
+
   if (loading || spectatorTicketsLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-[#0f0217]'>
@@ -84,11 +92,20 @@ export default function RegistrationSection({
     <div className={`bg-[#1b0c2e] ${padding}`}>
       {isBeforeDeadline() && (
         <div className='mt-6 w-full'>
-          <Link href={`/events/fighter-registration/${eventId}`}>
-            <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl font-semibold'>
+          {isFighterRegistrationDisabled() ? (
+            <Button
+              disabled
+              className='bg-gray-600 text-gray-400 px-6 py-3 w-full rounded-sm text-xl font-semibold cursor-not-allowed'
+            >
               Register As Fighter
             </Button>
-          </Link>
+          ) : (
+            <Link href={`/events/fighter-registration/${eventId}`}>
+              <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl font-semibold'>
+                Register As Fighter
+              </Button>
+            </Link>
+          )}
           <p className='mt-2 text-base text-gray-400 text-center'>
             Fighter Fee Amount:
             <span className='text-white font-semibold text-xl ml-2'>
@@ -96,16 +113,32 @@ export default function RegistrationSection({
               {(tournamentSettings?.simpleFees?.fighterFee || 0).toFixed(2)}
             </span>
           </p>
+          {isFighterRegistrationDisabled() && (
+            <p className='mt-2 text-sm text-red-400 text-center'>
+              Fighter registration is currently unavailable due to tournament
+              settings configuration.
+            </p>
+          )}
         </div>
       )}
 
       {isBeforeDeadline() && (
         <div className='mt-6 w-full'>
-          <Link href={`/events/trainer-registration/${eventId}`}>
-            <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl font-semibold'>
+          {isTrainerRegistrationDisabled() ? (
+            <Button
+              disabled
+              className='bg-gray-600 text-gray-400 px-6 py-3 w-full rounded-sm text-xl font-semibold cursor-not-allowed'
+            >
               Register As Trainer
             </Button>
-          </Link>
+          ) : (
+            <Link href={`/events/trainer-registration/${eventId}`}>
+              <Button className='bg-gradient-to-r from-[#B02FEC] to-[#5141B5] hover:opacity-90 text-white px-6 py-3 w-full rounded-sm text-xl font-semibold'>
+                Register As Trainer
+              </Button>
+            </Link>
+          )}
+
           <p className='mt-2 text-base text-gray-400 text-center'>
             Trainer Fee Amount:
             <span className='text-white font-semibold text-xl ml-2'>
@@ -113,6 +146,12 @@ export default function RegistrationSection({
               {(tournamentSettings?.simpleFees?.trainerFee || 0).toFixed(2)}
             </span>
           </p>
+          {isTrainerRegistrationDisabled() && (
+            <p className='mt-2 text-sm text-red-400 text-center'>
+              Trainer registration is currently unavailable due to tournament
+              settings configuration.
+            </p>
+          )}
         </div>
       )}
 

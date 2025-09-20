@@ -5,7 +5,7 @@ import axios from "axios";
 import { API_BASE_URL } from "../../../constants/index";
 import EventCard from "../_components/EventCard";
 import Loader from "../../_components/Loader";
-import { getEventStatus } from "../../../utils/eventUtils";
+import { getEventStatus, fetchTournamentSettings } from "../../../utils/eventUtils";
 import { City, Country, State } from "country-state-city";
 import Pagination from "../../_components/Pagination";
 
@@ -15,6 +15,7 @@ const EventsPage = () => {
   const [city, setCity] = useState("");
   const [date, setDate] = useState("");
   const [events, setEvents] = useState([]);
+  const [tournamentSettings, setTournamentSettings] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
@@ -35,8 +36,27 @@ const EventsPage = () => {
       const response = await axios.get(`${API_BASE_URL}/events${queryParams}`);
       console.log("Response:", response.data);
 
-      setEvents(response.data.data.items);
+      const eventItems = response.data.data.items;
+      setEvents(eventItems);
       setTotalPages(response.data.data.pagination.totalPages);
+
+      // Fetch tournament settings for each event
+      const settingsPromises = eventItems.map(async (event) => {
+        try {
+          const settings = await fetchTournamentSettings(event._id);
+          return { eventId: event._id, settings };
+        } catch (error) {
+          console.log(`Error fetching tournament settings for event ${event._id}:`, error);
+          return { eventId: event._id, settings: null };
+        }
+      });
+
+      const settingsResults = await Promise.all(settingsPromises);
+      const settingsMap = {};
+      settingsResults.forEach(({ eventId, settings }) => {
+        settingsMap[eventId] = settings;
+      });
+      setTournamentSettings(settingsMap);
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
@@ -229,7 +249,8 @@ const EventsPage = () => {
               status={getEventStatus(event.startDate, event.endDate)}
               registrationDeadline={
                 event.registrationDeadline || event.startDate
-              } // 👈 ADD THIS LINE
+              }
+              tournamentSettings={tournamentSettings[event._id]}
             />
           ))}
         </div>

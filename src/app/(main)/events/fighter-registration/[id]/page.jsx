@@ -737,7 +737,7 @@ const FighterRegistrationPage = ({ params }) => {
     console.log('✅ Square tokenization successful')
 
     // Calculate amount in cents for Square (Fighter registration fee)
-    const fighterFee = tournamentSettings?.simpleFees?.fighterFee || 75
+    const fighterFee = tournamentSettings?.simpleFees?.fighterFee || 0
 
     // Submit payment to Square
     const paymentData = {
@@ -845,7 +845,6 @@ const FighterRegistrationPage = ({ params }) => {
         }
         payload.cashCode = formData.cashCode.trim()
       } else {
-        // For card payments, process Square payment first
         console.log(
           'Processing Square card payment for fighter registration...'
         )
@@ -878,6 +877,7 @@ const FighterRegistrationPage = ({ params }) => {
         handleCancel()
       }
     } catch (error) {
+      console.error('Registration error:', error)
       enqueueSnackbar(error.response.data.message, { variant: 'error' })
     } finally {
       setProcessing(false)
@@ -1212,6 +1212,9 @@ const FighterRegistrationPage = ({ params }) => {
                 max='8'
                 className='w-full outline-none bg-transparent text-white'
               />
+              {errors.heightFeet && (
+                <p className='text-red-400 text-sm mt-1'>{errors.heightFeet}</p>
+              )}
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-1'>
@@ -1227,17 +1230,10 @@ const FighterRegistrationPage = ({ params }) => {
                 max='11'
                 className='w-full outline-none bg-transparent text-white'
               />
+              {errors.heightInches && (
+                <p className='text-red-400 text-sm mt-1'>{errors.heightInches}</p>
+              )}
             </div>
-            {(errors.heightFeet || errors.heightInches) && (
-              <div className='col-span-2'>
-                {errors.heightFeet && (
-                  <p className='text-red-400 text-sm'>{errors.heightFeet}</p>
-                )}
-                {errors.heightInches && (
-                  <p className='text-red-400 text-sm'>{errors.heightInches}</p>
-                )}
-              </div>
-            )}
           </div>
         ) : (
           <div className='bg-[#00000061] p-2 rounded'>
@@ -1658,7 +1654,7 @@ const FighterRegistrationPage = ({ params }) => {
           Registration Fee:{' '}
           <span className='text-green-400 font-bold text-xl'>
             {tournamentSettings?.simpleFees?.currency || '$'}
-            {(tournamentSettings?.simpleFees?.fighterFee || 75).toFixed(2)}
+            {(tournamentSettings?.simpleFees?.fighterFee || 0).toFixed(2)}
           </span>
         </p>
       </div>
@@ -2005,7 +2001,7 @@ const FighterRegistrationPage = ({ params }) => {
                         ? `Pay ${
                             tournamentSettings?.simpleFees?.currency || '$'
                           }${(
-                            tournamentSettings?.simpleFees?.fighterFee || 75
+                            tournamentSettings?.simpleFees?.fighterFee || 0
                           ).toFixed(2)}`
                         : 'Submit Registration'}
                     </button>
