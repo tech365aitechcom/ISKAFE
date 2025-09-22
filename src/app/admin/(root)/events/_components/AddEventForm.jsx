@@ -73,6 +73,12 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
   const router = useRouter()
 
   const [submitting, setSubmitting] = useState(false)
+  const [validationErrors, setValidationErrors] = useState({
+    registrationDeadline: '',
+    registrationStartDate: '',
+    endDate: '',
+    weighInDateTime: '',
+  })
 
   const getVenues = async () => {
     setLoading(true)
@@ -111,6 +117,95 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
     getPromoters()
   }, [])
 
+  const validateDates = () => {
+    const errors = {}
+    let isValid = true
+
+    // Required fields validation
+    if (!formData.startDate) {
+      errors.startDate = 'Start date is required'
+      isValid = false
+    }
+
+    if (!formData.endDate) {
+      errors.endDate = 'End date is required'
+      isValid = false
+    }
+
+    if (!formData.registrationStartDate) {
+      errors.registrationStartDate = 'Registration start date is required'
+      isValid = false
+    }
+
+    if (!formData.registrationDeadline) {
+      errors.registrationDeadline = 'Registration deadline is required'
+      isValid = false
+    }
+
+    if (!formData.weighInDateTime) {
+      errors.weighInDateTime = 'Weigh-in date and time is required'
+      isValid = false
+    }
+
+    // Only proceed with comparisons if we have all dates
+    if (
+      formData.startDate &&
+      formData.endDate &&
+      formData.registrationStartDate &&
+      formData.registrationDeadline &&
+      formData.weighInDateTime
+    ) {
+      const startDate = new Date(formData.startDate)
+      const endDate = new Date(formData.endDate)
+      const regStart = new Date(formData.registrationStartDate)
+      const regDeadline = new Date(formData.registrationDeadline)
+      const weighInDate = new Date(formData.weighInDateTime)
+
+      // 1. Registration start must be before registration deadline
+      if (regStart >= regDeadline) {
+        errors.registrationStartDate = 'Registration start must be before deadline'
+        isValid = false
+      }
+
+      // 2. Registration deadline must be before event start
+      if (regDeadline >= startDate) {
+        errors.registrationDeadline = 'Registration deadline must be before event start'
+        isValid = false
+      }
+
+      // 3. Registration start must be before event start
+      if (regStart >= startDate) {
+        errors.registrationStartDate = 'Registration start must be before event start'
+        isValid = false
+      }
+
+      // 4. End date must be after start date
+      if (endDate <= startDate) {
+        errors.endDate = 'End date must be after start date'
+        isValid = false
+      }
+
+      // 5. Weigh-in must be after registration start date
+      if (weighInDate <= regStart) {
+        errors.weighInDateTime = 'Weigh-in must be after registration start date'
+        isValid = false
+      }
+
+      // 6. Weigh-in must be before or on event start date
+      if (weighInDate > startDate) {
+        errors.weighInDateTime = 'Weigh-in must be before or on event start date'
+        isValid = false
+      }
+    }
+
+    return { isValid, errors }
+  }
+
+  const handleDateBlur = () => {
+    const { isValid, errors } = validateDates()
+    setValidationErrors(errors)
+  }
+
   const handleChange = (eOrName, value) => {
     if (typeof eOrName === 'string') {
       const name = eOrName
@@ -144,7 +239,15 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
           ...prevState,
           [name]: value,
         }))
+        // Clear validation error when user edits the field
+        if (validationErrors[name]) {
+          setValidationErrors((prev) => ({ ...prev, [name]: '' }))
+        }
       }
+    }
+    // Clear validation error for string parameters as well
+    if (typeof eOrName === 'string' && validationErrors[eOrName]) {
+      setValidationErrors((prev) => ({ ...prev, [eOrName]: '' }))
     }
   }
 
@@ -153,6 +256,20 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
     try {
       e.preventDefault()
       console.log('Form submitted:', formData)
+
+      // Validate dates before submission
+      const { isValid, errors } = validateDates()
+      setValidationErrors(errors)
+
+      if (!isValid) {
+        enqueueSnackbar(
+          'Please fix date validation errors: ' +
+            Object.values(errors).join(', '),
+          { variant: 'error' }
+        )
+        setSubmitting(false)
+        return
+      }
 
       if (formData.poster && typeof formData.poster !== 'string') {
         formData.poster = await uploadToS3(formData.poster)
@@ -578,9 +695,15 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 name='endDate'
                 value={formData.endDate}
                 onChange={handleChange}
+                onBlur={handleDateBlur}
                 className='w-full outline-none bg-transparent disabled:cursor-not-allowed'
                 disabled={!formData.venue || !formData.promoter || submitting}
               />
+              {validationErrors.endDate && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {validationErrors.endDate}
+                </p>
+              )}
             </div>
 
             {/* Registration Start Date */}
@@ -593,10 +716,16 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 name='registrationStartDate'
                 value={formData.registrationStartDate}
                 onChange={handleChange}
+                onBlur={handleDateBlur}
                 className='w-full outline-none bg-transparent disabled:cursor-not-allowed'
                 required
                 disabled={!formData.venue || !formData.promoter || submitting}
               />
+              {validationErrors.registrationStartDate && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {validationErrors.registrationStartDate}
+                </p>
+              )}
             </div>
 
             {/* Registration Deadline */}
@@ -609,10 +738,16 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 name='registrationDeadline'
                 value={formData.registrationDeadline}
                 onChange={handleChange}
+                onBlur={handleDateBlur}
                 className='w-full outline-none bg-transparent disabled:cursor-not-allowed'
                 required
                 disabled={!formData.venue || !formData.promoter || submitting}
               />
+              {validationErrors.registrationDeadline && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {validationErrors.registrationDeadline}
+                </p>
+              )}
             </div>
 
             {/* Weigh-in Date & Time */}
@@ -625,10 +760,16 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 name='weighInDateTime'
                 value={formData.weighInDateTime}
                 onChange={handleChange}
+                onBlur={handleDateBlur}
                 className='w-full outline-none bg-transparent disabled:cursor-not-allowed'
                 required
                 disabled={!formData.venue || !formData.promoter || submitting}
               />
+              {validationErrors.weighInDateTime && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {validationErrors.weighInDateTime}
+                </p>
+              )}
             </div>
 
             {/* Rules Meeting Time */}

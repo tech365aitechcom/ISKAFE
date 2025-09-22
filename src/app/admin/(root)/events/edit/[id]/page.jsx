@@ -35,6 +35,7 @@ export default function EditEventPage() {
     registrationDeadline: '',
     registrationStartDate: '',
     endDate: '',
+    weighInDateTime: '',
   })
   const [selectedFiles, setSelectedFiles] = useState({
     poster: null,
@@ -223,17 +224,24 @@ export default function EditEventPage() {
       isValid = false
     }
 
+    if (!event.weighInDateTime) {
+      errors.weighInDateTime = 'Weigh-in date and time is required'
+      isValid = false
+    }
+
     // Only proceed with comparisons if we have all dates
     if (
       event.startDate &&
       event.endDate &&
       event.registrationStartDate &&
-      event.registrationDeadline
+      event.registrationDeadline &&
+      event.weighInDateTime
     ) {
       const startDate = new Date(event.startDate)
       const endDate = new Date(event.endDate)
       const regStart = new Date(event.registrationStartDate)
       const regDeadline = new Date(event.registrationDeadline)
+      const weighInDate = new Date(event.weighInDateTime)
 
       console.log(
         'Date validation - Start:',
@@ -271,6 +279,18 @@ export default function EditEventPage() {
       // 4. End date must be after start date
       if (endDate <= startDate) {
         errors.endDate = 'End date must be after start date'
+        isValid = false
+      }
+
+      // 5. Weigh-in must be after registration start date
+      if (weighInDate <= regStart) {
+        errors.weighInDateTime = 'Weigh-in must be after registration start date'
+        isValid = false
+      }
+
+      // 6. Weigh-in must be before or on event start date
+      if (weighInDate > startDate) {
+        errors.weighInDateTime = 'Weigh-in must be before or on event start date'
         isValid = false
       }
     }
@@ -1044,10 +1064,16 @@ export default function EditEventPage() {
                     : ''
                 }
                 onChange={handleInputChange}
+                onBlur={handleDateBlur}
                 className='w-full outline-none bg-transparent disabled:cursor-not-allowed'
                 required
                 disabled={!selectedVenue || !selectedPromoter}
               />
+              {validationErrors.weighInDateTime && (
+                <p className='text-red-500 text-xs mt-1'>
+                  {validationErrors.weighInDateTime}
+                </p>
+              )}
             </div>
 
             {/* Rules Meeting Time */}
