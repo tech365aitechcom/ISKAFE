@@ -286,7 +286,13 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       return
     }
 
-    if (formData.email && !validateEmail(formData.email)) {
+    if (!formData.email || !formData.email.trim()) {
+      enqueueSnackbar('Email address is required.', { variant: 'warning' })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validateEmail(formData.email)) {
       enqueueSnackbar('Please enter a valid email address.', {
         variant: 'warning',
       })
@@ -294,7 +300,13 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       return
     }
 
-    if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) {
+      enqueueSnackbar('Phone number is required.', { variant: 'warning' })
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!validatePhoneNumber(formData.phoneNumber)) {
       enqueueSnackbar('Please enter a valid phone number (10-15 digits).', {
         variant: 'warning',
       })
@@ -864,7 +876,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Phone Number</label>
+              <label className='block font-medium mb-2'>Phone Number <span className='text-red-400'>*</span></label>
               <input
                 type='tel'
                 name='phoneNumber'
@@ -872,6 +884,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='+1 555-123-4567'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
                 disabled={isSubmitting}
               />
               {formData.phoneNumber &&
@@ -883,7 +896,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
             </div>
 
             <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Email Address</label>
+              <label className='block font-medium mb-2'>Email Address <span className='text-red-400'>*</span></label>
               <input
                 type='email'
                 name='email'
@@ -891,6 +904,7 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                 onChange={handleInputChange}
                 placeholder='fighter@example.com'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                required
                 disabled={isSubmitting}
               />
               {formData.email && !validateEmail(formData.email) && (
