@@ -57,12 +57,12 @@ const SpectatorProfileForm = ({ userDetails, onSuccess }) => {
       if (checked) {
         setFormData((prev) => ({
           ...prev,
-          [name]: [...prev[name], value],
+          [name]: [...(prev[name] || []), value],
         }))
       } else {
         setFormData((prev) => ({
           ...prev,
-          [name]: prev[name].filter((item) => item !== value),
+          [name]: (prev[name] || []).filter((item) => item !== value),
         }))
       }
     } else {
@@ -94,7 +94,8 @@ const SpectatorProfileForm = ({ userDetails, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-        const originalData = {
+
+    const originalData = {
       firstName: userDetails?.firstName || '',
       lastName: userDetails?.lastName || '',
       email: userDetails?.email || '',
@@ -123,7 +124,6 @@ const SpectatorProfileForm = ({ userDetails, onSuccess }) => {
       enqueueSnackbar('No changes made to profile.', { variant: 'info' })
       return
     }
-
 
     if (!validateName(formData.firstName)) {
       enqueueSnackbar(
@@ -175,9 +175,27 @@ const SpectatorProfileForm = ({ userDetails, onSuccess }) => {
     }
 
     try {
+      // build payload and sanitize empty strings
+      const payload = { ...formData }
+
+      // Remove any empty strings (including gender: '')
+      Object.keys(payload).forEach((k) => {
+        if (payload[k] === '') {
+          delete payload[k]
+        }
+      })
+
+      // Handle "Prefer not to say" option:
+      // - Current approach: treat it as "no gender provided" (omit field) to avoid enum validation errors.
+      // If your backend accepts a specific string for 'prefer_not_to_say', replace the deletion:
+      // if (formData.gender === 'prefer_not_to_say') payload.gender = 'Prefer not to say'
+      if (formData.gender === 'prefer_not_to_say') {
+        delete payload.gender
+      }
+
       const response = await axios.put(
         `${API_BASE_URL}/auth/users/${user._id}`,
-        formData,
+        payload,
         {
           headers: {
             Authorization: `Bearer ${user?.token}`,
@@ -205,185 +223,189 @@ const SpectatorProfileForm = ({ userDetails, onSuccess }) => {
           <h1 className='text-4xl font-bold'>My Profile</h1>
         </div>
 
-        {/* Personal Info */}
-        <div className='flex items-center gap-2 mb-4'>
-          <User className='w-6 h-6 text-blue-400' />
-          <h2 className='font-bold uppercase text-lg'>Personal Information</h2>
-        </div>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-          {[
-            { label: 'First Name', name: 'firstName' },
-            { label: 'Last Name', name: 'lastName' },
-            { label: 'Email Address', name: 'email', type: 'email' },
-            { label: 'Phone Number', name: 'phoneNumber' },
-            { label: 'Date of Birth', name: 'dateOfBirth', type: 'date' },
-          ].map((field) => (
-            <div key={field.name} className='bg-[#00000061] p-2 rounded'>
+        <form onSubmit={handleSubmit}>
+          {/* Personal Info */}
+          <div className='flex items-center gap-2 mb-4'>
+            <User className='w-6 h-6 text-blue-400' />
+            <h2 className='font-bold uppercase text-lg'>Personal Information</h2>
+          </div>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+            {[
+              { label: 'First Name', name: 'firstName' },
+              { label: 'Last Name', name: 'lastName' },
+              { label: 'Email Address', name: 'email', type: 'email' },
+              { label: 'Phone Number', name: 'phoneNumber' },
+              { label: 'Date of Birth', name: 'dateOfBirth', type: 'date' },
+            ].map((field) => (
+              <div key={field.name} className='bg-[#00000061] p-2 rounded'>
+                <label className='block font-medium mb-1'>
+                  {field.label}
+                  <span className='text-red-500'>*</span>
+                </label>
+                <input
+                  type={field.type || 'text'}
+                  name={field.name}
+                  value={formData[field.name] || ''}
+                  onChange={handleInputChange}
+                  placeholder={`Enter ${field.label.toLowerCase()}`}
+                  className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                  required
+                />
+              </div>
+            ))}
+
+            {/* Gender Dropdown */}
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>Gender</label>
+              <select
+                name='gender'
+                value={formData.gender}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+              >
+                <option value='' className='text-black'>
+                  Select Gender
+                </option>
+                <option value='Male' className='text-black'>
+                  Male
+                </option>
+                <option value='Female' className='text-black'>
+                  Female
+                </option>
+                <option value='Other' className='text-black'>
+                  Other
+                </option>
+                {/* This option intentionally maps to omission on submit to keep gender optional */}
+                <option value='prefer_not_to_say' className='text-black'>
+                  Prefer not to say
+                </option>
+              </select>
+            </div>
+          </div>
+
+          {/* Address Info */}
+          <div className='flex items-center gap-2 mb-4'>
+            <MapPin className='w-6 h-6 text-red-400' />
+            <h2 className='font-bold uppercase text-lg'>Address Information</h2>
+          </div>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
+            <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-1'>
-                {field.label}
+                Country
+                <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='country'
+                value={formData.country}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+                required
+              >
+                <option value='' className='text-black'>
+                  Select Country
+                </option>
+                {countries.map((country) => (
+                  <option
+                    key={country.isoCode}
+                    value={country.isoCode}
+                    className='text-black'
+                  >
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                State
+                <span className='text-red-500'>*</span>
+              </label>
+              <select
+                name='state'
+                value={formData.state}
+                onChange={handleInputChange}
+                className='w-full outline-none bg-transparent text-white'
+                required
+              >
+                <option value='' className='text-black'>
+                  Select State
+                </option>
+                {states.map((state) => (
+                  <option
+                    key={state.isoCode}
+                    value={state.isoCode}
+                    className='text-black'
+                  >
+                    {state.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className='bg-[#00000061] p-2 rounded'>
+              <label className='block font-medium mb-1'>
+                City
                 <span className='text-red-500'>*</span>
               </label>
               <input
-                type={field.type || 'text'}
-                name={field.name}
-                value={formData[field.name]}
+                type='text'
+                name='city'
+                value={formData.city || ''}
                 onChange={handleInputChange}
-                placeholder={`Enter ${field.label.toLowerCase()}`}
+                placeholder='Enter City'
                 className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
                 required
               />
             </div>
-          ))}
-
-          {/* Gender Dropdown */}
-          <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block font-medium mb-1'>Gender</label>
-            <select
-              name='gender'
-              value={formData.gender}
-              onChange={handleInputChange}
-              className='w-full outline-none bg-transparent text-white'
-            >
-              <option value='' className='text-black'>
-                Select Gender
-              </option>
-              <option value='Male' className='text-black'>
-                Male
-              </option>
-              <option value='Female' className='text-black'>
-                Female
-              </option>
-              <option value='Other' className='text-black'>
-                Other
-              </option>
-              <option value='prefer_not_to_say' className='text-black'>
-                Prefer not to say
-              </option>
-            </select>
           </div>
-        </div>
 
-        {/* Address Info */}
-        <div className='flex items-center gap-2 mb-4'>
-          <MapPin className='w-6 h-6 text-red-400' />
-          <h2 className='font-bold uppercase text-lg'>Address Information</h2>
-        </div>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-          <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block font-medium mb-1'>
-              Country
-              <span className='text-red-500'>*</span>
+          {/* Preferences */}
+          <div className='flex items-center gap-2 mb-4'>
+            <Bell className='w-6 h-6 text-yellow-400' />
+            <h2 className='font-bold uppercase text-lg'>Preferences</h2>
+          </div>
+          <div className='mb-6 bg-[#00000061] p-4 rounded'>
+            <label className='block font-medium mb-2'>
+              Communication Preferences
             </label>
-            <select
-              name='country'
-              value={formData.country}
-              onChange={handleInputChange}
-              className='w-full outline-none bg-transparent text-white'
-              required
-            >
-              <option value='' className='text-black'>
-                Select Country
-              </option>
-              {countries.map((country) => (
-                <option
-                  key={country.isoCode}
-                  value={country.isoCode}
-                  className='text-black'
-                >
-                  {country.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block font-medium mb-1'>
-              State
-              <span className='text-red-500'>*</span>
-            </label>
-            <select
-              name='state'
-              value={formData.state}
-              onChange={handleInputChange}
-              className='w-full outline-none bg-transparent text-white'
-              required
-            >
-              <option value='' className='text-black'>
-                Select State
-              </option>
-              {states.map((state) => (
-                <option
-                  key={state.isoCode}
-                  value={state.isoCode}
-                  className='text-black'
-                >
-                  {state.name}
-                </option>
-              ))}
-            </select>
+            {['email', 'sms', 'push'].map((method) => (
+              <div key={method} className='flex items-center gap-2 mb-2'>
+                <input
+                  type='checkbox'
+                  name='communicationPreferences'
+                  value={method}
+                  checked={(formData.communicationPreferences || []).includes(
+                    method
+                  )}
+                  onChange={handleInputChange}
+                  className='rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400'
+                />
+                <label htmlFor={method}>{method.toUpperCase()}</label>
+              </div>
+            ))}
+            <p className='text-xs text-gray-400 mt-1'>
+              Choose how you'd like to receive updates
+            </p>
           </div>
 
-          <div className='bg-[#00000061] p-2 rounded'>
-            <label className='block font-medium mb-1'>
-              City
-              <span className='text-red-500'>*</span>
-            </label>
-            <input
-              type='text'
-              name='city'
-              value={formData.city}
-              onChange={handleInputChange}
-              placeholder='Enter City'
-              className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
-              required
-            />
-          </div>
-        </div>
-
-        {/* Preferences */}
-        <div className='flex items-center gap-2 mb-4'>
-          <Bell className='w-6 h-6 text-yellow-400' />
-          <h2 className='font-bold uppercase text-lg'>Preferences</h2>
-        </div>
-        <div className='mb-6 bg-[#00000061] p-4 rounded'>
-          <label className='block font-medium mb-2'>
-            Communication Preferences
-          </label>
-          {['email', 'sms', 'push'].map((method) => (
-            <div key={method} className='flex items-center gap-2 mb-2'>
-              <input
-                type='checkbox'
-                name='communicationPreferences'
-                value={method}
-                checked={formData.communicationPreferences.includes(method)}
-                onChange={handleInputChange}
-                className='rounded text-yellow-400 bg-gray-700 border-gray-600 focus:ring-yellow-400'
-              />
-              <label htmlFor={method}>{method.toUpperCase()}</label>
-            </div>
-          ))}
-          <p className='text-xs text-gray-400 mt-1'>
-            Choose how you'd like to receive updates
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className='flex justify-center gap-4 mt-6'>
-          <Link href={'/'}>
+          {/* Actions */}
+          <div className='flex justify-center gap-4 mt-6'>
+            <Link href={'/'}>
+              <button
+                type='button'
+                className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105'
+              >
+                Cancel
+              </button>
+            </Link>
             <button
-              type='button'
-              className='bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-8 rounded transition duration-300 transform hover:scale-105'
+              type='submit'
+              className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
             >
-              Cancel
+              Save Changes
             </button>
-          </Link>
-          <button
-            type='button'
-            onClick={handleSubmit}
-            className='bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-6 rounded transition duration-200'
-          >
-            Save Changes
-          </button>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   )

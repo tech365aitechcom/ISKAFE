@@ -48,11 +48,11 @@ export const AddPromoterForm = ({
     postalCode: "",
 
     // Access
-    accountStatus: "",
+    accountStatus: "Active",
     userName: "",
     password: "",
     confirmPassword: "",
-    assignRole: "",
+    assignRole: "Promoter",
     adminNotes: "",
   });
   const [showPassword, setShowPassword] = useState(false);

@@ -233,10 +233,20 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
         }));
       }
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      // Calculate age when dateOfBirth changes
+      if (name === "dateOfBirth" && value) {
+        const calculatedAge = getAge(value);
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+          age: calculatedAge >= 0 ? calculatedAge : "",
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+      }
     }
   };
 

@@ -7,7 +7,6 @@ import { API_BASE_URL, roles } from '../../../constants'
 import useStore from '../../../stores/useStore'
 import axios from 'axios'
 import Loader from '../../_components/Loader'
-
 export default function MyProfile() {
   const user = useStore((state) => state.user)
   const [userDetails, setUserDetails] = useState(null)

@@ -168,10 +168,17 @@ export const ProfileForm = ({
         setType('View Profile')
       }
     } catch (error) {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Something went wrong',
-        { variant: 'error' }
-      )
+      // Handle validation errors with specific field messages
+      if (error?.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        error.response.data.errors.forEach((err) => {
+          enqueueSnackbar(err.message, { variant: 'error' })
+        })
+      } else {
+        enqueueSnackbar(
+          error?.response?.data?.message || 'Something went wrong',
+          { variant: 'error' }
+        )
+      }
     }
   }
 
