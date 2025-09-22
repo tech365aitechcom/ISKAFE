@@ -405,6 +405,22 @@ const RegisterTrainingFacilityPage = () => {
         })
         return false
       }
+      if (
+        formData.externalWebsite &&
+        !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(formData.externalWebsite)
+      ) {
+        enqueueSnackbar('Invalid external website URL.', { variant: 'warning' })
+        return false
+      }
+      if (
+        formData.videoIntroduction &&
+        !/^https?:\/\/[^\s$.?#].[^\s]*$/.test(formData.videoIntroduction)
+      ) {
+        enqueueSnackbar('Invalid video introduction URL.', {
+          variant: 'warning',
+        })
+        return false
+      }
     }
 
     return true
