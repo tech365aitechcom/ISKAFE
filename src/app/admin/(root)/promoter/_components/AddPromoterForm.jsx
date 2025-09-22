@@ -48,7 +48,7 @@ export const AddPromoterForm = ({
     postalCode: "",
 
     // Access
-    accountStatus: "Active",
+    accountStatus: "",
     userName: "",
     password: "",
     confirmPassword: "",
@@ -298,7 +298,7 @@ if (formData.password !== formData.confirmPassword) {
       postalCode: "",
 
       // Access
-      accountStatus: "Active",
+      accountStatus: "",
       userName: "",
       password: "",
       confirmPassword: "",
@@ -867,6 +867,9 @@ if (formData.password !== formData.confirmPassword) {
                     required
                     disabled={isSubmitting}
                   >
+                    <option value="" disabled className="text-black">
+                      Select account status
+                    </option>
                     <option value="Active" className="text-black">
                       Active
                     </option>
