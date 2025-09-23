@@ -32,7 +32,7 @@ export default function Props({
   eventId,
 }) {
   const user = useStore((state) => state.user)
-  const [bracketData, setBracketData] = useState(bracketData)
+  const [bracketData, setBracketData] = useState(expandedBracket)
   const [bracketName, setBracketName] = useState('')
   const [loading, setLoading] = useState(false)
   const [startDayNumber, setStartDayNumber] = useState('')
