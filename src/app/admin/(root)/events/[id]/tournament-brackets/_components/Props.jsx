@@ -339,6 +339,11 @@ export default function Props({
         setHasUnsavedPropertiesChanges(false)
         setBracketData(result.data)
         setValidationErrors({}) // Clear any validation errors
+
+        // Call onUpdate to refresh parent component data
+        if (onUpdate) {
+          onUpdate()
+        }
       } else {
         enqueueSnackbar(
           'Error saving properties: ' + (result.error || 'Unknown error'),
