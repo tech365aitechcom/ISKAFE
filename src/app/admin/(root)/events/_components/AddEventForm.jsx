@@ -84,6 +84,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
   const [selectedFileNames, setSelectedFileNames] = useState({
     poster: '',
     rules: '',
+    sectioningBodyImage: '',
   })
 
   const getVenues = async () => {
@@ -233,6 +234,12 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
           setSelectedFileNames((prevState) => ({
             ...prevState,
             [name]: files[0].name,
+          }))
+        } else {
+          // Clear file name if no file selected
+          setSelectedFileNames((prevState) => ({
+            ...prevState,
+            [name]: '',
           }))
         }
       } else if (type === 'checkbox') {
@@ -384,6 +391,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
     setSelectedFileNames({
       poster: '',
       rules: '',
+      sectioningBodyImage: '',
     })
   }
 
@@ -679,9 +687,24 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
               {/* Display selected file name */}
               {selectedFileNames.poster && (
-                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-sm">
-                  <span className="text-green-700 font-medium">Selected: </span>
-                  <span className="text-green-800">{selectedFileNames.poster}</span>
+                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-green-700 font-medium">Selected: </span>
+                    <span className="text-green-800">{selectedFileNames.poster}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, poster: null }))
+                      setSelectedFileNames(prev => ({ ...prev, poster: '' }))
+                      // Reset the input
+                      document.getElementById('posterUpload').value = ''
+                    }}
+                    className="text-red-600 hover:text-red-800 font-medium text-xs"
+                    disabled={!formData.venue || !formData.promoter || submitting}
+                  >
+                    Remove
+                  </button>
                 </div>
               )}
 
@@ -955,9 +978,24 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
               {/* Display selected file name */}
               {selectedFileNames.rules && (
-                <div className="mt-2 p-1 bg-green-100 border border-green-300 rounded text-xs">
-                  <span className="text-green-700 font-medium">Selected: </span>
-                  <span className="text-green-800">{selectedFileNames.rules}</span>
+                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-green-700 font-medium">Selected: </span>
+                    <span className="text-green-800">{selectedFileNames.rules}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, rules: null }))
+                      setSelectedFileNames(prev => ({ ...prev, rules: '' }))
+                      // Reset the input
+                      document.getElementById('rulesFile').value = ''
+                    }}
+                    className="text-red-600 hover:text-red-800 font-medium text-xs"
+                    disabled={!formData.venue || !formData.promoter || submitting}
+                  >
+                    Remove
+                  </button>
                 </div>
               )}
             </div>
@@ -1105,10 +1143,27 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 />
               </div>
 
-              {formData.sectioningBodyImage ? (
-                <p className='text-xs text-green-400 mt-1'>
-                  ✓ Selected: {formData.sectioningBodyImage.name || 'Image selected'}
-                </p>
+              {/* Display selected file name */}
+              {selectedFileNames.sectioningBodyImage ? (
+                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-xs flex items-center justify-between">
+                  <div>
+                    <span className="text-green-700 font-medium">Selected: </span>
+                    <span className="text-green-800">{selectedFileNames.sectioningBodyImage}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, sectioningBodyImage: null }))
+                      setSelectedFileNames(prev => ({ ...prev, sectioningBodyImage: '' }))
+                      // Reset the input
+                      document.getElementById('sectioningBodyImage').value = ''
+                    }}
+                    className="text-red-600 hover:text-red-800 font-medium text-xs"
+                    disabled={!formData.venue || !formData.promoter || submitting}
+                  >
+                    Remove
+                  </button>
+                </div>
               ) : (
                 <p className='text-xs text-gray-400 mt-1'>Upload Logo/Image</p>
               )}
