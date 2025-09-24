@@ -920,13 +920,13 @@ if (formData.password !== formData.confirmPassword) {
                     required
                     disabled={isSubmitting}
                   >
-                    <option value="promoter" className="text-black">
+                    <option value="Promoter" className="text-black">
                       Promoter
                     </option>
-                    <option value="viewer" className="text-black">
+                    <option value="Viewer" className="text-black">
                       Viewer
                     </option>
-                    <option value="admin" className="text-black">
+                    <option value="Admin" className="text-black">
                       Admin
                     </option>
                   </select>

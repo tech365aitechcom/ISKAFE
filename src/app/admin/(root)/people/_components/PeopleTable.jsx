@@ -97,8 +97,8 @@ export function PeopleTable({
       return
     }
 
-    const mailtoLink = `mailto:?to=${selectedEmails.join(',')}`
-    window.open(mailtoLink, '_blank')
+    const mailtoLink = `mailto:${selectedEmails.join(',')}`
+    window.location.href = mailtoLink
   }
 
   // Create column header

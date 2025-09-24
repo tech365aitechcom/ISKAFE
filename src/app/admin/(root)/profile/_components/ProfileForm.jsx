@@ -28,6 +28,9 @@ export const ProfileForm = ({
     postalCode: '',
     communicationPreferences: [],
   })
+  const [originalFormData, setOriginalFormData] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -38,8 +41,41 @@ export const ProfileForm = ({
       ? City.getCitiesOfState(formData.country, formData.state)
       : []
 
+  const validateField = (name, value) => {
+    const nameRegex = /^[a-zA-Z\s'-]+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const phoneRegex = /^\+?[0-9]{10,15}$/
+    const zipRegex = /^[0-9]{4,10}$/
+
+    switch (name) {
+      case 'firstName':
+      case 'lastName':
+        return !nameRegex.test(value) ? 'Only letters, spaces, apostrophes, and hyphens are allowed' : ''
+      case 'email':
+        return !emailRegex.test(value) ? 'Please enter a valid email address' : ''
+      case 'phoneNumber':
+        return !phoneRegex.test(value) ? 'Please enter a valid phone number (10-15 digits, + allowed)' : ''
+      case 'postalCode':
+        return !zipRegex.test(value) ? 'Please enter a valid ZIP code (4-10 digits)' : ''
+      case 'dateOfBirth':
+        if (value) {
+          const dobDate = new Date(value)
+          const today = new Date()
+          return dobDate >= today ? 'Date of birth must be in the past' : ''
+        }
+        return ''
+      default:
+        return ''
+    }
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
+
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: '' }))
+    }
 
     if (type === 'checkbox') {
       if (checked) {
@@ -54,6 +90,12 @@ export const ProfileForm = ({
         }))
       }
     } else {
+      // Validate field on change for immediate feedback
+      const error = validateField(name, value)
+      if (error) {
+        setFieldErrors(prev => ({ ...prev, [name]: error }))
+      }
+
       setFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -66,16 +108,15 @@ export const ProfileForm = ({
       const formattedDOB = new Date(userDetails.dateOfBirth)
         .toISOString()
         .split('T')[0]
-      setFormData((prev) => ({
-        ...prev,
+      const formattedData = {
         ...userDetails,
         dateOfBirth: formattedDOB,
-      }))
+      }
+      setFormData(formattedData)
+      setOriginalFormData(formattedData) // Store original data
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        ...userDetails,
-      }))
+      setFormData(userDetails || {})
+      setOriginalFormData(userDetails || {}) // Store original data
     }
   }, [userDetails])
 
@@ -92,69 +133,60 @@ export const ProfileForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // ===== Frontend Validation =====
-    const nameRegex = /^[a-zA-Z\s'-]+$/
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    const phoneRegex = /^[0-9]{7,15}$/
-    const zipRegex = /^[0-9]{4,10}$/
+    if (isSubmitting) return // Prevent double submission
+
+    setIsSubmitting(true)
+    setFieldErrors({}) // Clear previous errors
+
+    // Comprehensive validation
+    const errors = {}
+    const requiredFields = ['firstName', 'lastName', 'email', 'phoneNumber', 'country', 'state', 'city', 'postalCode']
+
+    // Check required fields
+    requiredFields.forEach(field => {
+      if (!formData[field] || !formData[field].toString().trim()) {
+        errors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`
+      }
+    })
 
     // Add validation for profile photo
     if (!formData.profilePhoto) {
-      return enqueueSnackbar('Profile photo is required', { variant: 'error' })
+      errors.profilePhoto = 'Profile photo is required'
     }
 
-    if (!nameRegex.test(formData.firstName)) {
-      return enqueueSnackbar('Invalid First Name. Only alphabets allowed.', { variant: 'error' })
-    }
-
-    if (!nameRegex.test(formData.lastName)) {
-      return enqueueSnackbar('Invalid Last Name. Only alphabets allowed.', { variant: 'error' })
-    }
-
-    if (!emailRegex.test(formData.email)) {
-      return enqueueSnackbar('Invalid Email format.', { variant: 'error' })
-    }
-
-    if (!phoneRegex.test(formData.phoneNumber)) {
-      return enqueueSnackbar('Invalid Phone Number. Only digits allowed (7–15 digits).', { variant: 'error' })
-    }
-
-    if (!formData.country) {
-      return enqueueSnackbar('Country is required.', { variant: 'error' })
-    }
-
-    if (!formData.state) {
-      return enqueueSnackbar('State is required.', { variant: 'error' })
-    }
-
-    if (!formData.city) {
-      return enqueueSnackbar('City is required.', { variant: 'error' })
-    }
-
-    if (!formData.postalCode) {
-      return enqueueSnackbar('ZIP Code is required.', { variant: 'error' })
-    }
-
-    if (!zipRegex.test(formData.postalCode)) {
-      return enqueueSnackbar('Invalid ZIP Code. Only digits allowed (4–10 digits).', { variant: 'error' })
-    }
-
-    if (formData.dateOfBirth) {
-      const dobDate = new Date(formData.dateOfBirth)
-      const today = new Date()
-      if (dobDate >= today) {
-        return enqueueSnackbar('Date of Birth must be in the past.', { variant: 'error' })
+    // Validate each field format
+    Object.keys(formData).forEach(field => {
+      if (formData[field] && !errors[field]) {
+        const error = validateField(field, formData[field])
+        if (error) {
+          errors[field] = error
+        }
       }
+    })
+
+    // If there are validation errors, don't submit
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setIsSubmitting(false)
+
+      // Show first error message
+      const firstError = Object.values(errors)[0]
+      enqueueSnackbar(firstError, { variant: 'error' })
+      return
     }
 
     try {
-      if (formData.profilePhoto && typeof formData.profilePhoto !== 'string') {
-        formData.profilePhoto = await uploadToS3(formData.profilePhoto)
+      // Create a copy of form data for submission
+      const submitData = { ...formData }
+
+      // Handle file upload
+      if (submitData.profilePhoto && typeof submitData.profilePhoto !== 'string') {
+        submitData.profilePhoto = await uploadToS3(submitData.profilePhoto)
       }
 
       const response = await axios.put(
         `${API_BASE_URL}/auth/users/${user._id}`,
-        formData,
+        submitData,
         {
           headers: {
             Authorization: `Bearer ${user?.token}`,
@@ -163,22 +195,52 @@ export const ProfileForm = ({
       )
 
       if (response.status === apiConstants.success) {
-        enqueueSnackbar(response.data.message, { variant: 'success' })
-        onSuccess()
-        setType('View Profile')
+        enqueueSnackbar(response.data.message || 'Profile updated successfully!', { variant: 'success' })
+
+        // Update original form data to current data
+        setOriginalFormData(submitData)
+        setFormData(submitData)
+
+        if (onSuccess) onSuccess()
+        if (setType) setType('View Profile')
       }
     } catch (error) {
-      // Handle validation errors with specific field messages
+      console.error('Profile update error:', error)
+
+      // Revert form data to original state on error
+      setFormData(originalFormData)
+
+      // Handle specific validation errors from server
       if (error?.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const serverErrors = {}
         error.response.data.errors.forEach((err) => {
+          if (err.path) {
+            serverErrors[err.path] = err.message
+          }
           enqueueSnackbar(err.message, { variant: 'error' })
         })
-      } else {
+        setFieldErrors(serverErrors)
+      } else if (error?.response?.status === 400) {
+        // Handle validation error
         enqueueSnackbar(
-          error?.response?.data?.message || 'Something went wrong',
+          error?.response?.data?.message || 'Please check your input and try again',
+          { variant: 'error' }
+        )
+      } else if (error?.response?.status === 422) {
+        // Handle unprocessable entity
+        enqueueSnackbar(
+          'Some fields contain invalid data. Please check and try again.',
+          { variant: 'error' }
+        )
+      } else {
+        // Generic error
+        enqueueSnackbar(
+          error?.response?.data?.message || 'Failed to update profile. Please try again.',
           { variant: 'error' }
         )
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -193,6 +255,9 @@ export const ProfileForm = ({
               Profile Photo<span className='text-red-500'>*</span>
               <span className='text-xs text-gray-400 ml-2'>(Required)</span>
             </label>
+            {fieldErrors.profilePhoto && (
+              <p className='text-red-400 text-sm mb-2'>{fieldErrors.profilePhoto}</p>
+            )}
             
             {isEditable ? (
               formData.profilePhoto ? (
@@ -292,39 +357,45 @@ export const ProfileForm = ({
 
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
             {/* First Name Field */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
+            <div className='bg-[#00000061] p-2 rounded min-h-[80px]'>
               <label className='block text-sm font-medium mb-1'>
                 First Name<span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
                 name='firstName'
-                value={formData.firstName}
+                value={formData.firstName || ''}
                 onChange={handleChange}
-                className='w-full outline-none'
+                className={`w-full outline-none ${fieldErrors.firstName ? 'border-b-2 border-red-500' : ''}`}
                 required
                 disabled={!isEditable}
                 placeholder='Enter First Name'
               />
+              {fieldErrors.firstName && (
+                <p className='text-red-400 text-xs mt-1'>{fieldErrors.firstName}</p>
+              )}
             </div>
 
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
+            <div className='bg-[#00000061] p-2 rounded min-h-[80px]'>
               <label className='block text-sm font-medium mb-1'>
                 Last Name<span className='text-red-500'>*</span>
               </label>
               <input
                 type='text'
                 name='lastName'
-                value={formData.lastName}
+                value={formData.lastName || ''}
                 onChange={handleChange}
-                className='w-full outline-none'
+                className={`w-full outline-none ${fieldErrors.lastName ? 'border-b-2 border-red-500' : ''}`}
                 required
                 placeholder='Enter Last Name'
                 disabled={!isEditable}
               />
+              {fieldErrors.lastName && (
+                <p className='text-red-400 text-xs mt-1'>{fieldErrors.lastName}</p>
+              )}
             </div>
 
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
+            <div className='bg-[#00000061] p-2 rounded min-h-[80px]'>
               <label className='block text-sm font-medium mb-1'>
                 Email Address<span className='text-red-500'>*</span>
               </label>
@@ -332,15 +403,18 @@ export const ProfileForm = ({
                 type='email'
                 name='email'
                 placeholder='Enter Email Address'
-                value={formData.email}
+                value={formData.email || ''}
                 onChange={handleChange}
-                className='w-full outline-none'
+                className={`w-full outline-none ${fieldErrors.email ? 'border-b-2 border-red-500' : ''}`}
                 required
                 disabled={!isEditable}
               />
+              {fieldErrors.email && (
+                <p className='text-red-400 text-xs mt-1'>{fieldErrors.email}</p>
+              )}
             </div>
 
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
+            <div className='bg-[#00000061] p-2 rounded min-h-[80px]'>
               <label className='block text-sm font-medium mb-1'>
                 Mobile Number<span className='text-red-500'>*</span>
               </label>
@@ -348,12 +422,15 @@ export const ProfileForm = ({
                 type='text'
                 name='phoneNumber'
                 placeholder='Enter Mobile Number'
-                value={formData.phoneNumber}
+                value={formData.phoneNumber || ''}
                 onChange={handleChange}
-                className='w-full outline-none'
+                className={`w-full outline-none ${fieldErrors.phoneNumber ? 'border-b-2 border-red-500' : ''}`}
                 required
                 disabled={!isEditable}
               />
+              {fieldErrors.phoneNumber && (
+                <p className='text-red-400 text-xs mt-1'>{fieldErrors.phoneNumber}</p>
+              )}
             </div>
             <div className='bg-[#00000061] p-2 h-16 rounded'>
               <label className='block text-sm font-medium mb-1'>
@@ -449,17 +526,20 @@ export const ProfileForm = ({
                 ))}
               </select>
             </div>
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='text-white font-medium'>ZIP Code</label> <span className='text-red-500'>*</span>
+            <div className='bg-[#00000061] p-2 rounded min-h-[80px]'>
+              <label className='text-white font-medium'>ZIP Code <span className='text-red-500'>*</span></label>
               <input
                 type='text'
                 name='postalCode'
-                value={formData.postalCode}
+                value={formData.postalCode || ''}
                 onChange={handleChange}
                 placeholder='Enter ZIP Code'
-                className='w-full outline-none bg-transparent text-white disabled:text-gray-400'
+                className={`w-full outline-none bg-transparent text-white disabled:text-gray-400 ${fieldErrors.postalCode ? 'border-b-2 border-red-500' : ''}`}
                 disabled={!isEditable}
               />
+              {fieldErrors.postalCode && (
+                <p className='text-red-400 text-xs mt-1'>{fieldErrors.postalCode}</p>
+              )}
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='text-white font-medium'>City<span className='text-red-500'>*</span></label>
@@ -516,13 +596,16 @@ export const ProfileForm = ({
             <div className='flex justify-center gap-4 mt-12'>
               <button
                 type='submit'
-                className='text-white font-medium py-2 px-6 rounded transition duration-200'
+                disabled={isSubmitting}
+                className={`text-white font-medium py-2 px-6 rounded transition duration-200 ${
+                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
                 style={{
                   background:
                     'linear-gradient(128.49deg, #CB3CFF 19.86%, #7F25FB 68.34%)',
                 }}
               >
-                Save
+                {isSubmitting ? 'Saving...' : 'Save'}
               </button>
             </div>
           )}

@@ -78,7 +78,13 @@ const TrainingFacilitiesPage = () => {
     getTrainingFacilities({ search: '', country: '', state: '' })
   }, [])
 
+  // Refetch data when currentPage changes
+  useEffect(() => {
+    getTrainingFacilities({ search: facilityName, country, state, city })
+  }, [currentPage])
+
   const handleSearch = () => {
+    setCurrentPage(1) // Reset to first page when searching
     getTrainingFacilities({ search: facilityName, country, state, city })
   }
 
@@ -87,6 +93,7 @@ const TrainingFacilitiesPage = () => {
     setCountry('')
     setState('')
     setCity('')
+    setCurrentPage(1) // Reset to first page when resetting
     getTrainingFacilities({ search: '', country: '', state: '', city: '' })
   }
 
