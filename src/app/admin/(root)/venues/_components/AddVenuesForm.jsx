@@ -295,7 +295,9 @@ export const AddVenuesForm = ({
       } else {
         console.log('Form has errors')
       }
-    } catch (error) {}
+    } catch (error) {
+      enqueueSnackbar(error.response.data.message, { variant: 'error' })
+    }
   }
 
   const handleCancel = () => {
