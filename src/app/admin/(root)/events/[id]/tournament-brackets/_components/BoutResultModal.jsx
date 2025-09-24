@@ -180,12 +180,27 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
   }
 
   const handleJudgeScoreChange = (corner, judgeIndex, value) => {
-    setJudgeScores((prev) => ({
-      ...prev,
-      [corner]: prev[corner].map((score, index) =>
-        index === judgeIndex ? value : score
-      ),
-    }))
+    // Allow empty string for clearing the field
+    if (value === '') {
+      setJudgeScores((prev) => ({
+        ...prev,
+        [corner]: prev[corner].map((score, index) =>
+          index === judgeIndex ? '' : score
+        ),
+      }))
+      return
+    }
+
+    // Convert to number and validate range 1-10
+    const numValue = parseInt(value, 10)
+    if (!isNaN(numValue) && numValue >= 1 && numValue <= 10) {
+      setJudgeScores((prev) => ({
+        ...prev,
+        [corner]: prev[corner].map((score, index) =>
+          index === judgeIndex ? numValue.toString() : score
+        ),
+      }))
+    }
   }
 
   const handleSaveResult = async () => {
@@ -250,9 +265,21 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
 
       // Add judge scores for Decision/Draw
       if (resultMethod === 'Decision' || resultMethod === 'Draw') {
+        // Validate judge scores are between 1-10
+        const redScores = judgeScores.red.map((score) => parseInt(score) || 0)
+        const blueScores = judgeScores.blue.map((score) => parseInt(score) || 0)
+
+        const invalidScores = [...redScores, ...blueScores].some(score => score < 1 || score > 10 || score === 0)
+        if (invalidScores) {
+          enqueueSnackbar('All judge scores must be between 1 and 10', {
+            variant: 'warning',
+          })
+          return
+        }
+
         fightData.judgeScores = {
-          red: judgeScores.red.map((score) => parseInt(score) || 0),
-          blue: judgeScores.blue.map((score) => parseInt(score) || 0),
+          red: redScores,
+          blue: blueScores,
         }
       }
 
@@ -349,14 +376,14 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
                 </label>
                 <input
                   type='number'
-                  min='0'
+                  min='1'
                   max='10'
                   value={judgeScores.red[judgeNum - 1]}
                   onChange={(e) =>
                     handleJudgeScoreChange('red', judgeNum - 1, e.target.value)
                   }
                   className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                  placeholder='0'
+                  placeholder='1-10'
                 />
               </div>
               <div>
@@ -365,14 +392,14 @@ export default function BoutResultModal({ bout, onClose, onUpdate, eventId }) {
                 </label>
                 <input
                   type='number'
-                  min='0'
+                  min='1'
                   max='10'
                   value={judgeScores.blue[judgeNum - 1]}
                   onChange={(e) =>
                     handleJudgeScoreChange('blue', judgeNum - 1, e.target.value)
                   }
                   className='w-full bg-[#07091D] border border-gray-600 rounded px-3 py-2 text-white'
-                  placeholder='0'
+                  placeholder='1-10'
                 />
               </div>
             </div>
