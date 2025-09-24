@@ -36,6 +36,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     gender: "",
     height: "",
     weight: "",
+    weightUnit: "kg", // New field for weight unit
 
     // Gym Info
     gymName: "",
@@ -97,6 +98,12 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
   };
 
   const validateName = (name) => /^[A-Za-z\s'-]+$/.test(name);
+
+  const validateGymName = (gymName) => {
+    if (!gymName) return true; // Allow empty since it's not required
+    // Allow letters, numbers, spaces, apostrophes, hyphens, and ampersands
+    return /^[A-Za-z0-9\s'&-]+$/.test(gymName);
+  };
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -172,6 +179,8 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
         suspensionEndDate,
         suspensionNotes: suspension?.description || "",
         suspensionType: suspension?.type || "",
+        // Preserve existing weightUnit if API doesn't return it, otherwise use API value or default to 'kg'
+        weightUnit: trainerProfile.weightUnit || formData.weightUnit || 'kg',
       };
 
       setFormData(updatedFormData);
@@ -240,6 +249,13 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
           ...prev,
           [name]: value,
           age: calculatedAge >= 0 ? calculatedAge : "",
+        }));
+      } else if (name === "gymName") {
+        // Filter out invalid characters for gym name
+        const filteredValue = value.replace(/[^A-Za-z0-9\s'&-]/g, "");
+        setFormData((prev) => ({
+          ...prev,
+          [name]: filteredValue,
         }));
       } else {
         setFormData((prev) => ({
@@ -381,6 +397,14 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
       return false;
     }
 
+    if (formData.gymName && !validateGymName(formData.gymName)) {
+      enqueueSnackbar(
+        "Gym name can only contain letters, numbers, spaces, apostrophes, hyphens, and ampersands.",
+        { variant: "warning" }
+      );
+      return false;
+    }
+
     if (!formData.country) {
       enqueueSnackbar("Country is required.", { variant: "warning" });
       return false;
@@ -489,7 +513,7 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
     // Compare form fields (excluding file fields which are handled separately)
     const fieldsToCompare = [
       'firstName', 'lastName', 'email', 'phoneNumber', 'country', 'dateOfBirth',
-      'age', 'gender', 'height', 'weight', 'gymName', 'gymLocation',
+      'age', 'gender', 'height', 'weight', 'weightUnit', 'gymName', 'gymLocation',
       'yearsOfExperience', 'trainerType', 'bio', 'instagram', 'facebook', 'youtube',
       'emergencyContactName', 'emergencyContactNumber', 'accreditationType',
       'isSuspended', 'suspensionType', 'suspensionNotes', 'suspensionStartDate',
@@ -811,12 +835,6 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 placeholder: "e.g., 5.10 or 180cm",
                 required: true,
               },
-              {
-                label: "Weight",
-                name: "weight",
-                placeholder: "e.g., 175 lbs or 70kg",
-                required: true,
-              },
             ].map((field, index) => (
               <div key={field.name} className="bg-[#00000061] p-2 rounded">
                 <label className="block font-medium mb-1">
@@ -839,6 +857,35 @@ const TrainerProfileForm = ({ userDetails, onSuccess }) => {
                 />
               </div>
             ))}
+
+            {/* Weight with Unit Selector */}
+            <div className="bg-[#00000061] p-2 rounded">
+              <label className="block font-medium mb-1">
+                Weight<span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  name="weight"
+                  value={formData.weight}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 170"
+                  className="w-full outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
+                  required
+                  disabled={isFormDisabled}
+                />
+                <select
+                  name="weightUnit"
+                  value={formData.weightUnit}
+                  onChange={handleInputChange}
+                  className="outline-none bg-transparent text-white disabled:text-gray-400 disabled:cursor-not-allowed"
+                  disabled={isFormDisabled}
+                >
+                  <option value="kg" className="text-black">kg</option>
+                  <option value="lbs" className="text-black">lbs</option>
+                </select>
+              </div>
+            </div>
 
             {/* Country Dropdown */}
             <div className="bg-[#00000061] p-2 rounded">

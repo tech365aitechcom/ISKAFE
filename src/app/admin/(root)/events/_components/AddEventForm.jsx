@@ -80,6 +80,12 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
     weighInDateTime: '',
   })
 
+  // State to track selected file names for visual confirmation
+  const [selectedFileNames, setSelectedFileNames] = useState({
+    poster: '',
+    rules: '',
+  })
+
   const getVenues = async () => {
     setLoading(true)
     try {
@@ -221,6 +227,14 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
           ...prevState,
           [name]: files[0],
         }))
+
+        // Store file name for visual confirmation
+        if (files[0]) {
+          setSelectedFileNames((prevState) => ({
+            ...prevState,
+            [name]: files[0].name,
+          }))
+        }
       } else if (type === 'checkbox') {
         setFormData((prevState) => ({
           ...prevState,
@@ -364,6 +378,12 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
       // Publishing options
       isDraft: true,
       publishBrackets: false,
+    })
+
+    // Reset selected file names
+    setSelectedFileNames({
+      poster: '',
+      rules: '',
     })
   }
 
@@ -657,6 +677,14 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                 />
               </div>
 
+              {/* Display selected file name */}
+              {selectedFileNames.poster && (
+                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-sm">
+                  <span className="text-green-700 font-medium">Selected: </span>
+                  <span className="text-green-800">{selectedFileNames.poster}</span>
+                </div>
+              )}
+
               <p className='text-xs text-gray-400 mt-1'>
                 JPG, PNG formats only
               </p>
@@ -898,7 +926,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
           <div className='grid grid-cols-1 md:grid-cols-5 gap-4'>
             {/* Rules Info URL */}
-            <div className='bg-[#00000061] p-2 h-16 rounded'>
+            <div className='bg-[#00000061] p-2 rounded' style={{ minHeight: selectedFileNames.rules ? 'auto' : '4rem' }}>
               <label className='block text-sm font-medium mb-1'>
                 Upload Rules Info File
               </label>
@@ -924,6 +952,14 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                   className='absolute inset-0 opacity-0 w-full h-full cursor-pointer'
                 />
               </div>
+
+              {/* Display selected file name */}
+              {selectedFileNames.rules && (
+                <div className="mt-2 p-1 bg-green-100 border border-green-300 rounded text-xs">
+                  <span className="text-green-700 font-medium">Selected: </span>
+                  <span className="text-green-800">{selectedFileNames.rules}</span>
+                </div>
+              )}
             </div>
 
             {/* Matching Method */}

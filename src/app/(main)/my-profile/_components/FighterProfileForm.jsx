@@ -167,7 +167,18 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
   const handleFileChange = (e) => {
     const { name, files, multiple } = e.target
     if (files && files.length > 0) {
-      if (multiple) {
+      if (multiple && name === 'imageGallery') {
+        // For image gallery, append new files to existing ones
+        const newFiles = Array.from(files)
+        setFormData((prev) => ({
+          ...prev,
+          [name]: [...(prev[name] || []), ...newFiles],
+        }))
+        setSelectedFileNames(prev => ({
+          ...prev,
+          [name]: [...(prev[name] || []), ...newFiles.map(file => file.name)]
+        }))
+      } else if (multiple) {
         setFormData((prev) => ({
           ...prev,
           [name]: Array.from(files),
@@ -198,6 +209,28 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
         }
       }
     }
+  }
+
+  const removeImageFromGallery = (indexToRemove) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageGallery: prev.imageGallery.filter((_, index) => index !== indexToRemove),
+    }))
+    setSelectedFileNames(prev => ({
+      ...prev,
+      imageGallery: prev.imageGallery.filter((_, index) => index !== indexToRemove)
+    }))
+  }
+
+  const clearImageGallery = () => {
+    setFormData((prev) => ({
+      ...prev,
+      imageGallery: [],
+    }))
+    setSelectedFileNames(prev => ({
+      ...prev,
+      imageGallery: []
+    }))
   }
 
   const validateNumericInput = (value) =>
@@ -237,6 +270,25 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
     if (formData.medicalCertificate instanceof File) return true
     if (formData.licenseDocument instanceof File) return true
     if (formData.imageGallery?.some(file => file instanceof File)) return true
+
+    // Check if imageGallery array has changed in length or content
+    const originalImageGallery = originalFormData.imageGallery || []
+    const currentImageGallery = formData.imageGallery || []
+
+    // Check if array lengths are different
+    if (originalImageGallery.length !== currentImageGallery.length) {
+      return true
+    }
+
+    // Check if array contents are different (for string URLs)
+    if (originalImageGallery.length > 0 || currentImageGallery.length > 0) {
+      const originalUrls = originalImageGallery.filter(item => typeof item === 'string').sort()
+      const currentUrls = currentImageGallery.filter(item => typeof item === 'string').sort()
+
+      if (JSON.stringify(originalUrls) !== JSON.stringify(currentUrls)) {
+        return true
+      }
+    }
 
     return false
   }
@@ -459,19 +511,29 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
         payloadData.profilePhoto = uploadedFiles.profilePhoto
       }
 
-      if (
-        payloadData.imageGallery?.length > 0 &&
-        typeof payloadData.imageGallery[0] !== 'string'
-      ) {
-        payloadData.imageGallery = await Promise.all(
-          payloadData.imageGallery.map((file) => uploadToS3(file))
+      if (payloadData.imageGallery?.length > 0) {
+        // Upload any File objects and keep existing string URLs
+        const processedImages = await Promise.all(
+          payloadData.imageGallery.map(async (file) => {
+            if (file instanceof File) {
+              return await uploadToS3(file)
+            }
+            return file // Keep existing string URLs
+          })
         )
+
+        payloadData.imageGallery = processedImages
+
+        // Update formData to reflect uploaded URLs for UI persistence
+        setFormData((prev) => ({
+          ...prev,
+          imageGallery: processedImages,
+        }))
+
         setUploadedFiles((prev) => ({
           ...prev,
-          imageGallery: payloadData.imageGallery,
+          imageGallery: processedImages,
         }))
-      } else if (uploadedFiles.imageGallery?.length > 0) {
-        payloadData.imageGallery = uploadedFiles.imageGallery
       }
 
       if (
@@ -517,6 +579,14 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
       if (response.status === apiConstants.success) {
         enqueueSnackbar(response.data.message, { variant: 'success' })
         setIsSaved(true)
+
+        // Clear selected file names after successful upload
+        setSelectedFileNames({
+          profilePhoto: '',
+          medicalCertificate: '',
+          licenseDocument: '',
+          imageGallery: [],
+        })
 
         // Update original form data to current form data after successful save
         setOriginalFormData({ ...formData })
@@ -1199,9 +1269,22 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            <div className='bg-[#00000061] p-2 rounded'>
-              <label className='block font-medium mb-2'>Media Gallery</label>
-              <div className="flex flex-col">
+            <div className='bg-[#00000061] p-4 rounded'>
+              <div className="flex items-center justify-between mb-3">
+                <label className='block font-medium'>Media Gallery</label>
+                {formData.imageGallery?.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearImageGallery}
+                    className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded transition duration-200"
+                    disabled={isSubmitting}
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
                 <input
                   type='file'
                   name='imageGallery'
@@ -1220,44 +1303,81 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                       : 'bg-purple-600 hover:bg-purple-700'
                   }`}
                 >
-                  Choose Files
+                  {formData.imageGallery?.length > 0 ? 'Add More Images' : 'Choose Images'}
                 </label>
-                {selectedFileNames.imageGallery.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-300">Selected files:</p>
-                    <ul className="text-xs text-gray-400">
-                      {selectedFileNames.imageGallery.map((name, idx) => (
-                        <li key={idx}>{name}</li>
-                      ))}
-                    </ul>
+
+                {selectedFileNames.imageGallery?.length > 0 && (
+                  <div className="bg-[#00000030] p-2 rounded">
+                    <p className="text-xs text-gray-300 mb-1">
+                      {selectedFileNames.imageGallery.length} image(s) selected
+                    </p>
+                    <div className="max-h-20 overflow-y-auto">
+                      <ul className="text-xs text-gray-400 space-y-1">
+                        {selectedFileNames.imageGallery.map((name, idx) => (
+                          <li key={idx} className="truncate">{name}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>
-              <p className='text-xs text-gray-400 mt-1'>
-                Images only, Max 5MB each
+
+              <p className='text-xs text-gray-400 mt-2'>
+                Images only, Max 5MB each. You can select multiple images at once.
               </p>
-              <div className='flex flex-wrap gap-2 mt-2'>
-                {formData.imageGallery?.map((file, idx) => (
-                  <img
-                    key={idx}
-                    src={
-                      typeof file === 'string'
-                        ? file
-                        : URL.createObjectURL(file)
-                    }
-                    alt={`Preview ${idx}`}
-                    className='w-24 h-24 object-cover'
-                  />
-                ))}
-                {uploadedFiles.imageGallery?.map((file, idx) => (
-                  <img
-                    key={`uploaded-${idx}`}
-                    src={file}
-                    alt={`Uploaded Preview ${idx}`}
-                    className='w-24 h-24 object-cover'
-                  />
-                ))}
-              </div>
+
+              {/* Image Previews */}
+              {formData.imageGallery?.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-300">Preview:</p>
+                    <p className="text-xs text-gray-400">
+                      {formData.imageGallery?.length || 0} image(s)
+                    </p>
+                  </div>
+
+                  <div className='grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto bg-[#00000030] p-2 rounded'>
+                    {/* Show all images in imageGallery array */}
+                    {formData.imageGallery?.map((file, idx) => {
+                      // Check if this is a newly selected file (File object) or previously uploaded (string URL)
+                      const isNewFile = file instanceof File;
+
+                      return (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={
+                              isNewFile
+                                ? URL.createObjectURL(file)
+                                : file
+                            }
+                            alt={`Preview ${idx}`}
+                            className={`w-full h-16 object-cover rounded border ${
+                              isNewFile ? 'border-gray-600' : 'border-green-600'
+                            }`}
+                          />
+                          {isNewFile ? (
+                            // Show remove button for newly selected files
+                            <button
+                              type="button"
+                              onClick={() => removeImageFromGallery(idx)}
+                              className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              disabled={isSubmitting}
+                              title="Remove image"
+                            >
+                              ×
+                            </button>
+                          ) : (
+                            // Show green tick for previously uploaded files
+                            <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                              ✓
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
             <div className='bg-[#00000061] p-2 rounded'>
               <label className='block font-medium mb-2'>
