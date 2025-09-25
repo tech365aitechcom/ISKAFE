@@ -1355,20 +1355,19 @@ const FightProfileForm = ({ userDetails, onSuccess }) => {
                               isNewFile ? 'border-gray-600' : 'border-green-600'
                             }`}
                           />
-                          {isNewFile ? (
-                            // Show remove button for newly selected files
-                            <button
-                              type="button"
-                              onClick={() => removeImageFromGallery(idx)}
-                              className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                              disabled={isSubmitting}
-                              title="Remove image"
-                            >
-                              ×
-                            </button>
-                          ) : (
-                            // Show green tick for previously uploaded files
-                            <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                          {/* Show remove button for all images (both new and previously uploaded) */}
+                          <button
+                            type="button"
+                            onClick={() => removeImageFromGallery(idx)}
+                            className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            disabled={isSubmitting}
+                            title="Remove image"
+                          >
+                            ×
+                          </button>
+                          {/* Show indicator for previously uploaded vs new files */}
+                          {!isNewFile && (
+                            <div className="absolute -top-1 -left-1 bg-green-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
                               ✓
                             </div>
                           )}
