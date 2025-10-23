@@ -27,8 +27,16 @@ import {
 } from '../../../../../constants'
 import { enqueueSnackbar } from 'notistack'
 import { useRouter } from 'next/navigation'
-import Script from 'next/script'
+import { loadStripe } from '@stripe/stripe-js'
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js'
 import { submitPayment } from '../../../../actions/actions'
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 const steps = [
   'Personal Info',
@@ -114,15 +122,6 @@ const FighterRegistrationPage = ({ params }) => {
   const [processing, setProcessing] = useState(false)
   const [emailCheckLoading, setEmailCheckLoading] = useState(false)
   const router = useRouter()
-
-  // Square payment integration
-  const cardRef = useRef(null)
-  const cardInstance = useRef(null)
-  const [squareLoaded, setSquareLoaded] = useState(false)
-
-  const appId = process.env.NEXT_PUBLIC_SQUARE_APP_ID
-  const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID
-  const squareConfigValid = appId && locationId
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -299,102 +298,6 @@ const FighterRegistrationPage = ({ params }) => {
       loadTournamentSettings()
     }
   }, [id])
-
-  // Square payment initialization
-  useEffect(() => {
-    if (
-      !squareLoaded ||
-      formData.paymentMethod !== 'card' ||
-      currentStep !== 10
-    )
-      return
-
-    if (!squareConfigValid) {
-      console.warn('⚠️ Square configuration invalid - card payments disabled')
-      setErrors((prev) => ({
-        ...prev,
-        square: 'Payment system not configured. Please contact support.',
-      }))
-      return
-    }
-
-    const initCard = async () => {
-      try {
-        console.log('Initializing Square payments for fighter registration')
-
-        if (!window.Square) {
-          throw new Error('Square SDK not loaded')
-        }
-
-        const payments = window.Square.payments(appId, locationId)
-
-        if (cardInstance.current) {
-          await cardInstance.current.destroy()
-          cardInstance.current = null
-        }
-
-        const card = await payments.card({
-          style: {
-            input: {
-              backgroundColor: '#0A1330',
-              color: '#ffffff',
-              fontSize: '16px',
-            },
-            '.input-container': {
-              borderRadius: '8px',
-              borderColor: '#374151',
-              borderWidth: '1px',
-            },
-            '.input-container.is-focus': {
-              borderColor: '#8B5CF6',
-            },
-            '.input-container.is-error': {
-              borderColor: '#EF4444',
-            },
-          },
-        })
-
-        const container = document.getElementById(
-          'fighter-square-card-container'
-        )
-        if (!container) {
-          console.log('❌ Fighter Square card container not found in DOM')
-          return
-        }
-
-        await card.attach('#fighter-square-card-container')
-        cardInstance.current = card
-        console.log('✅ Fighter Square card initialized')
-
-        // Clear any previous errors if successful
-        setErrors((prev) => ({ ...prev, square: null }))
-      } catch (error) {
-        console.log('❌ Fighter Square card initialization error:', error)
-        setErrors((prev) => ({
-          ...prev,
-          square: `Failed to initialize payment form: ${error.message}`,
-        }))
-      }
-    }
-
-    initCard()
-
-    return () => {
-      if (cardInstance.current) {
-        cardInstance.current.destroy()
-        cardInstance.current = null
-      }
-      const container = document.getElementById('fighter-square-card-container')
-      if (container) container.innerHTML = ''
-    }
-  }, [
-    squareLoaded,
-    formData.paymentMethod,
-    currentStep,
-    squareConfigValid,
-    appId,
-    locationId,
-  ])
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
@@ -693,7 +596,7 @@ const FighterRegistrationPage = ({ params }) => {
           if (!formData.cashCode.trim())
             newErrors.cashCode = 'Cash code is required'
         }
-        // Note: Card validation is handled by Square SDK during tokenization
+        // Note: Card validation is handled by Stripe Elements during checkout
         break
     }
 
@@ -718,54 +621,41 @@ const FighterRegistrationPage = ({ params }) => {
     }
   }
 
-  const processSquarePayment = async () => {
-    if (!cardInstance.current) {
-      throw new Error('Payment form not ready. Please wait and try again.')
-    }
+  const processStripePayment = async (paymentMethodId) => {
+    console.log('Processing Stripe payment for fighter registration...')
 
-    console.log('Processing Square payment for fighter registration...')
-    const result = await cardInstance.current.tokenize()
-
-    if (result.status !== 'OK') {
-      console.log('❌ Square tokenization failed:', result)
-      throw new Error(
-        result.errors?.[0]?.detail ||
-          'Card payment failed. Please check your card details.'
-      )
-    }
-
-    console.log('✅ Square tokenization successful')
-
-    // Calculate amount in cents for Square (Fighter registration fee)
+    // Calculate amount for Stripe (Fighter registration fee)
     const fighterFee = tournamentSettings?.simpleFees?.fighterFee || 0
 
-    // Submit payment to Square
+    // Submit payment to Stripe
     const paymentData = {
       note: `Fighter registration - Event ID: ${id}`,
+      receiptEmail: formData.email, // Add email for receipt
     }
 
-    console.log('Submitting payment to Square...', {
+    console.log('Submitting payment to Stripe...', {
       fighterFee,
       paymentData,
     })
-    const squareResult = await submitPayment(
-      result.token,
+    const stripeResult = await submitPayment(
+      paymentMethodId,
       fighterFee,
       paymentData
     )
 
-    if (!squareResult.success) {
-      console.log('❌ Square payment failed:', squareResult)
-      throw new Error(squareResult.error || 'Payment processing failed')
+    if (!stripeResult.success) {
+      console.log('❌ Stripe payment failed:', stripeResult)
+      throw new Error(stripeResult.error || 'Payment processing failed')
     }
 
-    console.log('✅ Square payment successful:', squareResult)
+    console.log('✅ Stripe payment successful:', stripeResult)
     return {
-      transactionId: squareResult.transactionId,
-      orderId: squareResult.orderId,
-      receiptNumber: squareResult.receiptNumber,
-      last4: squareResult.last4,
-      receiptUrl: squareResult.receiptUrl,
+      transactionId: stripeResult.transactionId,
+      chargeId: stripeResult.chargeId,
+      receiptUrl: stripeResult.receiptUrl,
+      last4: stripeResult.last4,
+      cardBrand: stripeResult.cardBrand,
+      currency: stripeResult.currency,
     }
   }
 
@@ -846,17 +736,11 @@ const FighterRegistrationPage = ({ params }) => {
         payload.cashCode = formData.cashCode.trim()
       } else {
         console.log(
-          'Processing Square card payment for fighter registration...'
+          'Processing Stripe card payment for fighter registration...'
         )
-        const { transactionId, orderId, receiptNumber, last4, receiptUrl } =
-          await processSquarePayment()
-        payload.squareDetails = {
-          transactionId,
-          orderId,
-          receiptNumber,
-          last4,
-          receiptUrl,
-        }
+        throw new Error(
+          'Card payment must be processed through the checkout form'
+        )
       }
 
       console.log('Fighter registration payload:', payload)
@@ -1231,7 +1115,9 @@ const FighterRegistrationPage = ({ params }) => {
                 className='w-full outline-none bg-transparent text-white'
               />
               {errors.heightInches && (
-                <p className='text-red-400 text-sm mt-1'>{errors.heightInches}</p>
+                <p className='text-red-400 text-sm mt-1'>
+                  {errors.heightInches}
+                </p>
               )}
             </div>
           </div>
@@ -1704,61 +1590,20 @@ const FighterRegistrationPage = ({ params }) => {
 
       {/* Payment Details */}
       {formData.paymentMethod === 'card' && (
-        <div>
-          <h4 className='text-lg font-bold mb-4'>Card Details</h4>
-
-          {!squareConfigValid && (
-            <div className='bg-red-900/20 border border-red-500 rounded-lg p-6 text-center'>
-              <p className='text-red-400 mb-2'>
-                Card payments are currently unavailable
-              </p>
-              <p className='text-gray-400 text-sm'>
-                Please use cash payment or contact support
-              </p>
-            </div>
-          )}
-
-          {squareConfigValid && !squareLoaded && (
-            <div className='bg-[#0A1330] rounded-lg p-6 text-center'>
-              <p className='text-gray-400'>Loading payment form...</p>
-            </div>
-          )}
-
-          {squareConfigValid && squareLoaded && (
-            <div
-              className={`bg-[#0A1330] rounded-lg p-6 ${
-                processing ? 'opacity-50 pointer-events-none' : ''
-              }`}
-            >
-              <div
-                id='fighter-square-card-container'
-                ref={cardRef}
-                className='mb-4'
-              />
-              {errors.square && (
-                <p className='text-red-500 text-sm mt-2'>{errors.square}</p>
-              )}
-              {processing && (
-                <div className='mt-4 p-3 bg-green-900/20 border border-green-500 rounded-lg'>
-                  <p className='text-green-400 text-sm font-medium'>
-                    ✓ Processing payment...
-                  </p>
-                </div>
-              )}
-              {!processing && (
-                <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
-                  <p className='text-blue-400 text-sm font-medium mb-1'>
-                    Test Card Information:
-                  </p>
-                  <p className='text-blue-300 text-xs'>
-                    For testing: Use card number 4111 1111 1111 1111, any future
-                    expiry date, and CVV 111
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <Elements stripe={stripePromise}>
+          <FighterCheckoutForm
+            processStripePayment={processStripePayment}
+            processing={processing}
+            setProcessing={setProcessing}
+            errors={errors}
+            setErrors={setErrors}
+            formData={formData}
+            tournamentSettings={tournamentSettings}
+            id={id}
+            user={user}
+            handleCancel={handleCancel}
+          />
+        </Elements>
       )}
 
       {formData.paymentMethod === 'cash' && (
@@ -1854,26 +1699,6 @@ const FighterRegistrationPage = ({ params }) => {
 
   return (
     <>
-      {/* Square SDK Script */}
-      <Script
-        src='https://sandbox.web.squarecdn.com/v1/square.js'
-        strategy='afterInteractive'
-        onLoad={() => {
-          console.log('✅ Square script loaded for fighter registration')
-          setSquareLoaded(true)
-        }}
-        onError={(error) => {
-          console.log(
-            '❌ Square script failed to load for fighter registration:',
-            error
-          )
-          setErrors((prev) => ({
-            ...prev,
-            square: 'Payment system failed to load',
-          }))
-        }}
-      />
-
       <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
         <div className='w-full container mx-auto'>
           <div className='mb-6'>
@@ -1986,25 +1811,15 @@ const FighterRegistrationPage = ({ params }) => {
                         Cancel
                       </button>
                     </Link>
-                    <button
-                      type='submit'
-                      disabled={
-                        processing ||
-                        (formData.paymentMethod === 'card' &&
-                          (!squareLoaded || !cardInstance.current))
-                      }
-                      className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                    >
-                      {processing
-                        ? 'Processing...'
-                        : formData.paymentMethod === 'card'
-                        ? `Pay ${
-                            tournamentSettings?.simpleFees?.currency || '$'
-                          }${(
-                            tournamentSettings?.simpleFees?.fighterFee || 0
-                          ).toFixed(2)}`
-                        : 'Submit Registration'}
-                    </button>
+                    {formData.paymentMethod === 'cash' && (
+                      <button
+                        type='submit'
+                        disabled={processing}
+                        className='bg-yellow-500 text-black px-4 py-2 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                      >
+                        {processing ? 'Processing...' : 'Submit Registration'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -2030,6 +1845,201 @@ const FighterRegistrationPage = ({ params }) => {
         </div>
       </div>
     </>
+  )
+}
+
+const FighterCheckoutForm = ({
+  processStripePayment,
+  processing,
+  setProcessing,
+  errors,
+  setErrors,
+  formData,
+  tournamentSettings,
+  id,
+  user,
+  handleCancel,
+}) => {
+  const stripe = useStripe()
+  const elements = useElements()
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    event.stopPropagation() // Prevent bubbling to parent form
+
+    if (!stripe || !elements) {
+      return
+    }
+
+    setProcessing(true)
+
+    try {
+      const cardElement = elements.getElement(CardElement)
+
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      })
+
+      if (error) {
+        console.error('Stripe error:', error)
+        setErrors({ stripe: error.message })
+        setProcessing(false)
+        return
+      }
+
+      console.log('Payment method created:', paymentMethod.id)
+
+      // Process Stripe payment
+      const { transactionId, last4, cardBrand, currency } =
+        await processStripePayment(paymentMethod.id)
+
+      // Calculate height in inches
+      let heightInInches
+      if (formData.heightUnit === 'feet') {
+        heightInInches =
+          parseFloat(formData.heightFeet) * 12 +
+          parseFloat(formData.heightInches)
+      } else if (formData.heightUnit === 'cm') {
+        heightInInches = parseFloat(formData.height) / 2.54
+      } else {
+        heightInInches = parseFloat(formData.height)
+      }
+
+      // Build the registration payload
+      let payload = {
+        registrationType: 'fighter',
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        street1: formData.street1,
+        street2: formData.street2,
+        postalCode: formData.postalCode,
+        heightUnit: 'inches',
+        height: heightInInches.toString(),
+        weightUnit: formData.weightUnit,
+        walkAroundWeight: formData.walkAroundWeight,
+        proFighter: formData.proFighter,
+        paidToFight: formData.paidToFight,
+        additionalRecords: formData.additionalRecords,
+        ruleStyle: formData.ruleStyle,
+        weightClass: formData.weightClass,
+        skillLevel: formData.skillLevel,
+        trainerName: formData.trainerName,
+        gymName: formData.gymName,
+        trainerPhone: formData.trainerPhone,
+        trainerEmail: formData.trainerEmail,
+        isAdult: formData.isAdult,
+        legalDisclaimerAccepted: formData.legalDisclaimerAccepted,
+        waiverSignature: formData.waiverSignature,
+        amount: tournamentSettings?.simpleFees?.fighterFee,
+        paymentMethod: formData.paymentMethod,
+        paymentStatus: 'Paid',
+        event: id,
+        role: 'fighter',
+      }
+
+      // Handle profile photo upload
+      if (formData.profilePhoto) {
+        if (typeof formData.profilePhoto !== 'string') {
+          payload.profilePhoto = await uploadToS3(formData.profilePhoto)
+        } else {
+          payload.profilePhoto = formData.profilePhoto
+        }
+      }
+
+      // Add Stripe details
+      payload.stripeDetails = {
+        transactionId,
+        last4,
+        cardBrand,
+        currency,
+      }
+
+      console.log('Fighter registration payload:', payload)
+      const response = await axios.post(
+        `${API_BASE_URL}/registrations`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      )
+
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message || 'Registration successful!', {
+          variant: 'success',
+        })
+        handleCancel()
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      enqueueSnackbar(
+        error.response?.data?.message || error.message || 'Registration failed',
+        { variant: 'error' }
+      )
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  return (
+    <div>
+      <h4 className='text-lg font-bold mb-4'>Card Details</h4>
+      <div
+        className={`bg-[#0A1330] rounded-lg p-6 ${
+          processing ? 'opacity-50 pointer-events-none' : ''
+        }`}
+      >
+        <CardElement
+          options={{
+            style: {
+              base: {
+                backgroundColor: '#0A1330',
+                color: '#ffffff',
+                fontSize: '16px',
+                '::placeholder': {
+                  color: '#9CA3AF',
+                },
+              },
+              invalid: {
+                color: '#EF4444',
+              },
+            },
+          }}
+        />
+        {errors.stripe && (
+          <p className='text-red-500 text-sm mt-2'>{errors.stripe}</p>
+        )}
+        {processing && (
+          <div className='mt-4 p-3 bg-green-900/20 border border-green-500 rounded-lg'>
+            <p className='text-green-400 text-sm font-medium'>
+              Processing payment...
+            </p>
+          </div>
+        )}
+      </div>
+
+      <button
+        type='button'
+        onClick={handleSubmit}
+        disabled={!stripe || processing}
+        className='w-full mt-4 bg-yellow-500 text-black px-6 py-3 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+      >
+        {processing
+          ? 'Processing...'
+          : `Pay ${tournamentSettings?.simpleFees?.currency || '$'}${(
+              tournamentSettings?.simpleFees?.fighterFee || 0
+            ).toFixed(2)}`}
+      </button>
+    </div>
   )
 }
 

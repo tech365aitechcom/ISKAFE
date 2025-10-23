@@ -80,10 +80,10 @@ const RegistrationPaymentsPage = () => {
             total: reg.amount,
             payer: `${reg.firstName} ${reg.lastName}`,
             email: reg.email,
-            transactionId: reg.squareDetails?.transactionId || null,
-            receiptNumber: reg.squareDetails?.receiptNumber || null,
-            orderId: reg.squareDetails?.orderId || null,
-            last4: reg.squareDetails?.last4 || null,
+            transactionId: reg.stripeDetails?.transactionId || null,
+            currency: reg.stripeDetails?.currency || null,
+            cardBrand: reg.stripeDetails?.cardBrand || null,
+            last4: reg.stripeDetails?.last4 || null,
           }))
 
           setPayments(paymentsData)
@@ -150,9 +150,9 @@ const RegistrationPaymentsPage = () => {
       'Total',
       'Payer',
       'Email',
-      'Square Transaction ID',
-      'Square Receipt Number',
-      'Square Order ID',
+      'Transaction ID',
+      'Currency',
+      'Card Brand',
       'Last4',
     ]
 
@@ -160,7 +160,12 @@ const RegistrationPaymentsPage = () => {
     const escapeCSVValue = (value) => {
       if (value == null) return ''
       const stringValue = String(value)
-      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n') || stringValue.includes('\r')) {
+      if (
+        stringValue.includes(',') ||
+        stringValue.includes('"') ||
+        stringValue.includes('\n') ||
+        stringValue.includes('\r')
+      ) {
         return `"${stringValue.replace(/"/g, '""')}"`
       }
       return stringValue
@@ -168,7 +173,9 @@ const RegistrationPaymentsPage = () => {
 
     const data = filteredPayments.map((payment, index) => [
       index + 1,
-      `${new Date(payment.date).toLocaleDateString()} ${new Date(payment.date).toLocaleTimeString([], {
+      `${new Date(payment.date).toLocaleDateString()} ${new Date(
+        payment.date
+      ).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       })}`,
@@ -179,17 +186,18 @@ const RegistrationPaymentsPage = () => {
       payment.payer,
       payment.email,
       payment.transactionId || 'N/A',
-      payment.receiptNumber || 'N/A',
-      payment.orderId || 'N/A',
+      payment.currency || 'N/A',
+      payment.cardBrand || 'N/A',
       payment.last4 || 'N/A',
     ])
 
     // Add BOM for proper Excel UTF-8 handling
     const BOM = '\uFEFF'
-    const csvContent = BOM + 
-      headers.map(escapeCSVValue).join(',') + 
-      '\n' + 
-      data.map(row => row.map(escapeCSVValue).join(',')).join('\n')
+    const csvContent =
+      BOM +
+      headers.map(escapeCSVValue).join(',') +
+      '\n' +
+      data.map((row) => row.map(escapeCSVValue).join(',')).join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
@@ -197,9 +205,10 @@ const RegistrationPaymentsPage = () => {
     link.setAttribute('href', url)
     link.setAttribute(
       'download',
-      `registration_payments_${(event?.name || 'event').replace(/[^a-z0-9]/gi, '_')}_${new Date()
-        .toISOString()
-        .slice(0, 10)}.csv`
+      `registration_payments_${(event?.name || 'event').replace(
+        /[^a-z0-9]/gi,
+        '_'
+      )}_${new Date().toISOString().slice(0, 10)}.csv`
     )
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
@@ -506,13 +515,11 @@ const RegistrationPaymentsPage = () => {
                   <th className='p-4 text-left whitespace-nowrap'>Payer</th>
                   <th className='p-4 text-left whitespace-nowrap'>Email</th>
                   <th className='p-4 text-left whitespace-nowrap'>
-                    Square Transaction ID
+                    Transaction ID
                   </th>
+                  <th className='p-4 text-left whitespace-nowrap'>Currency</th>
                   <th className='p-4 text-left whitespace-nowrap'>
-                    Square Receipt Number
-                  </th>
-                  <th className='p-4 text-left whitespace-nowrap'>
-                    Square Order ID
+                    Card Brand
                   </th>
                   <th className='p-4 text-left whitespace-nowrap'>Last4</th>
                 </tr>
@@ -558,10 +565,10 @@ const RegistrationPaymentsPage = () => {
                         {payment.transactionId || 'N/A'}
                       </td>
                       <td className='p-4 whitespace-nowrap'>
-                        {payment.receiptNumber || 'N/A'}
+                        {payment.currency || 'N/A'}
                       </td>
                       <td className='p-4 whitespace-nowrap'>
-                        {payment.orderId || 'N/A'}
+                        {payment.cardBrand || 'N/A'}
                       </td>
                       <td className='p-4 whitespace-nowrap'>
                         {payment.last4 || 'N/A'}
