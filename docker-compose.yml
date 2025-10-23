@@ -1,0 +1,8 @@
+version: "2"
+services:
+  ISKAFE:
+    image: iskafe:latest
+    build: ./
+    ports:
+      - 5001:5001
+    container_name: ISKAFE
