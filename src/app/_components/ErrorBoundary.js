@@ -35,7 +35,7 @@ class ErrorBoundary extends React.Component {
               Oops! Something went wrong
             </h2>
             <p className='text-gray-300 mb-6'>
-              We've been notified of this error and will fix it as soon as
+              We&apos;ve been notified of this error and will fix it as soon as
               possible.
             </p>
             <button

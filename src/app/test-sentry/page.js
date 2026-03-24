@@ -156,7 +156,7 @@ export default function TestSentryPage() {
                 Sentry Dashboard
               </a>
             </li>
-            <li>Check the "Issues" section for the new error/message</li>
+            <li>Check the &quot;Issues&quot; section for the new error/message</li>
             <li>Click on the issue to see all the context data</li>
           </ol>
         </div>

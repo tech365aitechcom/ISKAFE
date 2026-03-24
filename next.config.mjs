@@ -2,9 +2,6 @@ import { withSentryConfig } from '@sentry/nextjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    instrumentationHook: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -89,9 +86,17 @@ const sentryWebpackPluginOptions = {
 
   silent: true, // Suppresses all logs
 
+  // Disable source map upload if there are network issues
+  disableLogger: true,
+  hideSourceMaps: true,
+  widenClientFileUpload: false,
+
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options.
 }
 
 // Make sure adding Sentry options is the last code to run before exporting
-export default withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+// Only use Sentry config if auth token is available (production builds)
+export default process.env.SENTRY_AUTH_TOKEN
+  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+  : nextConfig
