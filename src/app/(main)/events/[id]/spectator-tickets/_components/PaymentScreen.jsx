@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button } from '../../../../../../../components/ui/button'
-import { CreditCard, DollarSign } from 'lucide-react'
+import { CreditCard, DollarSign, Loader2 } from 'lucide-react'
 import { enqueueSnackbar } from 'notistack'
 import axios from '../../../../../../shared/axios'
 import useStore from '../../../../../../stores/useStore'
@@ -422,11 +422,16 @@ const PaymentScreen = ({
                 : 'bg-green-600 hover:bg-green-700'
             } text-white px-6 py-3 rounded font-medium disabled:opacity-50`}
           >
-            {paymentCompleted
-              ? '✓ Payment Completed'
-              : processing
-              ? 'Processing...'
-              : `Pay $${getTotalPrice().toFixed(2)}`}
+            {paymentCompleted ? (
+              '✓ Payment Completed'
+            ) : processing ? (
+              <span className='flex items-center justify-center gap-2'>
+                <Loader2 className='animate-spin' size={20} />
+                Processing Payment...
+              </span>
+            ) : (
+              `Pay $${getTotalPrice().toFixed(2)}`
+            )}
           </Button>
         </div>
       )}
@@ -541,11 +546,16 @@ const CheckoutForm = ({
             : 'bg-green-600 hover:bg-green-700'
         } text-white px-6 py-3 rounded font-medium disabled:opacity-50`}
       >
-        {paymentCompleted
-          ? '✓ Payment Completed'
-          : processing
-          ? 'Processing...'
-          : 'Pay Now'}
+        {paymentCompleted ? (
+          '✓ Payment Completed'
+        ) : processing ? (
+          <span className='flex items-center justify-center gap-2'>
+            <Loader2 className='animate-spin' size={20} />
+            Processing Payment...
+          </span>
+        ) : (
+          'Pay Now'
+        )}
       </Button>
     </div>
   )

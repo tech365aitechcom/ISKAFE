@@ -1,10 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/build/pdf'
-
-// ✅ Point to the locally served worker file
-GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 const PdfViewer = ({ pdfUrl }) => {
   const [textContent, setTextContent] = useState('')
@@ -14,6 +10,12 @@ const PdfViewer = ({ pdfUrl }) => {
   useEffect(() => {
     const loadPdf = async () => {
       try {
+        // Dynamically import pdfjs-dist only on the client side
+        const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist/build/pdf')
+
+        // Point to the locally served worker file
+        GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+
         const loadingTask = getDocument(pdfUrl)
         const pdf = await loadingTask.promise
 

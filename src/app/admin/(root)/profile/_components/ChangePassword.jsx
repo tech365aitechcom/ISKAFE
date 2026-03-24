@@ -56,7 +56,7 @@ export default function ChangePassword({ setType }) {
 
     // Frontend password match check
     if (formData.newPassword !== formData.confirmNewPassword) {
-      enqueueSnackbar("New Password and Confirm Password do not match", {
+      enqueueSnackbar('New Password and Confirm Password do not match', {
         variant: 'error',
       })
       setLoading(false)
@@ -66,7 +66,7 @@ export default function ChangePassword({ setType }) {
     const validationErrors = validatePasswordRules(formData.newPassword)
     if (validationErrors.length > 0) {
       validationErrors.forEach((err) =>
-        enqueueSnackbar(err, { variant: 'error' })
+        enqueueSnackbar(err, { variant: 'error' }),
       )
       setLoading(false)
       return
@@ -80,7 +80,7 @@ export default function ChangePassword({ setType }) {
           headers: {
             Authorization: `Bearer ${user?.token}`,
           },
-        }
+        },
       )
 
       if (response.status === apiConstants.success) {
@@ -96,7 +96,7 @@ export default function ChangePassword({ setType }) {
     } catch (error) {
       enqueueSnackbar(
         error?.response?.data?.message || 'Something went wrong',
-        { variant: 'error' }
+        { variant: 'error' },
       )
     } finally {
       setLoading(false)
@@ -127,7 +127,11 @@ export default function ChangePassword({ setType }) {
               onClick={() => toggleVisibility('current')}
               className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
             >
-              {passwordVisibility.current ? <Eye size={18} /> : <EyeOff size={18} />}
+              {passwordVisibility.current ? (
+                <Eye size={18} />
+              ) : (
+                <EyeOff size={18} />
+              )}
             </button>
           </div>
 
@@ -151,7 +155,11 @@ export default function ChangePassword({ setType }) {
               onClick={() => toggleVisibility('new')}
               className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
             >
-              {passwordVisibility.new ? <Eye size={18} /> : <EyeOff size={18} />}
+              {passwordVisibility.new ? (
+                <Eye size={18} />
+              ) : (
+                <EyeOff size={18} />
+              )}
             </button>
           </div>
 
@@ -175,7 +183,11 @@ export default function ChangePassword({ setType }) {
               onClick={() => toggleVisibility('confirm')}
               className='absolute right-4 top-1/2 -translate-y-1/2 text-white'
             >
-              {passwordVisibility.confirm ? <Eye size={18} /> : <EyeOff size={18} />}
+              {passwordVisibility.confirm ? (
+                <Eye size={18} />
+              ) : (
+                <EyeOff size={18} />
+              )}
             </button>
           </div>
 
