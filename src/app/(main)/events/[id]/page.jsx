@@ -10,7 +10,12 @@ import RegistrationSection from './_components/RegistrationSection'
 import Link from 'next/link'
 import { ArrowLeftIcon } from 'lucide-react'
 import EventDetailsSection from './_components/EventDetailsSection'
-import PdfViewer from './_components/PdfViewer'
+import dynamic from 'next/dynamic'
+
+const PdfViewer = dynamic(() => import('./_components/PdfViewer'), {
+  ssr: false,
+  loading: () => <p className='text-gray-300'>Loading PDF...</p>
+})
 
 const page = ({ params }) => {
   const { id } = use(params)
@@ -143,11 +148,35 @@ const page = ({ params }) => {
             </h2>
 
             <div className='flex flex-col md:flex-row items-start gap-6'>
-              <img
-                src={eventDetails?.sectioningBodyImage}
-                alt={eventDetails?.sectioningBodyName}
-                className='w-full md:w-44 rounded-lg shadow-md object-cover'
-              />
+              {eventDetails?.sectioningBodyImage ? (
+                <img
+                  src={eventDetails.sectioningBodyImage}
+                  alt={eventDetails?.sectioningBodyName}
+                  className='w-full md:w-44 rounded-lg shadow-md object-cover'
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className='w-full md:w-44 h-44 rounded-lg bg-gradient-to-br from-purple-900 to-purple-700 flex items-center justify-center'>
+                  <div className='text-center text-white opacity-50'>
+                    <svg
+                      className='w-12 h-12 mx-auto mb-2'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={1.5}
+                        d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
+                      />
+                    </svg>
+                    <p className='text-xs'>No Image</p>
+                  </div>
+                </div>
+              )}
 
               <div className='flex-1'>
                 <h3 className='text-2xl font-semibold text-white mb-3'>

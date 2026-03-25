@@ -22,12 +22,9 @@ const TrainingFacilitiesPage = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-
   const countries = Country.getAllCountries()
   const states = country ? State.getStatesOfCountry(country) : []
-  const cities = country && state
-    ? City.getCitiesOfState(country, state)
-    : []
+  const cities = country && state ? City.getCitiesOfState(country, state) : []
 
   const [loading, setLoading] = useState(false)
   const [facilities, setFacilities] = useState([])
@@ -43,7 +40,7 @@ const TrainingFacilitiesPage = () => {
         search: search?.trim(),
         country,
         state,
-        city
+        city,
       }
 
       const filteredParams = Object.fromEntries(
@@ -52,7 +49,7 @@ const TrainingFacilitiesPage = () => {
             return false
           if (Array.isArray(value) && value.length === 0) return false
           return true
-        })
+        }),
       )
 
       const queryString = new URLSearchParams(filteredParams).toString()
@@ -62,7 +59,7 @@ const TrainingFacilitiesPage = () => {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
-        }
+        },
       )
 
       setFacilities(response.data.data.items)
@@ -100,7 +97,7 @@ const TrainingFacilitiesPage = () => {
   useEffect(() => {
     const updateBackground = () => {
       setBgImage(
-        window.innerWidth >= 768 ? '/Cover.png' : '/rakning_cover_mobile.png'
+        window.innerWidth >= 768 ? '/Cover.png' : '/rakning_cover_mobile.png',
       )
       setTopPosition(window.innerWidth >= 768 ? '90%' : '70%')
     }
@@ -205,30 +202,32 @@ const TrainingFacilitiesPage = () => {
                 </div>
               </div>
               <div className='flex flex-col items-start'>
-  <label className='text-white text-sm mb-2 mt-3'>City</label>
-  <div className='relative w-full'>
-    <select
-      className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
-      value={city}
-      onChange={(e) => setCity(e.target.value)}
-      disabled={!state}
-    >
-      <option value='' className='bg-purple-900'>Select</option>
-      {cities.map((cityItem, index) => (
-        <option
-          key={index}
-          value={cityItem.name}
-          className='bg-purple-900'
-        >
-          {cityItem.name}
-        </option>
-      ))}
-    </select>
-    <div className='absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none'>
-      <ChevronDown className='h-5 w-5 text-white' />
-    </div>
-  </div>
-</div>
+                <label className='text-white text-sm mb-2 mt-3'>City</label>
+                <div className='relative w-full'>
+                  <select
+                    className='appearance-none w-full bg-transparent border-b border-gray-600 text-white text-lg pb-2 focus:outline-none focus:border-red-500'
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    disabled={!state}
+                  >
+                    <option value='' className='bg-purple-900'>
+                      Select
+                    </option>
+                    {cities.map((cityItem, index) => (
+                      <option
+                        key={index}
+                        value={cityItem.name}
+                        className='bg-purple-900'
+                      >
+                        {cityItem.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className='absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none'>
+                    <ChevronDown className='h-5 w-5 text-white' />
+                  </div>
+                </div>
+              </div>
 
               <div className='mt-8 flex justify-center'>
                 <button
@@ -250,7 +249,7 @@ const TrainingFacilitiesPage = () => {
           </div>
         </div>
       </section>
-      <section className='mt-72 mb-12 md:my-56 mx-4'>
+      <section className='mt-80 mb-12 md:my-56 mx-4'>
         <div className='container mx-auto'>
           {user && (
             <div className='flex justify-end mb-4'>

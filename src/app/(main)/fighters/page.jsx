@@ -248,48 +248,50 @@ const Page = () => {
             </div>
           </div>
         </div>
-        <div className='w-full h-32 bg-black'></div>
+        <div className='w-full h-[500px] sm:h-[500px] md:h-52 bg-black'></div>
       </div>
 
       {/* Fighters List */}
-      <div className='bg-black w-full mx-auto px-4 py-56 md:py-0 md:pt-32 flex flex-wrap justify-center gap-10 items-center'>
-        {fighters.map((fighter) => {
-          const user = fighter.user || {}
-          const countryCode = user.country
-          const stateCode = user.state
-          const cityCode = user.city
+      <div className='bg-black w-full mx-auto px-4 pt-8 pb-16'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto'>
+          {fighters.map((fighter) => {
+            const user = fighter.user || {}
+            const countryCode = user.country
+            const stateCode = user.state
+            const cityCode = user.city
 
-          const countryName =
-            Country.getCountryByCode(countryCode)?.name || countryCode
-          const stateName =
-            State.getStateByCodeAndCountry(stateCode, countryCode)?.name ||
-            stateCode
-          const cityName =
-            City.getCitiesOfState(countryCode, stateCode)?.find(
-              (c) => c.name.toLowerCase() === cityCode?.toLowerCase()
-            )?.name || cityCode
+            const countryName =
+              Country.getCountryByCode(countryCode)?.name || countryCode
+            const stateName =
+              State.getStateByCodeAndCountry(stateCode, countryCode)?.name ||
+              stateCode
+            const cityName =
+              City.getCitiesOfState(countryCode, stateCode)?.find(
+                (c) => c.name.toLowerCase() === cityCode?.toLowerCase()
+              )?.name || cityCode
 
-          return (
-            <FighterCard
-              key={fighter._id}
-              id={fighter._id}
-              image={user.profilePhoto}
-              imageAlt={user.firstName}
-              city={cityName}
-              state={stateName}
-              country={countryName}
-              name={`${user.firstName ?? ''} ${user.lastName ?? ''}${
-                user.nickName ? ` - ${user.nickName}` : ''
-              }`}
-              bio={fighter.bio ?? ''}
-              style={fighter.trainingStyle}
-            />
-          )
-        })}
+            return (
+              <FighterCard
+                key={fighter._id}
+                id={fighter._id}
+                image={user.profilePhoto}
+                imageAlt={user.firstName}
+                city={cityName}
+                state={stateName}
+                country={countryName}
+                name={`${user.firstName ?? ''} ${user.lastName ?? ''}${
+                  user.nickName ? ` - ${user.nickName}` : ''
+                }`}
+                bio={fighter.bio ?? ''}
+                style={fighter.trainingStyle}
+              />
+            )
+          })}
+        </div>
       </div>
 
       {/* Pagination */}
-      <div className='bg-black pb-8'>
+      <div className='bg-black pb-8 relative z-10'>
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

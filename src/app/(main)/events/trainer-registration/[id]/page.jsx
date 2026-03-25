@@ -1,8 +1,14 @@
 'use client'
 import React, { use, useState, useEffect, useRef } from 'react'
 import axios from 'axios'
-import Script from 'next/script'
 import { submitPayment } from '../../../../actions/actions'
+import { loadStripe } from '@stripe/stripe-js'
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js'
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,6 +26,8 @@ import { enqueueSnackbar } from 'notistack'
 import useStore from '../../../../../stores/useStore'
 import { fetchTournamentSettings } from '../../../../../utils/eventUtils'
 import { API_BASE_URL, apiConstants } from '../../../../../constants'
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 const TrainerRegistrationPage = ({ params }) => {
   const { id } = use(params)
@@ -62,15 +70,6 @@ const TrainerRegistrationPage = ({ params }) => {
   const [fighterSuggestions, setFighterSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [emailCheckLoading, setEmailCheckLoading] = useState(false)
-
-  // Square payment integration
-  const cardRef = useRef(null)
-  const cardInstance = useRef(null)
-  const [squareLoaded, setSquareLoaded] = useState(false)
-
-  const appId = process.env.NEXT_PUBLIC_SQUARE_APP_ID
-  const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID
-  const squareConfigValid = appId && locationId
 
   // Pre-fill form with user data from Zustand store
   useEffect(() => {
@@ -141,98 +140,6 @@ const TrainerRegistrationPage = ({ params }) => {
       }
     }
   }, [id, user?.token])
-
-  // Square payment initialization
-  useEffect(() => {
-    if (!squareLoaded || formData.paymentMethod !== 'card' || currentStep !== 4)
-      return
-
-    if (!squareConfigValid) {
-      console.warn('⚠️ Square configuration invalid - card payments disabled')
-      setErrors((prev) => ({
-        ...prev,
-        square: 'Payment system not configured. Please contact support.',
-      }))
-      return
-    }
-
-    const initCard = async () => {
-      try {
-        console.log('Initializing Square payments for trainer registration')
-
-        if (!window.Square) {
-          throw new Error('Square SDK not loaded')
-        }
-
-        const payments = window.Square.payments(appId, locationId)
-
-        if (cardInstance.current) {
-          await cardInstance.current.destroy()
-          cardInstance.current = null
-        }
-
-        const card = await payments.card({
-          style: {
-            input: {
-              backgroundColor: '#0A1330',
-              color: '#ffffff',
-              fontSize: '16px',
-            },
-            '.input-container': {
-              borderRadius: '8px',
-              borderColor: '#374151',
-              borderWidth: '1px',
-            },
-            '.input-container.is-focus': {
-              borderColor: '#8B5CF6',
-            },
-            '.input-container.is-error': {
-              borderColor: '#EF4444',
-            },
-          },
-        })
-
-        const container = document.getElementById(
-          'trainer-square-card-container'
-        )
-        if (!container) {
-          console.error('❌ Trainer Square card container not found in DOM')
-          return
-        }
-
-        await card.attach('#trainer-square-card-container')
-        cardInstance.current = card
-        console.log('✅ Trainer Square card initialized')
-
-        // Clear any previous errors if successful
-        setErrors((prev) => ({ ...prev, square: null }))
-      } catch (error) {
-        console.error('❌ Trainer Square card initialization error:', error)
-        setErrors((prev) => ({
-          ...prev,
-          square: `Failed to initialize payment form: ${error.message}`,
-        }))
-      }
-    }
-
-    initCard()
-
-    return () => {
-      if (cardInstance.current) {
-        cardInstance.current.destroy()
-        cardInstance.current = null
-      }
-      const container = document.getElementById('trainer-square-card-container')
-      if (container) container.innerHTML = ''
-    }
-  }, [
-    squareLoaded,
-    formData.paymentMethod,
-    currentStep,
-    squareConfigValid,
-    appId,
-    locationId,
-  ])
 
   const countries = Country.getAllCountries()
   const states = formData.country
@@ -537,49 +444,38 @@ const TrainerRegistrationPage = ({ params }) => {
     }
   }
 
-  const processSquarePayment = async () => {
-    if (!cardInstance.current) {
-      throw new Error('Payment form not ready. Please wait and try again.')
-    }
+  const processStripePayment = async (paymentMethodId) => {
+    console.log('Processing Stripe payment for trainer registration...')
 
-    console.log('Processing Square payment for trainer registration...')
-    const result = await cardInstance.current.tokenize()
-
-    if (result.status !== 'OK') {
-      console.error('❌ Square tokenization failed:', result)
-      throw new Error(
-        result.errors?.[0]?.detail ||
-          'Card payment failed. Please check your card details.'
-      )
-    }
-
-    console.log('✅ Square tokenization successful')
-
-    // Calculate amount in cents for Square (Trainer registration fee)
+    // Calculate amount for Stripe (Trainer registration fee)
     const trainerFee = tournamentSettings?.simpleFees?.trainerFee || 75
 
-    // Submit payment to Square
+    // Submit payment to Stripe
     const paymentData = {
       note: `Trainer registration - Event ID: ${id}`,
     }
 
-    console.log('Submitting payment to Square...', {
+    console.log('Submitting payment to Stripe...', {
       trainerFee,
       paymentData,
     })
-    const squareResult = await submitPayment(
-      result.token,
+    const stripeResult = await submitPayment(
+      paymentMethodId,
       trainerFee,
       paymentData
     )
 
-    if (!squareResult.success) {
-      console.error('❌ Square payment failed:', squareResult)
-      throw new Error(squareResult.error || 'Payment processing failed')
+    if (!stripeResult.success) {
+      console.log('❌ Stripe payment failed:', stripeResult)
+      throw new Error(stripeResult.error || 'Payment processing failed')
     }
 
-    console.log('✅ Square payment successful:', squareResult)
-    return squareResult.transactionId
+    console.log('✅ Stripe payment successful:', stripeResult)
+    return {
+      transactionId: stripeResult.transactionId,
+      receiptUrl: stripeResult.receiptUrl,
+      last4: stripeResult.last4,
+    }
   }
 
   const handleSubmit = async () => {
@@ -640,19 +536,12 @@ const TrainerRegistrationPage = ({ params }) => {
         }
         payload.cashCode = formData.cashCode.trim()
       } else {
-        // For card payments, process Square payment first
         console.log(
-          'Processing Square card payment for trainer registration...'
+          'Processing Stripe card payment for trainer registration...'
         )
-        const { transactionId, orderId, receiptNumber, last4, receiptUrl } =
-          await processSquarePayment()
-        payload.squareDetails = {
-          transactionId,
-          orderId,
-          receiptNumber,
-          last4,
-          receiptUrl,
-        }
+        throw new Error(
+          'Card payment must be processed through the checkout form'
+        )
       }
 
       console.log(
@@ -1091,61 +980,20 @@ const TrainerRegistrationPage = ({ params }) => {
 
       {/* Payment Details */}
       {formData.paymentMethod === 'card' && (
-        <div>
-          <h4 className='text-lg font-bold mb-4'>Card Details</h4>
-
-          {!squareConfigValid && (
-            <div className='bg-red-900/20 border border-red-500 rounded-lg p-6 text-center'>
-              <p className='text-red-400 mb-2'>
-                Card payments are currently unavailable
-              </p>
-              <p className='text-gray-400 text-sm'>
-                Please use cash payment or contact support
-              </p>
-            </div>
-          )}
-
-          {squareConfigValid && !squareLoaded && (
-            <div className='bg-[#0A1330] rounded-lg p-6 text-center'>
-              <p className='text-gray-400'>Loading payment form...</p>
-            </div>
-          )}
-
-          {squareConfigValid && squareLoaded && (
-            <div
-              className={`bg-[#0A1330] rounded-lg p-6 ${
-                isSubmitting ? 'opacity-50 pointer-events-none' : ''
-              }`}
-            >
-              <div
-                id='trainer-square-card-container'
-                ref={cardRef}
-                className='mb-4'
-              />
-              {errors.square && (
-                <p className='text-red-500 text-sm mt-2'>{errors.square}</p>
-              )}
-              {isSubmitting && (
-                <div className='mt-4 p-3 bg-green-900/20 border border-green-500 rounded-lg'>
-                  <p className='text-green-400 text-sm font-medium'>
-                    ✓ Processing payment...
-                  </p>
-                </div>
-              )}
-              {!isSubmitting && (
-                <div className='mt-4 p-3 bg-blue-900/20 border border-blue-500 rounded-lg'>
-                  <p className='text-blue-400 text-sm font-medium mb-1'>
-                    Test Card Information:
-                  </p>
-                  <p className='text-blue-300 text-xs'>
-                    For testing: Use card number 4111 1111 1111 1111, any future
-                    expiry date, and CVV 111
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <Elements stripe={stripePromise}>
+          <TrainerCheckoutForm
+            processStripePayment={processStripePayment}
+            isSubmitting={isSubmitting}
+            setIsSubmitting={setIsSubmitting}
+            errors={errors}
+            setErrors={setErrors}
+            formData={formData}
+            tournamentSettings={tournamentSettings}
+            id={id}
+            user={user}
+            router={router}
+          />
+        </Elements>
       )}
 
       {formData.paymentMethod === 'cash' && (
@@ -1232,26 +1080,6 @@ const TrainerRegistrationPage = ({ params }) => {
 
   return (
     <>
-      {/* Square SDK Script */}
-      <Script
-        src='https://sandbox.web.squarecdn.com/v1/square.js'
-        strategy='afterInteractive'
-        onLoad={() => {
-          console.log('✅ Square script loaded for trainer registration')
-          setSquareLoaded(true)
-        }}
-        onError={(error) => {
-          console.error(
-            '❌ Square script failed to load for trainer registration:',
-            error
-          )
-          setErrors((prev) => ({
-            ...prev,
-            square: 'Payment system failed to load',
-          }))
-        }}
-      />
-
       <div className='min-h-screen text-white bg-[#0B1739] py-6 px-4'>
         <div className='w-full container mx-auto'>
           <div className='mb-6'>
@@ -1340,26 +1168,20 @@ const TrainerRegistrationPage = ({ params }) => {
                     <ChevronRight className='w-4 h-4' />
                   </button>
                 ) : (
-                  <button
-                    type='button'
-                    onClick={handleSubmit}
-                    disabled={
-                      isSubmitting ||
-                      (formData.paymentMethod === 'card' &&
-                        (!squareLoaded || !cardInstance.current))
-                    }
-                    className='flex items-center space-x-2 bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-600 transition-colors'
-                  >
-                    {isSubmitting
-                      ? 'Processing...'
-                      : formData.paymentMethod === 'card'
-                      ? `Pay ${
-                          tournamentSettings?.simpleFees?.currency || '$'
-                        }${(
-                          tournamentSettings?.simpleFees?.trainerFee || 75
-                        ).toFixed(2)}`
-                      : 'Complete Registration'}
-                  </button>
+                  <>
+                    {formData.paymentMethod === 'cash' && (
+                      <button
+                        type='button'
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className='flex items-center space-x-2 bg-yellow-500 text-black px-4 py-2 rounded font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-600 transition-colors'
+                      >
+                        {isSubmitting
+                          ? 'Processing...'
+                          : 'Complete Registration'}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -1367,6 +1189,180 @@ const TrainerRegistrationPage = ({ params }) => {
         </div>
       </div>
     </>
+  )
+}
+
+const TrainerCheckoutForm = ({
+  processStripePayment,
+  isSubmitting,
+  setIsSubmitting,
+  errors,
+  setErrors,
+  formData,
+  tournamentSettings,
+  id,
+  user,
+  router,
+}) => {
+  const stripe = useStripe()
+  const elements = useElements()
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    event.stopPropagation() // Prevent bubbling to parent form
+
+    if (!stripe || !elements) {
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const cardElement = elements.getElement(CardElement)
+
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      })
+
+      if (error) {
+        console.error('Stripe error:', error)
+        setErrors({ stripe: error.message })
+        setIsSubmitting(false)
+        return
+      }
+
+      console.log('Payment method created:', paymentMethod.id)
+
+      // Process Stripe payment
+      const { transactionId, last4, cardBrand, currency } =
+        await processStripePayment(paymentMethod.id)
+
+      // Build the registration payload
+      const payload = {
+        // Required root-level fields
+        registrationType: 'trainer',
+        event: id,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        dateOfBirth: new Date(formData.dateOfBirth).toISOString(),
+
+        // Address fields (also required)
+        street1: formData.street1.trim(),
+        postalCode: formData.postalCode.trim(),
+        city: formData.city || undefined,
+        state: formData.state || undefined,
+        country: formData.country || undefined,
+        street2: formData.street2?.trim() || undefined,
+
+        // Other fields
+        fightersRepresented: formData.fightersRepresented
+          .split('\n')
+          .filter((f) => f.trim())
+          .join('\n'),
+        waiverSignature: formData.waiverSignature.trim(),
+        agreementChecked: formData.agreementChecked,
+        amount: tournamentSettings?.simpleFees?.trainerFee,
+        paymentMethod: formData.paymentMethod,
+        paymentStatus: 'Paid',
+        role: 'trainer',
+      }
+
+      // Add Stripe details
+      payload.stripeDetails = {
+        transactionId,
+        last4,
+        cardBrand,
+        currency,
+      }
+
+      console.log(
+        'Trainer registration payload:',
+        JSON.stringify(payload, null, 2)
+      )
+
+      const response = await axios.post(
+        `${API_BASE_URL}/registrations`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (response.status === apiConstants.create) {
+        enqueueSnackbar(response.data.message || 'Registration successful!', {
+          variant: 'success',
+        })
+        setTimeout(() => {
+          router.push(`/events/${id}`)
+        }, 1500)
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      enqueueSnackbar(
+        error.response?.data?.message || error.message || 'Registration failed',
+        { variant: 'error' }
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div>
+      <h4 className='text-lg font-bold mb-4'>Card Details</h4>
+      <div
+        className={`bg-[#0A1330] rounded-lg p-6 ${
+          isSubmitting ? 'opacity-50 pointer-events-none' : ''
+        }`}
+      >
+        <CardElement
+          options={{
+            style: {
+              base: {
+                backgroundColor: '#0A1330',
+                color: '#ffffff',
+                fontSize: '16px',
+                '::placeholder': {
+                  color: '#9CA3AF',
+                },
+              },
+              invalid: {
+                color: '#EF4444',
+              },
+            },
+          }}
+        />
+        {errors.stripe && (
+          <p className='text-red-500 text-sm mt-2'>{errors.stripe}</p>
+        )}
+        {isSubmitting && (
+          <div className='mt-4 p-3 bg-green-900/20 border border-green-500 rounded-lg'>
+            <p className='text-green-400 text-sm font-medium'>
+              Processing payment...
+            </p>
+          </div>
+        )}
+      </div>
+
+      <button
+        type='button'
+        onClick={handleSubmit}
+        disabled={!stripe || isSubmitting}
+        className='w-full mt-4 bg-yellow-500 text-black px-6 py-3 rounded font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+      >
+        {isSubmitting
+          ? 'Processing...'
+          : `Pay ${tournamentSettings?.simpleFees?.currency || '$'}${(
+              tournamentSettings?.simpleFees?.trainerFee || 75
+            ).toFixed(2)}`}
+      </button>
+    </div>
   )
 }
 
