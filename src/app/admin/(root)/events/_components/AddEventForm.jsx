@@ -91,7 +91,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
     setLoading(true)
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/venues?page=1&limit=200`
+        `${API_BASE_URL}/venues?page=1&limit=200`,
       )
       console.log('Response:', response.data)
 
@@ -107,7 +107,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
     setLoading(true)
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/promoter?page=1&limit=200`
+        `${API_BASE_URL}/promoter?page=1&limit=200`,
       )
       console.log('Response:', response.data)
 
@@ -170,19 +170,22 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
       // 1. Registration start must be before registration deadline
       if (regStart >= regDeadline) {
-        errors.registrationStartDate = 'Registration start must be before deadline'
+        errors.registrationStartDate =
+          'Registration start must be before deadline'
         isValid = false
       }
 
       // 2. Registration deadline must be before event start
       if (regDeadline >= startDate) {
-        errors.registrationDeadline = 'Registration deadline must be before event start'
+        errors.registrationDeadline =
+          'Registration deadline must be before event start'
         isValid = false
       }
 
       // 3. Registration start must be before event start
       if (regStart >= startDate) {
-        errors.registrationStartDate = 'Registration start must be before event start'
+        errors.registrationStartDate =
+          'Registration start must be before event start'
         isValid = false
       }
 
@@ -194,13 +197,27 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
       // 5. Weigh-in must be after registration start date
       if (weighInDate <= regStart) {
-        errors.weighInDateTime = 'Weigh-in must be after registration start date'
+        errors.weighInDateTime =
+          'Weigh-in must be after registration start date'
         isValid = false
       }
 
       // 6. Weigh-in must be before or on event start date
-      if (weighInDate > startDate) {
-        errors.weighInDateTime = 'Weigh-in must be before or on event start date'
+      // Compare dates only (not time) to allow weigh-in on the same day
+      const weighInDateOnly = new Date(
+        weighInDate.getFullYear(),
+        weighInDate.getMonth(),
+        weighInDate.getDate(),
+      )
+      const startDateOnly = new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        startDate.getDate(),
+      )
+
+      if (weighInDateOnly > startDateOnly) {
+        errors.weighInDateTime =
+          'Weigh-in must be before or on event start date'
         isValid = false
       }
     }
@@ -249,7 +266,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
         }))
       } else if (type === 'select-multiple') {
         const selectedOptions = Array.from(eOrName.target.selectedOptions).map(
-          (option) => option.value
+          (option) => option.value,
         )
         setFormData((prevState) => ({
           ...prevState,
@@ -286,7 +303,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
         enqueueSnackbar(
           'Please fix date validation errors: ' +
             Object.values(errors).join(', '),
-          { variant: 'error' }
+          { variant: 'error' },
         )
         setSubmitting(false)
         return
@@ -303,7 +320,7 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
         typeof formData.sectioningBodyImage !== 'string'
       ) {
         formData.sectioningBodyImage = await uploadToS3(
-          formData.sectioningBodyImage
+          formData.sectioningBodyImage,
         )
       }
 
@@ -687,21 +704,27 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
               {/* Display selected file name */}
               {selectedFileNames.poster && (
-                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-sm flex items-center justify-between">
+                <div className='mt-2 p-2 bg-green-100 border border-green-300 rounded text-sm flex items-center justify-between'>
                   <div>
-                    <span className="text-green-700 font-medium">Selected: </span>
-                    <span className="text-green-800">{selectedFileNames.poster}</span>
+                    <span className='text-green-700 font-medium'>
+                      Selected:{' '}
+                    </span>
+                    <span className='text-green-800'>
+                      {selectedFileNames.poster}
+                    </span>
                   </div>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, poster: null }))
-                      setSelectedFileNames(prev => ({ ...prev, poster: '' }))
+                      setFormData((prev) => ({ ...prev, poster: null }))
+                      setSelectedFileNames((prev) => ({ ...prev, poster: '' }))
                       // Reset the input
                       document.getElementById('posterUpload').value = ''
                     }}
-                    className="text-red-600 hover:text-red-800 font-medium text-xs"
-                    disabled={!formData.venue || !formData.promoter || submitting}
+                    className='text-red-600 hover:text-red-800 font-medium text-xs'
+                    disabled={
+                      !formData.venue || !formData.promoter || submitting
+                    }
                   >
                     Remove
                   </button>
@@ -949,7 +972,10 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
           <div className='grid grid-cols-1 md:grid-cols-5 gap-4'>
             {/* Rules Info URL */}
-            <div className='bg-[#00000061] p-2 rounded' style={{ minHeight: selectedFileNames.rules ? 'auto' : '4rem' }}>
+            <div
+              className='bg-[#00000061] p-2 rounded'
+              style={{ minHeight: selectedFileNames.rules ? 'auto' : '4rem' }}
+            >
               <label className='block text-sm font-medium mb-1'>
                 Upload Rules Info File
               </label>
@@ -978,21 +1004,27 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
               {/* Display selected file name */}
               {selectedFileNames.rules && (
-                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-xs flex items-center justify-between">
+                <div className='mt-2 p-2 bg-green-100 border border-green-300 rounded text-xs flex items-center justify-between'>
                   <div>
-                    <span className="text-green-700 font-medium">Selected: </span>
-                    <span className="text-green-800">{selectedFileNames.rules}</span>
+                    <span className='text-green-700 font-medium'>
+                      Selected:{' '}
+                    </span>
+                    <span className='text-green-800'>
+                      {selectedFileNames.rules}
+                    </span>
                   </div>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, rules: null }))
-                      setSelectedFileNames(prev => ({ ...prev, rules: '' }))
+                      setFormData((prev) => ({ ...prev, rules: null }))
+                      setSelectedFileNames((prev) => ({ ...prev, rules: '' }))
                       // Reset the input
                       document.getElementById('rulesFile').value = ''
                     }}
-                    className="text-red-600 hover:text-red-800 font-medium text-xs"
-                    disabled={!formData.venue || !formData.promoter || submitting}
+                    className='text-red-600 hover:text-red-800 font-medium text-xs'
+                    disabled={
+                      !formData.venue || !formData.promoter || submitting
+                    }
                   >
                     Remove
                   </button>
@@ -1125,11 +1157,13 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
                     !formData.venue || !formData.promoter || submitting
                       ? 'bg-gray-400 text-white cursor-not-allowed'
                       : formData.sectioningBodyImage
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
                   }`}
                 >
-                  {formData.sectioningBodyImage ? 'Change Image' : 'Choose Image'}
+                  {formData.sectioningBodyImage
+                    ? 'Change Image'
+                    : 'Choose Image'}
                 </label>
                 <input
                   id='sectioningBodyImage'
@@ -1145,21 +1179,33 @@ export const AddEventForm = ({ setShowAddEvent, redirectOrigin = '' }) => {
 
               {/* Display selected file name */}
               {selectedFileNames.sectioningBodyImage ? (
-                <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-xs flex items-center justify-between">
+                <div className='mt-2 p-2 bg-green-100 border border-green-300 rounded text-xs flex items-center justify-between'>
                   <div>
-                    <span className="text-green-700 font-medium">Selected: </span>
-                    <span className="text-green-800">{selectedFileNames.sectioningBodyImage}</span>
+                    <span className='text-green-700 font-medium'>
+                      Selected:{' '}
+                    </span>
+                    <span className='text-green-800'>
+                      {selectedFileNames.sectioningBodyImage}
+                    </span>
                   </div>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, sectioningBodyImage: null }))
-                      setSelectedFileNames(prev => ({ ...prev, sectioningBodyImage: '' }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        sectioningBodyImage: null,
+                      }))
+                      setSelectedFileNames((prev) => ({
+                        ...prev,
+                        sectioningBodyImage: '',
+                      }))
                       // Reset the input
                       document.getElementById('sectioningBodyImage').value = ''
                     }}
-                    className="text-red-600 hover:text-red-800 font-medium text-xs"
-                    disabled={!formData.venue || !formData.promoter || submitting}
+                    className='text-red-600 hover:text-red-800 font-medium text-xs'
+                    disabled={
+                      !formData.venue || !formData.promoter || submitting
+                    }
                   >
                     Remove
                   </button>
