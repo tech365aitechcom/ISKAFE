@@ -67,7 +67,7 @@ export default function EditEventPage() {
   const getVenues = async () => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/venues?page=1&limit=200`
+        `${API_BASE_URL}/venues?page=1&limit=200`,
       )
       console.log('Venues Response:', response.data)
       setVenues(response.data.data.items)
@@ -79,7 +79,7 @@ export default function EditEventPage() {
   const getPromoters = async () => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/promoter?page=1&limit=200`
+        `${API_BASE_URL}/promoter?page=1&limit=200`,
       )
       console.log('Promoters Response:', response.data)
       setPromoters(response.data.data.items)
@@ -251,7 +251,7 @@ export default function EditEventPage() {
         'RegStart:',
         regStart,
         'RegDeadline:',
-        regDeadline
+        regDeadline,
       )
 
       // Backend validation rules:
@@ -284,13 +284,27 @@ export default function EditEventPage() {
 
       // 5. Weigh-in must be after registration start date
       if (weighInDate <= regStart) {
-        errors.weighInDateTime = 'Weigh-in must be after registration start date'
+        errors.weighInDateTime =
+          'Weigh-in must be after registration start date'
         isValid = false
       }
 
       // 6. Weigh-in must be before or on event start date
-      if (weighInDate > startDate) {
-        errors.weighInDateTime = 'Weigh-in must be before or on event start date'
+      // Compare dates only (not time) to allow weigh-in on the same day
+      const weighInDateOnly = new Date(
+        weighInDate.getFullYear(),
+        weighInDate.getMonth(),
+        weighInDate.getDate(),
+      )
+      const startDateOnly = new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        startDate.getDate(),
+      )
+
+      if (weighInDateOnly > startDateOnly) {
+        errors.weighInDateTime =
+          'Weigh-in must be before or on event start date'
         isValid = false
       }
     }
@@ -319,7 +333,7 @@ export default function EditEventPage() {
       enqueueSnackbar(
         'Please fix date validation errors: ' +
           Object.values(errors).join(', '),
-        { variant: 'error' }
+        { variant: 'error' },
       )
       return false
     }
@@ -374,7 +388,7 @@ export default function EditEventPage() {
     if (validationErrors.length > 0) {
       enqueueSnackbar(
         'Please fix the following errors: ' + validationErrors.join(', '),
-        { variant: 'error' }
+        { variant: 'error' },
       )
       return false
     }
@@ -385,7 +399,7 @@ export default function EditEventPage() {
 
   const normalizeDateForServer = (date) =>
     new Date(
-      new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000
+      new Date(date).getTime() - new Date(date).getTimezoneOffset() * 60000,
     ).toISOString()
 
   const normalizeEventDates = (event) => ({
@@ -427,7 +441,7 @@ export default function EditEventPage() {
       if (selectedFiles.sectioningBodyImage) {
         console.log('Uploading sectioning body image...')
         updatedEvent.sectioningBodyImage = await uploadToS3(
-          selectedFiles.sectioningBodyImage
+          selectedFiles.sectioningBodyImage,
         )
       }
 
@@ -435,7 +449,7 @@ export default function EditEventPage() {
         console.log('Uploading license certificate...')
         if (!updatedEvent.promoter) updatedEvent.promoter = {}
         updatedEvent.promoter.licenseCertificate = await uploadToS3(
-          selectedFiles.licenseCertificate
+          selectedFiles.licenseCertificate,
         )
       }
 
@@ -456,10 +470,10 @@ export default function EditEventPage() {
         startDate: normalizeDateForServer(updatedEvent.startDate),
         endDate: normalizeDateForServer(updatedEvent.endDate),
         registrationStartDate: normalizeDateForServer(
-          updatedEvent.registrationStartDate
+          updatedEvent.registrationStartDate,
         ),
         registrationDeadline: normalizeDateForServer(
-          updatedEvent.registrationDeadline
+          updatedEvent.registrationDeadline,
         ),
         weighInDateTime: normalizeDateForServer(updatedEvent.weighInDateTime),
 
@@ -516,11 +530,11 @@ export default function EditEventPage() {
       console.log('- End Date:', normalizedEvent.endDate)
       console.log(
         '- Registration Start:',
-        normalizedEvent.registrationStartDate
+        normalizedEvent.registrationStartDate,
       )
       console.log(
         '- Registration Deadline:',
-        normalizedEvent.registrationDeadline
+        normalizedEvent.registrationDeadline,
       )
       console.log('Full Payload:', normalizedEvent)
 
@@ -545,7 +559,7 @@ export default function EditEventPage() {
         // Handle 500 errors with more detail
         if (response.status === 500) {
           throw new Error(
-            data.error || data.message || 'Internal server error occurred'
+            data.error || data.message || 'Internal server error occurred',
           )
         }
         throw new Error(data.message || 'Failed to update event')
@@ -586,7 +600,7 @@ export default function EditEventPage() {
 
     enqueueSnackbar(
       `${fieldName} selected. It will be uploaded when you save the event.`,
-      { variant: 'info' }
+      { variant: 'info' },
     )
   }
 
