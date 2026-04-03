@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Navbar from './_components/Navbar'
 import Footer from './_components/Footer'
 import useStore from '../../stores/useStore'
@@ -9,6 +10,7 @@ import { validateTokenOnLoad } from '../../utils/authUtils'
 const MainLayout = ({ children }) => {
   const { _hasHydrated, user, clearUser } = useStore()
   const [isValidating, setIsValidating] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const validateToken = async () => {
@@ -40,11 +42,14 @@ const MainLayout = ({ children }) => {
     )
   }
 
+  // Hide footer on signup page
+  const hideFooter = pathname === '/signup'
+
   return (
     <div className=''>
       <Navbar />
       {children}
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   )
 }
