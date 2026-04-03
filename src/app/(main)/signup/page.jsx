@@ -429,7 +429,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-transparent px-12 md:px-28 py-20 md:py-6">
+    <div className="flex h-screen w-full bg-transparent px-12 md:px-28 pb-20 md:py-6">
       <div className="flex w-full">
         <div className="hidden md:flex md:w-1/2 bg-gradient-to-b from-purple-900 to-black items-center justify-center">
           <div className="p-12">

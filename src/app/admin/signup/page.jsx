@@ -473,9 +473,18 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-transparent  md:px-28 py-20 md:py-6">
+    <div className="flex h-screen w-full bg-transparent px-12 md:px-28 pt-6 pb-20 md:py-6">
       <div className="flex w-full">
-        <div className="w-full flex md:items-center justify-center p-0 md:p-8">
+        <div className="hidden md:flex md:w-1/2 bg-gradient-to-b from-purple-900 to-black items-center justify-center">
+          <div className="p-12">
+            <img
+              src="/gloves.png"
+              alt="Red boxing glove"
+              className="max-w-full h-auto transform -rotate-12"
+            />
+          </div>
+        </div>
+        <div className="w-full md:w-1/2 flex md:items-center justify-center p-0 md:p-8">
           <div className="w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-3xl font-bold text-white">Sign Up</h1>
