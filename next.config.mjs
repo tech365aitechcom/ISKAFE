@@ -2,6 +2,7 @@ import { withSentryConfig } from '@sentry/nextjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   images: {
     remotePatterns: [
       {
@@ -34,11 +35,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'ikf-assets.s3.amazonaws.com',
+        hostname: '**.s3.amazonaws.com',
       },
       {
         protocol: 'https',
-        hostname: 'ikfgames.s3.ap-south-1.amazonaws.com',
+        hostname: '**.s3.ap-south-1.amazonaws.com',
       },
       {
         protocol: 'https',

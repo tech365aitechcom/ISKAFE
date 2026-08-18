@@ -23,7 +23,7 @@ const Navbar = () => {
     const fetchNavbarConfig = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/home-config/navbar`);
-        setData(response.data.data);
+        setData(response.data?.data || {});
       } catch (err) {
         console.error(err);
       } finally {
@@ -33,6 +33,7 @@ const Navbar = () => {
     fetchNavbarConfig();
   }, []);
 
+  const logoSrc = data?.logo || "/logo.png";
   const filteredMenuItems = (data?.menuItems || [])
     .filter((item) => {
       if (!item.status) return false;
@@ -95,17 +96,19 @@ const Navbar = () => {
       <Link href="/" className="flex">
         <div className="hidden lg:block relative w-30 h-30">
           <Image
-            src={data.logo}
+            src={logoSrc}
             alt="Global Sports Federation Logo"
-            layout="fill"
+            fill
+            sizes="120px"
             className="rounded-full"
           />
         </div>
         <div className="md:hidden relative w-18 h-18">
           <Image
-            src={data.logo}
+            src={logoSrc}
             alt="Global Sports Federation Logo"
-            layout="fill"
+            fill
+            sizes="72px"
             className="rounded-full"
           />
         </div>

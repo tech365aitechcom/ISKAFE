@@ -1,9 +1,31 @@
-version: "2"
 services:
   ISKAFE:
     image: iskafe:latest
-    build: ./
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_SQUARE_APP_ID: ${NEXT_PUBLIC_SQUARE_APP_ID}
+        NEXT_PUBLIC_SQUARE_LOCATION_ID: ${NEXT_PUBLIC_SQUARE_LOCATION_ID}
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 5001
     ports:
-      - 5001:5001
-    restart: always
+      - "127.0.0.1:5001:5001"
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    pids_limit: 200
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: journald
+      options:
+        tag: "{{.Name}}"
     container_name: ISKAFE

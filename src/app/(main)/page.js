@@ -24,16 +24,16 @@ export default function Home() {
     const fetchHomeSettings = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/home-config`)
-        const resData = response.data.data
+        const resData = response.data?.data || {}
         console.log('Fetched home config:', resData)
 
-        setData(resData || {})
-        setLatestNews(resData.latestNews || resData?.latestNews || null)
+        setData(resData)
+        setLatestNews(resData.latestNews || null)
         setEvents(
           Array.isArray(resData.upcomingEvents) ? resData.upcomingEvents : []
         )
         setLatestMedia(
-          Array.isArray(resData?.latestMedia) ? resData.latestMedia : []
+          Array.isArray(resData.latestMedia) ? resData.latestMedia : []
         )
         setTopFighters(
           Array.isArray(resData.topFighters) ? resData.topFighters : []

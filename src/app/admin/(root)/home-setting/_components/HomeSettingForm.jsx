@@ -102,12 +102,12 @@ export const HomeSettingsForm = () => {
           latestMedia: data.latestMedia || [],
           menuItems: data.menuItems || [],
           cta: data.cta || { text: '', link: '' },
-          latestNews: data.latestNews._id || '',
+          latestNews: data.latestNews?._id || '',
           upcomingEvents: data.upcomingEvents || [],
           topFighters: data.topFighters || [],
           featuredResult: data.featuredResult?._id || '',
         })
-        setExistingId(data._id)
+        setExistingId(data._id || '')
 
         // Set previews for existing images
         setPreviews({

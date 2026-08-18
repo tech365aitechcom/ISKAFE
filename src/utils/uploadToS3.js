@@ -8,8 +8,29 @@ export const uploadToS3 = async (file) => {
   const formData = new FormData()
   formData.append('file', file)
 
+  let token = null
+  if (typeof window !== 'undefined') {
+    token = window.localStorage.getItem('_token')
+
+    if (!token) {
+      try {
+        const persistedStore = JSON.parse(
+          window.localStorage.getItem('user-storage') || '{}'
+        )
+        token = persistedStore?.state?.user?.token || null
+      } catch (_error) {
+        token = null
+      }
+    }
+  }
+
+  if (!token) throw new Error('Authentication is required for uploads.')
+
   const response = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     body: formData,
   })
 
